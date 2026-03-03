@@ -1,0 +1,1 @@
+# scroogy-agent-skills
