@@ -29,20 +29,23 @@
 ├── 10_rules/        # AI 행위 규칙 (절차, 코딩 컨벤션, 커밋 규칙 등)
 ├── 20_templates/    # 각종 템플릿 파일
 ├── 30_contract/     # API 명세, 연동 규약 등 소프트웨어 계약
+│   └── index.md     # 디렉토리 내 파일별 요약 목차 (AI 선택적 참조용)
 ├── 40_domain/       # 비즈니스 도메인 정보
+│   ├── index.md     # 디렉토리 내 파일별 요약 목차 (AI 선택적 참조용)
 │   ├── specs/       # 비즈니스 스펙
 │   ├── policies/    # 비즈니스 정책
 │   └── glossary.md  # 용어 사전
 ├── 50_adr/          # 의사결정 기록 (Architecture Decision Records)
 │   ├── active/
 │   └── superseded/
-└── 90_issues/       # 이슈 단위 작업
-    ├── active/      # issue-<번호>/ 디렉토리 단위로 관리
-    │   └── issue-<번호>/
-    │       ├── issue-<번호>-spec.md
-    │       ├── issue-<번호>-plan.md
-    │       └── issue-<번호>-summary.md
-    └── archive/     # 완료된 이슈 디렉토리 이관
+├── 90_issues/       # 이슈 단위 작업
+│   ├── active/      # issue-<번호>/ 디렉토리 단위로 관리
+│   │   └── issue-<번호>/
+│   │       ├── issue-<번호>-spec.md
+│   │       ├── issue-<번호>-plan.md
+│   │       └── issue-<번호>-summary.md
+│   └── archive/     # 완료된 이슈 디렉토리 이관
+└── 99_workspace/    # AI 작업 중 생성·사용하는 임시 파일 작업공간
 ```
 
 **디렉토리 우선순위:**
@@ -57,6 +60,15 @@
 | `50_adr/` | 4순위 | 과거 의사결정 기록 및 근거 |
 | `20_templates/` | - | 필요 시 참조하는 템플릿 |
 | `90_issues/` | - | 현재 이슈 작업 문서 |
+| `99_workspace/` | - | AI 작업 중 생성·사용하는 임시 파일 작업공간 |
+
+## Git 정책
+
+| 파일 | 설명 |
+|------|------|
+| `.ai/10_rules/git-commit-policy.md` | 커밋 메시지 규칙 |
+| `.ai/10_rules/git-pr-policy.md` | PR 생성 규칙 |
+| `.ai/10_rules/git-review-policy.md` | PR 리뷰 및 셀프 리뷰 체크리스트 |
 
 ## 이슈 작업 워크플로우
 

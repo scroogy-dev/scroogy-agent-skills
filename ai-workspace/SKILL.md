@@ -56,6 +56,8 @@ cp -r "$SKILL_DIR/templates/shared/.ai/" .ai/
 cp "$SKILL_DIR/templates/$PROFILE/.ai/AI-CONTEXT.md" .ai/AI-CONTEXT.md
 ```
 
+빈 디렉토리에는 `.gitkeep` 파일이 포함되어 있습니다 (templates에서 복사됨).
+
 ### init-2단계: 완료 보고
 
 생성된 파일 목록을 트리 구조로 출력하고, 사용자에게 다음 안내를 제공합니다.
@@ -91,7 +93,7 @@ cp -r "$SKILL_DIR/templates/shared/.ai/20_templates/" .ai/20_templates/
 
 #### 하위 디렉토리 구조 생성
 
-정의된 하위 디렉토리가 없으면 생성합니다.
+정의된 하위 디렉토리가 없으면 생성합니다. 새로 생성한 빈 디렉토리에는 `.gitkeep` 파일을 함께 생성합니다.
 
 | 디렉토리 | 생성할 하위 구조 |
 |---------|--------------|
