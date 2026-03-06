@@ -69,6 +69,7 @@
 | `.ai/10_rules/git-commit-policy.md` | 커밋 메시지 규칙 |
 | `.ai/10_rules/git-pr-policy.md` | PR 생성 규칙 |
 | `.ai/10_rules/git-review-policy.md` | PR 리뷰 및 셀프 리뷰 체크리스트 |
+| `.ai/10_rules/git-review-context-builder.md` | 리뷰 전 변경 사항 사전 분석 및 컨텍스트 정리 |
 
 ## 이슈 작업 워크플로우
 
