@@ -45,6 +45,22 @@
 - 엔트리 포인트 → 핵심 로직 → 외부 의존성(DB, 외부 API 등) 순서로 흐름을 정리합니다.
 - 변경된 파일이 흐름의 어느 지점에 위치하는지 명시합니다.
 - 흐름이 복잡한 경우 의사코드 또는 단계별 목록 형태로 표현합니다.
+- 호출 흐름은 디렉토리 트리 형태의 ASCII 다이어그램으로 시각화하여 가시성을 높입니다.
+  - 각 노드에 클래스명과 메서드명을 명시합니다(예: `ClassName#methodName`).
+  - 들여쓰기와 트리 기호(`├──`, `└──`)로 호출 계층을 표현합니다.
+  - 핵심 로직은 노드 옆에 `# 설명` 주석 형태로 간략히 기재합니다.
+
+호출 흐름 ASCII 다이어그램 예시:
+
+```
+OrderController#createOrder
+├── OrderService#placeOrder          # 주문 생성 트랜잭션 관리
+│   ├── InventoryService#reserve     # 재고 차감 및 락 획득
+│   │   └── InventoryRepository#decreaseStock (DB)
+│   └── PaymentService#charge        # 결제 요청 및 실패 시 재고 롤백
+│       └── PaymentGatewayClient#requestPayment (외부 API)
+└── OrderEventPublisher#publish      # 주문 완료 이벤트 발행
+```
 
 ### 5단계: 리뷰 포인트 도출
 

@@ -79,16 +79,19 @@ PR에 포함된 이슈를 한눈에 파악할 수 있도록 상단에 목록으�
 리뷰어가 "이 코드가 어떻게 구현되었는가?"를 파악하고 소스 코드를 쉽게 추적할 수 있도록 작성한다.
 
 * **구현 요약:** 비즈니스 요구사항을 코드로 어떻게 풀어냈는지, 추가/변경/삭제된 핵심 로직 위주로 요약한다.
-* **호출 흐름:** 기능(엔트리 포인트)별로 나누어, 주요 컴포넌트 간의 실행 흐름을 텍스트 화살표(`->`)로 간략히 도식화한다. 하나의 이슈에 여러 기능이 있는 경우 기능별로 각각 작성한다.
-
-  ```
-  - [기능명]: [EntryPoint] -> [핵심 로직] -> [외부 의존성(DB, 외부 API 등)]
-  ```
+* **호출 흐름:** 기능(엔트리 포인트)별로 나누어, 주요 컴포넌트 간의 실행 흐름을 디렉토리 트리 형태의 ASCII 다이어그램으로 도식화한다. 각 노드에 클래스명과 메서드명을 명시하고(`ClassName#methodName`), 들여쓰기와 트리 기호(`├──`, `└──`)로 호출 계층을 표현한다. 핵심 로직은 노드 옆에 `# 설명` 주석 형태로 간략히 기재한다. 하나의 이슈에 여러 기능이 있는 경우 기능별로 각각 작성한다.
 
   *(예)*
   ```
-  - 주문 생성: OrderController.create() -> OrderValidator.validate() -> OrderService.process() -> OrderRepository.save()
-  - 재고 차감: OrderService.process() -> InventoryService.decrease() -> InventoryRepository.update()
+  - 주문 생성:
+    OrderController#create
+    ├── OrderValidator#validate        # 필수 필드 및 재고 가용성 검증
+    └── OrderService#process           # 주문 생성 트랜잭션 관리
+        ├── InventoryService#decrease  # 재고 차감 및 락 획득
+        │   └── InventoryRepository#update (DB)
+        ├── PaymentService#charge      # 결제 요청 및 실패 시 재고 롤백
+        │   └── PgClient#requestPayment (외부 API)
+        └── OrderRepository#save (DB)
   ```
 
 * **참고사항:** 구현 시 참고한 아키텍처 결정 기록(ADR), DB 스키마 변경 사항, 사내 가이드, 또는 보안/성능 측면의 특이사항을 명시한다.
