@@ -11,6 +11,12 @@
 
 ---
 
+## AI가 작업 시 지켜야 할 원칙
+
+<!-- 이 프로젝트에서 AI가 따라야 할 규칙이나 제약을 정의하세요. -->
+
+---
+
 ## 기술 스택
 
 <!-- 사용하는 언어, 프레임워크, 주요 라이브러리를 나열하세요. -->
@@ -40,68 +46,35 @@
 
 ## .ai 디렉토리 구조
 
-```
-.ai/
-├── 10_rules/        # AI 행위 규칙 (절차, 코딩 컨벤션, 커밋 규칙 등)
-├── 20_templates/    # 각종 템플릿 파일
-├── 30_contract/     # API 명세, 연동 규약 등 소프트웨어 계약
-│   └── index.md     # 디렉토리 내 파일별 요약 목차 (AI 선택적 참조용)
-├── 40_domain/       # 비즈니스 도메인 정보
-│   ├── index.md     # 디렉토리 내 파일별 요약 목차 (AI 선택적 참조용)
-│   ├── specs/       # 비즈니스 스펙
-│   ├── policies/    # 비즈니스 정책
-│   └── glossary.md  # 용어 사전
-├── 50_adr/          # 의사결정 기록 (Architecture Decision Records)
-│   ├── active/
-│   └── superseded/
-├── 90_issues/       # 이슈 단위 작업
-│   ├── active/      # issue-<번호>/ 디렉토리 단위로 관리
-│   │   └── issue-<번호>/
-│   │       ├── issue-<번호>-spec.md
-│   │       ├── issue-<번호>-plan.md
-│   │       └── issue-<번호>-summary.md
-│   └── archive/     # 완료된 이슈 디렉토리 이관
-└── 99_workspace/    # AI 작업 중 생성·사용하는 임시 파일 작업공간
-```
-
-**디렉토리 우선순위:**
 디렉토리명 앞의 숫자는 AI가 문서를 읽는 우선순위를 나타냅니다.
 숫자가 낮을수록 먼저 읽어야 하며, 상위 우선순위 문서가 하위 우선순위 문서보다 우선합니다.
 
-| 디렉토리 | 우선순위 | 설명 |
-|---------|---------|------|
-| `10_rules/` | 1순위 | 모든 작업에 앞서 반드시 숙지해야 할 행위 규칙 |
-| `30_contract/` | 2순위 | 절대 위반하면 안 되는 소프트웨어 계약 |
-| `40_domain/` | 3순위 | 작업 맥락 이해를 위한 비즈니스 도메인 지식 |
-| `50_adr/` | 4순위 | 과거 의사결정 기록 및 근거 |
-| `20_templates/` | - | 필요 시 참조하는 템플릿 |
-| `90_issues/` | - | 현재 이슈 작업 문서 |
-| `99_workspace/` | - | AI 작업 중 생성·사용하는 임시 파일 작업공간 |
+```
+.ai/
+├── 10_rules/        # [1순위] AI 행위 규칙
+├── 20_templates/    # 필요 시 참조하는 템플릿
+├── 30_contract/     # [2순위] 소프트웨어 계약 (index.md로 선택적 참조)
+├── 40_domain/       # [3순위] 비즈니스 도메인 (index.md로 선택적 참조)
+├── 50_adr/          # [4순위] 의사결정 기록 (index.md로 선택적 참조)
+├── 90_issues/       # 이슈 단위 작업 (active/ + archive/)
+└── 99_workspace/    # AI 임시 작업공간
+```
 
-## Git 정책
+## 프로젝트 규칙
 
 | 파일 | 설명 |
 |------|------|
-| `.ai/10_rules/git-commit-policy.md` | 커밋 메시지 규칙 |
-| `.ai/10_rules/git-pr-policy.md` | PR 생성 규칙 |
-| `.ai/10_rules/git-review-policy.md` | PR 리뷰 및 셀프 리뷰 체크리스트 |
-| `.ai/10_rules/git-review-context-builder.md` | 리뷰 전 변경 사항 사전 분석 및 컨텍스트 정리 |
+| `.ai/10_rules/architecture.md` | 프로젝트 아키텍처 방향 |
+
+## Git 정책
+
+| 파일 | 설명 | 참조 시점 |
+|------|------|---------|
+| `.ai/10_rules/git-commit-policy.md` | 커밋 메시지 규칙 | 커밋 생성 시 |
+| `.ai/10_rules/git-pr-policy.md` | PR 생성 규칙 | PR 생성 시 |
+| `.ai/10_rules/git-review-context-builder.md` | 리뷰 시작 전 변경 사항 사전 분석 절차 | 사용자 요청 시 |
+| `.ai/10_rules/git-review-policy.md` | 리뷰 수행 절차 및 체크리스트 | 리뷰 수행 시 |
 
 ## 이슈 작업 워크플로우
 
-이슈 작업 시 `.ai/90_issues/active/issue-<번호>/` 아래 3개 파일을 작성합니다.
-자세한 운영 규칙은 `.ai/10_rules/issue-workflow.md`를 참고하세요.
-
-| 파일 | 역할 | 생명주기 |
-|------|------|---------|
-| `issue-<번호>-spec.md` | 목표, 범위, DoD, 연관 문서 | 안정 — 작성 후 거의 변경 없음 |
-| `issue-<번호>-plan.md` | 실행 Task 목록 + 체크박스 | 가변 — 실행 결과에 따라 Task 추가·수정·삭제 가능 |
-| `issue-<번호>-summary.md` | 다음 작업, Task별 수행 결과 | 누적 — Task 완료 시마다 갱신 |
-
-템플릿은 `.ai/20_templates/` 아래에 보관합니다.
-
----
-
-## AI가 작업 시 지켜야 할 원칙
-
-<!-- 이 프로젝트에서 AI가 따라야 할 규칙이나 제약을 정의하세요. -->
+`.ai/10_rules/issue-workflow.md`를 참고하세요.
