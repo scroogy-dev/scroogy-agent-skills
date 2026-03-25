@@ -27,13 +27,16 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 .
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
-│   ├── SKILL.md                # 스킬 정의 및 실행 절차
+│   ├── SKILL.md
 │   └── templates/              # 프로파일별 템플릿
-│       ├── shared/.ai/         # 공통 파일 (10_rules, 20_templates 등)
-│       ├── dev/.ai/            # 개발 프로젝트용 AI-CONTEXT.md
-│       └── doc/.ai/            # 문서 프로젝트용 AI-CONTEXT.md
+├── git-commit/                 # 커밋 메시지 작성 스킬
+├── git-pr/                     # PR 제목/메시지 작성 스킬
+├── git-review/                 # 리뷰 수행 스킬
+├── git-review-context/         # 리뷰 전 사전 분석 스킬
+├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
+│   └── templates/              # 이슈 템플릿
+├── install-skills/             # skill 선택 설치 스킬
 ├── sync-readme/                # README.md 생성/갱신 스킬
-│   └── SKILL.md
 └── README.md
 ```
 
@@ -41,10 +44,15 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 
 ## 스킬 목록
 
-| 스킬 | 설명 | 상태 |
-|------|------|------|
-| `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) | 개발 중 |
-| `sync-readme` | 프로젝트를 분석하여 README.md 생성 또는 최신화 | 개발 중 |
+| 스킬 | 설명 |
+|------|------|
+| `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) |
+| `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
+| `git-pr` | PR 제목/메시지 작성 (비즈니스+기술 관점) |
+| `git-review` | 비즈니스/테크 리뷰 수행 |
+| `git-review-context` | 리뷰 전 변경사항 사전 분석 |
+| `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
+| `sync-readme` | 프로젝트를 분석하여 README.md 생성 또는 최신화 |
 
 ---
 
@@ -97,13 +105,15 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 ## Git 정책
 
-| 파일 | 설명 | 참조 시점 |
-|------|------|---------|
-| `.ai/10_rules/git-commit-policy.md` | 커밋 메시지 규칙 | 커밋 생성 시 |
-| `.ai/10_rules/git-pr-policy.md` | PR 생성 규칙 | PR 생성 시 |
-| `.ai/10_rules/git-review-context-builder.md` | 리뷰 시작 전 변경 사항 사전 분석 절차 | 사용자 요청 시 |
-| `.ai/10_rules/git-review-policy.md` | 리뷰 수행 절차 및 체크리스트 | 리뷰 수행 시 |
+아래 skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.
+
+| Skill | 설명 | 사용 시점 |
+|-------|------|----------|
+| `/git-commit` | 커밋 메시지 규칙 | 커밋 생성 시 |
+| `/git-pr` | PR 생성 규칙 | PR 생성 시 |
+| `/git-review-context` | 리뷰 전 변경사항 사전 분석 | 리뷰 시작 전 |
+| `/git-review` | 리뷰 수행 절차 | 리뷰 수행 시 |
 
 ## 이슈 작업 워크플로우
 
-`.ai/10_rules/issue-workflow.md`를 참고하세요.
+`/issue-work` skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.

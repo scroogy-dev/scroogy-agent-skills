@@ -52,13 +52,15 @@
 
 ## Git 정책
 
-| 파일 | 설명 | 참조 시점 |
-|------|------|---------|
-| `.ai/10_rules/git-commit-policy.md` | 커밋 메시지 규칙 | 커밋 생성 시 |
-| `.ai/10_rules/git-pr-policy.md` | PR 생성 규칙 | PR 생성 시 |
-| `.ai/10_rules/git-review-context-builder.md` | 리뷰 시작 전 변경 사항 사전 분석 절차 | 사용자 요청 시 |
-| `.ai/10_rules/git-review-policy.md` | 리뷰 수행 절차 및 체크리스트 | 리뷰 수행 시 |
+아래 skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.
+
+| Skill | 설명 | 사용 시점 |
+|-------|------|----------|
+| `/git-commit` | 커밋 메시지 규칙 | 커밋 생성 시 |
+| `/git-pr` | PR 생성 규칙 | PR 생성 시 |
+| `/git-review-context` | 리뷰 전 변경사항 사전 분석 | 리뷰 시작 전 |
+| `/git-review` | 리뷰 수행 절차 | 리뷰 수행 시 |
 
 ## 이슈 작업 워크플로우
 
-`.ai/10_rules/issue-workflow.md`를 참고하세요.
+`/issue-work` skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.

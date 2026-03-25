@@ -1,8 +1,19 @@
-# 커밋 메시지 규칙
+---
+name: git-commit
+description: Conventional Commits 1.0.0 규칙에 따라 커밋 메시지를 작성합니다. 커밋, commit, 커밋 메시지 작성 시 사용합니다.
+---
 
-[Conventional Commits 1.0.0](https://www.conventionalcommits.org/ko/v1.0.0/) 스펙을 따릅니다.
+## 개요
 
-## 포맷
+[Conventional Commits 1.0.0](https://www.conventionalcommits.org/ko/v1.0.0/) 스펙에 따라 커밋 메시지를 작성합니다.
+
+## 관련 skill
+
+- ai-workspace (권장): `.ai/` 구조가 이미 존재하면 해당 구조를 따릅니다.
+
+---
+
+## 커밋 메시지 포맷
 
 ```
 <타입>[적용 범위(선택)]: <설명> [(#이슈번호)(선택)]

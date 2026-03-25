@@ -1,7 +1,18 @@
-# Git 리뷰 컨텍스트 빌더
+---
+name: git-review-context
+description: 리뷰 전 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 정리합니다. 리뷰 컨텍스트, review context, 리뷰 준비 시 사용합니다.
+---
 
-> 목적: 사람(PR 리뷰어 또는 작성자 본인)이 리뷰할 때 병목을 줄이고 생산성을 높이기 위해,
-> AI가 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 `.ai/99_workspace/temp_review_context.md`에 정리합니다.
+## 개요
+
+사람(PR 리뷰어 또는 작성자 본인)이 리뷰할 때 병목을 줄이고 생산성을 높이기 위해,
+AI가 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 `.ai/99_workspace/temp_review_context.md`에 정리합니다.
+
+## 관련 skill
+
+- git-review (권장): 컨텍스트 빌드 후 이어서 리뷰를 진행할 수 있습니다.
+- ai-workspace (권장): `.ai/99_workspace/` 경로에 결과를 기록합니다.
+  구조가 없으면 필요한 디렉토리를 직접 생성합니다.
 
 ---
 
@@ -97,4 +108,4 @@ OrderController#createOrder
 
 기록 완료 후 사용자에게 파일 위치를 안내합니다.
 
-이후 `git-review-policy.md` 절차로 이어서 리뷰를 진행할지는 사용자의 선택에 따릅니다.
+이후 `git-review` skill로 이어서 리뷰를 진행할지는 사용자의 선택에 따릅니다.

@@ -8,6 +8,14 @@ description: 프로젝트의 .ai 디렉토리 구조를 초기화하거나 최�
 현재 프로젝트 루트에 `.ai/` 디렉토리와 AI 협업을 위한 기본 구조를 생성하거나 갱신합니다.
 이 스킬 디렉토리의 `templates/` 아래 파일을 기준으로 구성합니다.
 
+## 이 구조와 함께 사용 가능한 skill
+
+- **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
+- **git-pr**: PR 제목/메시지 작성 (비즈니스+기술 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용)
+- **git-review**: 비즈니스/테크 리뷰 수행 (`.ai/30_contract/`, `.ai/40_domain/` 활용)
+- **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
+- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용)
+
 ## 사용법
 
 ```
@@ -63,7 +71,7 @@ cp "$SKILL_DIR/templates/$PROFILE/.ai/AI-CONTEXT.md" .ai/AI-CONTEXT.md
 생성된 파일 목록을 트리 구조로 출력하고, 사용자에게 다음 안내를 제공합니다.
 
 - `.ai/AI-CONTEXT.md`의 주석 처리된 섹션(`<!-- ... -->`)을 프로젝트에 맞게 채워주세요.
-- 이슈 작업 시 `.ai/10_rules/issue-workflow.md`를 참고하세요.
+- 이슈 작업 시 `issue-work` skill(`/issue-work`)을 사용하세요.
 
 ---
 
@@ -71,20 +79,26 @@ cp "$SKILL_DIR/templates/$PROFILE/.ai/AI-CONTEXT.md" .ai/AI-CONTEXT.md
 
 기존 `.ai/` 내용을 최대한 보존하면서 최신 구조로 맞춥니다.
 
-### update-1단계: 10_rules/ 갱신
+### update-1단계: 10_rules/ 정리
 
-스킬이 관리하는 디렉토리이므로 항상 스킬의 최신 파일로 덮어씁니다.
+이전 버전에서 설치된 파일 중 개별 skill로 분리된 파일을 제거합니다.
+사용자가 작성한 파일(`architecture.md` 등)은 그대로 유지합니다.
 
 ```bash
-cp -r "$SKILL_DIR/templates/shared/.ai/10_rules/" .ai/10_rules/
+# skill로 분리되어 더 이상 10_rules에 포함되지 않는 파일 제거
+rm -f .ai/10_rules/git-commit-policy.md
+rm -f .ai/10_rules/git-pr-policy.md
+rm -f .ai/10_rules/git-review-policy.md
+rm -f .ai/10_rules/git-review-context-builder.md
+rm -f .ai/10_rules/issue-workflow.md
 ```
 
-### update-2단계: 20_templates/ 갱신
+### update-2단계: 20_templates/ 정리
 
-스킬이 관리하는 디렉토리이므로 항상 스킬의 최신 파일로 덮어씁니다.
+이전 버전에서 설치된 템플릿 파일(issue-work skill로 이관된 `issue-*-template.md` 등)을 제거합니다.
 
 ```bash
-cp -r "$SKILL_DIR/templates/shared/.ai/20_templates/" .ai/20_templates/
+rm -rf .ai/20_templates/*
 ```
 
 ### update-3단계: 콘텐츠 디렉토리 구조 정비

@@ -1,7 +1,17 @@
-# Git 리뷰 정책
+---
+name: git-review
+description: PR 리뷰 또는 Self 리뷰를 비즈니스 리뷰와 테크 리뷰 두 단계로 수행합니다. 코드 리뷰, PR 리뷰, self review 시 사용합니다.
+---
+
+## 개요
 
 PR 리뷰와 Self 리뷰 모두 **비즈니스 리뷰**와 **테크 리뷰** 두 단계로 진행합니다.
 리뷰 결과는 `.ai/99_workspace/temp_review_result.md`에 비즈니스 리뷰 섹션과 테크 리뷰 섹션으로 나누어 기록합니다.
+
+## 관련 skill
+
+- git-review-context (권장): 리뷰 시작 전 변경 사항을 사전 분석하여 리뷰 컨텍스트를 빌드합니다.
+- ai-workspace (권장): `.ai/30_contract/`, `.ai/40_domain/` 경로의 문서를 비즈니스 리뷰에 참조합니다.
 
 ---
 
