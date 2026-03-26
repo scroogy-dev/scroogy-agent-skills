@@ -1,6 +1,6 @@
 ---
 name: issue-work
-description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하는 워크플로우입니다. 이슈 작업, issue, 이슈 시작, 이슈 완료 시 사용합니다.
+description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하는 워크플로우입니다. 이슈 작업, issue, 이슈 시작, 이슈 완료, 워크플로우 복구(--workflow-only) 시 사용합니다.
 ---
 
 ## 개요
@@ -19,6 +19,7 @@ description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하�
 ```
 .ai/90_issues/
 ├── active/     ← 현재 진행 중인 이슈 디렉토리 (항상 읽음)
+│   ├── issue-workflow.md         ← 작업 절차 가이드 (컨텍스트 초기화 후에도 절차 유지)
 │   └── issue-<번호>/
 │       ├── issue-<번호>-spec.md      ← 목표, 범위, 완료의 정의, 연관 문서
 │       ├── issue-<번호>-plan.md      ← 실행 Task 목록 + 완료 체크박스
@@ -36,13 +37,15 @@ description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하�
 ## 새 이슈 시작 시
 
 1. `active/` 안에 있는 기존 이슈 디렉토리를 모두 `archive/`로 이동한다.
-2. `active/issue-<번호>/` 디렉토리를 생성하고 이 skill 디렉토리의 `templates/`를 참조하여 3개 파일을 생성한다.
+2. `active/issue-workflow.md`가 없으면 `templates/issue-workflow-template.md`를 참조하여 생성한다.
+3. `active/issue-<번호>/` 디렉토리를 생성하고 이 skill 디렉토리의 `templates/`를 참조하여 3개 파일을 생성한다.
 
-| 파일명 | 참조 템플릿 | 역할 | 생명주기 |
-|--------|------------|------|---------|
-| `issue-<번호>-spec.md` | `issue-spec-template.md` | 목표, 범위, DoD, 연관 문서 | 안정 — 작성 후 거의 변경 없음 |
-| `issue-<번호>-plan.md` | `issue-plan-template.md` | 실행 Task 목록 + 체크박스 | 가변 — Task 완료 시 체크, 실행 결과에 따라 Task 추가·수정·삭제 가능 |
-| `issue-<번호>-summary.md` | `issue-summary-template.md` | 다음 작업, Task별 수행 결과 | 누적 — Task 완료 시마다 갱신 |
+| 파일명                       | 참조 템플릿                      | 역할                        | 생명주기                                                          |
+|------------------------------|----------------------------------|-----------------------------|-------------------------------------------------------------------|
+| `active/issue-workflow.md`   | `issue-workflow-template.md`     | 작업 절차 가이드             | 고정 — 최초 1회 생성, 이슈와 무관하게 유지                          |
+| `issue-<번호>-spec.md`      | `issue-spec-template.md`         | 목표, 범위, DoD, 연관 문서   | 안정 — 작성 후 거의 변경 없음                                      |
+| `issue-<번호>-plan.md`      | `issue-plan-template.md`         | 실행 Task 목록 + 체크박스    | 가변 — Task 완료 시 체크, 실행 결과에 따라 Task 추가·수정·삭제 가능   |
+| `issue-<번호>-summary.md`   | `issue-summary-template.md`      | 다음 작업, Task별 수행 결과   | 누적 — Task 완료 시마다 갱신                                       |
 
 ---
 
@@ -58,3 +61,14 @@ description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하�
 1. `issue-<번호>-plan.md`의 모든 Task 체크박스가 체크되었는지 확인한다.
 2. `issue-<번호>-summary.md` 상단의 다음 작업을 `✅ 모든 작업이 완료되었습니다.`로 업데이트한다.
 3. `issue-<번호>/` 디렉토리를 `active/`에서 `archive/`로 디렉토리 단위로 이동한다.
+
+---
+
+## 옵션
+
+### `--workflow-only`
+
+`active/issue-workflow.md`만 생성한다. 이슈 파일은 생성하지 않는다.
+
+- **용도**: 컨텍스트가 초기화된 후 작업 절차만 복구하고 싶을 때 사용한다.
+- **동작**: `active/issue-workflow.md`가 이미 존재하면 덮어쓴다.
