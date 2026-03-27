@@ -10,7 +10,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 |-------|------|
 | [ai-workspace](./ai-workspace/) | `.ai/` 디렉토리 구조 초기화 및 갱신 (dev/doc 프로파일) |
 | [git-commit](./git-commit/) | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
-| [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+기술 관점) |
+| [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+테크 관점) |
 | [git-review](./git-review/) | 비즈니스/테크 리뷰 수행 |
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
 | [issue-work](./issue-work/) | 이슈 단위 스펙/계획/요약 관리 워크플로우 |

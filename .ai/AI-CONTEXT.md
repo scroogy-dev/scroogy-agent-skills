@@ -48,7 +48,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 |------|------|
 | `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
-| `git-pr` | PR 제목/메시지 작성 (비즈니스+기술 관점) |
+| `git-pr` | PR 제목/메시지 작성 (비즈니스+테크 관점) |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
