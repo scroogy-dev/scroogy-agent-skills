@@ -10,7 +10,7 @@ PR 리뷰와 Self 리뷰 모두 **비즈니스 리뷰**와 **테크 리뷰** 두
 
 ## 관련 skill
 
-- git-review-context (권장): 리뷰 시작 전 변경 사항을 사전 분석하여 리뷰 컨텍스트를 빌드합니다.
+- git-review-context (선택): 사용자가 별도로 요청한 경우에만 실행합니다. git-review가 자동으로 호출하지 않습니다.
 - ai-workspace (권장): `.ai/30_contract/`, `.ai/40_domain/` 경로의 문서를 비즈니스 리뷰에 참조합니다.
 
 ---
