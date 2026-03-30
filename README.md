@@ -20,15 +20,16 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 
 ```
 ai-workspace (디렉토리 스캐폴딩)
-├── git-commit        ← 독립 사용 가능
-├── git-pr            ← git-commit 규칙 참조, .ai/ 문서 활용
-├── git-review        ← git-review-context와 연계, .ai/ 문서 활용
-│   └── git-review-context
-├── issue-work        ← .ai/90_issues/ 활용
-└── sync-readme       ← 독립 사용 가능
+├── git-commit          ← 독립 사용 가능
+├── git-pr              ← git-commit 규칙 참조, .ai/ 문서 활용
+├── git-review          ← .ai/ 문서 활용
+├── git-review-context  ← .ai/ 문서 활용, git-review와 함께 사용 가능
+├── issue-work          ← .ai/90_issues/ 활용
+└── sync-readme         ← 독립 사용 가능
 ```
 
-모든 관계는 **권장(약한 의존)**입니다. 각 skill은 단독으로도 사용할 수 있습니다.
+모든 관계는 **권장(약한 의존)**이며, 각 skill은 단독으로도 사용할 수 있습니다.
+`git-review`와 `git-review-context`는 함께 쓸 수 있지만 호출 의존 관계는 없습니다.
 
 ## 설치 방법
 
