@@ -39,7 +39,10 @@
 ├── 20_templates/    # 필요 시 참조하는 템플릿
 ├── 30_contract/     # [2순위] 소프트웨어 계약 (index.md로 선택적 참조)
 ├── 40_domain/       # [3순위] 비즈니스 도메인 (index.md로 선택적 참조)
+│   ├── policies/    # common/ (공통 정책, 동기화 대상) + local/ (이 repo 고유 정책)
+│   └── specs/       # 기능 명세
 ├── 50_adr/          # [4순위] 의사결정 기록 (index.md로 선택적 참조)
+├── 60_codebase/     # [5순위] 소스코드 엔트리포인트·호출 흐름 색인 (index.md로 선택적 참조)
 ├── 90_issues/       # 이슈 단위 작업 (active/ + archive/)
 └── 99_workspace/    # AI 임시 작업공간
 ```

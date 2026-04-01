@@ -103,7 +103,7 @@ rm -rf .ai/20_templates/*
 
 ### update-3단계: 콘텐츠 디렉토리 구조 정비
 
-`30_contract/`, `40_domain/`, `50_adr/`, `90_issues/` 각각에 대해 아래를 수행합니다.
+`30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`, `90_issues/` 각각에 대해 아래를 수행합니다.
 
 #### 하위 디렉토리 구조 생성
 
@@ -112,8 +112,9 @@ rm -rf .ai/20_templates/*
 | 디렉토리 | 생성할 하위 구조 |
 |---------|--------------|
 | `30_contract/` | (하위 디렉토리 없음) |
-| `40_domain/` | `specs/`, `policies/` |
+| `40_domain/` | `specs/`, `policies/common/`, `policies/local/` |
 | `50_adr/` | `active/`, `superseded/` |
+| `60_codebase/` | (하위 디렉토리 없음) |
 | `90_issues/` | `active/`, `archive/` |
 
 #### 기존 파일 정리
@@ -124,7 +125,8 @@ rm -rf .ai/20_templates/*
 
 | 디렉토리 | 판단 기준 |
 |---------|---------|
-| `40_domain/` | 파일명·내용이 비즈니스 스펙이면 `specs/`, 정책이면 `policies/`로 이동 |
+| `40_domain/` | 파일명·내용이 기능 명세이면 `specs/`, 정책이면 `policies/local/`로 이동 |
+| `40_domain/policies/` | `policies/` 바로 아래에 파일이 있으면 `policies/local/`로 이동 |
 | `50_adr/` | `superseded`, `deprecated`, `replaced` 등의 키워드가 있으면 `superseded/`, 아니면 `active/`로 이동 |
 | `90_issues/` | 모든 Task 체크박스가 완료되었거나 완료 표시가 있으면 `archive/`, 아니면 `active/`로 이동 |
 
