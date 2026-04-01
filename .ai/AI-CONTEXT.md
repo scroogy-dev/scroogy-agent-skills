@@ -27,7 +27,6 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 .
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
-│   ├── SKILL.md
 │   └── templates/              # 프로파일별 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
 ├── git-pr/                     # PR 제목/메시지 작성 스킬
