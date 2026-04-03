@@ -55,5 +55,5 @@ ai-workspace (디렉토리 스캐폴딩)
 이 프로젝트는 **scroogy-dev**의 개인 저작물입니다. 특정 기업이나 조직의 업무와 무관하게, 개인적인 목적으로 개발 및 관리되고 있습니다.
 
 ```
-Copyright 2025 scroogy-dev (scroogy@swtest.co.kr)
+Copyright 2026 scroogy-dev (scroogy@swtest.co.kr)
 ```
