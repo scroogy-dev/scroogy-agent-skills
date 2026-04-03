@@ -12,6 +12,7 @@ description: 프로젝트의 .ai 디렉토리 구조를 초기화하거나 최�
 
 - **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
 - **git-pr**: PR 제목/메시지 작성 (비즈니스+테크 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용)
+- **git-qa**: 배포 대상 PR에서 repo별 QA 체크리스트 생성 (`.ai/99_workspace/` 활용)
 - **git-review**: 비즈니스/테크 리뷰 수행 (`.ai/30_contract/`, `.ai/40_domain/` 활용)
 - **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
 - **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용)

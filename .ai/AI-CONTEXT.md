@@ -30,6 +30,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 │   └── templates/              # 프로파일별 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
 ├── git-pr/                     # PR 제목/메시지 작성 스킬
+├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 ├── git-review/                 # 리뷰 수행 스킬
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
@@ -48,6 +49,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 | `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
 | `git-pr` | PR 제목/메시지 작성 (비즈니스+테크 관점) |
+| `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
