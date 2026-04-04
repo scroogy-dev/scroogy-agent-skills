@@ -17,6 +17,7 @@ description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/s
 | `--agents`        | `~/.agents/skills/`              |
 | `--antigravity`   | `~/.gemini/antigravity/skills/`  |
 | `--codex`         | `~/.codex/skills/`               |
+| `--junie`         | `~/.junie/skills/`               |
 | `--all`           | 모두                             |
 
 ---
@@ -39,7 +40,7 @@ description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/s
 
 ## 설치 절차
 
-1. 인자에서 `--claude`, `--agents` 옵션을 파싱합니다. 옵션이 없으면 기본값 `~/.claude/skills/`를 사용합니다.
+1. 인자에서 `--claude`, `--agents`, `--antigravity`, `--codex`, `--junie`, `--all` 옵션을 파싱합니다. 옵션이 없으면 기본값 `~/.claude/skills/`를 사용합니다.
 2. 사용자에게 번호 또는 skill명으로 설치할 skill을 선택받습니다.
 3. 대상 디렉토리가 없으면 생성합니다.
 4. 선택한 skill이 이미 설치되어 있으면 기존 디렉토리를 삭제한 뒤 새로 복사합니다.
