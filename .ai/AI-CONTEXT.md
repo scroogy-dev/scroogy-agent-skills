@@ -33,6 +33,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 ├── git-review/                 # 리뷰 수행 스킬
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
+├── issue-audit/                # 이슈 감사 스킬
+│   └── templates/              # 감사 리포트 템플릿
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   └── templates/              # 이슈 템플릿
 ├── install-skills/             # skill 선택 설치 스킬
@@ -52,6 +54,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
+| `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | `sync-readme` | 프로젝트를 분석하여 README.md 생성 또는 최신화 |
 
@@ -120,4 +123,9 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 ## 이슈 작업 워크플로우
 
-`/issue-work` skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.
+아래 skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.
+
+| Skill | 설명 | 사용 시점 |
+|-------|------|----------|
+| `/issue-work` | 이슈 단위 스펙/계획/요약 관리 | 이슈 작업 시 |
+| `/issue-audit` | 이슈 스펙 대비 구현 독립 감사 | 구현 검증 시 |
