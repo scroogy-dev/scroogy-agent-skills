@@ -10,6 +10,7 @@ description: 프로젝트의 .ai 디렉토리 구조를 초기화하거나 최�
 
 ## 이 구조와 함께 사용 가능한 skill
 
+- **code-map**: 소스코드 기능별 엔트리포인트·호출 흐름 색인 (`.ai/60_codebase/` 활용)
 - **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
 - **git-pr**: PR 제목/메시지 작성 (비즈니스+테크 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용)
 - **git-qa**: 배포 대상 PR에서 repo별 QA 체크리스트 생성 (`.ai/99_workspace/` 활용)

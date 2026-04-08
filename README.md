@@ -11,6 +11,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | Skill | 설명 |
 |-------|------|
 | [ai-workspace](./ai-workspace/) | `.ai/` 디렉토리 구조 초기화 및 갱신 (dev/doc 프로파일) |
+| [code-map](./code-map/) | 소스코드 기능별 엔트리포인트·호출 흐름을 `.ai/60_codebase/`에 색인 |
 | [git-commit](./git-commit/) | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
 | [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+테크 관점) |
 | [git-qa](./git-qa/) | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
@@ -24,6 +25,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 
 ```
 ai-workspace (디렉토리 스캐폴딩)
+├── code-map            ← .ai/60_codebase/ 활용
 ├── git-commit          ← 독립 사용 가능
 ├── git-pr              ← git-commit 규칙 참조, .ai/ 문서 활용
 ├── git-qa              ← git-pr 참고, 독립 사용 가능
