@@ -1,1 +1,9 @@
+# IDE
 /.idea/
+/.vscode/
+
+# AI agent
+/.claude/
+
+# OS
+.DS_Store
