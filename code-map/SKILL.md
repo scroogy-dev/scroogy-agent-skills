@@ -57,6 +57,12 @@ AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 �
 - `.ai/` 내 관련 문서(계약, 도메인 명세, ADR 등)가 있으면 Why에 교차 참조 링크로 연결한다.
 - 관련 문서로도 설명되지 않는 설계 근거는 `[WHY-NEEDED]` 태그로 표시하여 사람에게 요청한다.
 
+**Why 절의 참조 계층:**
+- 1차 참조: `.ai/` 내부 문서 (`30_contract`, `40_domain`, `50_adr`)
+- 외부 URL(wiki, GitHub issue 등)은 Why 절에 직접 기재하지 않는다.
+- 외부 URL은 참조 대상인 `.ai/` 내부 문서 안에 원본 출처로 기재한다.
+- `.ai/` 내부 문서가 아직 없으면 `[DOC-NEEDED]` 태그로 표시한다.
+
 ### .ai 디렉토리와의 관계
 
 `60_codebase/`는 소스코드에서 `.ai/` 내 다른 디렉토리로의 **네비게이션 허브** 역할을 한다:
@@ -151,12 +157,16 @@ status: current
 
 | 기능 | 엔트리포인트 | 관련 문서 |
 |------|-------------|-----------|
-| 주문 생성 | `com.example.order.OrderController.createOrder()` | [계약](../30_contract/order-api.md), [명세](../40_domain/specs/order.md) |
-| 결제 처리 | `com.example.payment.PaymentService.processPayment()` | [ADR-003](../50_adr/active/003-payment-gateway.md) |
+| 주문 생성 | `com.example.order.OrderController.createOrder()` | [상세 흐름](order/create-call-flow.md), [계약](../30_contract/order-api.md), [명세](../40_domain/specs/order.md) |
+| 결제 처리 | `com.example.payment.PaymentService.processPayment()` | [상세 흐름](payment/process-call-flow.md), [ADR-003](../50_adr/active/003-payment-gateway.md) |
+| RSA 키 생성 | `com.example.crypto.RsaKeyGenerateJob` | — (단순 CRUD, 외부 의존 없음) |
 ```
 
 - 각 기능에서 관련된 `30_contract`, `40_domain`, `50_adr` 문서가 있으면 교차 참조 링크를 연결한다.
 - 관련 문서가 없으면 링크 없이 비워둔다 (없는 문서를 가리키는 링크를 만들지 않는다).
+- 상세 호출 흐름 문서가 **있는** 기능: 관련 문서 칸에 `[상세 흐름](<feature>/<action>-call-flow.md)` 링크를 포함한다.
+- 상세 호출 흐름 문서가 **없는** 기능 (1-4단계 기준 미해당): 관련 문서 칸에 생략 사유를 짧게 표기한다 (예: `— (단순 CRUD, 외부 의존 없음)`).
+- 이를 통해 "아직 안 만든 것"과 "만들 필요가 없는 것"을 구분할 수 있게 한다.
 
 **1-4. 상세 호출 흐름 작성 (선택)**
 
@@ -188,6 +198,8 @@ OrderController#createOrder
 
 ## Why
 
+> 1차 참조는 `.ai/` 내부 문서만 사용한다. 외부 URL은 내부 문서 안에 원본 출처로 기재한다.
+
 - 계약: [주문 API 명세](../../30_contract/order-api.md)
 - 도메인: [주문 기능 명세](../../40_domain/specs/order.md)
 - ADR: [ADR-003 결제 게이트웨이 선정](../../50_adr/active/003-payment-gateway.md)
@@ -216,6 +228,7 @@ OrderController#createOrder
 
 - **존재하는 문서만 링크한다** — 문서가 없는데 링크를 만들지 않는다.
 - 관련 문서가 존재할 것으로 판단되나 아직 작성되지 않은 경우, `[DOC-NEEDED: 30_contract/order-api.md]` 태그로 표시한다.
+- **외부 URL은 교차 참조 대상이 아니다** — wiki, GitHub issue 등 외부 URL은 `.ai/` 내부 문서 안에 원본 출처로 기재하며, 색인 문서에서 직접 링크하지 않는다.
 
 ---
 
