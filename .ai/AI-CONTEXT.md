@@ -41,7 +41,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 │   └── templates/              # 감사 리포트 템플릿
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   └── templates/              # 이슈 템플릿
-├── sync-readme/                # README.md 생성/갱신 스킬
+├── readme-sync/                # README.md 생성/갱신 스킬
 └── README.md
 ```
 
@@ -61,7 +61,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
-| `sync-readme` | 프로젝트를 분석하여 README.md 생성 또는 최신화 |
+| `readme-sync` | 프로젝트를 분석하여 README.md 생성 또는 최신화 |
 
 ---
 

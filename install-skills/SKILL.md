@@ -42,7 +42,7 @@ description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/s
 8. **git-review-context** — 리뷰 전 변경사항 사전 분석
 9. **issue-audit** — 이슈 스펙 대비 구현 독립 감사
 10. **issue-work** — 이슈 단위 스펙/계획/요약 관리
-11. **sync-readme** — README.md 생성/재작성
+11. **readme-sync** — README.md 생성/재작성
 
 > `install-skills` 자신은 설치 대상에서 제외합니다.
 
