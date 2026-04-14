@@ -16,6 +16,7 @@ AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 �
 ## 관련 skill
 
 - ai-workspace (권장): `.ai/` 디렉토리 구조를 활용합니다. 없으면 `.ai/60_codebase/` 디렉토리를 직접 생성합니다. `.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 경로의 문서가 있으면 교차 참조로 연결합니다.
+- context-harvest (쌍): `code-map`이 소스코드(How)를 색인하는 스킬이라면, `context-harvest`는 소스코드 바깥의 What+Why를 수집·증류하여 `30_contract/`, `40_domain/`, `50_adr/` 문서를 생성하는 스킬입니다. `context-harvest` 실행 후 `code-map --local sync`를 실행하면 새로 생긴 문서를 교차 참조로 연결합니다.
 
 ## 사용법
 
