@@ -62,11 +62,15 @@ PROFILE="<선택된 프로파일: dev 또는 doc>"
 # 공통 파일 복사
 cp -r "$SKILL_DIR/templates/shared/.ai/" .ai/
 
-# 프로파일별 AI-CONTEXT.md 복사
-cp "$SKILL_DIR/templates/$PROFILE/.ai/AI-CONTEXT.md" .ai/AI-CONTEXT.md
+# 프로파일별 파일 복사 (AI-CONTEXT.md + 프로파일 전용 10_rules 등)
+cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 ```
 
 빈 디렉토리에는 `.gitkeep` 파일이 포함되어 있습니다 (templates에서 복사됨).
+
+프로파일별 전용 파일 예시:
+- `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
+- `doc` 전용: (없음)
 
 ### init-2단계: 완료 보고
 
@@ -83,8 +87,8 @@ cp "$SKILL_DIR/templates/$PROFILE/.ai/AI-CONTEXT.md" .ai/AI-CONTEXT.md
 
 ### update-1단계: 10_rules/ 정리
 
-이전 버전에서 설치된 파일 중 개별 skill로 분리된 파일을 제거합니다.
-사용자가 작성한 파일(`architecture.md` 등)은 그대로 유지합니다.
+이전 버전에서 설치된 파일 중 개별 skill로 분리된 파일을 제거하고, 새 규칙 파일을 복사합니다.
+사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `file-change-policy.md`)은 그대로 유지합니다.
 
 ```bash
 # skill로 분리되어 더 이상 10_rules에 포함되지 않는 파일 제거
@@ -93,6 +97,24 @@ rm -f .ai/10_rules/git-pr-policy.md
 rm -f .ai/10_rules/git-review-policy.md
 rm -f .ai/10_rules/git-review-context-builder.md
 rm -f .ai/10_rules/issue-workflow.md
+
+# 공통 규칙 파일: 버전 고정이라 항상 최신본으로 덮어쓰기
+cp "$SKILL_DIR/templates/shared/.ai/10_rules/context-loading.md" .ai/10_rules/context-loading.md
+
+# 사용자 작성 대상 파일: 없을 때만 빈 템플릿 복사
+[ ! -f .ai/10_rules/file-change-policy.md ] && \
+  cp "$SKILL_DIR/templates/shared/.ai/10_rules/file-change-policy.md" .ai/10_rules/file-change-policy.md
+
+# dev 프로파일 전용 (없을 때만 빈 템플릿 복사)
+if [ "$PROFILE" = "dev" ]; then
+  [ ! -f .ai/10_rules/architecture.md ] && \
+    cp "$SKILL_DIR/templates/dev/.ai/10_rules/architecture.md" .ai/10_rules/architecture.md
+  [ ! -f .ai/10_rules/coding-convention.md ] && \
+    cp "$SKILL_DIR/templates/dev/.ai/10_rules/coding-convention.md" .ai/10_rules/coding-convention.md
+fi
+
+# doc 프로파일: 기존 architecture.md가 있으면 삭제하지 않고 유지
+# (시스템 아키텍처 용도로 사용자가 직접 관리하는 경우가 있어 판단을 사용자에게 위임)
 ```
 
 ### update-2단계: 20_templates/ 정리
@@ -142,6 +164,47 @@ rm -rf .ai/20_templates/*
 - 프로젝트 루트의 `README.md`
 - 디렉토리 구조 (`ls`, `find` 등)
 - 기존 `.ai/AI-CONTEXT.md` 내용
+
+#### 구버전 구조 마이그레이션
+
+<!--
+이 소섹션은 구버전 AI-CONTEXT.md를 신버전으로 전환하기 위한 **일회성 마이그레이션 로직**입니다.
+운영 중인 프로젝트가 모두 신버전으로 전환 완료되면, 이 "구버전 구조 마이그레이션" 소섹션 전체를 제거해도 됩니다.
+-->
+
+구버전 AI-CONTEXT.md는 "AI가 작업 시 지켜야 할 원칙", "코딩 컨벤션", "프로젝트 규칙"이 별도 섹션으로 분리되어 있었습니다. 신버전은 이들을 **"프로젝트 규칙" 단일 섹션**으로 통합하고, 위치를 **`프로젝트 목적` 바로 아래**로 이동시킵니다.
+
+**① 섹션 통합 자동 처리**
+
+아래 섹션이 존재하면 다음과 같이 처리합니다:
+
+| 구버전 섹션 | 처리 방법 |
+|-----------|----------|
+| `## AI가 작업 시 지켜야 할 원칙` | 섹션 통째로 **삭제** (필요하면 사용자가 신규 `프로젝트 규칙` 섹션에 다시 추가) |
+| `## 코딩 컨벤션` (dev) | 본문을 `.ai/10_rules/coding-convention.md`로 이관. AI-CONTEXT.md 섹션은 제거 |
+| 기존 `## 프로젝트 규칙` 테이블 | 아래 ②번대로 테이블을 신규 포맷으로 확장 후, 섹션을 `## 프로젝트 목적` 바로 아래로 이동 |
+
+**② "프로젝트 규칙" 테이블 확장**
+
+테이블에 누락된 행이 있으면 추가하고, 2열(파일·설명)이면 3열(파일·설명·사용 시점)로 확장합니다.
+
+최종 형태 (dev):
+```markdown
+## 프로젝트 규칙
+
+<!-- 간단한 인라인 규칙은 여기에 적고, 상세 규칙은 `.ai/10_rules/`에 파일로 두고 아래 테이블에 등록하세요. -->
+
+| 파일 | 설명 | 사용 시점 |
+|------|------|----------|
+| `.ai/10_rules/architecture.md`       | 프로젝트 아키텍처 방향     | 코드 작성·리뷰·아키텍처 변경 시 |
+| `.ai/10_rules/coding-convention.md`  | 코딩 컨벤션                | 코드 작성 시      |
+| `.ai/10_rules/context-loading.md`    | 작업 전 컨텍스트 확인 절차 | 코드·문서 작업 전 |
+| `.ai/10_rules/file-change-policy.md` | 파일 변경 규칙             | 파일 추가·삭제 시 |
+```
+
+doc 프로파일은 기본적으로 `coding-convention.md`와 `architecture.md` 행을 **제외**하고, `context-loading.md` 사용 시점은 "문서 작업 전"으로 기재합니다.
+
+단, doc 프로파일에서 기존 `.ai/10_rules/architecture.md` 파일이 존재하면(예: Org 내 Repo 간 시스템 아키텍처 용도), 해당 행은 **유지**합니다. 파일 자체도 삭제하지 않습니다.
 
 ### update-5단계: 완료 보고
 
