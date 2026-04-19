@@ -13,6 +13,14 @@ PR 리뷰와 Self 리뷰 모두 **비즈니스 리뷰**와 **테크 리뷰** 두
 - git-review-context (선택): 사용자가 별도로 요청한 경우에만 실행합니다. git-review가 자동으로 호출하지 않습니다.
 - ai-workspace (권장): `.ai/30_contract/`, `.ai/40_domain/` 경로의 문서를 비즈니스 리뷰에 참조합니다.
 
+## 참조 문서
+
+- **공통 규칙**: `.ai/10_rules/context-loading.md` — 있으면 따르며, 이미 적재되어 있으면 재로딩하지 않습니다.
+- **스킬 고유 추가 참조**:
+  - `.ai/30_contract/index.md`, `.ai/40_domain/index.md` — 비즈니스 리뷰 (index 먼저 → 관련 파일만 선택적으로)
+  - `.ai/60_codebase/index.md` — 테크 리뷰 호출 흐름 파악
+  - `.ai/50_adr/index.md` — 테크 리뷰에서 관련 ADR 정합성 대조 (index 먼저 → 관련 ADR만 선택적으로)
+
 ---
 
 ## PR 리뷰 모드
@@ -89,6 +97,7 @@ index.md나 관련 문서가 없어 도메인/계약 정보를 참조할 수 없
 ### 3단계: 아키텍처 검증
 
 변경 사항이 프로젝트의 아키텍처 방향(`.ai/10_rules/architecture.md` 참고)에 부합하는지 검증합니다.
+추가로 `.ai/50_adr/index.md`를 참고하여 관련 ADR이 있으면 설계 정합성을 대조합니다.
 
 ### 4단계: 기타 테크 검증
 

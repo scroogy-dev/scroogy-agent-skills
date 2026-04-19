@@ -14,6 +14,13 @@ PR에 포함된 **각 이슈별로** 반드시 '비즈니스 관점'과 '테크 
 - git-commit (권장): PR 제목은 커밋 메시지와 동일한 Conventional Commits 형식을 따릅니다.
 - ai-workspace (권장): `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 경로의 문서를 참조합니다.
 
+## 참조 문서
+
+- **공통 규칙**: `.ai/10_rules/context-loading.md` — 있으면 따르며, 이미 적재되어 있으면 재로딩하지 않습니다.
+- **스킬 고유 추가 참조**:
+  - `.ai/30_contract/index.md`, `.ai/40_domain/index.md`, `.ai/50_adr/index.md` — 비즈니스·테크 관점 참고사항 작성용 (index 먼저 → 관련 파일만 선택적으로)
+  - `.ai/60_codebase/index.md` — 호출 흐름 작성 참고
+
 ---
 
 ## 작성 시점 및 주체
