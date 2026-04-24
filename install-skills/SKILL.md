@@ -35,14 +35,15 @@ description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/s
 1. **ai-workspace** — `.ai/` 디렉토리 구조 초기화 및 갱신
 2. **code-map** — 소스코드 기능별 엔트리포인트·호출 흐름 색인
 3. **context-harvest** — 소스코드 바깥의 What+Why를 수집·증류하여 30_contract/, 40_domain/, 50_adr/ 문서 생성
-4. **git-commit** — Conventional Commits 커밋 메시지 작성
-5. **git-pr** — PR 제목/메시지 작성 (비즈니스+테크 관점)
-6. **git-qa** — 배포 대상 PR에서 repo별 QA 체크리스트 생성
-7. **git-review** — 비즈니스/테크 리뷰 수행
-8. **git-review-context** — 리뷰 전 변경사항 사전 분석
-9. **issue-audit** — 이슈 스펙 대비 구현 독립 감사
-10. **issue-work** — 이슈 단위 스펙/계획/요약 관리
-11. **readme-sync** — README.md 생성/재작성
+4. **context-save** — 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장
+5. **git-commit** — Conventional Commits 커밋 메시지 작성
+6. **git-pr** — PR 제목/메시지 작성 (비즈니스+테크 관점)
+7. **git-qa** — 배포 대상 PR에서 repo별 QA 체크리스트 생성
+8. **git-review** — 비즈니스/테크 리뷰 수행
+9. **git-review-context** — 리뷰 전 변경사항 사전 분석
+10. **issue-audit** — 이슈 스펙 대비 구현 독립 감사
+11. **issue-work** — 이슈 단위 스펙/계획/요약 관리
+12. **readme-sync** — README.md 생성/재작성
 
 > `install-skills` 자신은 설치 대상에서 제외합니다.
 
