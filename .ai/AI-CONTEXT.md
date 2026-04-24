@@ -40,6 +40,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 ├── code-map/                   # 코드베이스 색인 스킬
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
 │   └── templates/              # 30_contract, 40_domain, 50_adr 템플릿
+├── context-save/               # 대화 맥락 임시 저장 스킬
+│   └── templates/              # 노트 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
 ├── git-pr/                     # PR 제목/메시지 작성 스킬
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
@@ -63,6 +65,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 | `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) |
 | `code-map` | 소스코드 기능별 엔트리포인트·호출 흐름을 `.ai/60_codebase/`에 색인 |
 | `context-harvest` | 소스코드 바깥의 What+Why를 수집·증류하여 `30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
+| `context-save` | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
 | `git-pr` | PR 제목/메시지 작성 (비즈니스+테크 관점) |
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
