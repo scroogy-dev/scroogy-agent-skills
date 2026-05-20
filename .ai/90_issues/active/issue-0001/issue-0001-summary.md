@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 1 — 스킬 이름·디렉토리 확정
+> ▶️ 다음 작업: Task 2 — 스킬 디렉토리·기본 골격 생성
 
 ---
 
@@ -12,9 +12,15 @@
 
 ### Task 1: 스킬 이름·디렉토리 확정
 
-- **결과**:
+- **결과**: `ai-workspace-directory`로 확정.
 - **수행 내용 요약**:
+  - 기존 스킬 네이밍 컨벤션을 분석: 대다수가 "대상-행위" 패턴(`readme-sync`, `context-harvest`, `context-save`, `issue-work` 등), `ai-workspace`는 "ai-대상" 예외 패턴.
+  - 사용자 의도("건물 안내도 vs 층별 안내도" 메타포)와 `ai-workspace`와의 자매성을 고려해 `ai-workspace-{guide,route,router,directory,index,map}` 후보 비교.
+  - 영어권 표준 어휘 조사: 빌딩 로비의 입주자·층 목록 패널 = **building directory**. 어원(라틴어 *directorium*, "방향 지시")이 spec의 "lean 라우터" 정체성과 일치.
+  - `code-map`과의 의미 차이 분석: `map`은 동적 흐름(노선도), `directory`는 정적 색인(빌딩 안내판). lobby `.ai/AI-CONTEXT.md`는 색인+라우팅이므로 `directory`가 정확.
 - **특이 사항**:
+  - `ai-workspace-directory`는 기존 스킬 중 가장 긴 이름이지만, 자매성·의미 정확성을 우선해 채택.
+  - `code-map`과는 의도된 차별화(흐름 vs 색인)로 읽힘. 스킬 이름 패턴의 일관성은 "영문 단어 모양"이 아니라 "같은 종류의 일에 같은 단어"라는 원칙으로 정리.
 
 ---
 

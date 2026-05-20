@@ -11,13 +11,14 @@
 
 ### Task 1: 스킬 이름·디렉토리 확정
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 신규 스킬의 식별자(`name`)와 디렉토리명을 사용자와 합의한다.
 - **작업 내용**:
   1. 후보 이름 제시 (예: `lobby-init`, `building-lobby`, `workspace-lobby` 등).
   2. 기존 스킬 네이밍 컨벤션(대상-행위)과의 정합성 검토.
   3. 사용자 선택을 받아 디렉토리명을 확정.
 - **완료 기준**: 디렉토리명과 `name` 필드 값이 결정되어 기록됨.
+- **결정**: `ai-workspace-directory` — `ai-workspace`(floor 측 자매)와 짝을 이루고, 영어권 빌딩 안내판(`building directory`)의 직역으로 "lean 라우터·색인" 정체성을 명확히 표현.
 
 ---
 
@@ -26,7 +27,7 @@
 - [ ] 완료
 - **목표**: 결정된 이름으로 스킬 디렉토리와 `SKILL.md` 빈 골격을 만든다.
 - **작업 내용**:
-  1. `<skill-name>/` 디렉토리 생성.
+  1. `ai-workspace-directory/` 디렉토리 생성.
   2. Apache 2.0 라이선스 헤더 + YAML frontmatter(`name`, `description`) + 본문 섹션 헤더 추가.
   3. 필요 시 `templates/` 하위 디렉토리 준비.
 - **완료 기준**: `SKILL.md`가 표준 포맷의 빈 골격으로 존재한다.
