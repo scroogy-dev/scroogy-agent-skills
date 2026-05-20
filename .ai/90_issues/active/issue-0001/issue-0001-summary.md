@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — 스킬 디렉토리·기본 골격 생성
+> ▶️ 다음 작업: Task 3 — `init` 모드 명세 작성
 
 ---
 
@@ -26,9 +26,15 @@
 
 ### Task 2: 스킬 디렉토리·기본 골격 생성
 
-- **결과**:
+- **결과**: `ai-workspace-directory/SKILL.md` 빈 골격 생성 완료.
 - **수행 내용 요약**:
+  - `ai-workspace-directory/` 디렉토리 생성.
+  - SKILL.md에 YAML frontmatter 작성 (`name: ai-workspace-directory`, `description`에 트리거 키워드 "로비/lobby/AI-CONTEXT.md/building 인덱스/워크스페이스 안내판" 포함, `ai-workspace`와의 자매 관계 명시).
+  - 본문 섹션 헤더 골격 작성: 개요 / 관련 skill / 참조 문서 / 사용법 / 실행 절차(모드 결정·init·update) / 표준 섹션 구조 / SSoT 위배 패턴 진단 체크리스트 / 예시(init·update).
+  - 각 섹션은 후속 Task에서 채울 내용을 HTML 주석으로 표시.
 - **특이 사항**:
+  - **spec DoD 수정**: 라이선스 헤더 항목을 "프로젝트 루트의 LICENSE/NOTICE로 일괄 적용"으로 변경. 기존 12개 스킬 어디에도 SKILL.md 본문에 라이선스 헤더가 없어 일관성 위해 따름. spec의 "포함(In)" 섹션과 DoD 두 군데 모두 수정.
+  - `templates/` 디렉토리는 Task 6 예시 작성 시점에 필요 여부를 재판단 (현 시점에는 생성하지 않음).
 
 ---
 

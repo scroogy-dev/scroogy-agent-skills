@@ -45,7 +45,6 @@ building/floor 메타포 기반 knowledge architecture에서 멀티 repo 워크�
 - `description` 트리거 키워드: "로비", "lobby", "AI-CONTEXT.md", "building 인덱스"
 - 모드 미지정 시 워크스페이스 루트의 `.ai/AI-CONTEXT.md` 존재 여부로 자동 판정 (없으면 `init`, 있으면 `update`)
 - 최소 2개의 예시 (init 1개, update 1개)
-- Apache 2.0 라이선스 헤더
 
 **비포함 (Out)**
 
@@ -88,7 +87,7 @@ building/floor 메타포 기반 knowledge architecture에서 멀티 repo 워크�
 - [ ] 표준 섹션 구조(last updated 첫 줄, 정체성, Floors 디렉터리, 라우팅 규칙, 공통 규약, Why 진입점, 에이전트 운영 지침) 강제
 - [ ] SSoT 위배 패턴 진단 체크리스트 포함
 - [ ] init / update 모드 예시 각 1개 이상 포함
-- [ ] Apache 2.0 라이선스 헤더 포함
+- [ ] 라이선스: 프로젝트 루트의 `LICENSE`/`NOTICE`/`LICENSE-HEADER.txt`로 일괄 적용 (SKILL.md 본문에 별도 헤더를 넣지 않는 기존 12개 스킬과 동일 패턴)
 - [ ] 기존 스킬 구조와 일치하는 디렉토리 (`<skill-name>/SKILL.md`, 필요 시 `templates/`)
 
 ---

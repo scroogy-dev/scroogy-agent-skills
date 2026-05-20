@@ -24,13 +24,16 @@
 
 ### Task 2: 스킬 디렉토리·기본 골격 생성
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 결정된 이름으로 스킬 디렉토리와 `SKILL.md` 빈 골격을 만든다.
 - **작업 내용**:
   1. `ai-workspace-directory/` 디렉토리 생성.
-  2. Apache 2.0 라이선스 헤더 + YAML frontmatter(`name`, `description`) + 본문 섹션 헤더 추가.
+  2. YAML frontmatter(`name`, `description`) + 본문 섹션 헤더 추가. (라이선스 헤더는 spec 수정에 따라 본문에서 제외 — 기존 12개 스킬과 동일하게 루트 `LICENSE`/`NOTICE`로 일괄 적용)
   3. 필요 시 `templates/` 하위 디렉토리 준비.
 - **완료 기준**: `SKILL.md`가 표준 포맷의 빈 골격으로 존재한다.
+- **결정**:
+  - 라이선스 헤더는 SKILL.md 본문에 포함하지 않음. spec DoD 수정 완료.
+  - `templates/` 디렉토리는 Task 6 예시 작성 시점에 필요 여부를 재판단 (지금은 생성하지 않음).
 
 ---
 
