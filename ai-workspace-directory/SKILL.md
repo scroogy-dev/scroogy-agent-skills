@@ -153,7 +153,187 @@ floor 입력 예시:
 
 ### update 모드
 
-<!-- Task 4: 진단·재구성·이동 목록 3단계 -->
+기존 로비 `.ai/AI-CONTEXT.md`를 입력으로 받아 **진단 → 재구성 → 이동 목록** 3단계를 순서대로 출력합니다.
+
+이 모드는 **파일을 덮어쓰기 전 사용자 확인을 반드시 받습니다**. 진단·이동 목록만 출력하고 실제 갱신은 사용자 승인 후에만 수행합니다.
+
+#### update-0단계: 입력 수집 (사전)
+
+- 기존 `<루트>/.ai/AI-CONTEXT.md`를 읽습니다. 파일이 없으면 사용자에게 `init` 모드로 전환할지 확인합니다.
+- 디스크 스캔: 워크스페이스 루트의 모든 1차 자식 디렉토리에 대해 `<루트>/<dir>/.ai/AI-CONTEXT.md` 존재 여부를 수집합니다.
+- 기존 로비 Floors 테이블에서 `archived`로 표시된 floor 목록을 추출합니다 (drift 검사 제외 대상).
+
+#### update-1단계: 진단 리포트 출력
+
+다음 4개 카테고리를 순서대로 점검하고 마크다운 리포트로 출력합니다.
+
+##### (1) SSoT 위배 패턴 진단
+
+[SSoT 위배 패턴 진단 체크리스트](#ssot-위배-패턴-진단-체크리스트)의 각 항목을 점검합니다. 위배가 있으면 발견 위치(섹션·라인 범위)와 발췌를 기록합니다.
+
+##### (2) 로비 역할 위배 진단
+
+로비는 라우터일 뿐이므로 다음을 점검합니다.
+
+| 패턴 | 설명 |
+|------|------|
+| 도메인 본문 | 결제·인증 등 특정 도메인의 본문 설명이 로비에 포함됨 |
+| 코드 스니펫 | 함수·클래스·설정 등 코드 조각이 로비에 포함됨 |
+| floor 상세 목차 | 특정 floor의 파일 트리·디렉토리 구조가 로비에 펼쳐져 있음 |
+| 정책 본문 중복 | floor의 `.ai/10_rules/`·`40_domain/policies/`에 있어야 할 정책 본문이 로비에 중복됨 |
+| 비대 | 산출물이 250줄을 초과 |
+
+##### (3) drift 진단 (로비 ↔ 디스크)
+
+다음 두 방향으로 차이를 점검합니다. `archived` floor는 양방향 모두 검사에서 제외합니다.
+
+| 방향 | 판정 | 조치 |
+|------|------|------|
+| 로비에 있음 + 디스크에 안내도 있음 | 정상 | `active` 유지 |
+| 로비에 있음 + 디스크에 안내도 없음 | drift | `placeholder`로 전환 + 안내도 생성 권장 |
+| 로비에 없음 + 디스크에 안내도 있음 | drift | 로비 Floors에 등록 필요 |
+| 로비에 있음 + 디스크 디렉토리 자체 없음 | drift | 사용자에게 floor 삭제/이전/archive 여부 확인 |
+
+##### (4) 형식 위배
+
+| 검사 | 위배 시 조치 |
+|------|-------------|
+| 본문 첫 줄이 `> last updated: YYYY-MM-DD`인가 | update-2단계에서 자동 갱신 |
+| YAML frontmatter가 없는가 | 있다면 update-2단계에서 제거 |
+| 표준 6개 H2 섹션이 모두 있고 순서가 맞는가 | update-2단계에서 보강·재정렬 |
+| Floors 테이블이 정확히 4열(`path`/`domain`/`keywords`/`status`)인가 | update-2단계에서 정규화 |
+| `status` 값이 `active`/`placeholder`/`archived` 중 하나인가 | 다른 값은 사용자 확인 후 정규화 |
+
+##### 진단 리포트 출력 형식
+
+```markdown
+## 진단 리포트 (update-1단계)
+
+### SSoT 위배
+- [발견] <위배 패턴>: <발견 위치> — <발췌 또는 요약>
+- [없음] <검사 항목> — 깨끗함
+
+### 로비 역할 위배
+- [발견] 도메인 본문: 라인 45-78 ("결제 트랜잭션 상태는...") — floor `api-server`로 이동 후보
+- [없음] 코드 스니펫
+
+### drift 진단
+| floor | 로비 status | 디스크 안내도 | 디스크 디렉토리 | 판정 |
+|-------|------------|--------------|----------------|------|
+| api-server | active | 존재 | 존재 | 정상 |
+| mobile-app | active | 없음 | 존재 | drift: placeholder 전환 |
+| infra | (없음) | 존재 | 존재 | drift: 등록 필요 |
+| legacy-web | archived | (검사 제외) | (검사 제외) | 검사 제외 |
+
+### 형식 위배
+- [위배] 본문 첫 줄이 last updated 형식이 아님 → 자동 갱신 예정
+- [위배] Floors 테이블에 `owner` 열이 추가됨 → 정규화 예정
+```
+
+#### update-2단계: 재구성된 로비 `.ai/AI-CONTEXT.md` 전문 출력
+
+[표준 섹션 구조](#표준-섹션-구조)를 따라 재구성된 전문을 코드 블록으로 출력합니다.
+
+**재구성 규칙**:
+- 본문 첫 줄 `> last updated:`를 스킬 실행 시점의 시스템 날짜로 갱신합니다.
+- YAML frontmatter가 있으면 제거합니다.
+- 6개 H2 섹션을 표준 순서로 정렬합니다. 누락 섹션은 빈 본문 + 안내 주석으로 생성합니다.
+- Floors 테이블을 4열로 정규화하고 drift 진단 결과에 따라 `status`를 갱신합니다.
+- 진단에서 발견된 도메인 본문·코드 스니펫·floor 상세 목차·정책 본문 중복은 **본문에서 제거**하고 update-3단계 이동 목록으로 옮깁니다.
+- 사용자가 작성한 라우팅 규칙·정체성 문구는 본문 형태로 살리되, SSoT 위배 패턴은 제거합니다.
+
+**출력 형식**:
+
+```markdown
+## 재구성된 로비 .ai/AI-CONTEXT.md (update-2단계)
+
+> 아래는 새 본문 전문입니다. 검토 후 승인하시면 파일에 기록합니다.
+
+```markdown
+> last updated: YYYY-MM-DD
+
+## 정체성
+...
+
+## Floors
+...
+
+## 라우팅 규칙
+...
+
+## 공통 규약
+...
+
+## Why 진입점
+...
+
+## 에이전트 운영 지침
+...
+```
+```
+
+**파일 쓰기 규칙**:
+- 출력 후 사용자에게 명시적으로 확인을 요청합니다: *"이대로 `<루트>/.ai/AI-CONTEXT.md`에 덮어쓸까요?"*
+- 사용자가 승인하면 파일에 기록하고, 분량 가드레일(150~250줄)을 init 모드와 동일하게 검증합니다.
+- 사용자가 거절하면 파일을 변경하지 않고 진단 리포트와 재구성 전문만 출력 상태로 남깁니다.
+
+#### update-3단계: floor 이동 후보 목록 출력
+
+진단에서 발견된 "로비에 있어서는 안 되는" 콘텐츠를 후속 스킬이 입력으로 받기 좋은 **YAML 구조**로 출력합니다.
+
+**필수 필드**:
+
+| 필드 | 설명 |
+|------|------|
+| `content_id` | 항목 고유 식별자 (예: `lobby-overflow-001`) |
+| `target_floor` | 대상 floor의 `path` (로비 Floors 테이블의 `path`와 일치) |
+| `target_location_hint` | 대상 floor 내부의 추정 경로 (예: `<repo>/.ai/40_domain/specs/payment-domain.md`). 사용자/후속 스킬이 최종 결정하므로 어디까지나 힌트 |
+| `category` | `domain-content` / `code-snippet` / `floor-toc` / `policy-duplicate` / `other` |
+| `confidence` | `high` / `medium` / `low` — `target_floor` 추정의 자신도 |
+| `reason` | 왜 이동 대상인지 한 줄 근거 |
+| `source_location` | 원본 로비에서의 위치 (예: `lines 45-78`) |
+| `excerpt` | 원본 발췌 (전문 또는 요약 — 후속 스킬이 적용할 수 있을 만큼 충분히) |
+
+**`target_floor` 추정 규칙**:
+- 발췌의 도메인 키워드를 로비 Floors 테이블의 각 floor `keywords`와 매칭.
+- 키워드 다수 일치 → `high`, 단어 부분 일치 → `medium`, 일치 없음 → `low` + `target_floor: unknown`.
+- `archived` floor는 추정 대상에서 제외.
+
+**출력 형식**:
+
+```yaml
+# floor 이동 후보 목록 (update-3단계)
+migration_candidates:
+  - content_id: lobby-overflow-001
+    target_floor: api-server
+    target_location_hint: api-server/.ai/40_domain/specs/payment-domain.md
+    category: domain-content
+    confidence: high
+    reason: 결제 도메인 본문이 로비에 포함됨. 키워드(결제, payment, 트랜잭션)가 api-server의 keywords와 일치
+    source_location: lines 45-78
+    excerpt: |
+      결제 트랜잭션은 다음 상태를 가진다: PENDING, AUTHORIZED,
+      CAPTURED, REFUNDED, FAILED. 각 상태 전이는 ...
+  - content_id: lobby-overflow-002
+    target_floor: unknown
+    target_location_hint: null
+    category: other
+    confidence: low
+    reason: 키워드가 어떤 floor와도 매칭되지 않음. 사용자 확인 필요
+    source_location: lines 120-125
+    excerpt: |
+      ...
+```
+
+이 출력은 화면에 표시만 하고 파일을 직접 수정하지 않습니다. 후속 스킬(또는 사용자 수작업)이 이 YAML을 입력으로 받아 각 floor에 콘텐츠를 배치합니다.
+
+#### update-4단계: 보고
+
+- 1·2·3단계 출력의 위치(또는 사용자에게 제시한 영역)를 정리합니다.
+- 파일 변경 여부: 사용자 승인 시 `<루트>/.ai/AI-CONTEXT.md` 갱신됨, 거절 시 변경 없음.
+- 분량 가드레일 결과 (`init` 모드와 동일 기준).
+- drift로 인해 `placeholder`로 전환된 floor 목록과 안내도 생성 권장 메시지.
+- 이동 후보 개수 및 `target_floor: unknown` 항목 수 (사용자 후속 확인 필요).
 
 ---
 
@@ -223,7 +403,47 @@ floor 입력 예시:
 
 ## SSoT 위배 패턴 진단 체크리스트
 
-<!-- Task 4: update 모드의 1단계 진단에서 사용 -->
+`update` 모드의 진단 1단계에서 사용하는 체크리스트입니다. 각 항목은 "로비는 라우터이지 콘텐츠가 아니다"라는 대전제에 비추어 위배 여부를 판정합니다.
+
+### 콘텐츠 위배
+
+- [ ] **도메인 지식 본문이 로비에 포함되어 있는가?**
+  - 예: "결제 트랜잭션 상태는 PENDING/AUTHORIZED/CAPTURED/...", "JWT 만료는 15분"
+  - 판정: 두 문장 이상 이어지는 도메인 설명이 있으면 위배. 한 줄 요약은 라우팅 키워드로 허용
+- [ ] **코드 스니펫이 로비에 포함되어 있는가?**
+  - 예: 함수 정의, 클래스 시그니처, 설정 파일 일부
+  - 판정: 어떤 언어든 코드 블록(```언어 ... ```)이 본문에 있으면 위배. 표준 섹션 구조 안내용 마크다운 골격은 SKILL.md의 영역이므로 산출물에는 들어가지 않음
+- [ ] **특정 floor의 상세 목차/파일 트리가 로비에 펼쳐져 있는가?**
+  - 예: `api-server/src/controllers/...` 같은 디렉토리 경로 다수 나열
+  - 판정: floor의 path 자체는 허용하나, floor 내부 파일 트리는 위배
+- [ ] **floor의 정책·규칙 본문이 로비에 중복되어 있는가?**
+  - 예: 커밋 메시지 규칙, 코딩 컨벤션 본문이 로비에 그대로 적힘
+  - 판정: 본문이 있으면 위배. "공통 규약" 섹션에는 포인터만 허용
+
+### 형식·메타 위배
+
+- [ ] **YAML frontmatter가 존재하는가?**
+  - 판정: 존재하면 위배. 산출물은 frontmatter 없는 마크다운
+- [ ] **본문 첫 줄이 `> last updated: YYYY-MM-DD` 형식이 아닌가?**
+  - 판정: 형식 불일치 또는 누락이면 위배. 자동 갱신 대상
+- [ ] **표준 6개 H2 섹션 중 누락·중복·순서 위배가 있는가?**
+  - 강제 순서: `정체성` → `Floors` → `라우팅 규칙` → `공통 규약` → `Why 진입점` → `에이전트 운영 지침`
+- [ ] **Floors 테이블이 4열(`path`/`domain`/`keywords`/`status`)이 아닌가?**
+  - 예: `owner`, `last_activity`, `commit_hash` 등 추가 열
+  - 판정: 4열 외 열이 있으면 위배
+
+### 분량·라우터 정체성 위배
+
+- [ ] **전체 분량이 250줄을 초과하는가?**
+  - 판정: 초과 시 비대 위배. 어떤 섹션이 큰지 분석해 콘텐츠 위배 항목과 연결
+- [ ] **`Floors` 또는 `라우팅 규칙` 섹션이 비어 있는가?**
+  - 판정: 비어 있으면 라우터 정체성 위배 (라우팅 대상이 없음)
+- [ ] **`status` 값이 `active`/`placeholder`/`archived` 외의 값을 가지는가?**
+  - 판정: 정의되지 않은 값(`wip`, `legacy`, `deprecated` 등)은 위배. 사용자 확인 후 정규화
+
+### 결과 활용
+
+체크리스트의 모든 위배 발견은 `update-1단계` 진단 리포트에 [발견] 항목으로 기록되고, 콘텐츠 위배는 `update-3단계` 이동 후보 목록의 `migration_candidates`로 연결됩니다.
 
 ## 예시
 
