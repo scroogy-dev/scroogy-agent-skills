@@ -70,25 +70,25 @@ building/floor 메타포 기반 knowledge architecture에서 멀티 repo 워크�
 
 ## 완료의 정의 (Definition of Done)
 
-- [ ] SKILL.md 파일이 agentskills.io 표준 포맷(YAML frontmatter + 본문)으로 작성됨
-- [ ] `description` 필드에 트리거 키워드("로비", "lobby", "AI-CONTEXT.md", "building 인덱스") 포함
-- [ ] 파일 경로 규약 준수: 로비 산출물은 `<워크스페이스 루트>/.ai/AI-CONTEXT.md`, floor 안내도는 `<워크스페이스 루트>/<repo>/.ai/AI-CONTEXT.md` (프로젝트 루트 직접 배치 금지)
-- [ ] `init` 모드 동작 명세: building 이름과 floor 목록만 받아 표준 구조의 로비 `.ai/AI-CONTEXT.md` 생성 (`.ai/` 부재 시 함께 생성)
-- [ ] `update` 모드 동작 명세: 기존 로비 `.ai/AI-CONTEXT.md`를 입력받아 다음 3단계 출력
+- [x] SKILL.md 파일이 agentskills.io 표준 포맷(YAML frontmatter + 본문)으로 작성됨
+- [x] `description` 필드에 트리거 키워드("로비", "lobby", "AI-CONTEXT.md", "building 인덱스") 포함
+- [x] 파일 경로 규약 준수: 로비 산출물은 `<워크스페이스 루트>/.ai/AI-CONTEXT.md`, floor 안내도는 `<워크스페이스 루트>/<repo>/.ai/AI-CONTEXT.md` (프로젝트 루트 직접 배치 금지)
+- [x] `init` 모드 동작 명세: building 이름과 floor 목록만 받아 표준 구조의 로비 `.ai/AI-CONTEXT.md` 생성 (`.ai/` 부재 시 함께 생성)
+- [x] `update` 모드 동작 명세: 기존 로비 `.ai/AI-CONTEXT.md`를 입력받아 다음 3단계 출력
   - 1단계: SSoT / 로비 역할 위배 진단 (+ 디스크 floor 상태와의 drift 진단)
   - 2단계: 재구성된 로비 `.ai/AI-CONTEXT.md` 전문
   - 3단계: 각 floor로 이동되어야 할 콘텐츠 목록 (대상 floor 추정 포함, 후속 스킬이 받기 좋은 구조)
-- [ ] 모드 미지정 시 워크스페이스 루트의 `.ai/AI-CONTEXT.md` 존재 여부로 자동 판정 (없으면 `init`, 있으면 `update`)
-- [ ] 워크스페이스 루트가 git repo가 아닌 경우에도 안전하게 동작 (git 명령 호출 없음)
-- [ ] YAML frontmatter 없음. 본문 첫 줄에 `> last updated: YYYY-MM-DD` (스킬 실행 시점)을 자동 기록
-- [ ] floor에 `.ai/AI-CONTEXT.md`가 없는 경우 `status: placeholder` + 명시적 경고로 graceful 처리, 존재 시 `status: active`, 사용자가 명시적으로 보존 처리한 floor는 `status: archived`
-- [ ] `.ai/AI-CONTEXT.md` 산출물이 150~250줄 가드레일 안에 들어옴
-- [ ] 결과물에 도메인 지식 본문, 코드 스니펫, floor 상세 목차가 포함되지 않음
-- [ ] 표준 섹션 구조(last updated 첫 줄, 정체성, Floors 디렉터리, 라우팅 규칙, 공통 규약, Why 진입점, 에이전트 운영 지침) 강제
-- [ ] SSoT 위배 패턴 진단 체크리스트 포함
-- [ ] init / update 모드 예시 각 1개 이상 포함
-- [ ] 라이선스: 프로젝트 루트의 `LICENSE`/`NOTICE`/`LICENSE-HEADER.txt`로 일괄 적용 (SKILL.md 본문에 별도 헤더를 넣지 않는 기존 12개 스킬과 동일 패턴)
-- [ ] 기존 스킬 구조와 일치하는 디렉토리 (`<skill-name>/SKILL.md`, 필요 시 `templates/`)
+- [x] 모드 미지정 시 워크스페이스 루트의 `.ai/AI-CONTEXT.md` 존재 여부로 자동 판정 (없으면 `init`, 있으면 `update`)
+- [x] 워크스페이스 루트가 git repo가 아닌 경우에도 안전하게 동작 (git 명령 호출 없음)
+- [x] YAML frontmatter 없음. 본문 첫 줄에 `> last updated: YYYY-MM-DD` (스킬 실행 시점)을 자동 기록
+- [x] floor에 `.ai/AI-CONTEXT.md`가 없는 경우 `status: placeholder` + 명시적 경고로 graceful 처리, 존재 시 `status: active`, 사용자가 명시적으로 보존 처리한 floor는 `status: archived`
+- [x] `.ai/AI-CONTEXT.md` 산출물이 150~250줄 가드레일 안에 들어옴
+- [x] 결과물에 도메인 지식 본문, 코드 스니펫, floor 상세 목차가 포함되지 않음
+- [x] 표준 섹션 구조(last updated 첫 줄, 정체성, Floors 디렉터리, 라우팅 규칙, 공통 규약, Why 진입점, 에이전트 운영 지침) 강제
+- [x] SSoT 위배 패턴 진단 체크리스트 포함
+- [x] init / update 모드 예시 각 1개 이상 포함
+- [x] 라이선스: 프로젝트 루트의 `LICENSE`/`NOTICE`/`LICENSE-HEADER.txt`로 일괄 적용 (SKILL.md 본문에 별도 헤더를 넣지 않는 기존 12개 스킬과 동일 패턴)
+- [x] 기존 스킬 구조와 일치하는 디렉토리 (`<skill-name>/SKILL.md`, 필요 시 `templates/`)
 
 ---
 
