@@ -11,9 +11,9 @@
 
 - **로비는 라우터다.** 도메인 본문·코드 스니펫·floor 상세 목차 금지.
 - **SSoT는 소스 코드.** 안내판은 메타·라우팅 정보만 보유.
-- **`.ai/` 부재 repo도 1급 시민.** floor에 `.ai/`가 없을 수 있다. 이런 repo도 Floors에 등록 가능하고, 진입 절차의 `placeholder` 분기로 안전하게 폴백된다. (`status`는 두 케이스 통합 유지)
+- **`.ai/` 부재 repo도 정식 등록 대상.** floor에 `.ai/`가 없을 수 있다. 이런 repo도 `Repos`에 정상 등록되고, 진입 절차의 `placeholder` 분기로 안전하게 폴백된다 (자격 요건이 아니라 `status` 값으로 분기). (`status`는 두 케이스 통합 유지)
 - **분량 가드레일 유지.** 보강 항목은 산출물 기준 총 ~10줄 이내 추가, 전체 250줄 미만.
-- **양방향 메타.** 로비는 floor를 가리키고, floor는 빌딩 역참조를 갖는다 (Task 3에서 floor 측 설계). 단, `.ai/` 부재 repo는 역참조 강제 대상이 아니다.
+- **컨벤션 우선 (CoC).** 상위 워크스페이스 디렉토리 바로 아래 각 repo가 위치한다. floor → 상위 워크스페이스 역참조는 별도 메타 필드 없이 `<repo>/../.ai/AI-CONTEXT.md` 존재 여부로 자동 판정한다. `domain`/`keywords`만 양방향 1:1 동기화 대상 (Task 3에서 floor 측 설계).
 
 ---
 
@@ -26,7 +26,7 @@
 ## 정체성
 <2~3문장>
 
-## Floors
+## Repos
 | path | domain | keywords | status |
 |------|--------|----------|--------|
 | ... |
@@ -45,17 +45,17 @@
 ### 진입 절차 (질의 → 답변)
 
 1. 사용자 질의에서 도메인/키워드를 추출한다.
-2. `Floors` 테이블의 `keywords`와 `라우팅 규칙`을 매칭해 후보 floor를 정한다.
-3. 후보 floor의 `status`에 따라 분기한다.
-   - `active`  → `<path>/.ai/AI-CONTEXT.md`(floor 안내도)로 진입한다.
-   - `placeholder` → 안내도 없음. floor의 **소스 코드만 SSoT**로 사용한다. 사용자에게 보강을 안내하되, `<path>/.ai/` 디렉토리 자체가 없으면 `ai-workspace [dev|doc]`로 **초기 설치**를, 있으면 `ai-workspace update`로 **갱신**을 권유한다.
+2. `Repos` 테이블의 `keywords`와 `라우팅 규칙`을 매칭해 후보 repo를 정한다.
+3. 후보 repo의 `status`에 따라 분기한다.
+   - `active`  → `<path>/.ai/AI-CONTEXT.md`(repo 안내도)로 진입한다.
+   - `placeholder` → 안내도 없음. repo의 **소스 코드만 SSoT**로 사용한다. 사용자에게 보강을 안내하되, `<path>/.ai/` 디렉토리 자체가 없으면 `ai-workspace [dev|doc]`로 **초기 설치**를, 있으면 `ai-workspace update`로 **갱신**을 권유한다.
    - `archived` → 자동 진입 금지. 사용자 확인 후에만 답변.
-4. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > floor 안내도 > 로비**.
+4. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > 각 repo의 안내도 > 이 안내도(상위 워크스페이스)**.
 
 ### 작성 규칙 (이 파일을 손볼 때)
 
-- 도메인 본문·코드 스니펫·floor 상세 목차를 이 파일에 넣지 않는다.
-- 로비는 라우터다. 본문 작성이 필요하면 해당 floor의 `.ai/`로 보낸다.
+- 도메인 본문·코드 스니펫·repo 상세 목차를 이 파일에 넣지 않는다.
+- 이 안내도는 라우터다. 본문 작성이 필요하면 해당 repo의 `.ai/`로 보낸다.
 ```
 
 기존 대비 변화:
@@ -74,7 +74,7 @@
 | #2 | placeholder fallback | 진입 절차 step 3의 `placeholder` 분기 (소스 코드 SSoT). 사용자 안내는 `<path>/.ai/` **자체 부재**(→ `ai-workspace [dev\|doc]` 초기 설치)와 `.ai/`는 있고 `AI-CONTEXT.md`만 부재(→ `ai-workspace update` 갱신) 두 케이스로 한 줄 안에서 분기 |
 | #2 보조 | placeholder 상세 처리 | `status`는 두 케이스 모두 `placeholder`로 통합 유지(어휘 확장 없음). 기존 `init`/`update` 모드의 placeholder 경고도 같은 두 분기 메시지로 갱신 |
 | #8 | floor↔로비 메타 drift | `update` 모드 update-1단계 "(3) drift 진단" 표에 **메타 일치 검사 행 추가** (아래 §5 참조) |
-| #9 | 상호 참조 강화 | `ai-workspace-directory/SKILL.md` "관련 skill" 단락에 양방향 메타 한 줄 추가: *"로비는 Floors에 floor의 path/domain/keywords를 적고, `ai-workspace`는 각 floor 안내도에 빌딩 역참조(`building` / `lobby_path`)를 적는다"* |
+| #9 | 상호 참조 강화 | `ai-workspace-directory/SKILL.md` "관련 skill" 단락에 양방향 도메인 동기화 한 줄 추가: *"`ai-workspace-directory`는 `Repos`에 각 repo의 path/domain/keywords를 적고, `ai-workspace`는 각 repo의 안내도에 동일한 `domain`/`keywords`를 적는다. 두 값은 1:1 동기화 대상."* 역참조(`building`/`lobby`)는 별도 메타 없이 CoC(`<repo>/../.ai/AI-CONTEXT.md` 존재)로 처리 |
 | #10 | update 모드 멱등 보강 | update-1단계 "(4) 형식 위배" 검사에 신규 항목 2개, update-2단계 재구성 규칙에 자동 보강 1개 추가 (아래 §6) |
 
 ---
@@ -99,17 +99,18 @@
 
 ## 5. drift 진단 — 메타 일치 검사 추가
 
-`update-1단계 (3) drift 진단` 표는 현재 4행(로비 등록 × 디스크 안내도 × 디스크 디렉토리 조합). **5번째 차원**으로 floor 자기 선언 메타와의 일치 여부를 추가한다. Task 3에서 floor 측에 `building` / `domain` / `keywords` 메타가 들어오면 동작한다.
+`update-1단계 (3) drift 진단` 표는 현재 4행(로비 등록 × 디스크 안내도 × 디스크 디렉토리 조합). **5번째 차원**으로 floor 자기 선언 메타와의 일치 여부를 추가한다. Task 3에서 floor 측에 `domain` / `keywords` 메타가 들어오면 동작한다.
 
 **추가 검사** (조건부 — floor 측에 메타 블록이 있을 때만):
 
 | 검사 항목 | 위배 판정 | 조치 |
 |----------|-----------|------|
-| 로비 `Floors.path` 행의 `domain` 과 floor 자기 선언 `domain` 일치 | 다르면 drift | update-3단계 후보로 정렬 권고 (사용자 확인 후 어느 쪽이 SSoT인지 결정 — 통상 floor 자기 선언이 더 가깝다고 권고) |
-| 로비 `Floors.path` 행의 `keywords` ⊇ floor 자기 선언 `keywords` 핵심 셋 | 빠진 키워드가 있으면 drift | 로비 keywords에 누락 키워드 추가 권고 |
-| 로비 `Floors.path` 행의 `building` 식별자 (있다면) vs floor 자기 선언 `building` 일치 | 다르면 drift | 사용자 확인 필요 (다른 워크스페이스에서 복사된 floor 가능성) |
+| 로비 `Repos.path` 행의 `domain` 과 floor 자기 선언 `domain` 일치 | 다르면 drift | update-3단계 후보로 정렬 권고 (사용자 확인 후 어느 쪽이 SSoT인지 결정 — 통상 floor 자기 선언이 더 가깝다고 권고) |
+| 로비 `Repos.path` 행의 `keywords` ⊇ floor 자기 선언 `keywords` 핵심 셋 | 빠진 키워드가 있으면 drift | 로비 keywords에 누락 키워드 추가 권고 |
 
-**fallback**: floor 측 메타 블록이 없으면 검사 스킵하고 *"floor 안내도에 자기 선언 메타 블록이 없습니다. `ai-workspace`로 보강을 권장합니다."* 안내만 출력.
+> 역참조(`building`/`lobby`) 일치 검사는 CoC 도입으로 **제거됨** — 메타 필드 자체가 없으므로 검사 대상 아님.
+
+**fallback**: floor 측 메타 블록이 없으면 검사 스킵하고 *"해당 repo 안내도에 자기 선언 메타 블록이 없습니다. `ai-workspace`로 보강을 권장합니다."* 안내만 출력.
 
 **SKILL.md 영향**:
 - update-1단계 "(3) drift 진단" 표 아래에 위 메타 일치 검사 표 추가.
@@ -147,7 +148,8 @@
 
 | 위치 | 변경 종류 | 내용 |
 |------|----------|------|
-| "관련 skill" 단락 | 보강 | 양방향 메타 한 줄 추가 (#9) |
+| 개요 / 원칙 단락 | 신규 | "설계 원칙: 컨벤션 우선(CoC)" 단락 추가 — 멀티 repo 구조는 `<상위>/<repo>` 컨벤션 고정, floor 역참조는 메타 필드 없이 `<repo>/../.ai/AI-CONTEXT.md` 존재로 자동 판정 (`ai-workspace`와 공통) |
+| "관련 skill" 단락 | 보강 | 양방향 도메인 동기화 한 줄 추가 (`domain`/`keywords` 1:1) (#9) |
 | "표준 섹션 구조 > 골격" | 보강 | 본문 첫 두 줄(`last updated` + `SSoT`), `에이전트 운영 지침` 서브헤딩 2개로 분리 (#1, SSoT) |
 | "표준 섹션 구조 > 섹션별 강제 규칙" 표 | 보강 | `에이전트 운영 지침` 행에 진입 절차 4단계 필수 명시 |
 | "표준 섹션 구조 > 필수 규칙" | 보강 | "본문 두 번째 줄 SSoT 선언 고정" 항목 |
@@ -162,14 +164,14 @@
 
 ## 8. 비-목표 (Task 2에서 다루지 않음 — Task 3 또는 후속)
 
-- floor 측(`ai-workspace`) 안내도의 메타 블록(`building` / `domain` / `keywords`) 설계 — **Task 3**.
+- floor 측(`ai-workspace`) 안내도의 메타 블록(`domain` / `keywords` 2행) 설계 — **Task 3**.
 - 두 산출물을 실제로 SKILL.md·templates에 반영하는 작업 — **Task 4**.
-- 본 repo `.ai/AI-CONTEXT.md`(이 repo는 단일 repo이므로 빌딩 측만 적용 대상)의 정합 점검 — **Task 5**.
+- 본 repo `.ai/AI-CONTEXT.md`(이 repo는 단일 repo이므로 층별 안내도 측만 적용 대상)의 정합 점검 — **Task 5**.
 
 ---
 
 ## 9. 다음 Task로 넘기는 입력
 
-- Task 3 (빌딩 보강 설계): 본 설계의 §5(drift 메타 검사)에 필요한 **floor 자기 선언 메타 블록** 구조를 정의해야 함. 양방향 호환을 위해 필드명을 일치시킨다 (`building`, `domain`, `keywords` 등).
+- Task 3 (층별 안내도 보강 설계): 본 설계의 §5(drift 메타 검사)에 필요한 **floor 자기 선언 메타 블록** 구조를 정의함. 양방향 호환을 위해 `domain`, `keywords` 두 필드만 사용 (역참조는 CoC로 처리, 별도 메타 없음).
 - Task 4: §7 변경 요약 표를 순서대로 적용.
 - Task 5 (DoD 검증): 보강 후 산출물이 시나리오 A~G(Task 1 진단)에서 모두 통과하는지 확인.

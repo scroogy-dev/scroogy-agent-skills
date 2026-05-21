@@ -6,7 +6,7 @@
 
 ---
 
-## 1. 현재 안내판 항목 (로비/빌딩) 표
+## 1. 현재 안내판 항목 (로비/층별 안내도) 표
 
 ### 로비 — `ai-workspace-directory` 산출물
 
@@ -21,7 +21,7 @@
 | `Why 진입점` | ADR·정책 결정 포인터 | "왜" 질의 라우팅 |
 | `에이전트 운영 지침` | SSoT 우선순위, archived/placeholder 처리 원칙 | 동작 규범 |
 
-### 빌딩(floor) — `ai-workspace` 산출물
+### 층별 안내도(floor) — `ai-workspace` 산출물
 
 repo별 `.ai/AI-CONTEXT.md` 섹션 (dev 프로파일 기준):
 
@@ -100,5 +100,5 @@ repo별 `.ai/AI-CONTEXT.md` 섹션 (dev 프로파일 기준):
 ## 5. 다음 Task로 넘기는 입력
 
 - Task 2 (로비 보강 설계): 위 표의 #1, #2, #8, #9, #10 중 `ai-workspace-directory` 측
-- Task 3 (빌딩 보강 설계): 위 표의 #3, #4, #5, #6, #7, #9, #10 중 `ai-workspace` 측
+- Task 3 (층별 안내도 보강 설계): 위 표의 #3, #4, #5, #6, #7, #9, #10 중 `ai-workspace` 측
 - Task 4 (반영): Task 2/3 설계를 SKILL.md·templates에 일괄 반영
