@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — 루트 로비(`ai-workspace-directory`) 보강 설계
+> ▶️ 다음 작업: Task 3 — 빌딩(`ai-workspace`) 보강 설계
 
 ---
 
@@ -26,9 +26,20 @@
 
 ### Task 2: 루트 로비(`ai-workspace-directory`) 보강 설계
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+  - 라우팅 신호 정의: 기존 `Floors`(path/domain/keywords/status) + `라우팅 규칙` 유지하되, `에이전트 운영 지침` 섹션을 `### 진입 절차`(4단계 번호) + `### 작성 규칙`(글머리) 두 서브헤딩으로 분리해 에이전트 진입 절차를 산출물에 명시.
+  - SSoT 위치·문구 확정: 본문 두 번째 줄에 `> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.` 고정. `last updated` 바로 아래에 메타로 박아 단독 진입 에이전트가 첫 5초 안에 라우터 정체성을 인식하도록 함.
+  - placeholder fallback: 진입 절차 step 3에 `active`/`placeholder`/`archived` 분기 명시 — placeholder는 소스 코드만 SSoT로 사용 + `ai-workspace` 안내도 생성 권유.
+  - update 모드 멱등 보강: 형식 위배 검사 2개(SSoT 선언, 진입 절차 4단계), 재구성 규칙 3개(자동 보강·사용자 추가분 보존), SSoT 위배 체크리스트 2개 신규 추가.
+  - drift 진단 확장: floor 자기 선언 메타가 있을 때만 동작하는 메타 일치 검사 표 추가 (`domain`/`keywords`/`building`). Task 3에서 floor 측 메타 블록 필드명을 일치시키는 것이 전제.
+  - 상호 참조 강화: `ai-workspace-directory/SKILL.md` "관련 skill"에 양방향 메타 한 줄 추가.
+  - SKILL.md 변경 지점 10곳 표로 정리 — Task 4에서 순서대로 적용.
+  - 설계 노트: `.ai/99_workspace/notes/2026-05-21-issue-0003-task2-lobby-design.md`
 - **특이 사항**:
+  - 6개 H2 표준 섹션의 **이름·순서는 변경 없음**. 산출 호환성 보호 + update 멱등성 확보 위해 변경을 섹션 내부 골격에 한정.
+  - drift 메타 검사는 Task 3 산출(floor 자기 선언 메타) 의존. Task 4 반영 시 필드명 동기화 필수.
+  - 본문 추가 분량: 약 6~8줄(SSoT 1줄 + 진입 절차 4~5줄 + 작성 규칙 2줄). 250줄 가드레일 영향 미미.
 
 ---
 
