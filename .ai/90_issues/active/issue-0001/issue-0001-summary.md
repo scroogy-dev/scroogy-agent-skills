@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 6 — 예시 2종 작성 (init / update)
+> ▶️ 다음 작업: Task 7 — AI-CONTEXT.md / README.md / install-skills 반영 검토
 
 ---
 
@@ -101,9 +101,22 @@
 
 ### Task 6: 예시 2종 작성
 
-- **결과**:
+- **결과**: SKILL.md `## 예시` 절에 `init` 모드 예시 1개와 `update` 모드 예시 1개를 floor 3개(active/placeholder/archived) 기준으로 작성 완료. SKILL.md 총 744줄.
 - **수행 내용 요약**:
+  - **공통 가상 워크스페이스**: "ACME 결제 워크스페이스" — `api-server`(결제 API, active), `mobile-app`(모바일 클라이언트, placeholder/active), `legacy-web`(레거시 웹, archived/placeholder)의 3 floor 구성. 두 예시가 같은 도메인을 공유해 init→update 진화 흐름을 한 페이지로 따라가게 함.
+  - **init 예시**: 사용자 입력 YAML(`building`/`identity`/`floors`/`archived`) + 디스크 스캔 결과 표 + 산출 `.ai/AI-CONTEXT.md` 전문(38줄, 6개 H2 섹션 표준 구조) + 보고. `placeholder` 경고 메시지를 본문 형태 그대로 노출. archived 한 행 포함.
+  - **update 예시**: 오염된 입력(YAML frontmatter, H1 헤더, 도메인 본문, Python 코드 스니펫, Floors 5열에 `owner` 추가, `legacy-web active` 등록되어 있으나 디스크 안내도 없음, `mobile-app`은 로비 미등록인데 디스크 안내도 존재). update-1~4단계 모두 시연:
+    - 1단계: 4개 카테고리 진단 리포트 (SSoT/로비 역할/drift/형식)
+    - 2단계: 재구성 전문(30줄) + 사용자 덮어쓰기 확인 문구
+    - 3단계: `migration_candidates` YAML 2건(도메인 본문 + 코드 스니펫 모두 api-server target, confidence high)
+    - 4단계: 보고 (placeholder 전환, 이동 후보 수, target_floor unknown 0건)
+  - **가드레일 시연**: 두 예시 산출물(38줄 / 30줄) 모두 150~250줄 미달 → "짧음" 판정. floor 3개 기준 자연스러운 분량임을 보고 문구에 명시해 가드레일이 권고임을 노출.
 - **특이 사항**:
+  - **DoD 매핑**: 본 Task에서 "init/update 예시 각 1개 이상"·"placeholder graceful degradation"·"archived 케이스 노출" 3개 DoD 항목 충족. 분량 가드레일 검증 노출도 함께 시연.
+  - **두 예시 도메인 공유 결정**: 다른 가상 워크스페이스를 쓰면 두 예시가 독립적이지만 학습 비용이 두 배. 같은 ACME 결제 워크스페이스에서 시간이 지나 오염된 상태를 update가 정리하는 흐름으로 묶으면 floor의 의미·키워드 일관성을 한 번에 보여줄 수 있어 채택.
+  - **floor 상태 진화**: init에서 mobile-app은 placeholder였으나 update 시점엔 안내도가 생겨 active로, legacy-web은 archived였으나 update에서는 안내도가 없는 placeholder로 표시되어 status 3종 전환을 모두 보여줌. spec의 "floor `.ai/AI-CONTEXT.md`가 없는 경우 placeholder + 경고로 graceful 처리" + "archived 케이스 한 행 노출" 요구를 한 묶음으로 충족.
+  - **이모지 미사용**: 사용자 메모(`feedback_no_emojis_in_files`)에 따라 모든 상태 표시는 텍스트(`[발견]`/`[없음]`/`[위배]`/`[경고]`)로 유지.
+  - **lint 경고**: 예시 내부 표에서 한국어 셀 폭 false positive 5건 추가. 실제 마크다운 문법 정상.
 
 ---
 
