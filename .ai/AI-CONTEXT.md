@@ -37,6 +37,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
 │   └── templates/              # 프로파일별 템플릿
+├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 ├── code-map/                   # 코드베이스 색인 스킬
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
 │   └── templates/              # 30_contract, 40_domain, 50_adr 템플릿
@@ -63,6 +64,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 | 스킬 | 설명 |
 |------|------|
 | `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) |
+| `ai-workspace-directory` | 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md` 생성·재구성 (`ai-workspace`의 자매) |
 | `code-map` | 소스코드 기능별 엔트리포인트·호출 흐름을 `.ai/60_codebase/`에 색인 |
 | `context-harvest` | 소스코드 바깥의 What+Why를 수집·증류하여 `30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
 | `context-save` | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |

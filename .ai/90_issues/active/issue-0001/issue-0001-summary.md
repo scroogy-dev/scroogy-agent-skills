@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 7 — AI-CONTEXT.md / README.md / install-skills 반영 검토
+> ▶️ 다음 작업: Task 8 — DoD 자가 점검 및 마무리
 
 ---
 
@@ -122,9 +122,16 @@
 
 ### Task 7: AI-CONTEXT.md / README.md 반영 검토
 
-- **결과**:
+- **결과**: `.ai/AI-CONTEXT.md`, 루트 `README.md`, `install-skills/SKILL.md` 3곳에 신규 스킬 `ai-workspace-directory`를 알파벳 순(ai-workspace 다음, code-map 앞)으로 등재 완료.
 - **수행 내용 요약**:
+  - **`.ai/AI-CONTEXT.md`**: (1) 디렉토리 구조 트리에 `ai-workspace-directory/` 항목 추가, (2) 스킬 목록 표에 한 행 추가. 설명은 "멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md` 생성·재구성 (`ai-workspace`의 자매)"로 통일.
+  - **루트 `README.md`**: (1) Skill 목록 표에 한 행 추가, (2) Skill 간 관계 다이어그램에 `ai-workspace-directory ← 워크스페이스 루트의 로비 .ai/AI-CONTEXT.md 라우터, ai-workspace의 자매` 항목 추가. 다이어그램의 `ai-workspace (디렉토리 스캐폴딩)` 루트 아래 자식으로 배치해 자매성을 시각화.
+  - **`install-skills/SKILL.md`**: 사용 가능한 skill 번호 목록에 추가. 알파벳 순 삽입으로 인해 기존 2~12번이 모두 한 칸씩 밀려 총 13개로 늘어남.
 - **특이 사항**:
+  - **DoD 매핑**: 본 Task에서 별도 DoD 항목은 없으나, "신규 스킬이 프로젝트 메타 문서에서 일관되게 노출"이라는 운영 요구를 충족. 후속 install-skills 사용 시 자동 노출.
+  - **`templates/` 디렉토리 미생성 확인**: 디렉토리 구조 트리에 `ai-workspace-directory/` 한 줄만 추가하고 `templates/` 하위 항목은 넣지 않음. Task 2 결정대로 예시는 SKILL.md 본문에 인라인으로 작성했고 별도 템플릿 파일이 필요 없음.
+  - **설명 문구 일관성**: 세 곳 모두 동일한 핵심 문구("멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md` 생성·재구성")를 사용. AI-CONTEXT.md와 README.md는 "(ai-workspace의 자매)" 자매성 표현 포함, install-skills는 백틱 강조 형태로 동일 표현.
+  - **install-skills 번호 재배치**: 알파벳 순 삽입이라 1번(ai-workspace) 다음 2번에 들어가면서 기존 항목들이 한 칸씩 밀림. 사용자가 번호로 선택하던 습관이 있다면 한 번 어긋날 수 있으나, 알파벳 정렬 원칙(기존에도 지켜짐)을 깨지 않는 게 더 중요.
 
 ---
 
