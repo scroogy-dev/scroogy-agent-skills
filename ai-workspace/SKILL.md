@@ -92,6 +92,14 @@ cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 - `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
 - `doc` 전용: (없음)
 
+#### last updated 치환
+
+복사 직후 `.ai/AI-CONTEXT.md`의 첫 줄 `> last updated: YYYY-MM-DD` placeholder를 **스킬 실행 시점의 시스템 날짜**(`date +%Y-%m-%d`)로 치환합니다 (`ai-workspace-directory`와 동일 정책).
+
+```bash
+sed -i.bak "s/> last updated: YYYY-MM-DD/> last updated: $(date +%Y-%m-%d)/" .ai/AI-CONTEXT.md && rm .ai/AI-CONTEXT.md.bak
+```
+
 ### init-2단계: 완료 보고
 
 생성된 파일 목록을 트리 구조로 출력하고, 사용자에게 다음 안내를 제공합니다.
@@ -194,6 +202,7 @@ rm -rf .ai/20_templates/*
 
 | 항목 | 검사 | 누락 시 조치 |
 |------|------|-------------|
+| 본문 첫 줄 `> last updated: YYYY-MM-DD` | 본문 첫 줄이 `> last updated: <ISO 날짜>` 형식인가? | 누락이거나 형식 불일치이면 표준 형식으로 삽입·정정한다. 형식이 맞으면 매 `update` 실행 시 **스킬 실행 시점의 시스템 날짜**(`date +%Y-%m-%d`)로 갱신한다 (`ai-workspace-directory`와 동일 정책). |
 | 본문 두 번째 줄 SSoT 선언 | `> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.` 존재? | 본문 첫 줄(`> last updated: ...`) 바로 아래에 표준 문구를 삽입한다. 비표준 문구이면 표준 문구로 교체한다. |
 | `## 프로젝트 도메인` 섹션 | 섹션 존재? | 헤더와 `## 프로젝트 목적` 사이에 2행 표(`domain` / `keywords`)를 빈 값(`<...>`) 골격으로 삽입한다. `domain`/`keywords`는 사용자 입력을 요청하되, 멀티/단독 여부는 묻지 않는다 (CoC 자동 판정). |
 | `## 디렉토리 구조`의 `.ai/` 한 줄 압축 | placeholder 주석에 `.ai/`는 한 줄로만 표시하라는 가이드가 있는가? 본문 트리에 `.ai/` 하위가 2단계 이상 펼쳐져 있는가? | 가이드가 없으면 표준 주석으로 보강한다. 본문 트리에서 `.ai/` 하위가 펼쳐져 있으면 한 줄(`├── .ai/  # AI 협업 가이드 (상세는 ".ai 디렉토리 구조" 섹션)`)로 정렬을 권유한다. `.ai/` 외 코드 트리 사용자 작성분은 보존한다. |

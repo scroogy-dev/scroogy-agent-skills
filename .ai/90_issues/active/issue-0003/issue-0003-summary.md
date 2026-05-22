@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 5 — 자가 검증 및 본 repo 로비 정합 확인
+> ✅ 모든 작업이 완료되었습니다.
 
 ---
 
@@ -105,6 +105,7 @@
     - `## 에이전트 운영 지침` — 전제 컨벤션 한 줄 + `### 진입 절차` 3단계 + `### 작성 규칙` — `## .ai 디렉토리 구조` 다음에 삽입
     - 기존 섹션(`프로젝트 목적`/`프로젝트 규칙`/`기술 스택`/`디렉토리 구조`/`.ai 디렉토리 구조`/`Git 정책`/`이슈 작업 워크플로우`) 이름·순서·본문 그대로 유지
   - `ai-workspace/templates/doc/.ai/AI-CONTEXT.md` (115줄) — dev와 동일 보강 (단 `## 기술 스택` 섹션 없음 유지). `## 디렉토리 구조` 가이드만 *"콘텐츠 트리 개관"*으로 어휘 미세 조정.
+  - **미세 보완 (Task 5 검증 중 발견)**: `ai-workspace/SKILL.md`의 `> last updated:` 갱신 절차가 `ai-workspace-directory`와 비대칭이었던 일관성 갭을 보강. update-4단계 멱등 보강 검사 표 첫 행에 `> last updated:` 자동 갱신을 추가하고, init-1단계 끝에 placeholder(`YYYY-MM-DD`) → 시스템 날짜 치환 단계를 명시. 이로써 두 스킬 모두 init/update 양 모드에서 매 실행 시 본문 첫 줄을 시스템 날짜로 갱신하는 동일 정책을 따른다.
 - **특이 사항**:
   - SKILL.md 본문에서 floor/lobby/building 메타포는 옵션 B에 따라 유지하고, 산출물 명세 어휘(섹션명·컬럼명·status 값·진단 메시지)만 `Repos`/`repo` 어휘로 통일했다. SSOT 위배 체크리스트의 `Floors → Repos` 정규화 검사가 구버전을 자동 흡수한다.
   - update 모드는 모두 **사용자 작성분 보존 + 누락 시에만 표준 골격 삽입**이라는 멱등 원칙을 유지. 신규 검사 항목 모두 동일 정책 적용.
@@ -114,6 +115,28 @@
 
 ### Task 5: 자가 검증 및 본 repo 로비 정합 확인
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+  - **본 repo `.ai/AI-CONTEXT.md` 정합 점검**:
+    - CoC 자동 판정: `../.ai/AI-CONTEXT.md` 부재 → **단독 repo**.
+    - 갭 분석 결과 누락 3건 (보강 전): 본문 둘째 줄 SSoT 선언 / `## 프로젝트 도메인` 섹션 / `## 에이전트 운영 지침` 섹션. 정상 6건: 기존 섹션 순서·`## 디렉토리 구조`의 `.ai/` 한 줄 압축 상태·`## 프로젝트 목적`·`## 프로젝트 규칙`·`## .ai 디렉토리 구조`·`## Git 정책`·`## 이슈 작업 워크플로우`. 보존 대상 2건: `## 스킬 목록`·`## 스킬 작성 규칙` (본 repo 고유 섹션).
+    - 보강 적용 (dev 템플릿 기준):
+      1. 본문 둘째·셋째 줄에 `> last updated: 2026-05-22` + `> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.` 삽입.
+      2. 헤더와 `## 프로젝트 목적` 사이에 `## 프로젝트 도메인` 2행 표 추가 (domain: Agent Skills 모음 저장소 / keywords: agent skills·claude code·ai-workspace 등) + 단독 repo 안내 한 줄.
+      3. `## .ai 디렉토리 구조` 다음에 `## 에이전트 운영 지침` (전제 한 줄 + 진입 절차 3단계 + 작성 규칙) 삽입.
+    - 결과 분량: 151줄 → 183줄 (+32줄). 산출물 가이드(150~250줄) 정상 범위.
+  - **"루트 로비만 본 상태" 시뮬레이션**:
+    - 본 repo는 단독 repo이므로 실제 상위 안내도는 없지만, 본 repo가 가상의 멀티 워크스페이스에 등록되었다고 가정해 라우팅 흐름을 시뮬레이션.
+    - 가상 로비 `Repos` 행: `| scroogy-agent-skills | Claude Code·Cursor·Gemini CLI·Junie 등 다양한 AI 도구에서 호환되는 Agent Skills 모음 저장소 | agent skills, claude code, ai-workspace, ... | active |`
+    - 질의: *"ai-workspace 스킬은 어떻게 동작해?"* → 키워드 `ai-workspace` 매칭 → `scroogy-agent-skills` 후보 → `status: active` → `scroogy-agent-skills/.ai/AI-CONTEXT.md` 진입 → `## 프로젝트 도메인` 검증(keywords ⊇ `ai-workspace` ✓) → `진입 절차 step 2`에 따라 `context-loading.md` 적재 후 `60_codebase/` 또는 `ai-workspace/SKILL.md` 직접 참조 → 답변 가능. **시뮬레이션 통과**.
+    - 단독 진입(이 repo만 IDE로 연 상태) 시뮬레이션: `../.ai/AI-CONTEXT.md` 부재 자동 감지 → 단독 repo 경로로 진입 → `## 프로젝트 도메인` + 본문만으로 라우팅 가능. **통과**.
+  - **DoD 5항목 점검** (spec의 모든 체크박스 ✅):
+    1. **로비 라우팅 정보 명세** ✅ — `ai-workspace-directory/SKILL.md`의 표준 섹션 구조에 `## Repos`(4열 path/domain/keywords/status) + `## 라우팅 규칙` + `## 에이전트 운영 지침 > 진입 절차 4단계`(키워드 추출 → Repos 매칭 → status별 분기 → 충돌 우선순위)가 명세됨.
+    2. **로비 → repo 안내도 → 코드/문서 탐색 흐름 명시** ✅ — 로비 측은 `진입 절차 step 3`에서 `<path>/.ai/AI-CONTEXT.md` 진입을 명시, 층별 안내도 측은 `진입 절차 step 2`에서 `context-loading.md` → `30/40/50/60 index.md` 선택 적재를 명시. 두 흐름이 자연스럽게 연결됨.
+    3. **산출물 항목 충돌·중복 없이 맞물림** ✅ — 상위 `Repos` 4열(path/domain/keywords/status) vs 층별 안내도 `## 프로젝트 도메인` 2행(domain/keywords). path·status는 상위 단독 책임. 역참조는 CoC로 메타 필드 제거. 양쪽 SKILL.md에 상호 참조(`ai-workspace-directory/SKILL.md` "관련 skill" + `ai-workspace/SKILL.md` "이 구조와 함께 사용 가능한 skill" 최상단)가 양방향 명시.
+    4. **SSoT 원칙 명문화** ✅ — `ai-workspace-directory/SKILL.md` 대전제 + 산출물 본문 둘째 줄 SSoT 선언. `ai-workspace/SKILL.md` 설계 원칙 + dev/doc 템플릿 본문 둘째 줄 SSoT 선언. 진입 절차 4단계의 충돌 우선순위(소스 코드 > 각 repo 안내도 > 상위 워크스페이스 안내도)에서도 일관 유지.
+    5. **재실행 멱등 정렬 절차** ✅ — 상위: `update-1단계 (4)`에 SSoT/`Floors`→`Repos`/진입 절차 형식 위배 검사 3개 + `update-2단계` 재구성 규칙에 자동 보강 3개. 층별 안내도: `update-4단계`에 멱등 보강 검사 5개(SSoT/프로젝트 도메인/`.ai/` 한 줄 압축/에이전트 운영 지침+전제/구버전 `워크스페이스 위치`→`프로젝트 도메인` 마이그레이션). 모두 *사용자 작성분 보존 + 누락 시 표준 골격 삽입* 원칙.
 - **특이 사항**:
+  - 본 repo는 doc/dev 혼합 성격(스킬 마크다운 모음이지만 `architecture.md`/`coding-convention.md`가 작성되어 있음). dev 템플릿의 `## 기술 스택` 섹션은 본 repo에 원래 없었고 코드 언어가 사실상 markdown 뿐이라 보강 대상에서 제외.
+  - 진입 절차의 단독 분기(`../.ai/AI-CONTEXT.md` 부재 자동 판정)가 본 repo에서 실제로 동작하는지 `[ -f ../.ai/AI-CONTEXT.md ]` 명령으로 검증함 → 단독으로 판정. CoC 컨벤션이 의도대로 작동.
+  - `## 프로젝트 도메인` keywords에 본 repo의 12개 스킬 명을 모두 나열하지 않고 도메인 단어(agent skills, claude code, ai-workspace 등)만 담아 라우팅 키워드로서의 가독성 우선. 개별 스킬 검색은 `## 스킬 목록` 표가 담당.
