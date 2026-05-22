@@ -8,8 +8,15 @@ description: 프로젝트의 .ai 디렉토리 구조를 초기화하거나 최�
 현재 프로젝트 루트에 `.ai/` 디렉토리와 AI 협업을 위한 기본 구조를 생성하거나 갱신합니다.
 이 스킬 디렉토리의 `templates/` 아래 파일을 기준으로 구성합니다.
 
+### 설계 원칙
+
+- **SSoT는 소스 코드.** repo 안내도(`.ai/AI-CONTEXT.md`)는 라우터일 뿐 진실의 원천이 아닙니다.
+- **컨벤션 우선 (CoC).** 멀티 repo는 `<상위 워크스페이스>/<repo>` 컨벤션으로만 지원합니다. 이 repo가 멀티 워크스페이스의 일부인지 단독 repo인지는 `<repo>/../.ai/AI-CONTEXT.md` 존재 여부로 **자동 판정**합니다 — 별도 메타 필드(`building`/`lobby` 등)는 두지 않습니다 (YAGNI). 컨벤션을 벗어난 구조는 지원하지 않습니다.
+- **상위 워크스페이스와의 도메인 동기화.** 멀티 워크스페이스의 일부인 경우 repo 안내도의 `## 프로젝트 도메인` 표(`domain`/`keywords`)는 상위 워크스페이스 안내도 `Repos` 표의 동일 path 행과 **1:1 동기화**됩니다 (`ai-workspace-directory`의 drift 메타 일치 검사 대상).
+
 ## 이 구조와 함께 사용 가능한 skill
 
+- **ai-workspace-directory** (자매): 멀티 repo 워크스페이스 루트의 상위 안내도 `.ai/AI-CONTEXT.md`(로비) 생성·재구성. 상위 안내도의 `Repos` 표는 각 repo의 `path`/`domain`/`keywords`/`status`를 가지고, 본 스킬이 만드는 repo 안내도의 `## 프로젝트 도메인` 표(`domain`/`keywords`)와 **1:1 동기화 대상**입니다.
 - **code-map**: 소스코드 기능별 엔트리포인트·호출 흐름 색인 (`.ai/60_codebase/` 활용)
 - **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
 - **git-pr**: PR 제목/메시지 작성 (비즈니스+테크 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용)
@@ -51,6 +58,19 @@ description: 프로젝트의 .ai 디렉토리 구조를 초기화하거나 최�
 
 ## init 모드
 
+### init-0단계: 멀티/단독 repo 자동 판정 (CoC)
+
+`<repo>/..`의 `.ai/AI-CONTEXT.md` 존재 여부로 자동 판정합니다. **사용자에게 묻지 않습니다** (컨벤션 우선).
+
+```bash
+[ -f ../.ai/AI-CONTEXT.md ] && echo "multi" || echo "solo"
+```
+
+| 결과 | 의미 | 이후 처리 |
+|------|------|----------|
+| `multi` | 멀티 워크스페이스의 일부 | init-2단계 보고에서 *"상위 안내도: `../.ai/AI-CONTEXT.md`"* 안내. `## 프로젝트 도메인`의 `domain`/`keywords`를 상위 안내도 `Repos` 행과 일치시키도록 사용자에게 권유. |
+| `solo` | 단독 repo | init-2단계 보고에서 *"이 repo는 단독 repo입니다."* 안내. `## 프로젝트 도메인`은 단독 repo여도 유지 (에이전트 진입 단서). |
+
 ### init-1단계: 파일 복사
 
 이 스킬 파일의 위치(`SKILL.md`가 있는 디렉토리)를 기준으로 `templates/` 경로를 찾아 복사합니다.
@@ -72,11 +92,21 @@ cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 - `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
 - `doc` 전용: (없음)
 
+#### last updated 치환
+
+복사 직후 `.ai/AI-CONTEXT.md`의 첫 줄 `> last updated: YYYY-MM-DD` placeholder를 **스킬 실행 시점의 시스템 날짜**(`date +%Y-%m-%d`)로 치환합니다 (`ai-workspace-directory`와 동일 정책).
+
+```bash
+sed -i.bak "s/> last updated: YYYY-MM-DD/> last updated: $(date +%Y-%m-%d)/" .ai/AI-CONTEXT.md && rm .ai/AI-CONTEXT.md.bak
+```
+
 ### init-2단계: 완료 보고
 
 생성된 파일 목록을 트리 구조로 출력하고, 사용자에게 다음 안내를 제공합니다.
 
+- init-0단계 자동 판정 결과(`multi` / `solo`) 요약. `multi`이면 상위 안내도 경로(`../.ai/AI-CONTEXT.md`)와 `## 프로젝트 도메인` 동기화 안내, `solo`이면 단독 repo임을 명시.
 - `.ai/AI-CONTEXT.md`의 주석 처리된 섹션(`<!-- ... -->`)을 프로젝트에 맞게 채워주세요.
+- `## 프로젝트 도메인` 표의 `domain` / `keywords` 두 행을 채워주세요 (단독 repo여도 유지). 멀티 워크스페이스인 경우 상위 안내도 `Repos` 표의 동일 path 행과 1:1 일치시켜야 합니다.
 - 이슈 작업 시 `issue-work` skill(`/issue-work`)을 사용하세요.
 
 ---
@@ -164,6 +194,20 @@ rm -rf .ai/20_templates/*
 - 프로젝트 루트의 `README.md`
 - 디렉토리 구조 (`ls`, `find` 등)
 - 기존 `.ai/AI-CONTEXT.md` 내용
+- 멀티/단독 자동 판정: `<repo>/../.ai/AI-CONTEXT.md` 존재 여부 (CoC — 사용자에게 묻지 않음)
+
+#### 멱등 보강 검사 (신규)
+
+기존 사용자 작성분은 보존하되, 아래 항목이 누락되어 있으면 표준 골격을 정확한 위치에 삽입합니다. 이미 있으면 사용자 작성분을 그대로 유지합니다.
+
+| 항목 | 검사 | 누락 시 조치 |
+|------|------|-------------|
+| 본문 첫 줄 `> last updated: YYYY-MM-DD` | 본문 첫 줄이 `> last updated: <ISO 날짜>` 형식인가? | 누락이거나 형식 불일치이면 표준 형식으로 삽입·정정한다. 형식이 맞으면 매 `update` 실행 시 **스킬 실행 시점의 시스템 날짜**(`date +%Y-%m-%d`)로 갱신한다 (`ai-workspace-directory`와 동일 정책). |
+| 본문 두 번째 줄 SSoT 선언 | `> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.` 존재? | 본문 첫 줄(`> last updated: ...`) 바로 아래에 표준 문구를 삽입한다. 비표준 문구이면 표준 문구로 교체한다. |
+| `## 프로젝트 도메인` 섹션 | 섹션 존재? | 헤더와 `## 프로젝트 목적` 사이에 2행 표(`domain` / `keywords`)를 빈 값(`<...>`) 골격으로 삽입한다. `domain`/`keywords`는 사용자 입력을 요청하되, 멀티/단독 여부는 묻지 않는다 (CoC 자동 판정). |
+| `## 디렉토리 구조`의 `.ai/` 한 줄 압축 | placeholder 주석에 `.ai/`는 한 줄로만 표시하라는 가이드가 있는가? 본문 트리에 `.ai/` 하위가 2단계 이상 펼쳐져 있는가? | 가이드가 없으면 표준 주석으로 보강한다. 본문 트리에서 `.ai/` 하위가 펼쳐져 있으면 한 줄(`├── .ai/  # AI 협업 가이드 (상세는 ".ai 디렉토리 구조" 섹션)`)로 정렬을 권유한다. `.ai/` 외 코드 트리 사용자 작성분은 보존한다. |
+| `## 에이전트 운영 지침` 섹션 + 전제 컨벤션 한 줄 | 섹션과 *"전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면 ..."* 한 줄이 존재? | `## .ai 디렉토리 구조` 바로 다음에 표준 골격(전제 한 줄 + `### 진입 절차` 3단계 + `### 작성 규칙`)을 삽입한다. 사용자가 별도 운영 지침을 추가했다면 그 아래에 보존한다. |
+| 구버전 `## 워크스페이스 위치`(4행 표) → `## 프로젝트 도메인`(2행 표) 마이그레이션 | 구버전 섹션이 존재? | 섹션명을 `## 프로젝트 도메인`으로 변경하고, `building` / `lobby` 행을 삭제한 뒤 `domain` / `keywords` 두 행만 유지한다 (CoC로 흡수된 메타 필드 제거). |
 
 #### 구버전 구조 마이그레이션
 
