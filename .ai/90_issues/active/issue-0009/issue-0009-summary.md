@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — 본 저장소 NOTICE 파일 정리
+> ▶️ 다음 작업: Task 3 — readme-sync SKILL.md LICENSE 파일 생성 옵션 사양 추가
 
 ---
 
@@ -25,9 +25,12 @@
 
 ### Task 2: 본 저장소 NOTICE 파일 정리
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+  - NOTICE의 라이선스 본문 발췌(L4~L14)를 제거하고 프로젝트명·Copyright 두 줄만 유지.
+  - 의도: Apache 2.0 §4(d)는 NOTICE에 적힌 attribution을 재배포물에 보존하도록 강제하므로, attribution 외 내용을 두면 §4(d) 보존 범위가 모호해진다. 두 줄로 좁혀 보존 범위를 명확히 함.
 - **특이 사항**:
+  - 본 저장소가 외부 Apache 2.0 라이브러리를 의존하지 않으므로 외부 attribution 라인은 추가하지 않음. 향후 그런 의존이 생기면 NOTICE에 해당 attribution을 추가해야 함.
 
 ---
 

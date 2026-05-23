@@ -22,7 +22,7 @@
 
 ### Task 2: 본 저장소 NOTICE 파일 정리
 
-- [ ] 완료
+- [x] 완료
 - **목표**: NOTICE 파일을 Apache 2.0 attribution 정석에 맞춰 정리한다. 의도는 **재배포 시 Apache 2.0 §4(d)에 의해 본 저장소 저작권자(scroogy-dev) 표기가 후속 배포물에 강제로 보존되도록 만드는 것**이며, attribution 외 내용을 제거해 §4(d) 적용 범위를 명확히 한다.
 - **작업 내용**:
   1. 현재 NOTICE의 라이선스 본문 발췌(4~14줄)를 제거한다 (LICENSE와 중복이고 attribution이 아니라 §4(d) 보존 범위 밖이다).
