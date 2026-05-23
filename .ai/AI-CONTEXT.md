@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-05-22
+> last updated: 2026-05-23
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -15,7 +15,7 @@
 | domain | Claude Code·Cursor·Gemini CLI·Junie 등 다양한 AI 도구에서 호환되는 Agent Skills 모음 저장소 |
 | keywords | agent skills, agentskills, claude code, ai-workspace, ai 협업 가이드, skill 모음 |
 
-> 단독 repo이므로 상위 워크스페이스 안내도가 없다. `domain`/`keywords`는 에이전트 진입 단서로 유지한다 (CoC 자동 판정 — `../.ai/AI-CONTEXT.md` 부재).
+> `domain`/`keywords`는 단독/멀티 여부와 무관하게 에이전트 진입 단서로 유지한다. 상위 워크스페이스 안내도(`../.ai/AI-CONTEXT.md`) 존재 여부는 런타임에 자동 판정한다 (CoC).
 
 ---
 
@@ -146,7 +146,7 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 ## 에이전트 운영 지침
 
-> 전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면 이 repo는 멀티 워크스페이스의 일부, 없으면 단독 repo다. 별도 메타 명시 없이 자동 판정한다 (CoC). 본 repo는 단독 repo다.
+> 전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면 이 repo는 멀티 워크스페이스의 일부, 없으면 단독 repo다. 별도 메타 명시 없이 런타임에 자동 판정한다 (CoC).
 
 ### 진입 절차 (질의 → 답변)
 
@@ -161,7 +161,7 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 ### 작성 규칙 (이 파일을 손볼 때)
 
 - 도메인 본문은 `40_domain/`, 계약은 `30_contract/`, 결정 이력은 `50_adr/`, 코드 상세는 `60_codebase/`에 둔다. 이 파일에는 포인터만.
-- `domain`/`keywords`를 바꾸면 상위 워크스페이스 안내도의 `Repos` 행도 같이 갱신한다 (단독 repo는 제외 — 본 repo가 이에 해당).
+- `domain`/`keywords`를 바꾸면 상위 워크스페이스 안내도의 `Repos` 행도 같이 갱신한다 (멀티 워크스페이스의 일부일 때에 한함).
 
 ## Git 정책
 
