@@ -74,7 +74,7 @@
 
 ### Task 4: README 템플릿 정의
 
-- [ ] 완료
+- [x] 완료
 - **목표**: `init` 모드에서 사용할 README 템플릿을 작성한다.
 - **작업 내용**:
   1. Task 1·2 결과에 맞춰 템플릿을 작성한다 (`readme-sync/templates/README-template.md` 또는 SKILL.md 인라인).

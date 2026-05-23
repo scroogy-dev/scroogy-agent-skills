@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — README 템플릿 정의
+> ▶️ 다음 작업: Task 5 — SKILL.md 본문 작성
 
 ---
 
@@ -184,9 +184,39 @@
 
 ### Task 4: README 템플릿 정의
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+
+  `readme-sync/templates/README-template.md` 단일 파일로 작성.
+
+  **구조 (Simple is Best 적용)**:
+  - **필수 섹션**: Header (제목 + 한 줄 설명) / 개요 / Quick Start
+  - **옵션 섹션**: 디렉토리 구조 / 스킬 목록·기능 / 문서 / 기여 — 모두 `<!-- optional:NAME -->` 마커로 감싸 통째 삭제 가능
+  - **말미 블록**: `optional:footer-license` / `optional:footer-notice` / `optional:footer-copyright` 3종 — Task 2 조합표대로 선택해서 남김. 라이선스는 단일 마커 내부에서 (a)/(b)/(c) 분기 문구를 선택하는 구조 (3개 분기를 별도 마커로 두면 시각적으로 중복돼 단일 섹션으로 통합)
+  - 자리표시자 형식: `<프로젝트명>`, `<한 줄 설명>`, `<YEAR>`, `<AUTHOR>`, `<EMAIL>` 등 꺾쇠 표기로 통일
+
+  **각 옵션 마커의 사용 규칙**:
+
+  | 마커 | 사용 시점 |
+  |------|----------|
+  | `optional:badges` | 빌드 상태·버전·라이선스 배지가 의미 있을 때 |
+  | `optional:structure` | 멀티 패키지/스킬 모음 등 디렉토리 트리가 가치 있을 때 |
+  | `optional:features` | 스킬 목록·기능 목록 같은 핵심 자산이 있을 때 |
+  | `optional:docs` | 외부 문서 또는 보조 문서 포인터가 필요할 때 |
+  | `optional:contributing` | 공개 OSS인 경우 |
+  | `optional:footer-license` | 라이선스 표시. 내부 주석의 (a)/(b) 분기 중 하나로 본문을 채우거나, (c)면 블록 전체 삭제 |
+  | `optional:footer-notice` | 개인 저작물 고지 포함 |
+  | `optional:footer-copyright` | 라이선스 또는 고지 중 하나라도 남으면 함께 |
+
+  **적용 점검 (본 프로젝트 외)**:
+  - 회사 업무 README (`business` + update 보존): 옵션 섹션 대부분 + 말미 블록 전체 생략 → 본문만 남아 깔끔.
+  - 개인 비공개 패키지 (`ai-onboarding` 유사): `footer-license`(b 분기) + `footer-notice` + `footer-copyright` 조합으로 한 번에 채움.
+  - 본 repo `scroogy-agent-skills`: `optional:structure` + `optional:features`(스킬 목록) + `optional:contributing` + `footer-license`(a 분기) + `footer-notice` + `footer-copyright` 조합 → 현재 README와 동등한 결과 가능.
+
 - **특이 사항**:
+  - 템플릿 안내 주석은 HTML 주석(`<!-- ... -->`)으로 작성 → 마크다운 렌더링 결과에는 안 보임. 단, **최종 README에서는 안내 주석을 제거**한다는 규칙을 Task 5 SKILL.md에 명시 필요.
+  - 옵션 마커도 최종 결과물에서 제거한다 (`optional:` 마커는 스킬용, 최종 README에는 남기지 않는다).
+  - 옵션 섹션을 하나도 안 쓰면 README가 Header + 개요 + Quick Start 3개 섹션만 남는다 — 최소 형태로도 정상 동작.
 
 ---
 
