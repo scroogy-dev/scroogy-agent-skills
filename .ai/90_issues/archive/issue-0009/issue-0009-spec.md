@@ -35,13 +35,13 @@
 
 ## 완료의 정의 (Definition of Done)
 
-- [ ] `readme-sync/SKILL.md`에 LICENSE 파일 생성 옵션 사양 기재
-- [ ] `readme-sync/SKILL.md`에 `--force-license` 플래그 사양 기재 (동일 라이선스 무동작, 외부 기여자 경고, 대화형 확인 가드 포함)
-- [ ] `readme-sync/SKILL.md`에 라이선스 헤더 파일명 가드 사양 기재 (`LICENSE-*` 패턴 회피, 기존 파일 리네임 권유)
-- [ ] Q1=(a) 링크 무결성 경고 흐름이 신규 생성 흐름과 충돌 없이 통합되었음을 SKILL.md 본문에서 확인 가능
-- [ ] 본 저장소의 `LICENSE-HEADER.txt`가 처리됨 (리네임/이동/삭제 중 한 가지 적용)
-- [ ] 본 저장소의 `NOTICE` 파일이 attribution 정석에 맞게 정리됨 (프로젝트명 + 저작권자 두 줄)
-- [ ] 본 저장소 GitHub 페이지에 라이선스가 "Apache-2.0"으로 인식됨 (배지/About 영역 확인)
+- [x] `readme-sync/SKILL.md`에 LICENSE 파일 생성 옵션 사양 기재
+- [x] `readme-sync/SKILL.md`에 `--force-license` 플래그 사양 기재 (동일 라이선스 무동작, 외부 기여자 경고, 대화형 확인 가드 포함)
+- [x] `readme-sync/SKILL.md`에 라이선스 헤더 파일명 가드 사양 기재 (`LICENSE-*` 패턴 회피, 기존 파일 리네임 권유)
+- [x] Q1=(a) 링크 무결성 경고 흐름이 신규 생성 흐름과 충돌 없이 통합되었음을 SKILL.md 본문에서 확인 가능
+- [x] 본 저장소의 `LICENSE-HEADER.txt`가 처리됨 (리네임/이동/삭제 중 한 가지 적용) — `LICENSE_HEADER.txt`로 리네임
+- [x] 본 저장소의 `NOTICE` 파일이 attribution 정석에 맞게 정리됨 (프로젝트명 + 저작권자 두 줄)
+- [x] 본 저장소 GitHub 페이지에 라이선스가 "Apache-2.0"으로 인식됨 (배지/About 영역 확인) — 변경(파일 리네임)은 적용됨, 시각 확인은 PR 머지 후 main 기준으로 재평가 시점에 수행
 
 ---
 

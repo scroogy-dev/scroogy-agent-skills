@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 7 — DoD 점검 및 이슈 종료 준비
+> ✅ 모든 작업이 완료되었습니다.
 
 ---
 
@@ -97,6 +97,14 @@
 
 ### Task 7: DoD 점검 및 이슈 종료 준비
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+  - spec.md의 DoD 7개 항목을 모두 [x]로 마킹.
+    - 1~4번: `readme-sync/SKILL.md` 본문에서 사양·통합 확인 (Task 3~5).
+    - 5번: `LICENSE-HEADER.txt` → `LICENSE_HEADER.txt` 리네임 (Task 1).
+    - 6번: `NOTICE` 2줄 정리 (Task 2).
+    - 7번: 변경 자체는 적용됨(파일 리네임). GitHub Licensee의 시각적 재평가는 PR 머지 후 main 기준으로 수행되므로 머지 시점에 About 영역에서 확인.
+  - GitHub Issue #9에 종료 코멘트 작성.
+  - `active/issue-0009/` → `archive/issue-0009/` 디렉토리 단위 이관.
 - **특이 사항**:
+  - DoD 7번은 코드 변경 없이 외부 시스템(GitHub Licensee)의 재평가만 남은 항목. 머지 후 About 영역에 "Apache-2.0"이 표시되지 않으면 후속 이슈로 재개 필요.
