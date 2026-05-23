@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 6 — 본 repo 셀프 적용 검증
+> ▶️ 다음 작업: Task 7 — AI-CONTEXT.md 스킬 목록 정합성 점검
 
 ---
 
@@ -254,9 +254,88 @@
 
 ### Task 6: 본 repo에 셀프 적용 검증 (모드·프로파일·옵션 조합)
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+
+  SKILL.md 절차를 따라 3가지 시나리오를 추적 검증. 본 repo의 실제 `README.md`는 덮어쓰지 않고 절차만 시뮬레이션.
+
+  ---
+
+  **시나리오 1: `--mode=update` (본 repo, `--profile` 유무 무관)**
+
+  - **update-1 파싱 결과**:
+    - 섹션: 헤더(제목 + Apache 2.0 배지) / 개요 1문단 / Skill 목록 표(13행) / Skill 간 관계(ASCII 트리) / 설치 방법(install-skills 안내) / 라이선스 / 개인 저작물 고지 / Copyright
+    - 말미 블록: (a) 오픈소스 + 포함 — Task 2 조합표의 1행 케이스
+  - **update-2 재분석**:
+    - 디렉토리 13 + install-skills = 14개 (install-skills는 표가 아닌 "설치 방법" 섹션에서 다뤄지는 의도된 분리)
+    - Skill 목록 표의 13개 항목은 실제 디렉토리와 1:1 일치
+  - **update-3 갱신 결정**:
+    - 자동 갱신 후보: 없음 (디렉토리 변동 없음, 표 일치). 모든 본문은 사용자 작성 콘텐츠로 보존.
+    - 말미 블록: `--profile` 미사용 → 기존 (a)+포함 보존
+  - **검증 결과**: ✓ 의도대로 동작. 기존 README가 그대로 유지됨.
+
+  ---
+
+  **시나리오 2: `--mode=init --profile=individual` (가상 빈 디렉토리)**
+
+  - **init-1 분석**: 빈 디렉토리 → 자리표시자 채울 정보가 거의 없음. LICENSE 파일 없음.
+  - **init-2 Q1**: profile=individual → (a)/(b) 선택 요청. (사용자가 (a) Apache 2.0 선택했다고 가정)
+  - **init-2 Q2**: profile=individual → 포함 기본값 하이라이트 → 확인.
+  - **init-3 템플릿 처리**:
+    - 필수 섹션: Header / 개요 / Quick Start placeholder만 남음
+    - 옵션 섹션: 빈 디렉토리라 모두 삭제 (`optional:structure` `features` `docs` `contributing` 모두 제거)
+    - 말미 블록: `footer-license` 본문에 "이 프로젝트는 [Apache License 2.0](./LICENSE)에 따라 라이선스가 부여됩니다." 채움 + `footer-notice` 본문에 "이 프로젝트는 **<git user>**의 개인 저작물입니다." 채움 + `footer-copyright`에 `Copyright <시스템 연도> <git user> (<git email>)` 채움
+    - 마커·안내 주석 모두 제거
+  - **예상 결과 구조**:
+    ```
+    # <프로젝트명>
+    > <한 줄 설명>
+
+    ## 개요
+    ...
+
+    ## Quick Start
+    ...
+
+    ## 라이선스
+    이 프로젝트는 [Apache License 2.0](./LICENSE)에 따라 라이선스가 부여됩니다.
+
+    ### 개인 저작물 고지
+    이 프로젝트는 **scroogy-dev**의 개인 저작물입니다. ...
+
+    ```
+    Copyright 2026 scroogy-dev (scroogy@naver.com)
+    ```
+    ```
+  - **검증 결과**: ✓ 본 repo의 말미 블록과 동등한 형태가 자연스럽게 생성됨. 다만 LICENSE 파일이 없으므로 `(./LICENSE)` 링크는 깨진 링크 — Q1에 LICENSE 파일이 없을 때의 안내 필요 (특이 사항 참조).
+
+  ---
+
+  **시나리오 3: `--mode=init --profile=business` (가상 빈 디렉토리)**
+
+  - **init-2 Q1**: profile=business → (c) 표시하지 않음 기본값 하이라이트 → 확인.
+  - **init-2 Q2**: profile=business → 미포함 기본값 하이라이트 → 확인.
+  - **init-3 템플릿 처리**:
+    - 말미 블록: `footer-license` 통째 삭제 + `footer-notice` 통째 삭제 + `footer-copyright` 통째 삭제 (라이선스·고지 모두 없으므로)
+  - **예상 결과 구조**:
+    ```
+    # <프로젝트명>
+    > <한 줄 설명>
+
+    ## 개요
+    ...
+
+    ## Quick Start
+    ...
+    ```
+  - **검증 결과**: ✓ 말미 블록 전체가 자연스럽게 비어 회사 업무 README 관례에 맞음.
+
 - **특이 사항**:
+  - **Q1 분기 (a) + LICENSE 파일 없음**: 검증 중 발견된 누락. SKILL.md `init-4단계`를 "검증·저장"으로 확장해 LICENSE 파일 부재 시 사용자에게 생성을 권유하도록 보정 (이 Task에서 즉시 반영).
+  - **시나리오 4·5 (옵션 — plan에 명시)**:
+    - 시나리오 4(profile 미지정 + init): Q1·Q2를 프리셋 없이 그대로 제시 → 시나리오 2·3과 분기만 다를 뿐 동일 흐름. 명시적 추가 검증 불필요.
+    - 시나리오 5(individual + 비공개 표기 (b)): `footer-license` 본문에 "All Rights Reserved" 채움 + `footer-notice` + `footer-copyright`. 의도된 결과로 단순. 명시적 추가 검증 불필요.
+  - **본 repo의 자동 갱신 후보가 없는 것**은 update 모드의 한가운데 시나리오를 검증하기에는 약함. 추후 디렉토리 변동(예: 새 스킬 추가) 시점에 실제 적용해서 검증 보강 가능. 현재로서는 절차상 보존 정책이 명시되어 있어 충분.
 
 ---
 
