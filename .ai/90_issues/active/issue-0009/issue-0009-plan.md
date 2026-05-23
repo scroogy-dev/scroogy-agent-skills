@@ -33,7 +33,7 @@
 
 ### Task 3: readme-sync SKILL.md — LICENSE 파일 생성 옵션 사양 추가
 
-- [ ] 완료
+- [x] 완료
 - **목표**: init 모드 Q1=(a)에서 LICENSE 파일 생성을 옵션으로 제공하고, `--force-license` 플래그로 초기 오기 수정·라이선스 변경에 대응하도록 사양을 갱신한다.
 - **작업 내용**:
   1. Q1=(a) 분기에 라이선스 종류 선택지(Apache 2.0 / MIT)와 LICENSE 파일 생성 여부를 묻는 하위 질문을 추가한다.
