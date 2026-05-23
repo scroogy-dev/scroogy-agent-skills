@@ -71,7 +71,7 @@
 
 ### Task 6: 본 저장소에 readme-sync 셀프 적용 검증
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 개선된 readme-sync가 본 저장소에서 의도대로 동작하는지 확인한다.
 - **작업 내용**:
   1. 본 저장소에서 readme-sync update/init 흐름을 가볍게 점검한다 (실제 README 변경은 최소화).
