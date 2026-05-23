@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 7 — AI-CONTEXT.md 스킬 목록 정합성 점검
+> ✅ 모든 작업이 완료되었습니다.
 
 ---
 
@@ -341,6 +341,18 @@
 
 ### Task 7: AI-CONTEXT.md 스킬 목록 정합성 점검
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+
+  - **비교 대상**:
+    - AI-CONTEXT.md 스킬 목록 표의 `readme-sync` 행 (기존: "프로젝트를 분석하여 README.md 생성 또는 최신화")
+    - SKILL.md frontmatter `description` + 모드/프로파일 (init·update, individual·business)
+  - **갱신 패턴**: 같은 표의 `ai-workspace` 행이 "(dev/doc 프로파일 지원)" 형태로 모드/프로파일 정보를 인라인 괄호로 짧게 표기 → 동일 패턴 차용.
+  - **갱신 결과**:
+    ```
+    | readme-sync | 프로젝트를 분석하여 README.md 생성 또는 최신화 (init/update 모드, individual/business 프로파일) |
+    ```
+  - **점검 범위**: `readme-sync` 한 행으로 한정. 디렉토리 구조 트리(line 70 `├── readme-sync/ # README.md 생성/갱신 스킬`)는 기능 요약만 두는 형태로 변경 불필요.
+
 - **특이 사항**:
+  - install-skills는 AI-CONTEXT.md 스킬 목록 표·README.md Skill 목록 표 모두 빠져 있음 (둘 다 "설치 방법" 섹션이나 별도 처리 패턴) — 의도된 분리로 보이며 본 Task 7 범위 밖이라 손대지 않음.

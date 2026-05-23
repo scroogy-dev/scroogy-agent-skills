@@ -124,7 +124,7 @@
 
 ### Task 7: AI-CONTEXT.md 스킬 목록 정합성 점검
 
-- [ ] 완료
+- [x] 완료
 - **목표**: `.ai/AI-CONTEXT.md`의 `readme-sync` 줄 설명이 실제 구현(`--mode=init|update`, `--profile=individual|business`)과 일치하는지 확인하고 필요 시 갱신한다.
 - **작업 내용**:
   1. 현재 등재된 설명을 읽는다.
