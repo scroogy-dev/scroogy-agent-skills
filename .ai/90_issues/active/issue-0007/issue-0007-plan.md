@@ -87,7 +87,7 @@
 
 ### Task 5: SKILL.md 본문 작성
 
-- [ ] 완료
+- [x] 완료
 - **목표**: `readme-sync/SKILL.md`에 두 모드(`init`/`update`)·프로파일(`individual`/`business`)·대화형 질문 흐름을 기술한다.
 - **작업 내용**:
   1. 개요·사용 시점·입력·산출물 섹션을 작성한다.
