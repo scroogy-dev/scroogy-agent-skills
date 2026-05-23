@@ -60,7 +60,7 @@ ai-workspace (디렉토리 스캐폴딩)
 - 상업적 이용, 수정, 배포, 특허 사용, 개인 사용이 자유롭게 허용됩니다.
 - 수정된 파일에는 변경 사항을 명시해야 합니다.
 - 원본의 [NOTICE](./NOTICE) 파일을 배포 시 포함해야 합니다.
-- 소스 파일 헤더 템플릿은 [LICENSE-HEADER.txt](./LICENSE-HEADER.txt)를 참고하세요.
+- 소스 파일 헤더 템플릿은 [LICENSE_HEADER.txt](./LICENSE_HEADER.txt)를 참고하세요.
 
 ### 개인 저작물 고지
 

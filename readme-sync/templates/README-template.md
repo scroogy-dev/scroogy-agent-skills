@@ -68,7 +68,7 @@ README-template.md — readme-sync `init` 모드 기본 템플릿.
 
 <!-- optional:footer-license
 라이선스 분기 한 가지를 골라 본문 문구로 채운다:
-- (a) 오픈소스: "이 프로젝트는 [<라이선스명>](./LICENSE)에 따라 라이선스가 부여됩니다." (필요 시 NOTICE·LICENSE-HEADER 링크 추가)
+- (a) 오픈소스: "이 프로젝트는 [<라이선스명>](./LICENSE)에 따라 라이선스가 부여됩니다." (필요 시 NOTICE·LICENSE_HEADER 링크 추가)
 - (b) 개인 저작물·비공개: "All Rights Reserved." (또는 npm 진영이면 "UNLICENSED")
 - (c) 표시하지 않음: 이 블록 전체 삭제
 -->

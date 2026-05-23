@@ -135,7 +135,7 @@ README에 "개인 저작물 고지" 라인을 포함할까요?
 
 | 분기 | 권장 표기 | 동반 파일 |
 |------|-----------|-----------|
-| (a) 오픈소스 | Apache 2.0 / MIT 등 표준 라이선스 명 + LICENSE 링크 | `LICENSE`, 필요 시 `NOTICE`, `LICENSE-HEADER.txt` |
+| (a) 오픈소스 | Apache 2.0 / MIT 등 표준 라이선스 명 + LICENSE 링크 | `LICENSE`, 필요 시 `NOTICE`, `LICENSE_HEADER.txt`(소스 파일 헤더 템플릿; GitHub 라이선스 인식기가 잡는 `LICENSE-*` 하이픈 패턴은 오인 위험으로 회피하고 언더스코어 사용) |
 | (b) 개인 저작물·비공개 | `All Rights Reserved` (권장) / `UNLICENSED` (npm 진영) | LICENSE 파일 없이 README에만 명시 |
 | (c) 표시하지 않음 | — | 없음 (회사 업무 관례) |
 

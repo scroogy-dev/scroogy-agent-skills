@@ -11,10 +11,10 @@
 
 ### Task 1: 본 저장소 LICENSE-HEADER.txt 인식 문제 해소
 
-- [ ] 완료
+- [x] 완료
 - **목표**: GitHub의 "Unknown licenses found" 표기를 즉시 해소한다.
 - **작업 내용**:
-  1. `LICENSE-HEADER.txt`를 `LICENSE-*` 패턴 밖 이름으로 리네임하거나(`HEADER.txt` 등), 사용처가 없으면 삭제한다.
+  1. `LICENSE-HEADER.txt`를 `LICENSE-*` 하이픈 패턴 밖 이름(예: `LICENSE_HEADER.txt` 언더스코어 변형)으로 리네임하거나, 사용처가 없으면 삭제한다.
   2. 변경 후 main 브랜치에 반영하여 GitHub 라이선스 인식기가 재평가하도록 한다.
 - **완료 기준**: GitHub repo About 영역에 "Apache-2.0"이 표기된다.
 
@@ -52,7 +52,7 @@
 - [ ] 완료
 - **목표**: 라이선스 헤더 파일이 GitHub 라이선스 인식기에 잘못 잡히는 문제를 스킬 단계에서 차단한다.
 - **작업 내용**:
-  1. 헤더 파일을 생성·언급하는 경우 `LICENSE-*` 패턴 밖 파일명(예: `HEADER.txt`, `.license-header.txt`)을 사용하도록 사양에 기재한다.
+  1. 헤더 파일을 생성·언급하는 경우 `LICENSE-*` 하이픈 패턴 밖 파일명(예: `LICENSE_HEADER.txt` 언더스코어 변형, `.license-header.txt` 도트 변형)을 사용하도록 사양에 기재한다.
   2. 기존에 `LICENSE-HEADER.txt`가 존재하면 리네임/이동을 권유하는 흐름을 추가한다.
 - **완료 기준**: `readme-sync/SKILL.md`에서 명명 규칙과 권유 흐름이 모두 확인된다.
 
