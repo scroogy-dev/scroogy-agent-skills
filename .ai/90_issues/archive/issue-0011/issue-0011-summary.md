@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 3 — 셀프 검증 및 PR 준비
+> ✅ 모든 작업이 완료되었습니다.
 
 ---
 
@@ -52,6 +52,31 @@
 
 ### Task 3: 셀프 검증 및 PR 준비
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+  - 본 repo의 트리 표현 3곳을 새 규칙(대소문자 무시 알파벳순 + 디렉토리 우선)으로 검증:
+    - `.ai/AI-CONTEXT.md` `## 디렉토리 구조` (라인 51-71): `.ai/` → `ai-workspace/` → `ai-workspace-directory/` → ... → `readme-sync/`(dir) → `README.md`(file). 규칙 일치 ✓
+    - `.ai/AI-CONTEXT.md` `## .ai 디렉토리 구조` (라인 135-): 숫자 prefix 정렬이 알파벳/숫자 순서와 정합 ✓
+    - `README.md` `Skill 간 관계` 트리 (라인 30-42): 12개 스킬이 알파벳순으로 나열됨 ✓
+  - 추가 재정렬 작업 불필요.
+  - PR 메시지(아래 "PR 메시지 (작성용)") 작성 완료.
 - **특이 사항**:
+  - 새 규칙이 명문화되기 전부터 본 repo의 모든 트리가 이미 IDE 순서와 일치 — 규칙은 *명문화*가 변경이고 실제 정렬 변경은 없음.
+
+---
+
+## PR 메시지 (작성용)
+
+```
+docs(issue-0011): IDE 트리 정렬 규칙 명문화 (#11)
+
+## Summary
+- `ai-workspace`, `readme-sync`, `code-map`의 SKILL.md/템플릿에 디렉토리 트리 정렬 규칙(대소문자 무시 알파벳순 + 디렉토리 우선 + 숨김 항목 동일 처리)을 동일 문구로 명문화합니다.
+- `ai-workspace`는 update-4단계 멱등 보강 검사 표에 정렬 검사 행을 추가해 사용자 트리가 어긋날 때 자동 권유합니다.
+- 트리가 고정 예시인 스킬(`issue-work`, `ai-workspace-directory`, `context-harvest`, `install-skills`)은 이미 규칙과 일치하므로 별도 수정 없음.
+
+## Test plan
+- [ ] 본 repo `.ai/AI-CONTEXT.md`·`README.md`의 트리가 IDE 표시 순서와 일치하는지 확인
+- [ ] `ai-workspace update`를 실행할 때 멱등 보강 검사 표에 정렬 검사 행이 추가되어 동작하는지 확인 (드라이런)
+- [ ] `readme-sync init` 또는 `update`로 생성되는 디렉토리 트리가 알파벳순 + 디렉토리 우선으로 정렬되는지 확인
+```
