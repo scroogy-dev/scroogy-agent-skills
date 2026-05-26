@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — 정렬 규칙을 영향 스킬에 반영
+> ▶️ 다음 작업: Task 3 — 셀프 검증 및 PR 준비
 
 ---
 
@@ -30,6 +30,23 @@
 - **결과**:
 - **수행 내용 요약**:
 - **특이 사항**:
+
+---
+
+### Task 2: 정렬 규칙을 영향 스킬에 반영
+
+- **결과**: 완료
+- **수행 내용 요약**:
+  - 정렬 규칙(대소문자 무시 알파벳순 + 디렉토리 우선 + 숨김 항목 동일 처리) 문구를 영향 스킬 본문에 동일하게 반영:
+    - `ai-workspace/SKILL.md`: `## 디렉토리 트리 정렬 규칙` 섹션 신설 + `update-4단계` 멱등 보강 검사 표에 정렬 검사 행 추가
+    - `ai-workspace/templates/{dev,doc}/.ai/AI-CONTEXT.md`: `## 디렉토리 구조` placeholder 주석에 정렬 규칙 문장 추가
+    - `readme-sync/SKILL.md`: `## 디렉토리 트리 정렬 규칙` 섹션 신설 + `init-1단계`·`update-3단계`에서 규칙 참조 링크 추가
+    - `readme-sync/templates/README-template.md`: `optional:structure` 블록에 정렬 규칙 주석 추가
+    - `code-map/SKILL.md`: `## 디렉토리 트리 정렬 규칙` 섹션 신설 + `--local` 파일 구조 트리 다음에 참조 링크 추가
+  - 영향 없는 스킬(`issue-work`, `ai-workspace-directory`, `context-harvest`, `install-skills`)은 별도 수정 없음 — 트리가 모두 고정 예시이고 이미 알파벳/디렉토리 우선 순서와 충돌하지 않음.
+- **특이 사항**:
+  - `code-map`의 호출 흐름 다이어그램은 의미적 흐름(엔트리포인트 → 외부 의존성)이 우선이므로 강제하지 않고 권장으로만 명시.
+  - `ai-workspace` update 모드는 멱등 보강 검사 표에 정렬 검사 행이 들어갔으므로 다음 `update` 실행 시 기존 사용자 작성 트리도 자동 점검 대상.
 
 ---
 
