@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — 점검 및 문서 동기화
+> ✅ 모든 작업이 완료되었습니다.
 
 ---
 
@@ -36,6 +36,6 @@
 
 ### Task 4: 점검 및 문서 동기화
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 클로드 코워크 skill-creator 점검 보고서(`.ai/99_workspace/skill-audit-issue-work-2026-06-12.md`, 종합 판정: 전반 양호·경미 3건)의 개선 제안을 모두 반영 — ① `--clear` 3단계에 GitHub 이슈 번호 매핑 규칙(issue-0015 → #15) 명시, ② `issue-workflow-template.md`와 현재 사용 중인 `active/issue-workflow.md`의 `## 이슈 완료 시`에 `--clear` 안내 추가, ③ 5단계 99_workspace 정리 범위를 재귀로 명시하고 `notes/`(context-save 산출물)는 기본 보존으로 규정. 설치본 동기화 완료(diff 차이 없음). `.ai/AI-CONTEXT.md`·`README.md`의 issue-work 한 줄 설명은 옵션 추가 후에도 정확하여 변경 불필요로 판정.
+- **특이 사항**: 점검 보고서의 "변경분 외 참고" — plan/summary 템플릿 상단 링크 표기(`./issue-spec.md` vs `issue-<번호>-spec.md`) 불일치는 이번 이슈 범위 밖으로, 별도 이슈 처리 권장 상태로 남김.
