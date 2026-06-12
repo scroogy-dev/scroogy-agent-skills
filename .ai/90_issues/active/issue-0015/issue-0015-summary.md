@@ -38,4 +38,12 @@
 
 - **결과**: 완료
 - **수행 내용 요약**: 클로드 코워크 skill-creator 점검 보고서(`.ai/99_workspace/skill-audit-issue-work-2026-06-12.md`, 종합 판정: 전반 양호·경미 3건)의 개선 제안을 모두 반영 — ① `--clear` 3단계에 GitHub 이슈 번호 매핑 규칙(issue-0015 → #15) 명시, ② `issue-workflow-template.md`와 현재 사용 중인 `active/issue-workflow.md`의 `## 이슈 완료 시`에 `--clear` 안내 추가, ③ 5단계 99_workspace 정리 범위를 재귀로 명시하고 `notes/`(context-save 산출물)는 기본 보존으로 규정. 설치본 동기화 완료(diff 차이 없음). `.ai/AI-CONTEXT.md`·`README.md`의 issue-work 한 줄 설명은 옵션 추가 후에도 정확하여 변경 불필요로 판정.
-- **특이 사항**: 점검 보고서의 "변경분 외 참고" — plan/summary 템플릿 상단 링크 표기(`./issue-spec.md` vs `issue-<번호>-spec.md`) 불일치는 이번 이슈 범위 밖으로, 별도 이슈 처리 권장 상태로 남김.
+- **특이 사항**: 점검 보고서의 "변경분 외 참고" — plan/summary 템플릿 상단 링크 표기(`./issue-spec.md` vs `issue-<번호>-spec.md`) 불일치는 이번 이슈 범위 밖으로, 별도 이슈 처리 권장 상태로 남김. → 이후 재점검(v2)에서 사용자 지시로 Task 5로 편입하여 처리.
+
+---
+
+### Task 5: 재점검(v2) 변경분 외 참고 반영
+
+- **결과**: 완료
+- **수행 내용 요약**: 재점검 보고서(`.ai/99_workspace/skill-audit-issue-work-2026-06-12-v2.md`, 종합 판정: 개선 3건 모두 정상 반영·회귀 없음)의 "변경분 외 참고" 2건을 사용자 지시로 반영 — ① 템플릿 EOF 개행 추가: 보고서는 issue-workflow-template.md만 지적했으나 확인 결과 4종 전체가 동일 결함이어서 일괄 수정, ② plan·summary 템플릿 상단 링크 표기를 `issue-<번호>-spec.md`/`issue-<번호>-plan.md` 형식으로 통일. 설치본 동기화 완료(diff 차이 없음).
+- **특이 사항**: 직전 점검에서 "별도 이슈 처리 권장"이던 링크 표기 건을 사용자 판단으로 이번 이슈에 편입. 템플릿 내용 수정이며 구조 변경은 아니므로 spec 비포함 항목("템플릿 파일 구조 변경")과 충돌하지 않음.

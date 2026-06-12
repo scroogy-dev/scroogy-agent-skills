@@ -1,6 +1,6 @@
 # Issue #<번호> 실행요약 <제목>
 
-> 스펙: [issue-spec.md](./issue-spec.md) | 계획: [issue-plan.md](./issue-plan.md)
+> 스펙: [issue-<번호>-spec.md](./issue-<번호>-spec.md) | 계획: [issue-<번호>-plan.md](./issue-<번호>-plan.md)
 
 ## 다음 작업
 
