@@ -1,6 +1,6 @@
 ---
 name: git-review-context
-description: 리뷰 전 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 정리합니다. 리뷰 컨텍스트, review context, 리뷰 준비 시 사용합니다.
+description: 리뷰 전 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 정리합니다. git-review 실행 전의 사전 분석 단계로, 사용자가 명시적으로 요청한 경우에만 실행합니다(git-review가 자동 호출하지 않음). 리뷰 컨텍스트, review context, 리뷰 준비 시 사용합니다.
 ---
 
 ## 개요

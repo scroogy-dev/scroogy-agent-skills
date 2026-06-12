@@ -1,6 +1,6 @@
 ---
 name: ai-workspace
-description: 프로젝트의 .ai 디렉토리 구조를 초기화하거나 최신 구조로 갱신합니다. dev(개발) 또는 doc(문서) 프로파일을 선택할 수 있습니다.
+description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEXT.md를 초기화하거나 최신 구조로 갱신합니다. dev(개발) 또는 doc(문서) 프로파일을 선택할 수 있습니다. 개별 repo의 층(floor)을 담당하며, 멀티 repo 워크스페이스 루트의 로비는 자매 스킬 ai-workspace-directory가 담당합니다. .ai 디렉토리, AI-CONTEXT.md 갱신, 안내도, workspace 초기화 시 사용합니다.
 ---
 
 ## 개요

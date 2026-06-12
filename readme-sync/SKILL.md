@@ -1,6 +1,6 @@
 ---
 name: readme-sync
-description: 프로젝트를 분석하여 README.md를 생성하거나 최신 상태로 재작성합니다. README.md가 없으면 템플릿에 따라 새로 작성하고, 이미 있으면 현재 프로젝트 구조에 맞게 재작성합니다.
+description: 프로젝트를 분석하여 README.md를 생성하거나 최신 상태로 재작성합니다. README.md가 없으면 템플릿에 따라 새로 작성하고, 이미 있으면 현재 프로젝트 구조에 맞게 재작성합니다. README 작성, README 갱신, readme sync, 리드미 최신화 시 사용합니다.
 ---
 
 ## 개요
