@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-05-23
+> last updated: 2026-06-12
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -50,9 +50,12 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 .
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
+│   ├── references/             # 구버전 마이그레이션 참조 문서
 │   └── templates/              # 프로파일별 템플릿
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
+│   └── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
 ├── code-map/                   # 코드베이스 색인 스킬
+│   └── references/             # 모드별(local/global) 실행 절차
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
 │   └── templates/              # 30_contract, 40_domain, 50_adr 템플릿
 ├── context-save/               # 대화 맥락 임시 저장 스킬
@@ -68,6 +71,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   └── templates/              # 이슈 템플릿
 ├── readme-sync/                # README.md 생성/갱신 스킬
+│   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)
+│   └── templates/              # README 템플릿
 └── README.md
 ```
 

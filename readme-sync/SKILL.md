@@ -1,6 +1,6 @@
 ---
 name: readme-sync
-description: 프로젝트를 분석하여 README.md를 생성하거나 최신 상태로 재작성합니다. README.md가 없으면 템플릿에 따라 새로 작성하고, 이미 있으면 현재 프로젝트 구조에 맞게 재작성합니다.
+description: 프로젝트를 분석하여 README.md를 생성하거나 최신 상태로 재작성합니다. README.md가 없으면 템플릿에 따라 새로 작성하고, 이미 있으면 현재 프로젝트 구조에 맞게 재작성합니다. README 작성, README 갱신, readme sync, 리드미 최신화 시 사용합니다.
 ---
 
 ## 개요
@@ -28,7 +28,7 @@ description: 프로젝트를 분석하여 README.md를 생성하거나 최신 �
 |------|----|----|
 | `--mode` | `init` / `update` | 동작 모드. 미지정 시 `README.md` 존재 여부로 추정. |
 | `--profile` | `individual` / `business` | `init` 모드의 라이선스·고지 기본값 프리셋. `update`에서는 무시. |
-| `--force-license` | (플래그) | 기존 `LICENSE` 파일 덮어쓰기 허용. `init` 모드 + Q1=(a) 전용, 가드 통과 시에만 동작. 자세한 사양은 [`--force-license` 플래그](#--force-license-플래그) 절 참고. |
+| `--force-license` | (플래그) | 기존 `LICENSE` 파일 덮어쓰기 허용. `init` 모드 + Q1=(a) 전용, 가드 통과 시에만 동작. 자세한 사양은 [references/license.md](references/license.md) 참고. |
 
 ### 모드 선택 규칙
 
@@ -57,7 +57,7 @@ description: 프로젝트를 분석하여 README.md를 생성하거나 최신 �
 - 디렉토리 구조 (최대 깊이 2; [디렉토리 트리 정렬 규칙](#디렉토리-트리-정렬-규칙) 적용)
 - 프로젝트 성격 단서: `package.json`, `pyproject.toml`, `Cargo.toml`, `.ai/AI-CONTEXT.md` 등
 - `LICENSE` 파일 존재 여부
-- `LICENSE-*` 하이픈 패턴 비표준 파일 존재 여부 (헤더 파일 등; [라이선스 헤더 파일명 가드](#라이선스-헤더-파일명-가드) 참고)
+- `LICENSE-*` 하이픈 패턴 비표준 파일 존재 여부 (헤더 파일 등; 발견 시 [references/license.md](references/license.md)의 "라이선스 헤더 파일명 가드" 참고)
 - `git config user.name`, `git config user.email`로 Copyright 후보 추출
 
 ### init-2단계: 대화형 질문
@@ -92,7 +92,7 @@ LICENSE 파일을 생성할까요? (README의 ./LICENSE 링크가 깨지지 않�
 ```
 
 - 기존 `LICENSE` 파일이 있으면 기본은 **스킵**입니다 — 이 질문 자체를 묻지 않습니다. 덮어쓰려면 `--force-license` 플래그를 명시합니다.
-- 동작 세부 사항은 [LICENSE 파일 생성 규칙](#license-파일-생성-규칙)·[`--force-license` 플래그](#--force-license-플래그) 절을 따릅니다.
+- 동작 세부 사항은 [references/license.md](references/license.md)의 "LICENSE 파일 생성 규칙"·"`--force-license` 플래그" 절을 따릅니다.
 
 **Q2. 개인 저작물 고지**
 
@@ -122,7 +122,7 @@ README에 "개인 저작물 고지" 라인을 포함할까요?
 
 ### init-4단계: 검증·저장
 
-1. **LICENSE/NOTICE 파일 생성·처리**: Q1=(a)일 때만 작동합니다. Q1-2에서 "생성"을 골랐다면 [LICENSE 파일 생성 규칙](#license-파일-생성-규칙)에 따라 LICENSE를 만들고 Apache 2.0이면 `NOTICE`도 함께 처리합니다. `--force-license`가 명시되어 있으면 [`--force-license` 플래그](#--force-license-플래그) 가드를 통과한 경우에만 기존 파일을 덮어씁니다.
+1. **LICENSE/NOTICE 파일 생성·처리**: Q1=(a)일 때만 작동합니다. [references/license.md](references/license.md)를 읽고, Q1-2에서 "생성"을 골랐다면 "LICENSE 파일 생성 규칙"에 따라 LICENSE를 만들고 Apache 2.0이면 `NOTICE`도 함께 처리합니다. `--force-license`가 명시되어 있으면 "`--force-license` 플래그" 가드를 통과한 경우에만 기존 파일을 덮어씁니다.
 2. **링크 무결성 점검**: Q1=(a) 분기에서, 1단계가 끝난 시점에 `LICENSE` 파일이 디렉토리에 **존재하는지**로 판정합니다.
    - **존재함** — 1단계에서 새로 생성됐거나 기존 파일이 그대로 유지된 경우(동일 라이선스 스킵, `--force-license` 가드 스킵 포함). `(./LICENSE)` 링크가 살아있으므로 경고를 띄우지 않습니다.
    - **부재** — Q1-2에서 "생성하지 않음"을 골랐거나, 사용자가 생성·권유를 거부한 경우. `(./LICENSE)` 링크가 깨진 상태이므로 사용자에게 LICENSE 파일을 별도로 생성하도록 권유합니다.
@@ -157,66 +157,18 @@ README에 "개인 저작물 고지" 라인을 포함할까요?
 
 ## 라이선스·개인 저작물 고지 옵션
 
+LICENSE 파일 생성 규칙, `--force-license` 플래그 가드, 라이선스 헤더 파일명 가드의 세부 사양은 [references/license.md](references/license.md)에 분리되어 있으며, **Q1=(a) 분기 진입 시 또는 `LICENSE-*` 비표준 파일 발견 시에만 읽습니다**.
+
 ### 라이선스 표시 3분기
 
 | 분기 | 권장 표기 | 동반 파일 |
 |------|-----------|-----------|
-| (a) 오픈소스 | Apache 2.0 / MIT 등 표준 라이선스 명 + LICENSE 링크 | `LICENSE`, 필요 시 `NOTICE`, `LICENSE_HEADER.txt` 등 헤더 파일 ([명명 가드](#라이선스-헤더-파일명-가드) 참고) |
+| (a) 오픈소스 | Apache 2.0 / MIT 등 표준 라이선스 명 + LICENSE 링크 | `LICENSE`, 필요 시 `NOTICE`, `LICENSE_HEADER.txt` 등 헤더 파일 ([references/license.md](references/license.md)의 명명 가드 참고) |
 | (b) 개인 저작물·비공개 | `All Rights Reserved` (권장) / `UNLICENSED` (npm 진영) | LICENSE 파일 없이 README에만 명시 |
 | (c) 표시하지 않음 | — | 없음 (회사 업무 관례) |
 
 - (b) 권장 표기 1순위는 `All Rights Reserved`. npm 패키지면 `package.json`의 `"license": "UNLICENSED"`와 맞춰 README에도 `UNLICENSED`를 쓰는 게 자연스럽습니다.
 - (a) 분기에서는 사용자가 Q1-2에서 "생성"을 고른 경우 LICENSE 파일을 직접 생성합니다. 기존 `LICENSE`는 기본적으로 덮어쓰지 않으며, 덮어쓰기는 `--force-license` 플래그로만 허용됩니다.
-
-### LICENSE 파일 생성 규칙
-
-Q1=(a) + Q1-2=(생성) 분기에서만 작동합니다.
-
-| 조건 | 동작 |
-|------|------|
-| `LICENSE` 없음 | 선택한 라이선스의 표준 전문으로 새로 생성 |
-| `LICENSE` 있음 + 동일 라이선스로 추정 | 스킵 (무동작) |
-| `LICENSE` 있음 + 다른 라이선스 또는 비표준 내용 | 스킵 + 안내 (덮어쓰려면 `--force-license`) |
-
-- Apache 2.0 선택 시: `NOTICE`가 없으면 `프로젝트명 + Copyright <YEAR> <AUTHOR>` 두 줄로 함께 생성합니다. 이미 있으면 스킵합니다 (사용자가 외부 attribution을 추가했을 수 있으므로 덮어쓰지 않음).
-- MIT 선택 시: NOTICE는 생성하지 않습니다 (MIT은 NOTICE 강제 없음).
-- 생성한 파일·스킵한 파일을 모두 사용자에게 변경 요약으로 알립니다.
-
-### `--force-license` 플래그
-
-기존 `LICENSE` 파일을 덮어써야 하는 경우(초기 오기 수정, 라이선스 변경 등)에만 사용합니다. 기본은 스킵이고, 이 플래그가 명시된 경우에만 덮어쓰기를 허용합니다.
-
-**가드 (덮어쓰기 전 검증, 순서대로 적용)**
-
-1. **동일 라이선스 무동작**: 현재 `LICENSE`가 사용자가 고른 라이선스의 표준 전문과 일치하면 덮어쓰지 않습니다 ("이미 같은 라이선스라 변경 사항이 없습니다" 안내).
-2. **외부 기여자 경고**: `git log`에 본인 외 author가 보이면 경고를 띄웁니다 — 라이선스 변경은 모든 저작권자의 동의가 필요할 수 있습니다. 비대화형 환경에서는 경고만으로 중단하고, 대화형 환경에서는 한 번 더 확인을 받습니다.
-3. **대화형 확인**: 위 가드를 통과해도 대화형 환경에서는 "정말 덮어쓸까요?" 확인을 한 번 더 받습니다. 비대화형(스크립트 호출 등)에서는 이 단계를 건너뜁니다.
-
-**결과 보고**
-
-덮어쓰기를 수행한 경우 사용자에게 변경 요약을 표시합니다 (이전 라이선스 → 새 라이선스, NOTICE 동반 처리 결과 등).
-
-### 라이선스 헤더 파일명 가드
-
-소스 파일 상단에 붙이는 라이선스 헤더 텍스트 파일은 GitHub 라이선스 인식기(Licensee)가 `LICENSE-*` 하이픈 패턴으로 잡아 라이선스 후보로 평가하지만, 헤더 발췌라 표준 본문과 매칭에 실패해 저장소 About 영역에 "Unknown licenses found"로 표시되는 문제가 있습니다. 스킬은 헤더 파일을 생성·언급할 때 이 패턴을 피하도록 안내합니다.
-
-**명명 규칙**
-
-`LICENSE-*` 하이픈 패턴 밖 파일명을 사용합니다. 권장 후보:
-
-| 예시 | 설명 |
-|------|------|
-| `LICENSE_HEADER.txt` | 언더스코어 변형. 용도가 즉시 파악되면서 Licensee 패턴을 회피 |
-| `.license-header.txt` | 도트(숨김파일) 변형. 디렉토리 루트 노출을 줄임 |
-| `HEADER.txt` | 짧고 단순 |
-
-**기존 파일 감지·권유**
-
-`init-1단계`(또는 `update`에서도 동일)에서 저장소 루트에 `LICENSE-HEADER.txt`나 표준 라이선스 명이 아닌 `LICENSE-*` 파일이 보이면 사용자에게 리네임을 권유합니다.
-
-- 위 명명 규칙 후보 중 하나로 `git mv`를 사용해 히스토리를 보존하며 이름을 바꾸도록 안내합니다.
-- README에 해당 파일을 참조하는 링크가 있으면 함께 갱신하도록 안내합니다 (자동으로 갱신하지 않음).
-- 사용자가 거부하면 권유 메시지만 남기고 진행합니다.
 
 ### 개인 저작물 고지 토글
 

@@ -32,21 +32,18 @@ description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/s
 
 ## 사용 가능한 skill
 
-1. **ai-workspace** — `.ai/` 디렉토리 구조 초기화 및 갱신
-2. **ai-workspace-directory** — 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md` 생성·재구성 (`ai-workspace`의 자매)
-3. **code-map** — 소스코드 기능별 엔트리포인트·호출 흐름 색인
-4. **context-harvest** — 소스코드 바깥의 What+Why를 수집·증류하여 30_contract/, 40_domain/, 50_adr/ 문서 생성
-5. **context-save** — 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장
-6. **git-commit** — Conventional Commits 커밋 메시지 작성
-7. **git-pr** — PR 제목/메시지 작성 (비즈니스+테크 관점)
-8. **git-qa** — 배포 대상 PR에서 repo별 QA 체크리스트 생성
-9. **git-review** — 비즈니스/테크 리뷰 수행
-10. **git-review-context** — 리뷰 전 변경사항 사전 분석
-11. **issue-audit** — 이슈 스펙 대비 구현 독립 감사
-12. **issue-work** — 이슈 단위 스펙/계획/요약 관리
-13. **readme-sync** — README.md 생성/재작성
+설치 대상 목록은 본문에 고정하지 않고, 실행 시점에 저장소를 스캔하여 동적으로 구성합니다.
 
-> `install-skills` 자신은 설치 대상에서 제외합니다.
+- 저장소 루트에서 `SKILL.md`를 보유한 1차 하위 디렉토리를 모두 수집합니다. `install-skills` 자신은 설치 대상에서 제외합니다.
+- 각 skill의 한 줄 설명은 해당 `SKILL.md` frontmatter의 `description`에서 가져옵니다.
+- 수집한 목록에 번호를 붙여 사용자에게 제시합니다.
+
+```bash
+for f in */SKILL.md; do
+  d=$(dirname "$f")
+  [ "$d" != "install-skills" ] && echo "$d"
+done
+```
 
 ---
 
@@ -57,7 +54,7 @@ description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/s
    ```bash
    rm -rf <target-skills-dir>/*
    ```
-3. 사용자에게 번호 또는 skill명으로 설치할 skill을 선택받습니다.
+3. 위 스캔으로 구성한 목록에서 번호 또는 skill명으로 설치할 skill을 선택받습니다.
 4. 대상 디렉토리가 없으면 생성합니다.
 5. 선택한 skill이 이미 설치되어 있으면 기존 디렉토리를 삭제한 뒤 새로 복사합니다.
    ```bash

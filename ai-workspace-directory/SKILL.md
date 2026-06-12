@@ -14,11 +14,6 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 - 포함: 라우팅·색인 (어디로 가야 할지 알려주는 안내판)
 - 금지: 도메인 지식 본문, 코드 스니펫, floor 상세 목차 — 이건 floor의 책임
 
-### 두 가지 모드
-
-- **`init`**: building 이름과 floor 목록만 받아 표준 구조의 로비 `.ai/AI-CONTEXT.md`를 생성.
-- **`update`**: 기존 로비 `.ai/AI-CONTEXT.md`를 진단·재구성하고 floor로 이동되어야 할 콘텐츠 목록을 산출.
-
 ### 파일 경로 규약
 
 | 대상 | 경로 | 담당 스킬 |
@@ -47,6 +42,10 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 - **스킬 고유 추가 참조**:
   - 현재 워크스페이스 루트의 기존 `.ai/AI-CONTEXT.md` (있을 경우 — `update` 모드 입력)
   - 각 floor의 `<repo>/.ai/AI-CONTEXT.md` (디스크 스캔으로 존재 여부만 확인 — `status` 판정용)
+- **분리 참조 파일** (`references/` — 해당 단계에 도달했을 때만 읽습니다):
+  - [standard-structure.md](references/standard-structure.md) — 산출물 표준 섹션 구조 (필수 규칙·골격·섹션별 강제 규칙·repo `status` 의미). **산출물 형식의 단일 출처** — init-4단계, update-2단계에서 사용
+  - [ssot-checklist.md](references/ssot-checklist.md) — SSoT 위배 패턴 진단 체크리스트 — update-1단계에서 사용
+  - [examples.md](references/examples.md) — update 모드 출력 형식 템플릿 + init/update 완성 예시
 
 ## 사용법
 
@@ -74,10 +73,6 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 | 존재 | `update` |
 
 판정 대상 경로는 **워크스페이스 루트의 `.ai/` 안**입니다. 프로젝트 루트의 `./AI-CONTEXT.md`는 검사 대상이 아닙니다 (파일 경로 규약 위반이므로 발견 시 사용자에게 이전을 안내).
-
-```bash
-[ -f .ai/AI-CONTEXT.md ] && echo "update" || echo "init"
-```
 
 #### 사용자 확인 절차 (덮어쓰기 위험 회피)
 
@@ -110,7 +105,7 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 
 #### init-1단계: 입력 수집
 
-다음 정보를 사용자에게 받습니다.
+다음 정보를 사용자에게 받습니다. (입력 예시는 [examples.md](references/examples.md)의 init 모드 예시 참조)
 
 | 항목 | 필수/선택 | 설명 |
 |------|----------|------|
@@ -118,17 +113,6 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 | building 정체성 (2~3문장) | 필수 | 이 building이 무엇을 위한 곳인지 |
 | floor 목록 | 필수 | 각 floor의 `path`(상대 경로), `domain`(맡은 영역), `keywords`(라우팅 키워드) |
 | archived floor 목록 | 선택 | 사용자가 명시적으로 "더 이상 작업하지 않음"으로 표시할 floor의 `path` |
-
-floor 입력 예시:
-
-```yaml
-- path: api-server
-  domain: 결제 API 서버
-  keywords: [결제, payment, API, 트랜잭션]
-- path: docs
-  domain: 사용자 문서·튜토리얼
-  keywords: [문서, docs, 튜토리얼, 사용자 가이드]
-```
 
 `floor 목록`은 사용자가 한 번에 모두 제공하지 않을 수 있습니다. 누락 시 항목별로 대화형 질의로 수집합니다.
 
@@ -152,21 +136,9 @@ floor 입력 예시:
 
 `<루트>/.ai/` 디렉토리가 없으면 생성합니다. git 명령에 의존하지 않습니다.
 
-```bash
-[ ! -d .ai ] && mkdir -p .ai
-```
-
 #### init-4단계: `.ai/AI-CONTEXT.md` 작성
 
-[표준 섹션 구조](#표준-섹션-구조)를 따라 `<루트>/.ai/AI-CONTEXT.md`를 작성합니다.
-
-**필수 규칙**:
-- YAML frontmatter는 **사용하지 않습니다**.
-- 본문 **첫 줄**은 반드시 `> last updated: YYYY-MM-DD` (스킬 실행 시점의 시스템 날짜, ISO 형식).
-- 본문 **두 번째 줄**은 반드시 `> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.` 로 고정합니다.
-- 표준 섹션 6개(`정체성`, `Repos`, `라우팅 규칙`, `공통 규약`, `Why 진입점`, `에이전트 운영 지침`)를 **모두** 포함하며 **순서를 지킵니다**.
-- `에이전트 운영 지침` 섹션은 `### 진입 절차`(번호 4단계) + `### 작성 규칙`(글머리) 두 서브헤딩 골격을 따릅니다.
-- 도메인 지식 본문, 코드 스니펫, repo 상세 목차를 **절대 포함하지 않습니다**.
+[standard-structure.md](references/standard-structure.md)를 읽고, 그 필수 규칙과 골격에 따라 `<루트>/.ai/AI-CONTEXT.md`를 작성합니다. 산출물 형식 규칙은 해당 문서가 단일 출처입니다.
 
 #### init-5단계: 분량 가드레일 검증
 
@@ -205,11 +177,11 @@ floor 입력 예시:
 
 #### update-1단계: 진단 리포트 출력
 
-다음 4개 카테고리를 순서대로 점검하고 마크다운 리포트로 출력합니다.
+다음 4개 카테고리를 순서대로 점검하고 마크다운 리포트로 출력합니다. 리포트 형식은 [examples.md](references/examples.md)의 update-1단계 출력 형식 템플릿을 따릅니다.
 
 ##### (1) SSoT 위배 패턴 진단
 
-[SSoT 위배 패턴 진단 체크리스트](#ssot-위배-패턴-진단-체크리스트)의 각 항목을 점검합니다. 위배가 있으면 발견 위치(섹션·라인 범위)와 발췌를 기록합니다.
+[ssot-checklist.md](references/ssot-checklist.md)의 각 항목을 점검합니다. 위배가 있으면 발견 위치(섹션·라인 범위)와 발췌를 기록합니다.
 
 ##### (2) 로비 역할 위배 진단
 
@@ -249,6 +221,8 @@ floor 입력 예시:
 
 ##### (4) 형식 위배
 
+형식 기준은 [standard-structure.md](references/standard-structure.md)를 따릅니다.
+
 | 검사 | 위배 시 조치 |
 |------|-------------|
 | 본문 첫 줄이 `> last updated: YYYY-MM-DD`인가 | update-2단계에서 자동 갱신 |
@@ -260,35 +234,9 @@ floor 입력 예시:
 | `에이전트 운영 지침`에 `### 진입 절차` 4단계가 있는가 | update-2단계에서 표준 진입 절차 4단계 삽입. 사용자가 커스텀 단계를 추가했다면 보존하되 표준 4단계 누락 시 보충 |
 | `status` 값이 `active`/`placeholder`/`archived` 중 하나인가 | 다른 값은 사용자 확인 후 정규화 |
 
-##### 진단 리포트 출력 형식
-
-```markdown
-## 진단 리포트 (update-1단계)
-
-### SSoT 위배
-- [발견] <위배 패턴>: <발견 위치> — <발췌 또는 요약>
-- [없음] <검사 항목> — 깨끗함
-
-### 로비 역할 위배
-- [발견] 도메인 본문: 라인 45-78 ("결제 트랜잭션 상태는...") — floor `api-server`로 이동 후보
-- [없음] 코드 스니펫
-
-### drift 진단
-| floor | 로비 status | 디스크 안내도 | 디스크 디렉토리 | 판정 |
-|-------|------------|--------------|----------------|------|
-| api-server | active | 존재 | 존재 | 정상 |
-| mobile-app | active | 없음 | 존재 | drift: placeholder 전환 |
-| infra | (없음) | 존재 | 존재 | drift: 등록 필요 |
-| legacy-web | archived | (검사 제외) | (검사 제외) | 검사 제외 |
-
-### 형식 위배
-- [위배] 본문 첫 줄이 last updated 형식이 아님 → 자동 갱신 예정
-- [위배] Repos 테이블에 `owner` 열이 추가됨 → 정규화 예정
-```
-
 #### update-2단계: 재구성된 로비 `.ai/AI-CONTEXT.md` 전문 출력
 
-[표준 섹션 구조](#표준-섹션-구조)를 따라 재구성된 전문을 코드 블록으로 출력합니다.
+[standard-structure.md](references/standard-structure.md)의 표준 섹션 구조를 따라 재구성된 전문을 코드 블록으로 출력합니다. 출력 형식은 [examples.md](references/examples.md)의 update-2단계 출력 형식 템플릿을 따릅니다.
 
 **재구성 규칙**:
 - 본문 첫 줄 `> last updated:`를 스킬 실행 시점의 시스템 날짜로 갱신합니다.
@@ -301,45 +249,6 @@ floor 입력 예시:
 - 진단에서 발견된 도메인 본문·코드 스니펫·repo 상세 목차·정책 본문 중복은 **본문에서 제거**하고 update-3단계 이동 목록으로 옮깁니다.
 - 사용자가 작성한 라우팅 규칙·정체성 문구는 본문 형태로 살리되, SSoT 위배 패턴은 제거합니다.
 
-**출력 형식**:
-
-```markdown
-## 재구성된 로비 .ai/AI-CONTEXT.md (update-2단계)
-
-> 아래는 새 본문 전문입니다. 검토 후 승인하시면 파일에 기록합니다.
-
-```markdown
-> last updated: YYYY-MM-DD
-> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.
-
-## 정체성
-...
-
-## Repos
-...
-
-## 라우팅 규칙
-...
-
-## 공통 규약
-...
-
-## Why 진입점
-...
-
-## 에이전트 운영 지침
-
-### 진입 절차 (질의 → 답변)
-1. ...
-2. ...
-3. ...
-4. ...
-
-### 작성 규칙 (이 파일을 손볼 때)
-- ...
-```
-```
-
 **파일 쓰기 규칙**:
 - 출력 후 사용자에게 명시적으로 확인을 요청합니다: *"이대로 `<루트>/.ai/AI-CONTEXT.md`에 덮어쓸까요?"*
 - 사용자가 승인하면 파일에 기록하고, 분량 가드레일(150~250줄)을 init 모드와 동일하게 검증합니다.
@@ -347,7 +256,7 @@ floor 입력 예시:
 
 #### update-3단계: floor 이동 후보 목록 출력
 
-진단에서 발견된 "로비에 있어서는 안 되는" 콘텐츠를 후속 스킬이 입력으로 받기 좋은 **YAML 구조**로 출력합니다.
+진단에서 발견된 "로비에 있어서는 안 되는" 콘텐츠를 후속 스킬이 입력으로 받기 좋은 **YAML 구조**로 출력합니다. 출력 YAML 형식은 [examples.md](references/examples.md)의 update-3단계 출력 형식 템플릿을 따릅니다.
 
 **필수 필드**:
 
@@ -367,32 +276,6 @@ floor 입력 예시:
 - 키워드 다수 일치 → `high`, 단어 부분 일치 → `medium`, 일치 없음 → `low` + `target_floor: unknown`.
 - `archived` floor는 추정 대상에서 제외.
 
-**출력 형식**:
-
-```yaml
-# floor 이동 후보 목록 (update-3단계)
-migration_candidates:
-  - content_id: lobby-overflow-001
-    target_floor: api-server
-    target_location_hint: api-server/.ai/40_domain/specs/payment-domain.md
-    category: domain-content
-    confidence: high
-    reason: 결제 도메인 본문이 로비에 포함됨. 키워드(결제, payment, 트랜잭션)가 api-server의 keywords와 일치
-    source_location: lines 45-78
-    excerpt: |
-      결제 트랜잭션은 다음 상태를 가진다: PENDING, AUTHORIZED,
-      CAPTURED, REFUNDED, FAILED. 각 상태 전이는 ...
-  - content_id: lobby-overflow-002
-    target_floor: unknown
-    target_location_hint: null
-    category: other
-    confidence: low
-    reason: 키워드가 어떤 floor와도 매칭되지 않음. 사용자 확인 필요
-    source_location: lines 120-125
-    excerpt: |
-      ...
-```
-
 이 출력은 화면에 표시만 하고 파일을 직접 수정하지 않습니다. 후속 스킬(또는 사용자 수작업)이 이 YAML을 입력으로 받아 각 floor에 콘텐츠를 배치합니다.
 
 #### update-4단계: 보고
@@ -402,426 +285,3 @@ migration_candidates:
 - 분량 가드레일 결과 (`init` 모드와 동일 기준).
 - drift로 인해 `placeholder`로 전환된 floor 목록과 안내도 생성 권장 메시지.
 - 이동 후보 개수 및 `target_floor: unknown` 항목 수 (사용자 후속 확인 필요).
-
----
-
-## 표준 섹션 구조
-
-산출물 `<루트>/.ai/AI-CONTEXT.md`는 다음 6개 H2 섹션을 **반드시 이 순서대로** 포함합니다. YAML frontmatter는 사용하지 않습니다. 본문 **첫 줄**은 `> last updated: YYYY-MM-DD`, **두 번째 줄**은 `> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.` 로 고정합니다.
-
-### 골격
-
-```markdown
-> last updated: YYYY-MM-DD
-> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.
-
-## 정체성
-
-<2~3문장. 이 워크스페이스가 무엇을 위한 곳인지.>
-
-## Repos
-
-| path | domain | keywords | status |
-|------|--------|----------|--------|
-| <repo-1> | <영역 한 줄 요약> | <키워드 콤마 나열> | active / placeholder / archived |
-| ... |
-
-## 라우팅 규칙
-
-- <키워드/요청 패턴> → `<path>`
-- ...
-
-## 공통 규약
-
-- <짧은 포인터 한 줄> — 본문은 `<repo>/.ai/...` 또는 외부 문서로
-- ...
-
-## Why 진입점
-
-- <결정 주제> → `<repo>/.ai/50_adr/active/...`
-- <정책 주제> → `<repo>/.ai/40_domain/policies/...`
-- ...
-
-## 에이전트 운영 지침
-
-### 진입 절차 (질의 → 답변)
-
-1. 사용자 질의에서 도메인/키워드를 추출한다.
-2. `Repos` 표의 `keywords`와 `라우팅 규칙`을 매칭해 후보 repo를 정한다.
-3. 후보 repo의 `status`에 따라 분기한다.
-   - `active` → `<path>/.ai/AI-CONTEXT.md` (repo 안내도)로 진입한다.
-   - `placeholder` → 안내도 없음. repo의 **소스 코드만 SSoT**로 사용한다. 사용자에게 보강을 안내하되, `<path>/.ai/` 디렉토리 자체가 없으면 `ai-workspace [dev|doc]`로 **초기 설치**를, 있으면 `ai-workspace update`로 **갱신**을 권유한다.
-   - `archived` → 자동 진입 금지. 사용자 확인 후에만 답변한다.
-4. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > 각 repo 안내도 > 이 안내도(상위 워크스페이스)**.
-
-### 작성 규칙 (이 파일을 손볼 때)
-
-- 도메인 본문·코드 스니펫·repo 상세 목차를 이 파일에 넣지 않는다.
-- 이 안내도는 라우터다. 본문 작성이 필요하면 해당 repo의 `.ai/`로 보낸다.
-```
-
-### 섹션별 강제 규칙
-
-| 섹션 | 강제 규칙 |
-|------|----------|
-| `> last updated:` 줄 | 본문 **첫 줄**. ISO 날짜. `init`과 `update` 모두 매 실행 시 시스템 날짜로 갱신 |
-| `> SSoT:` 줄 | 본문 **두 번째 줄**. 표준 문구 `> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.` 로 고정 |
-| `## 정체성` | 2~3문장. 도메인 본문·기술 스택 상세 금지 |
-| `## Repos` | `path` / `domain` / `keywords` / `status` 4열 테이블. 그 외 열 금지 |
-| `## 라우팅 규칙` | repo 단위 매핑만. 코드 스니펫·구체 절차 금지 |
-| `## 공통 규약` | **포인터만**. 본문은 각 repo의 `.ai/10_rules/` 또는 외부 문서에 |
-| `## Why 진입점` | ADR·정책 결정 포인터만. 본문 금지 |
-| `## 에이전트 운영 지침` | `### 진입 절차`(번호 4단계) + `### 작성 규칙`(글머리) 두 서브헤딩 필수. 진입 절차는 1) 도메인/키워드 추출 → 2) `Repos`·`라우팅 규칙` 매칭 → 3) `status`별 분기(`active`/`placeholder`/`archived`) → 4) 충돌 시 우선순위 명시의 4단계 골격을 유지한다 |
-
-### 필수 규칙
-
-- YAML frontmatter는 **사용하지 않는다**.
-- 본문 **첫 줄**은 반드시 `> last updated: YYYY-MM-DD` (스킬 실행 시점의 시스템 날짜, ISO 형식).
-- 본문 **두 번째 줄**은 반드시 `> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.` 로 고정한다 (단독 진입 에이전트가 첫 5초 안에 라우터 정체성을 인식하도록).
-- 표준 섹션 6개(`정체성`, `Repos`, `라우팅 규칙`, `공통 규약`, `Why 진입점`, `에이전트 운영 지침`)를 **모두** 포함하며 **순서를 지킨다**.
-- 도메인 지식 본문, 코드 스니펫, repo 상세 목차를 **절대 포함하지 않는다**.
-
-### repo `status` 의미
-
-| `status` | 의미 | `update` 모드의 drift 검사 |
-|----------|------|---------------------------|
-| `active` | 안내도(`<repo>/.ai/AI-CONTEXT.md`) 존재, 정상 동작 중 | 포함 |
-| `placeholder` | repo 디렉토리는 있으나 안내도 없음 (안내도 부재 + `.ai/` 디렉토리 자체 부재 모두 포함) | 포함 (생성 권장 경고) |
-| `archived` | 더 이상 작업하지 않음, 참조만 가능 | **제외** |
-
-## SSoT 위배 패턴 진단 체크리스트
-
-`update` 모드의 진단 1단계에서 사용하는 체크리스트입니다. 각 항목은 "로비는 라우터이지 콘텐츠가 아니다"라는 대전제에 비추어 위배 여부를 판정합니다.
-
-### 콘텐츠 위배
-
-- [ ] **도메인 지식 본문이 로비에 포함되어 있는가?**
-  - 예: "결제 트랜잭션 상태는 PENDING/AUTHORIZED/CAPTURED/...", "JWT 만료는 15분"
-  - 판정: 두 문장 이상 이어지는 도메인 설명이 있으면 위배. 한 줄 요약은 라우팅 키워드로 허용
-- [ ] **코드 스니펫이 로비에 포함되어 있는가?**
-  - 예: 함수 정의, 클래스 시그니처, 설정 파일 일부
-  - 판정: 어떤 언어든 코드 블록(```언어 ... ```)이 본문에 있으면 위배. 표준 섹션 구조 안내용 마크다운 골격은 SKILL.md의 영역이므로 산출물에는 들어가지 않음
-- [ ] **특정 floor의 상세 목차/파일 트리가 로비에 펼쳐져 있는가?**
-  - 예: `api-server/src/controllers/...` 같은 디렉토리 경로 다수 나열
-  - 판정: floor의 path 자체는 허용하나, floor 내부 파일 트리는 위배
-- [ ] **floor의 정책·규칙 본문이 로비에 중복되어 있는가?**
-  - 예: 커밋 메시지 규칙, 코딩 컨벤션 본문이 로비에 그대로 적힘
-  - 판정: 본문이 있으면 위배. "공통 규약" 섹션에는 포인터만 허용
-
-### 형식·메타 위배
-
-- [ ] **YAML frontmatter가 존재하는가?**
-  - 판정: 존재하면 위배. 산출물은 frontmatter 없는 마크다운
-- [ ] **본문 첫 줄이 `> last updated: YYYY-MM-DD` 형식이 아닌가?**
-  - 판정: 형식 불일치 또는 누락이면 위배. 자동 갱신 대상
-- [ ] **본문 두 번째 줄이 SSoT 선언이 아닌가?**
-  - 표준 문구: `> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.`
-  - 판정: 누락이거나 표준 문구와 다르면 위배. `update-2단계`에서 자동 삽입·교체
-- [ ] **`에이전트 운영 지침`에 진입 절차 4단계가 누락되어 있는가?**
-  - 4단계 골격: 1) 도메인/키워드 추출 → 2) `Repos`·`라우팅 규칙` 매칭 → 3) `status`별 분기 → 4) 충돌 시 우선순위
-  - 판정: 단계가 누락되었거나 순서가 어긋나면 위배. 사용자가 커스텀 추가한 단계는 보존하되 표준 4단계 누락 시 보충
-- [ ] **표준 6개 H2 섹션 중 누락·중복·순서 위배가 있는가?**
-  - 강제 순서: `정체성` → `Repos` → `라우팅 규칙` → `공통 규약` → `Why 진입점` → `에이전트 운영 지침`
-- [ ] **Repos 테이블이 4열(`path`/`domain`/`keywords`/`status`)이 아닌가?**
-  - 예: `owner`, `last_activity`, `commit_hash` 등 추가 열
-  - 판정: 4열 외 열이 있으면 위배 (구버전 `Floors` 섹션명도 위배 — `Repos`로 정규화)
-
-### 분량·라우터 정체성 위배
-
-- [ ] **전체 분량이 250줄을 초과하는가?**
-  - 판정: 초과 시 비대 위배. 어떤 섹션이 큰지 분석해 콘텐츠 위배 항목과 연결
-- [ ] **`Repos` 또는 `라우팅 규칙` 섹션이 비어 있는가?**
-  - 판정: 비어 있으면 라우터 정체성 위배 (라우팅 대상이 없음)
-- [ ] **`status` 값이 `active`/`placeholder`/`archived` 외의 값을 가지는가?**
-  - 판정: 정의되지 않은 값(`wip`, `legacy`, `deprecated` 등)은 위배. 사용자 확인 후 정규화
-
-### 결과 활용
-
-체크리스트의 모든 위배 발견은 `update-1단계` 진단 리포트에 [발견] 항목으로 기록되고, 콘텐츠 위배는 `update-3단계` 이동 후보 목록의 `migration_candidates`로 연결됩니다.
-
-## 예시
-
-각 예시는 floor 3개(`active` / `placeholder` / `archived`)를 모두 노출해 graceful degradation을 보여줍니다.
-
-### init 모드 예시
-
-**상황**: ACME 결제 워크스페이스에 처음으로 로비 안내판을 만든다. 워크스페이스 루트에는 `.ai/`가 없다.
-
-**사용자 입력**:
-
-```yaml
-building: ACME 결제 워크스페이스
-identity: |
-  ACME 결제 서비스를 구성하는 멀티 repo 워크스페이스.
-  결제 API, 모바일 클라이언트, 레거시 웹 결제 페이지를 한 곳에서 본다.
-floors:
-  - path: api-server
-    domain: 결제 API 서버
-    keywords: [결제, payment, API, 트랜잭션, refund]
-  - path: mobile-app
-    domain: 모바일 결제 클라이언트
-    keywords: [모바일, mobile, iOS, Android, 결제 UI]
-archived:
-  - path: legacy-web
-```
-
-**디스크 스캔 결과**:
-
-| floor | `<repo>/.ai/AI-CONTEXT.md` | 결정된 `status` |
-|-------|---------------------------|-----------------|
-| api-server | 존재 | `active` |
-| mobile-app | 없음 | `placeholder` (경고) |
-| legacy-web | (검사 제외, archived 명시) | `archived` |
-
-**산출물**: `<루트>/.ai/AI-CONTEXT.md` (신규 생성, `<루트>/.ai/` 디렉토리 함께 생성)
-
-````markdown
-> last updated: 2026-05-21
-> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.
-
-## 정체성
-
-ACME 결제 서비스를 구성하는 멀티 repo 워크스페이스.
-결제 API, 모바일 클라이언트, 레거시 웹 결제 페이지를 한 곳에서 본다.
-이 파일은 상위 워크스페이스 안내판이며, 도메인 본문은 각 repo의 `.ai/AI-CONTEXT.md`로 라우팅한다.
-
-## Repos
-
-| path | domain | keywords | status |
-|------|--------|----------|--------|
-| api-server | 결제 API 서버 | 결제, payment, API, 트랜잭션, refund | active |
-| mobile-app | 모바일 결제 클라이언트 | 모바일, mobile, iOS, Android, 결제 UI | placeholder |
-| legacy-web | (보존, 더 이상 작업 없음) | — | archived |
-
-## 라우팅 규칙
-
-- 결제 / payment / 트랜잭션 / refund → `api-server`
-- 모바일 / mobile / iOS / Android / 결제 UI → `mobile-app`
-- legacy-web 관련 요청은 사용자 확인 후에만 답변 (archived).
-
-## 공통 규약
-
-- 커밋 메시지: 각 repo의 `.ai/10_rules/` 또는 루트 `/git-commit` 스킬 참조
-- PR 정책: 각 repo의 `.ai/10_rules/` 참조
-- 라이선스: 워크스페이스 루트 `LICENSE`
-
-## Why 진입점
-
-- 결제 도메인 결정 이력 → `api-server/.ai/50_adr/`
-- 모바일 결정 이력 → `mobile-app/.ai/50_adr/` (안내도 생성 후 갱신 예정)
-
-## 에이전트 운영 지침
-
-### 진입 절차 (질의 → 답변)
-
-1. 사용자 질의에서 도메인/키워드를 추출한다.
-2. `Repos` 표의 `keywords`와 `라우팅 규칙`을 매칭해 후보 repo를 정한다.
-3. 후보 repo의 `status`에 따라 분기한다.
-   - `active` → `<path>/.ai/AI-CONTEXT.md` (repo 안내도)로 진입한다.
-   - `placeholder` → 안내도 없음. repo의 **소스 코드만 SSoT**로 사용한다. 사용자에게 보강을 안내하되, `<path>/.ai/` 디렉토리 자체가 없으면 `ai-workspace [dev|doc]`로 **초기 설치**를, 있으면 `ai-workspace update`로 **갱신**을 권유한다.
-   - `archived` → 자동 진입 금지. 사용자 확인 후에만 답변한다.
-4. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > 각 repo 안내도 > 이 안내도(상위 워크스페이스)**.
-
-### 작성 규칙 (이 파일을 손볼 때)
-
-- 도메인 본문·코드 스니펫·repo 상세 목차를 이 파일에 넣지 않는다.
-- 이 안내도는 라우터다. 본문 작성이 필요하면 해당 repo의 `.ai/`로 보낸다.
-````
-
-**보고 출력**:
-
-```
-생성: <루트>/.ai/AI-CONTEXT.md (신규)
-floor status: active 1 / placeholder 1 / archived 1
-
-[경고] floor `mobile-app`에 안내도가 없습니다.
-       해당 floor에서 `ai-workspace` 스킬을 실행해 안내도를 생성하는 것을 권장합니다.
-
-분량 가드레일: 38줄 — 짧음 (floor 3개 기준 자연스러운 분량, 라우터 정체성 유지됨)
-```
-
----
-
-### update 모드 예시
-
-**상황**: 시간이 지나면서 로비에 도메인 본문과 코드 스니펫이 섞이고, 디스크와 drift가 생겼다.
-
-**기존 입력**: `<루트>/.ai/AI-CONTEXT.md` (오염 상태, 28줄)
-
-````markdown
----
-building: ACME 결제 워크스페이스
-created: 2025-11-01
----
-
-# ACME 결제 워크스페이스
-
-ACME 결제 서비스 모음.
-
-## 결제 도메인
-
-결제 트랜잭션은 다음 상태를 가진다: PENDING, AUTHORIZED, CAPTURED, REFUNDED, FAILED.
-각 상태 전이는 idempotency key를 통해 보장되며, 동일 키로 재요청 시 같은 결과를 반환한다.
-
-```python
-def transition(state, event):
-    if state == "PENDING" and event == "authorize":
-        return "AUTHORIZED"
-    ...
-```
-
-## Floors
-
-| path | domain | keywords | owner | status |
-|------|--------|----------|-------|--------|
-| api-server | 결제 API | 결제, payment | @alice | active |
-| legacy-web | 옛 웹 | legacy | @bob | active |
-````
-
-**디스크 스캔 결과**:
-
-| 디스크 floor | `<repo>/.ai/AI-CONTEXT.md` | 로비 등록 여부 | drift 판정 |
-|-------------|---------------------------|----------------|------------|
-| api-server | 존재 | 등록됨 | 정상 |
-| mobile-app | 존재 | **미등록** | drift: 로비 `Repos`에 추가 필요 |
-| legacy-web | 없음 | 등록됨 (`active`) | drift: `placeholder` 전환 필요 |
-
-#### update-1단계: 진단 리포트
-
-```markdown
-## 진단 리포트 (update-1단계)
-
-### SSoT 위배
-- [발견] 도메인 본문: 라인 11-12 ("결제 트랜잭션은 다음 상태를...") — `api-server`로 이동 후보
-- [발견] 코드 스니펫: 라인 14-19 (Python `transition` 함수) — `api-server`로 이동 후보
-- [없음] floor 상세 목차
-- [없음] floor 정책 본문 중복
-
-### 로비 역할 위배
-- [발견] 도메인 본문 (라인 11-12)
-- [발견] 코드 스니펫 (라인 14-19)
-- [없음] floor 상세 목차
-- [없음] 비대 (28줄 < 250줄)
-
-### drift 진단
-| floor | 로비 status | 디스크 안내도 | 디스크 디렉토리 | 판정 |
-|-------|------------|--------------|----------------|------|
-| api-server | active | 존재 | 존재 | 정상 |
-| mobile-app | (없음) | 존재 | 존재 | drift: 등록 필요 |
-| legacy-web | active | 없음 | 존재 | drift: placeholder 전환 |
-
-### 형식 위배
-- [위배] YAML frontmatter 존재 (라인 1-4) → 제거 예정
-- [위배] 본문 첫 줄이 `> last updated:` 형식 아님 → 자동 갱신 예정
-- [위배] 본문 두 번째 줄 SSoT 선언 누락 → 표준 문구 자동 삽입 예정
-- [위배] 구버전 `## Floors` 섹션명 사용 → `## Repos`로 정규화 예정
-- [위배] Repos 테이블에 `owner` 열 추가 → 4열로 정규화 예정
-- [위배] `에이전트 운영 지침`에 `### 진입 절차` 4단계 누락 → 표준 골격 삽입 예정
-- [위배] `# ACME 결제 워크스페이스` H1 헤더 사용 → H2 표준 섹션 구조로 재정렬 예정
-```
-
-#### update-2단계: 재구성된 로비 전문
-
-````markdown
-> 아래는 새 본문 전문입니다. 검토 후 승인하시면 `<루트>/.ai/AI-CONTEXT.md`에 덮어씁니다.
-
-```markdown
-> last updated: 2026-05-21
-> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.
-
-## 정체성
-
-ACME 결제 서비스를 구성하는 멀티 repo 워크스페이스.
-이 파일은 상위 워크스페이스 안내판이며, 도메인 본문은 각 repo의 `.ai/AI-CONTEXT.md`로 라우팅한다.
-
-## Repos
-
-| path | domain | keywords | status |
-|------|--------|----------|--------|
-| api-server | 결제 API 서버 | 결제, payment, API, 트랜잭션 | active |
-| mobile-app | 모바일 결제 클라이언트 | 모바일, mobile, iOS, Android | active |
-| legacy-web | (보존, 안내도 없음) | legacy | placeholder |
-
-## 라우팅 규칙
-
-- 결제 / payment / 트랜잭션 → `api-server`
-- 모바일 / mobile → `mobile-app`
-- legacy-web 관련 요청은 사용자 확인 후 진행 (placeholder, 안내도 부재)
-
-## 공통 규약
-
-- 라이선스: 워크스페이스 루트 `LICENSE`
-- 커밋·PR 정책: 각 repo의 `.ai/10_rules/` 참조
-
-## Why 진입점
-
-- 결제 도메인 결정 이력 → `api-server/.ai/50_adr/`
-- 모바일 결정 이력 → `mobile-app/.ai/50_adr/`
-
-## 에이전트 운영 지침
-
-### 진입 절차 (질의 → 답변)
-
-1. 사용자 질의에서 도메인/키워드를 추출한다.
-2. `Repos` 표의 `keywords`와 `라우팅 규칙`을 매칭해 후보 repo를 정한다.
-3. 후보 repo의 `status`에 따라 분기한다.
-   - `active` → `<path>/.ai/AI-CONTEXT.md` (repo 안내도)로 진입한다.
-   - `placeholder` → 안내도 없음. repo의 **소스 코드만 SSoT**로 사용한다. `<path>/.ai/` 자체가 없으면 `ai-workspace [dev|doc]` 초기 설치를, 있으면 `ai-workspace update` 갱신을 권유한다.
-   - `archived` → 자동 진입 금지. 사용자 확인 후에만 답변한다.
-4. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > 각 repo 안내도 > 이 안내도(상위 워크스페이스)**.
-
-### 작성 규칙 (이 파일을 손볼 때)
-
-- 도메인 본문·코드 스니펫·repo 상세 목차를 이 파일에 넣지 않는다.
-- 이 안내도는 라우터다. 본문 작성이 필요하면 해당 repo의 `.ai/`로 보낸다.
-```
-
-이대로 `<루트>/.ai/AI-CONTEXT.md`에 덮어쓸까요? (y/N)
-````
-
-#### update-3단계: floor 이동 후보 목록
-
-```yaml
-# floor 이동 후보 목록 (update-3단계)
-migration_candidates:
-  - content_id: lobby-overflow-001
-    target_floor: api-server
-    target_location_hint: api-server/.ai/40_domain/specs/payment-states.md
-    category: domain-content
-    confidence: high
-    reason: 결제 트랜잭션 상태 본문이 로비에 포함됨. 키워드(결제, payment, 트랜잭션)가 api-server keywords와 일치
-    source_location: lines 11-12
-    excerpt: |
-      결제 트랜잭션은 다음 상태를 가진다: PENDING, AUTHORIZED, CAPTURED, REFUNDED, FAILED.
-      각 상태 전이는 idempotency key를 통해 보장되며, 동일 키로 재요청 시 같은 결과를 반환한다.
-  - content_id: lobby-overflow-002
-    target_floor: api-server
-    target_location_hint: api-server/.ai/40_domain/specs/payment-states.md
-    category: code-snippet
-    confidence: high
-    reason: 결제 상태 전이 함수 코드. 인접한 도메인 본문(001)과 함께 이동되어야 함
-    source_location: lines 14-19
-    excerpt: |
-      def transition(state, event):
-          if state == "PENDING" and event == "authorize":
-              return "AUTHORIZED"
-          ...
-```
-
-#### update-4단계: 보고
-
-```
-파일 경로: <루트>/.ai/AI-CONTEXT.md
-파일 변경: 사용자 승인 대기 (미적용)
-
-진단 결과:
-- SSoT 위배 2건 (도메인 본문 1, 코드 스니펫 1)
-- 형식 위배 6건 (frontmatter, last updated 누락, SSoT 선언 누락, `Floors`→`Repos` 마이그레이션, Repos 5열, 진입 절차 누락, H1 헤더)
-- drift 2건 (mobile-app 신규 등록, legacy-web placeholder 전환)
-
-분량 가드레일: 재구성 후 30줄 — 짧음 (floor 3개 기준 정상)
-
-placeholder 전환: legacy-web (안내도 부재). `ai-workspace` 스킬로 생성 권장.
-
-이동 후보: 2건 (모두 api-server 대상, target_floor: unknown 0건)
-```
