@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 8 — 사용자 재점검 (클로드 코워크 Fable 5 + skill-creator) 피드백 대기
+> ▶️ 다음 작업: Task 8 — 재점검 1회차(v2) 피드백 반영 완료, 사용자 2회차 재점검 대기
 
 ---
 
@@ -104,4 +104,11 @@
   - 기준 ⑤ 중복/충돌: 트리거 회색지대 2건 description 차원 해소(Task 1), 교차 중복은 의도적 유지 결정(Task 7)
   - 스킬 내부 상대 링크 전수 검사 — 깨진 링크 0건 (예시 코드 블록 내 가상 경로 8건은 원본부터 존재하는 산출물 예시로 제외)
   - 안내도 정합성: `.ai/AI-CONTEXT.md` 디렉토리 구조 트리에 신규 `references/` 3곳 반영, last updated 갱신
-- **특이 사항**: 사용자 재점검 loop 미완 — 클로드 코워크(Fable 5 + skill-creator) 재점검 후 피드백 반영 필요
+- **재점검 1회차 (v2 보고서, `.ai/99_workspace/skill-audit-report-2026-06-12-v2.md`) 반영**:
+  - v2 판정: 1차 지적 19건 중 17건 해소, 회귀 0건, 잔여 3건 → 모두 반영 완료
+  - `readme-sync`: 라이선스 세부 사양 3절(생성 규칙·`--force-license` 가드·헤더 파일명 가드)을 `references/license.md`(54줄)로 분리, 본문 268→220줄. 읽기 조건은 "Q1=(a) 분기 진입 시 또는 `LICENSE-*` 비표준 파일 발견 시"로 명시 (헤더 가드 감지가 init-1단계에서도 동작하므로 v2 방안의 조건을 보정)
+  - `git-pr`: 98행 과밀 문단을 v2 제안 형식 그대로 불릿 구조로 분리
+  - `ai-workspace-directory/references/examples.md`: 목차 추가 (386→396줄, skill-creator의 300줄 초과 참조 파일 TOC 기준 충족)
+  - 안내도 트리에 readme-sync `references/`·`templates/` 반영 (templates/는 기존 누락분)
+  - 셀프 검증: readme-sync 구 앵커 잔존 0건, references/license.md 포인터 6곳 연결 확인
+- **특이 사항**: 사용자 2회차 재점검 대기 — 추가 개선 사항 없음 확인 시 Task 8 완료 처리

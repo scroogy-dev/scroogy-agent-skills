@@ -3,6 +3,16 @@
 > `ai-workspace-directory` 스킬의 참조 문서입니다.
 > `update` 모드의 출력 형식 템플릿과 init/update 완성 예시를 담습니다.
 
+## 목차
+
+- [출력 형식 템플릿 (update 모드)](#출력-형식-템플릿-update-모드)
+  - [update-1단계: 진단 리포트](#update-1단계-진단-리포트)
+  - [update-2단계: 재구성된 로비 전문](#update-2단계-재구성된-로비-전문)
+  - [update-3단계: floor 이동 후보 목록](#update-3단계-floor-이동-후보-목록)
+- [완성 예시](#완성-예시)
+  - [init 모드 예시](#init-모드-예시)
+  - [update 모드 예시](#update-모드-예시)
+
 ## 출력 형식 템플릿 (update 모드)
 
 ### update-1단계: 진단 리포트

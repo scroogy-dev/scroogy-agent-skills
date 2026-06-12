@@ -71,6 +71,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   └── templates/              # 이슈 템플릿
 ├── readme-sync/                # README.md 생성/갱신 스킬
+│   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)
+│   └── templates/              # README 템플릿
 └── README.md
 ```
 
