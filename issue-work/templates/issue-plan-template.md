@@ -1,6 +1,6 @@
 # Issue #<번호> 실행계획 <제목>
 
-> 스펙: [issue-spec.md](./issue-spec.md)
+> 스펙: [issue-<번호>-spec.md](./issue-<번호>-spec.md)
 
 ---
 
