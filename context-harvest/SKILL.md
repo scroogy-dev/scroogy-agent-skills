@@ -206,76 +206,13 @@ description: 소스코드 바깥의 What(계약, 명세)과 Why(정책, 의사�
 
 ## 산출물 템플릿
 
-### 30_contract/ (계약 문서)
+`templates/` 디렉토리의 템플릿 파일이 단일 출처이며, 본문에 템플릿 내용을 중복 기재하지 않는다.
 
-`templates/30_contract-template.md`를 참조한다.
-
-```markdown
----
-source: <web | github_issue | github_pr | confluence | jira>
-source_url: <원본 URL>
-last_harvested: <수집 일시>
----
-
-# <계약 제목>
-
-(증류된 계약 내용)
-
-## 원본 출처
-
-- [출처 제목](원본 URL)
-```
-
-### 40_domain/ (도메인 문서)
-
-`templates/40_domain-template.md`를 참조한다.
-
-```markdown
----
-source: <web | github_issue | github_pr | confluence | jira>
-source_url: <원본 URL>
-last_harvested: <수집 일시>
----
-
-# <문서 제목>
-
-(증류된 도메인 지식)
-
-## 원본 출처
-
-- [출처 제목](원본 URL)
-```
-
-### 50_adr/ (의사결정 기록)
-
-`templates/50_adr-template.md`를 참조한다.
-
-```markdown
----
-source: <web | github_issue | github_pr | confluence | jira>
-source_url: <원본 URL>
-related_jira: <Jira 이슈 키 (있는 경우)>
-last_harvested: <수집 일시>
----
-
-# ADR: <결정 제목>
-
-## 결정
-
-(무엇을 결정했는가)
-
-## 근거
-
-(왜 그렇게 결정했는가)
-
-## 대안
-
-(검토했으나 채택하지 않은 대안과 그 이유)
-
-## 원본 출처
-
-- [출처 제목](원본 URL)
-```
+| 산출물 위치 | 템플릿 |
+|-------------|--------|
+| `30_contract/` (계약 문서) | `templates/30_contract-template.md` |
+| `40_domain/` (도메인 문서) | `templates/40_domain-template.md` |
+| `50_adr/` (의사결정 기록) | `templates/50_adr-template.md` |
 
 ---
 
