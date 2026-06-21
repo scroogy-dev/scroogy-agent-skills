@@ -1,6 +1,6 @@
 ---
 name: install-skills
-description: scroogy-agent-skills 저장소의 skill을 선택하여 ~/.claude/skills/에 설치합니다. skill 설치, install skills 시 사용합니다.
+description: 현재 저장소의 skill을 선택하여 ~/.claude/skills/에 설치합니다. skill 설치, install skills 시 사용합니다.
 ---
 
 ## 개요
