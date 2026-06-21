@@ -12,7 +12,7 @@
 
 | 항목 | 값 |
 |------|----|
-| domain | Claude Code·Cursor·Gemini CLI·Junie 등 다양한 AI 도구에서 호환되는 Agent Skills 모음 저장소 |
+| domain | Claude Code·Antigravity·Junie 등 다양한 AI 도구에서 호환되는 Agent Skills 모음 저장소 |
 | keywords | agent skills, agentskills, claude code, ai-workspace, ai 협업 가이드, skill 모음 |
 
 > `domain`/`keywords`는 단독/멀티 여부와 무관하게 에이전트 진입 단서로 유지한다. 상위 워크스페이스 안내도(`../.ai/AI-CONTEXT.md`) 존재 여부는 런타임에 자동 판정한다 (CoC).
@@ -22,7 +22,7 @@
 ## 프로젝트 목적
 
 개인적으로 사용하는 [Agent Skills](https://agentskills.io/)를 만들고 관리하는 저장소입니다.
-Agent Skills 오픈 포맷을 따르며, Claude Code, Cursor, Gemini CLI, Junie 등 다양한 AI 도구에서 호환됩니다.
+Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다양한 AI 도구에서 호환됩니다.
 
 ---
 

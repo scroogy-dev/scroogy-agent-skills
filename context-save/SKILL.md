@@ -5,7 +5,7 @@ description: 대화 중 중요한 맥락(배경, 결정, 미결 사항, 다음 �
 
 ## 개요
 
-현재 대화에서 오간 논의의 핵심을 **AI 에이전트 독립적인 마크다운 파일**로 `.ai/99_workspace/notes/`에 **임시 저장**하는 스킬입니다. 다음 세션의 에이전트(Claude Code, Codex, Gemini CLI, GitHub Copilot 등)가 파일만 읽고도 맥락을 이어갈 수 있도록 **대화 재현이 아닌 상태 스냅샷**을 기록합니다.
+현재 대화에서 오간 논의의 핵심을 **AI 에이전트 독립적인 마크다운 파일**로 `.ai/99_workspace/notes/`에 **임시 저장**하는 스킬입니다. 다음 세션의 에이전트(Claude Code, Codex, Antigravity, GitHub Copilot 등)가 파일만 읽고도 맥락을 이어갈 수 있도록 **대화 재현이 아닌 상태 스냅샷**을 기록합니다.
 
 `.ai/99_workspace/`는 임시 작업공간이며, 주 사용 흐름은 다음과 같습니다:
 
@@ -173,6 +173,6 @@ slug는 기본적으로 **대화 주제에서 자동 생성**합니다. 인자�
 
 ## 다른 AI 도구와의 호환성
 
-- 마크다운 + YAML 프론트매터는 Claude Code, Codex, Gemini CLI, GitHub Copilot 등 공통 포맷.
+- 마크다운 + YAML 프론트매터는 Claude Code, Codex, Antigravity, GitHub Copilot 등 공통 포맷.
 - 파일 하나가 자기 완결적이므로 도구를 바꿔도 그대로 읽힌다.
 - 도구별 세션 로그나 히스토리 파일에 의존하지 않는다.
