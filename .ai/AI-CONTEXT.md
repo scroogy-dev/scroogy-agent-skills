@@ -128,6 +128,10 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 이미 컨텍스트에 적재되어 있으면 재로딩하지 않습니다.
 스킬 본문에는 해당 스킬의 고유 참조·단계만 기재합니다.
 
+### 테스트 위치
+
+결정적 헬퍼(`scripts/`)의 테스트는 `<skill>/tests/`에 함께 두며(테스트 데이터 중첩), `install-skills` 배포 시 제외됩니다 → 메커니즘은 [`install-skills/SKILL.md`](../install-skills/SKILL.md), 규칙 배경은 [ADR](50_adr/active/0001-skill-deterministic-helper-test-convention.md).
+
 ---
 
 ## .ai 디렉토리 구조

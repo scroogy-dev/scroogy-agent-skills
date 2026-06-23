@@ -7,6 +7,7 @@ description: 현재 저장소의 skill을 선택하여 ~/.claude/skills/에 설�
 
 이 저장소의 skill을 선택하여 설치합니다.
 이미 설치된 skill은 삭제 후 클린 설치합니다.
+설치 시 `tests/` 같은 개발 전용 경로는 배포 결과물에서 제외합니다 — 제외 패턴의 단일 출처는 [설치 절차](#설치-절차) 5단계이며, 규칙 배경은 [ADR](../.ai/50_adr/active/0001-skill-deterministic-helper-test-convention.md)를 참조하세요.
 
 ### 설치 경로 옵션
 
@@ -56,10 +57,13 @@ done
    ```
 3. 위 스캔으로 구성한 목록에서 번호 또는 skill명으로 설치할 skill을 선택받습니다.
 4. 대상 디렉토리가 없으면 생성합니다.
-5. 선택한 skill이 이미 설치되어 있으면 기존 디렉토리를 삭제한 뒤 새로 복사합니다.
+5. 선택한 skill이 이미 설치되어 있으면 기존 디렉토리를 삭제한 뒤, 개발 전용 경로를 제외하고 복사합니다.
+   아래 `--exclude` 플래그가 제외 패턴(`tests/`, `*.test.*`)의 **단일 출처**입니다 — ADR·AI-CONTEXT는 이 목록을 복제하지 않고 이 절차를 참조만 합니다.
    ```bash
    rm -rf <target-dir>/<skill-name>
-   cp -r <skill-디렉토리> <target-dir>/
+   rsync -a --exclude 'tests/' --exclude '*.test.*' <skill-디렉토리>/ <target-dir>/<skill-name>/
+   # rsync 미가용 환경 fallback (tests/ 디렉토리 제외):
+   #   cp -r <skill-디렉토리> <target-dir>/ && rm -rf <target-dir>/<skill-name>/tests
    ```
 6. 복사 완료 후 설치된 skill 목록을 대상 경로별로 출력합니다.
 
