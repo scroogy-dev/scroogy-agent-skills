@@ -27,6 +27,7 @@
 
 - Task 완료 시 `issue-<번호>-plan.md`의 해당 Task 체크박스를 체크한다.
 - Task 완료 시 `issue-<번호>-summary.md`의 수행 결과를 갱신하고 다음 작업을 업데이트한다.
+- 교차모델 audit 리포트(`.ai/99_workspace/issue-<번호>-audit-report.md`)를 받으면 issue-work `--response` 옵션으로 검토한다 — 발견사항에 **피드백 먼저, 항목별 승인 후에만 보정**하며, 받자마자 자동 보정하지 않는다.
 
 ---
 
