@@ -47,5 +47,4 @@
 |------|------|
 | `.ai/50_adr/active/0001-skill-deterministic-helper-test-convention.md` | 결정적 헬퍼 테스트 위치·배포 제외 규칙. 검사기 구현(Out)의 후속 근거 |
 | `/.ai/AI-CONTEXT.md` (상단 SSoT 선언) | 소스코드를 SSoT로 선언해, 문서 산출물의 "소스와의 일관성"을 결정적으로 검사할 수 있는 전제 |
-| `.ai/99_workspace/issue-request-deterministic-dod-and-cross-model-audit.md` | 이 이슈의 원본 요청 프롬프트(배경·규율·변경 대상 상세) |
-| [GitHub Issue #25](https://github.com/scroogy-dev/scroogy-agent-skills/issues/25) | 원격 이슈 본문(요청 초안 동기화) |
+| [GitHub Issue #25](https://github.com/scroogy-dev/scroogy-agent-skills/issues/25) | 원격 이슈 본문(원본 요청·작업 요약). 작업 시 사용한 원본 요청 프롬프트는 작업 종료 후 정리됨(git 이력 참조) |

@@ -52,7 +52,7 @@
 ### Task 5: 교차모델 issue-audit (이 이슈 자체에 dogfooding 적용)
 
 - **결과**: 완료
-- **수행 내용 요약**: 1단계 `[D]` 게이트 전부 재실행 PASS. 2단계 교차모델 `issue-audit`을 별도 세션(구현 모델 Opus와 다른 모델)에서 수행. 리포트: `.ai/99_workspace/issue-0025-audit-report.md`. 핵심 구현은 PASS(요구사항 5/5, DoD 대조 PASS), 지적 3건(F-1 LOW, F-2·F-3 INFO).
+- **수행 내용 요약**: 1단계 `[D]` 게이트 전부 재실행 PASS. 2단계 교차모델 `issue-audit`을 별도 세션(구현 모델 Opus와 다른 모델)에서 수행. 리포트는 작업 종료 후 정리됨(git 이력 참조). 핵심 구현은 PASS(요구사항 5/5, DoD 대조 PASS), 지적 3건(F-1 LOW, F-2·F-3 INFO).
 - **특이 사항**:
   - F-1(렌더 확인이 가짜 `[D]`): 수용. spec DoD 1번을 `[D]` 구조 무결성(헤딩/코드펜스 grep) + `[ND]` 렌더 시각 확인으로 분리.
   - F-2(SKILL.md가 커밋 diff 밖): 의도된 보류. audit 반영분과 함께 한 번에 커밋해 해소.
