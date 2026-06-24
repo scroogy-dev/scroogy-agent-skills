@@ -14,6 +14,9 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
 ## 관련 skill
 
 - issue-work (권장): `.ai/90_issues/` 의 스펙·계획·요약 파일을 감사 입력으로 활용합니다.
+  `issue-work` 계획의 마지막 고정 **Task N(교차모델 검증)**에서 이 스킬을 호출합니다 —
+  구현 모델과 **다른 벤더 모델**(Non-Anthropic 포함)로 **사용자가 직접 수동 수행**하며,
+  감사 결과는 `issue-<번호>-summary.md`의 모델 기록·Task별 결과에 반영합니다.
 - ai-workspace (권장): `.ai/30_contract/`, `.ai/40_domain/` 문서를 비즈니스 검증에 참조합니다.
 
 > `git-review`와의 차이: git-review는 PR 단위 코드 품질 리뷰이고,
@@ -119,6 +122,7 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
 1. 이 skill 디렉토리의 `templates/issue-audit-report-template.md`를 참조하여 감사 리포트를 작성한다.
 2. 리포트를 `.ai/99_workspace/issue-<번호>-audit-report.md`에 저장한다.
 3. 사용자에게 주요 발견 사항을 요약 보고한다.
+4. 감사에 사용한 모델은 **"벤더, 모델명" 형식**으로 기록한다 (예: `OpenAI, GPT-5.x` / `Google, Gemini 3.x`). 이는 `issue-work`의 summary 모델 기록과 **동일한 형식**이며, 리포트 템플릿의 '감사 모델' 줄(#26)도 이 형식을 따른다.
 
 ---
 
