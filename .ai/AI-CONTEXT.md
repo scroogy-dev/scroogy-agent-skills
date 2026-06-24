@@ -66,6 +66,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── git-review/                 # 리뷰 수행 스킬
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
 ├── install-skills/             # skill 선택 설치 스킬
+│   ├── scripts/                # 결정적 설치 검증 헬퍼 (verify-install.sh)
+│   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
 │   └── templates/              # 감사 리포트 템플릿
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
