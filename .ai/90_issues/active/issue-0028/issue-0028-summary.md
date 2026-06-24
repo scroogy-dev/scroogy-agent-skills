@@ -4,14 +4,14 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit (사용자가 Codex로 직접 수행)
+> ✅ 모든 작업이 완료되었습니다. (다음: `--clear`로 archive 이관 → PR)
 
 ## 모델 기록
 
 | 구분 | 모델 |
 |------|------|
 | 계획·구현 모델 | Anthropic, Claude Opus 4.8 (claude-opus-4-8) |
-| audit 모델 | <!-- 대기 — 사용자가 Codex로 audit 수행 후 기록. 형식: 벤더, 모델명 --> |
+| audit 모델 | OpenAI, Codex <!-- 정확한 모델 ID는 사용자 확인 후 보정 --> |
 
 ---
 
@@ -58,11 +58,14 @@
 
 ### Task N: 교차모델 issue-audit 검증
 
-- **결과**: 대기 — 사용자가 Codex(타벤더 모델)로 직접 수행 예정 (issue #29 방침)
+- **결과**: 교차모델 audit 수행 완료(사용자가 Codex로 직접 실행) → 지적 2건 반영 완료. 리포트: `.ai/99_workspace/issue-0028-audit-report.md`
 - **수행 내용 요약**:
   - `[D]` 5개 게이트는 재실행 통과 확인: #35 신 경로 1, #36 구 경로 리터럴 0, #37 실행 가능, #38·#39 러너 9/9, `bash -n` 문법 OK.
-  - 정식 교차모델 issue-audit는 **미수행** — 사용자가 Codex로 돌린 뒤 결과를 받아 이 칸과 위 모델 기록(audit 모델)을 채운다. 그 시점에 Task N 체크박스를 닫는다.
+  - **Codex audit 지적 2건(둘 다 MEDIUM) 검증 후 반영**:
+    - **F-1 (빈 실제 레거시 디렉토리 PASS ↔ spec DoD 문구 충돌)**: 구현(빈 디렉토리 PASS)이 더 옳다고 판단 — 코드는 유지하고 **spec 쪽을 정밀화**. spec In-scope·DoD #5를 "비어있지 않은 실제 디렉토리로 잔존하면 FAIL, 심링크/부재/빈 디렉토리는 PASS"로 수정.
+    - **F-2 (검증 예시의 `--antigravity-legacy`가 Claude target 예시에 박혀 거짓 FAIL 유발)**: SKILL.md 6단계 검증 예시를 **공통 검증 + Antigravity 전용 검증으로 분리**. 추가로 사용자 지적 반영 — Antigravity 레거시 점검 조건을 `--antigravity` **또는 `--all`**(Antigravity 경로가 설치 대상일 때)로 명확화. 7단계 제목·본문도 동일하게 정합화.
+  - 반영 후 게이트 재확인: 신 경로 1 / 구 경로 0 / verify-install.sh 참조 3 / 크로스체크 1 / 러너 9 pass 0 fail. 구현·테스트 코드는 무변경(문서·spec만 변경).
 - **특이 사항**:
-  - 착수 전 보조로 Sonnet 4.6 internal 점검을 1회 돌렸고(**정식 audit 아님**), 거기서 나온 개선을 코드에 선반영함: major 1(fallback `cp`의 `*.test.*` 미제거 → `find ... -delete`), minor 3(6단계 본문 경로 표기 통일 / `--antigravity-legacy`는 `--antigravity` 전용 명시 / 빈 레거시 디렉토리 PASS 근거 주석), info 1(verify-install.sh에 배포 제외 패턴 SSoT 동기화 주석). 코드 개선은 유지하므로 Codex audit은 이미 보정된 상태를 본다.
-  - 교차모델 audit은 AI가 자동 실행하지 않고 사용자가 타벤더 모델로 수행하는 것이 원칙 (issue #29에서 issue-work 워크플로우에 명문화 예정).
-  - 보류된 보조점검 info 2건(usage()의 `sed` 라인 범위 하드코딩 / run-tests.sh의 stderr 억제)은 현재 동작이 정확해 미반영 — Codex audit 판단에 맡김.
+  - 착수 전 보조로 Sonnet 4.6 internal 점검을 1회 돌렸고(**정식 audit 아님**), 거기서 나온 개선을 코드에 선반영함: major 1(fallback `cp`의 `*.test.*` 미제거 → `find ... -delete`), minor 3, info 1. Codex audit은 이 보정된 상태를 봤다.
+  - 교차모델 audit은 AI가 자동 실행하지 않고 사용자가 타벤더 모델로 수행하는 것이 원칙 (issue #29 방침).
+  - 보류된 보조점검 info 2건(usage()의 `sed` 라인 범위 하드코딩 / run-tests.sh의 stderr 억제)은 현재 동작이 정확해 미반영 — Codex audit도 이를 짚지 않아 그대로 둔다.
