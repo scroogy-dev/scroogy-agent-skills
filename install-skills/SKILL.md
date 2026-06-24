@@ -16,7 +16,7 @@ description: 현재 저장소의 skill을 선택하여 ~/.claude/skills/에 설�
 | (없음)            | `~/.claude/skills/`              |
 | `--claude`        | `~/.claude/skills/`              |
 | `--agents`        | `~/.agents/skills/`              |
-| `--antigravity`   | `~/.gemini/antigravity/skills/`  |
+| `--antigravity`   | `~/.gemini/config/skills/`       |
 | `--codex`         | `~/.codex/skills/`               |
 | `--junie`         | `~/.junie/skills/`               |
 | `--all`           | 모두                             |
@@ -59,13 +59,34 @@ done
 4. 대상 디렉토리가 없으면 생성합니다.
 5. 선택한 skill이 이미 설치되어 있으면 기존 디렉토리를 삭제한 뒤, 개발 전용 경로를 제외하고 복사합니다.
    아래 `--exclude` 플래그가 제외 패턴(`tests/`, `*.test.*`)의 **단일 출처**입니다 — ADR·AI-CONTEXT는 이 목록을 복제하지 않고 이 절차를 참조만 합니다.
+   선택 목록은 **배열**로 다뤄 zsh/bash 모두에서 단어 분리에 깨지지 않게 합니다.
    ```bash
-   rm -rf <target-dir>/<skill-name>
-   rsync -a --exclude 'tests/' --exclude '*.test.*' <skill-디렉토리>/ <target-dir>/<skill-name>/
-   # rsync 미가용 환경 fallback (tests/ 디렉토리 제외):
-   #   cp -r <skill-디렉토리> <target-dir>/ && rm -rf <target-dir>/<skill-name>/tests
+   # 선택한 skill 목록과 대상 경로 (배열 — zsh word-splitting 회피)
+   skills=(git-commit git-pr issue-work)
+   target="$HOME/.claude/skills"
+   for s in "${skills[@]}"; do
+     rm -rf "$target/$s"
+     rsync -a --exclude 'tests/' --exclude '*.test.*' "$s/" "$target/$s/"
+     # rsync 미가용 환경 fallback (tests/ 디렉토리 + *.test.* 파일 모두 제외):
+     #   cp -r "$s" "$target/" && rm -rf "$target/$s/tests" && find "$target/$s" -name '*.test.*' -delete
+   done
    ```
-6. 복사 완료 후 설치된 skill 목록을 대상 경로별로 출력합니다.
+6. **설치 검증 (결정적 확인 우선 + AI 크로스체크)**: 복사 후 `install-skills/scripts/verify-install.sh`(저장소 루트 기준 경로)로 설치 결과를 **결정적으로** 먼저 확인합니다(합/불은 exit code). AI는 그 PASS/FAIL 출력을 읽어 누락·경로 불일치를 **준결정적으로 크로스체크**합니다 — 결정적 결과가 우선이고 AI 판단은 보완입니다.
+   ```bash
+   # 5단계의 skills·target 배열을 그대로 재사용 — 공통 검증(모든 대상에 적용).
+   install-skills/scripts/verify-install.sh --target "$target" "${skills[@]}"
+   ```
+   **Antigravity 경로가 설치 대상일 때만**(`--antigravity` 또는 `--all`) 구 Antigravity skills 경로의 레거시 잔존을 추가로 점검합니다. 이때만 `--antigravity-legacy`를 붙이며, Antigravity 경로를 설치하지 않는 대상(`--claude` 등 단독)에는 붙이지 않습니다 — 붙이면 무관한 구 경로 상태로 거짓 FAIL이 날 수 있습니다.
+   ```bash
+   # Antigravity 대상 경로(예: $HOME/.gemini/config/skills)에 대해서만 추가 실행.
+   install-skills/scripts/verify-install.sh --target "$antigravity_target" --antigravity-legacy "${skills[@]}"
+   ```
+   `--antigravity-legacy`가 점검하는 구 Antigravity skills 경로의 리터럴은 SKILL.md가 아니라 스크립트가 보유합니다.
+7. **레거시 경로 마이그레이션 (Antigravity 경로 한정 — `--antigravity` 또는 `--all`)**: 6단계의 Antigravity 검증이 구 경로를 다음과 같이 판정하면 그에 맞춰 처리합니다.
+   - **심링크이거나, 없거나, 빈 실제 디렉토리면 보존**합니다(PASS). 심링크는 신(공식) 경로와 동일 위치를 가리키고(이 환경의 inode 동일 사례), 빈 디렉토리는 중복 인식 위험이 없으므로 건드리지 않고 정보만 출력합니다.
+   - **비어있지 않은 실제 디렉토리로 잔존하면**(FAIL) 사용자에게 경고하고 정리(제거)를 제안합니다. 승인 시에만 제거합니다.
+   - 배경: `--clear`는 신(대상) 경로만 비우므로, 구 경로가 비어있지 않은 실제 디렉토리로 남으면 동일 skill이 중복 인식될 수 있어 install-skills가 이 레거시 잔존을 명시적으로 처리합니다.
+8. 복사 완료 후 설치된 skill 목록을 대상 경로별로 출력합니다.
 
 ## 참고
 
