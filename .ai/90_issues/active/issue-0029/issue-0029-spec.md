@@ -13,6 +13,7 @@
 - `issue-work/templates/issue-plan-template.md` — Task N 고정 블록 개정 (실행 주체=사용자, 타벤더 모델(Non-Anthropic 포함), AI 자동 종료 금지, audit 결과를 summary에 기록)
 - `issue-work/templates/issue-summary-template.md` — "모델 기록" 표를 "벤더, 모델명" 형식으로 통일 (계획·구현 칸·audit 칸 모두). **계획·구현 칸도 특정 벤더 고정이 아니라 복수 벤더 예시**로 일반화 (개발도 어느 벤더·모델이든 가능)
 - `issue-work/SKILL.md` — "작업 진행 중"/"이슈 완료 시"의 Task N 관련 서술 갱신 + `issue-audit` 상호 참조
+- `issue-work/templates/issue-workflow-template.md` (및 사본 `active/issue-workflow.md`) — "이슈 완료 시" 절차에 Task N 사용자 audit 완료 조건 반영 (F-1 보정 — 컨텍스트 초기화 후 workflow.md만 읽어도 제약이 유지되도록)
 - `issue-audit/SKILL.md` — `issue-work` Task N과의 상호 참조(호출 맥락·결과 기록 위치) + 감사 모델 표기 **"벤더, 모델명" 형식 안내**(summary와 동일 형식)
 
 **비포함 (Out)**
@@ -39,6 +40,8 @@
 - [ ] [D]  `issue-work/SKILL.md`에 `issue-audit` 상호 참조가 있다  (검증: `grep -c 'issue-audit' issue-work/SKILL.md` ≥ 1)
 - [ ] [D]  `issue-audit/SKILL.md`에 `issue-work` Task N 상호 참조가 있다  (검증: `grep -E 'Task N|교차모델|구현 모델과 다른' issue-audit/SKILL.md`)
 - [ ] [D]  `issue-audit/SKILL.md`에 "벤더, 모델명" 형식 안내가 있다  (검증: `grep -E '벤더, 모델명|벤더.*모델명' issue-audit/SKILL.md`)
+- [ ] [D]  `issue-work/SKILL.md` "이슈 완료 시"에 Task N 사용자 audit 완료 조건이 있다 (F-1)  (검증: `grep '대신 완료 처리하지' issue-work/SKILL.md`)
+- [ ] [D]  워크플로우 템플릿·사본에도 동일 조건이 있다 (F-1)  (검증: `grep -l '대신 완료 처리하지' issue-work/templates/issue-workflow-template.md .ai/90_issues/active/issue-workflow.md` 두 파일 모두 매칭)
 - [ ] [ND] 추가/변경 문구가 #26의 표기 형식("벤더, 모델명")과 어긋나지 않고 기존 톤과 일관됨  (검증: 사람 리뷰)  ← 강등 사유: 톤·형식 정합은 주관 영역
 - [ ] [QD] Task N (고정) 교차모델 issue-audit — 스펙 위반·누락·소스코드와의 모순 탐색  (검증: 다른 벤더 모델이 채점, 별도 세션)  ← 강등 사유: 의미 충족 여부는 결정적으로 못 거름
 

@@ -4,9 +4,9 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit (사용자가 직접, 다른 벤더 모델로 수동 수행). 구현 AI는 자동 실행·종료하지 않음.
+> ✅ 모든 작업이 완료되었습니다.
 
-<!-- Task 1~4 구현 완료, [D] 검증 8종 전부 통과. Task N(교차모델 audit)은 사용자 수동 수행 대기. -->
+<!-- Task 1~5 + Task N 완료. [D] 검증 10종 전부 통과. 교차모델 audit은 사용자가 OpenAI, GPT-5(Codex)로 수행, 지적사항 F-1·F-2 보정·F-3 #26 이관 완료. 사용자 승인으로 Task N 마감. -->
 
 ## 모델 기록
 
@@ -15,7 +15,7 @@
 | 구분 | 모델 |
 |------|------|
 | 계획·구현 모델 | Anthropic, Claude Opus 4.8 (claude-opus-4-8) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 사용자가 직접 수동 수행 후 기록 --> |
+| audit 모델 | OpenAI, GPT-5 (Codex) |
 
 ---
 
@@ -53,8 +53,16 @@
 
 ---
 
+### Task 5: 교차모델 audit 지적사항 보정 (F-1, F-2)
+
+- **결과**: 완료
+- **수행 내용 요약**: GPT-5(Codex) audit의 **F-1**(완료 절차에 Task N 사용자 audit 조건 누락)을 `issue-work/SKILL.md` "이슈 완료 시" 1단계 + `issue-work/templates/issue-workflow-template.md` + 사본 `active/issue-workflow.md` 세 곳에 동일 반영. **F-2**(plan의 "grep 6종"이 실제 [D] 8개와 불일치)를 Task N 작업 내용에서 숫자 고정 없이 "전부 재실행"으로 수정. spec 범위(In)에 워크플로우 템플릿 추가, DoD에 F-1 [D] 항목 2개 추가.
+- **특이 사항**: F-3(LOW, 리포트 템플릿 '감사 모델' 줄 정합)은 #26으로 이관(코멘트 기록). 보정 후 `[D]` 검증 10종 전부 통과.
+
+---
+
 ### Task N (고정): 교차모델 issue-audit 검증
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료 (사용자 승인으로 마감)
+- **수행 내용 요약**: 사용자가 **OpenAI, GPT-5 (Codex)**로 `issue-audit`(#29)를 수동 수행. Phase 1 적합성 다수 PASS·PARTIAL 3건, Phase 2에서 F-1(MEDIUM)·F-2(MEDIUM)·F-3(LOW) 도출, 권장 판정 PARTIAL. 지적사항을 Task 5에서 보정하고 `[D]` 검증을 전부 재실행해 통과 확인.
+- **특이 사항**: audit 모델(OpenAI, GPT-5) ≠ 구현 모델(Anthropic, Claude Opus 4.8)로 교차모델 조건 충족. 리포트: `.ai/99_workspace/issue-0029-audit-report.md`. **"이슈 완료 시" 규칙상 구현 AI가 대신 마감하지 않으므로 Task N 체크는 사용자 확인 후.**

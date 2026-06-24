@@ -63,6 +63,20 @@
 
 ---
 
+### Task 5: 교차모델 audit 지적사항 보정 (F-1, F-2)
+
+- [x] 완료
+- **목표**: GPT-5(Codex) 교차모델 audit의 발견 사항 중 F-1·F-2를 보정한다. (audit 리포트: `.ai/99_workspace/issue-0029-audit-report.md`)
+- **작업 내용**:
+  1. **F-1**: `issue-work/SKILL.md`의 "이슈 완료 시" 1단계에 Task N 사용자 audit 완료 조건(audit 결과·audit 모델이 summary에 기록된 경우에만 완료, 구현 AI가 대신 마감 금지)을 추가한다. 동일 절차를 갖는 `issue-work/templates/issue-workflow-template.md`와 그 사본 `active/issue-workflow.md`에도 반영한다.
+  2. **F-2**: plan Task N의 검증 개수 표현을 숫자 고정 없이 "전부 재실행"으로 바꾼다.
+  3. **F-3**: 리포트 템플릿 '감사 모델' 줄 정합 점검은 #26으로 이관(코멘트 기록).
+- **완료 기준**: 아래 grep 모두 매칭
+  - `grep -l '대신 완료 처리하지' issue-work/SKILL.md issue-work/templates/issue-workflow-template.md` (두 파일 모두 매칭)
+  - `grep -c '전부.*재실행' .ai/90_issues/active/issue-0029/issue-0029-plan.md` ≥ 1 (Task N이 숫자 고정 없이 "전부 재실행"으로 서술)
+
+---
+
 ### Task N (고정): 교차모델 issue-audit 검증
 
 <!--
@@ -70,10 +84,10 @@
 audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아니라 보완이다.
 -->
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 스펙 위반·누락·소스코드와의 모순을 구현 모델과 다른 시각으로 잡는다.
 - **작업 내용**:
-  1. spec `완료의 정의`의 `[D]` 항목 검증 명령(grep 6종)을 전부 재실행해 통과를 확인한다.
+  1. spec `완료의 정의`의 `[D]` 항목 검증 명령을 **전부** 재실행해 통과를 확인한다(개수는 DoD 변경에 따라 달라지므로 숫자에 묶지 않는다).
   2. 계획·구현을 수행한 모델과 **다른 모델**(최소 동급 이상 역량)로 `issue-audit`를 실행한다. 방향은 칭찬이 아니라 허점 탐색("스펙 위반·누락·소스코드와의 모순을 찾아라").
   3. 지적 사항을 summary에 반영하고 필요 시 앞 Task를 보정한다.
 - **완료 기준**: `[D]` 검증 명령 전부 통과 + 구현 모델 ≠ audit 모델 기록이 summary 모델 칸에 남는다.
