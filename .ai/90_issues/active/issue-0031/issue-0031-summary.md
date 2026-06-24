@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit (사용자가 직접 타벤더 모델로 수동 수행). 구현 AI는 자동 실행·종료하지 않음.
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -17,7 +17,7 @@
 | 구분 | 모델 |
 |------|------|
 | 계획·구현 모델 | Anthropic, Claude Opus 4.8 (claude-opus-4-8) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, Codex (GPT-5) |
 
 ---
 
@@ -57,6 +57,10 @@
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
+- **결과**: 완료 (사용자가 audit 결과 확인 후 Task N 마감)
 - **수행 내용 요약**:
-- **특이 사항**:
+  1. 사용자가 **OpenAI, Codex (GPT-5)**로 교차모델 `issue-audit` 수행 (구현 모델 Anthropic Opus 4.8과 다른 벤더 — 교차 조건 충족). 리포트: `.ai/99_workspace/issue-0031-audit-report.md`.
+  2. 결과: 요구사항 8개 중 6 PASS·2 PARTIAL, DoD 4개 중 3 PASS·1 PARTIAL. 발견사항 F-1(MEDIUM)·F-2(INFO).
+  3. **`--response`로 검토**(이 옵션의 첫 실사용): F-1 동의→**반영**(`SKILL.md:3` description에 `audit 리포트 검토·피드백 후 승인 보정(--response)` 트리거어 추가), F-2 동의→**보류**(조치 불필요, summary 범위 추가 사유로 추적).
+  4. 보정 후 `[D]` 재검증: 옵션 heading 4개, 템플릿/active diff 0 (회귀 없음).
+- **특이 사항**: F-1은 description 발견성 결함으로 "신규 세션·다른 모델 재현"이라는 이슈 목표에 직결되어 즉시 반영. PARTIAL 2건의 원인(description 누락)이 해소됨.

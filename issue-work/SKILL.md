@@ -1,6 +1,6 @@
 ---
 name: issue-work
-description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하는 워크플로우입니다. 이슈 작업, issue, 이슈 시작, 이슈 완료, 워크플로우 복구(--workflow-only), 이어하기, resume, 작업 재개(--resume), 이슈 정리, 작업공간 정리, 정리(--clear) 시 사용합니다.
+description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하는 워크플로우입니다. 이슈 작업, issue, 이슈 시작, 이슈 완료, 워크플로우 복구(--workflow-only), 이어하기, resume, 작업 재개(--resume), 이슈 정리, 작업공간 정리, 정리(--clear), audit 리포트 검토·피드백 후 승인 보정(--response) 시 사용합니다.
 ---
 
 ## 개요
