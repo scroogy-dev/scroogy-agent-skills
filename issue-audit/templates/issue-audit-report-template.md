@@ -1,8 +1,8 @@
 # Issue #<번호> 감사 리포트 <제목>
 
-> 감사 일시: YYYY-MM-DD
-> 감사 모델: <벤더, 모델명 — 예: OpenAI, GPT-5>
-> 감사 대상 브랜치: <브랜치명>
+> 감사 일시: YYYY-MM-DD  
+> 감사 모델: <벤더, 모델명 — 예: OpenAI, GPT-5.5>  
+> 감사 대상 브랜치: <브랜치명>  
 > 스펙 출처: <issue-spec.md 경로 또는 GitHub Issue URL>
 
 ---
