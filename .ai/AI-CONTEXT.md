@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-06-12
+> last updated: 2026-07-02
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -65,7 +65,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 ├── git-review/                 # 리뷰 수행 스킬
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
-├── install-skills/             # skill 선택 설치 스킬
+├── install-skills/             # skill 선택 설치 스킬 (self-install형)
+│   ├── references/             # Antigravity 레거시 판정 상세
 │   ├── scripts/                # 결정적 설치 검증 헬퍼 (verify-install.sh)
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
@@ -94,6 +95,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
+| `install-skills` | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
 | `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | `readme-sync` | 프로젝트를 분석하여 README.md 생성 또는 최신화 (init/update 모드, individual/business 프로파일) |

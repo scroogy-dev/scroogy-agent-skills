@@ -20,6 +20,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [git-qa](./git-qa/) | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | [git-review](./git-review/) | 비즈니스/테크 리뷰 수행 |
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
+| [install-skills](./install-skills/) | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
 | [issue-audit](./issue-audit/) | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
 | [issue-work](./issue-work/) | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | [readme-sync](./readme-sync/) | 프로젝트 분석 후 README.md 생성/재작성 |
@@ -47,7 +48,15 @@ ai-workspace (디렉토리 스캐폴딩)
 
 ## 설치 방법
 
-[install-skills](./install-skills/) skill을 사용하여 원하는 skill을 `~/.claude/skills/`에 선택 설치할 수 있습니다.
+[install-skills](./install-skills/) skill을 사용하여 원하는 skill을 Claude Code·Agents·Antigravity·Codex·Junie 경로(`~/.claude/skills/` 등 5개)에 선택 설치할 수 있습니다.
+
+최초 1회, 이 저장소 루트에서 install-skills 자신을 홈에 설치합니다 (self-install 부트스트랩):
+
+```
+/install-skills --self
+```
+
+이후에는 어느 스킬 repo 루트에서든 복제본 없이 실행할 수 있습니다:
 
 ```
 /install-skills
