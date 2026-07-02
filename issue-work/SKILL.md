@@ -148,7 +148,7 @@ description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하�
      갱신 누락(진탐)은 위 규칙으로 보정하고, 옵션 동작을 설명하는 일반 서술 등 정당한 표기(오탐)는 유지한다.
 
      ```bash
-     grep -rnE '90_issues/active/|99_workspace/[A-Za-z0-9_.-]' .ai/90_issues/archive/issue-<번호>/ \
+     grep -rnE '90_issues/active/|active/issue-[0-9]+|99_workspace/[A-Za-z0-9_.-]' .ai/90_issues/archive/issue-<번호>/ \
        | grep -v 'active/issue-workflow\.md' \
        | grep -v '작성 시점 경로는'
      ```
