@@ -48,8 +48,10 @@ self-install에도 일반 설치와 동일한 절차(클린 설치, 배포 제�
 **스킬 repo 판별 가드** — 스캔 전에 cwd가 스킬 repo인지 먼저 확인합니다. `*/SKILL.md`가 1건 이상 매칭되면 통과, 하나도 매칭되지 않으면 스킬 repo가 아닌 것으로 판정하고 경고 후 안전하게 중단합니다. 단일 스킬 repo도 지원 대상이므로 1건 통과는 설계 의도이며, 다만 **1건만 매칭되면** 해당 디렉토리가 스킬 repo가 맞는지 사용자에게 확인한 뒤 진행합니다. 임의의 cwd에서 실수로 실행해 엉뚱한 디렉토리를 소스로 삼는 오설치를 막기 위한 가드입니다.
 
 ```bash
-# 스킬 repo 판별 가드 — */SKILL.md 가 0개면 중단
-if ! ls */SKILL.md >/dev/null 2>&1; then
+# 스킬 repo 판별 가드 — */SKILL.md 가 0개면 중단 (셸 내장만 사용 — bash nullglob·zsh 모두 안전)
+found=false
+for f in */SKILL.md; do [ -e "$f" ] && { found=true; break; }; done
+if [ "$found" != "true" ]; then
   echo "스킬 repo가 아닙니다 (*/SKILL.md 없음) — 설치를 중단합니다." >&2
   exit 1
 fi
