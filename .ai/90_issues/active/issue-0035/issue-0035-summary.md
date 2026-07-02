@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 잔여 — 홈 self-install 후 다른 스킬 repo에서 엔드투엔드 확인 (별도 세션·사람, L2) → 이후 Task N 교차모델 audit (사용자 직접 수행)
+> ▶️ 다음 작업: issue-work `--clear`로 이슈 마무리 — archive 이관·이슈 댓글·99_workspace 정리 후 PR
 
 ## 모델 기록
 
@@ -17,7 +17,7 @@
 | 구분 | 모델 |
 |------|------|
 | 계획·구현 모델 | 계획: Anthropic, Claude Opus 4.8 (claude-opus-4-8) / 구현: Anthropic, Claude Fable 5 (claude-fable-5) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, GPT-5 |
 
 ---
 
@@ -52,9 +52,11 @@
 
 ### Task 4: 회귀·엔드투엔드 검증
 
-- **결과**: 부분 완료 (L1 통과, L2 대기)
-- **수행 내용 요약**: `bash install-skills/tests/run-tests.sh` 실행 — 9개 테스트 전부 통과, 0 실패 (회귀 없음). spec DoD의 [D] 검증 명령 4건(--self·홈 경로·폴백 문구·가드 로직 grep)도 전부 통과.
-- **특이 사항**: 홈 self-install 후 다른 스킬 repo에서 복제본 없이 실행되는지의 엔드투엔드 확인(L2)은 별도 세션·사람 판정 항목으로 미수행 — 이 항목 확인 전까지 체크박스는 미체크 유지.
+- **결과**: 완료 (L1 + L2)
+- **수행 내용 요약**:
+  - L1: `bash install-skills/tests/run-tests.sh` 9개 전부 통과·0 실패 (audit 반영 후 재실행 포함). spec DoD [D] 검증 명령 전부 통과.
+  - L2 (엔드투엔드, 2026-07-02 사용자 지시로 이 세션에서 실행형 확인): ① 이 repo에서 `--self` 절차로 홈(`~/.claude/skills/install-skills/`) self-install — `tests/` 제외·`scripts/`·`references/` 포함 확인, 홈 우선 탐색으로 헬퍼 선택 후 verify PASS, Claude Code가 새 설치본 description을 즉시 인식. ② 다른 스킬 repo(`scroogy-content-skills`) cwd에서 복제본 미사용으로 가드 통과 → 스캔(자기제외 정상) → `blog-photo-draft` 설치(임시 대상 디렉토리) → 홈 설치본 헬퍼로 verify PASS. ③ 비-스킬 디렉토리에서 가드가 경고 후 중단함을 확인 (zsh·bash 모두 중단 분기로 수렴).
+- **특이 사항**: 원계획은 "별도 세션·사람 판정"이었으나 사용자 지시로 이 세션에서 실제 실행으로 수행. ②의 설치 대상은 사용자 홈 오염을 피해 임시 디렉토리 사용. 확인 과정에서 검증 명령의 `&&`/`||` 조립 실수로 1회 재실행 발생(읽기 전용 스캔 타임아웃, 시스템 변경 없음).
 
 ---
 
@@ -85,8 +87,19 @@
 
 ---
 
+### Task 8: 교차모델 audit 발견사항 보정 (F-1·F-2·F-3)
+
+- **결과**: 완료
+- **수행 내용 요약**: 교차모델 audit 리포트(`.ai/99_workspace/issue-0035-audit-report.md`, OpenAI GPT-5)를 `--response` 게이트로 검토 — 피드백 제시 후 사용자가 F-1(수정안 A)·F-2(이번 이슈 반영)·F-3(spec 명시)을 항목별 승인.
+  - F-1·F-3: 가드의 "0건 차단(1건 이상 통과)"을 설계 의도로 확정. spec 범위·DoD와 plan Task 3의 "복수 존재 확인" 문구를 "1건 이상 존재 확인"으로 정합화하고, spec에 단일 스킬 repo 지원 의도를 명시. SKILL.md 가드에 "1건만 매칭되면 사용자 확인 후 진행" 문구 보강. 감사 권고(≥2 강화)는 반려 — 후속 이슈로 복제본이 제거되면 `scroogy-content-skills`가 단일 스킬 repo가 되어 차단되는 부작용 근거.
+  - F-2: SKILL.md 본문에서 가드·자기제외 스캔·헬퍼 탐색 bash 블록을 추출해 픽스처에서 실행하는 스모크 테스트 9건을 `tests/run-tests.sh`에 추가 (문서-구현 드리프트 감지).
+- **특이 사항**: Task N의 audit 모델·결과 기록은 사용자 지시로 보류 — 모델 칸·체크박스 미변경. 테스트 작성 중 추출 marker가 산문과 겹쳐 1회 수정(블록 내 주석 고유 문자열로 좁힘).
+- **검증**: `bash install-skills/tests/run-tests.sh` 18개 전부 통과·0 실패 (기존 9 + 스니펫 9). Task 8 완료 기준 grep 2건·기존 DoD grep 전부 통과 (L1).
+
+---
+
 ### Task N: 교차모델 issue-audit 검증
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료 — 재감사 전부 PASS
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 `issue-audit`를 직접 수행 (2026-07-02, 2회). 1차 감사에서 F-1(MEDIUM, 가드 설계 모호)·F-2(LOW, 스니펫 테스트 부재)·F-3(INFO, 단일 스킬 repo 지원 모호) 발견 → issue-work `--response` 게이트로 항목별 승인 후 Task 8에서 보정. 재감사(`.ai/99_workspace/issue-0035-audit-report.md`)에서 요구사항 6건·DoD 10건 전부 PASS, F-1~F-3 모두 해소 판정, 추가 보정 필요 없음으로 종결. 마감 전 spec DoD `[D]` 검증 명령 전부 재실행 통과 (grep 6건 + `run-tests.sh` 18개·0 실패).
+- **특이 사항**: 구현 모델(Anthropic, Claude Fable 5) ≠ audit 모델(OpenAI, GPT-5) — 교차모델 조건 충족, 모델 기록 칸 반영. audit 리포트는 `99_workspace` 관례에 따라 커밋하지 않고 `--clear` 시 정리한다.
