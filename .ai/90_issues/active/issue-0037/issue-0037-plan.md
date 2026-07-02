@@ -38,7 +38,7 @@
 
 ### Task 3: 템플릿(SSoT)·active 사본·설치본 동기화
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 워크플로우 템플릿과 그 사본, 설치본에 동일 규칙이 유지되게 한다.
 - **작업 내용**:
   1. `issue-work/templates/issue-workflow-template.md`의 `## 이슈 완료 시`에 경로 참조 갱신 규칙을 반영한다.

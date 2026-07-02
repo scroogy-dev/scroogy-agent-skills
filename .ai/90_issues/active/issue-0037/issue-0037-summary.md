@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 3 — 템플릿(SSoT)·active 사본·설치본 동기화
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 ## 모델 기록
 
@@ -38,9 +38,9 @@
 
 ### Task 3: 템플릿(SSoT)·active 사본·설치본 동기화
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: `issue-work/templates/issue-workflow-template.md`(SSoT)의 `## 이슈 완료 시`에 4단계(경로 참조 갱신·잔존 참조 0건 확인, 규칙은 issue-work `--clear` 6단계 참조)를 추가 — 기존 관례(issue-0031)에 따라 템플릿은 핵심 절차만 1줄로 기재. active 사본 `.ai/90_issues/active/issue-workflow.md`를 `cp`로 동기화하고, 설치본 `~/.claude/skills/issue-work/`에 SKILL.md(Task 2 변경분)와 템플릿을 복사해 동기화.
+- **특이 사항**: 동기화 중 cp 인자 실수로 설치본 루트에 템플릿이 잘못 복사됐으나 즉시 제거 후 재검증. [D] 검증 통과: ① `grep -l '경로 참조 갱신'` 템플릿·사본 두 파일 모두 매칭, ② 템플릿-사본 `diff` 차이 없음, ③ `diff -rq issue-work ~/.claude/skills/issue-work` 차이 없음.
 
 ---
 
