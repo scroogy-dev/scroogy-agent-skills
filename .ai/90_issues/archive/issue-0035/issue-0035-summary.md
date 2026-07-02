@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: issue-work `--clear`로 이슈 마무리 — archive 이관·이슈 댓글·99_workspace 정리 후 PR
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -101,5 +101,5 @@
 ### Task N: 교차모델 issue-audit 검증
 
 - **결과**: 완료 — 재감사 전부 PASS
-- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 `issue-audit`를 직접 수행 (2026-07-02, 2회). 1차 감사에서 F-1(MEDIUM, 가드 설계 모호)·F-2(LOW, 스니펫 테스트 부재)·F-3(INFO, 단일 스킬 repo 지원 모호) 발견 → issue-work `--response` 게이트로 항목별 승인 후 Task 8에서 보정. 재감사(`.ai/99_workspace/issue-0035-audit-report.md`)에서 요구사항 6건·DoD 10건 전부 PASS, F-1~F-3 모두 해소 판정, 추가 보정 필요 없음으로 종결. 마감 전 spec DoD `[D]` 검증 명령 전부 재실행 통과 (grep 6건 + `run-tests.sh` 18개·0 실패).
-- **특이 사항**: 구현 모델(Anthropic, Claude Fable 5) ≠ audit 모델(OpenAI, GPT-5) — 교차모델 조건 충족, 모델 기록 칸 반영. audit 리포트는 `99_workspace` 관례에 따라 커밋하지 않고 `--clear` 시 정리한다.
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 `issue-audit`를 직접 수행 (2026-07-02, 2회). 1차 감사에서 F-1(MEDIUM, 가드 설계 모호)·F-2(LOW, 스니펫 테스트 부재)·F-3(INFO, 단일 스킬 repo 지원 모호) 발견 → issue-work `--response` 게이트로 항목별 승인 후 Task 8에서 보정. 재감사(`issue-0035-audit-report.md`, 이 디렉토리에 보존)에서 요구사항 6건·DoD 10건 전부 PASS, F-1~F-3 모두 해소 판정, 추가 보정 필요 없음으로 종결. 마감 전 spec DoD `[D]` 검증 명령 전부 재실행 통과 (grep 6건 + `run-tests.sh` 18개·0 실패).
+- **특이 사항**: 구현 모델(Anthropic, Claude Fable 5) ≠ audit 모델(OpenAI, GPT-5) — 교차모델 조건 충족, 모델 기록 칸 반영. audit 리포트는 `--clear` 시 `archive/issue-0035/`로 이동해 보존했다.
