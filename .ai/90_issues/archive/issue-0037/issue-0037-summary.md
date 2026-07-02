@@ -4,14 +4,14 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
 | 구분 | 모델 |
 |------|------|
 | 계획·구현 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, GPT-5.5 |
 
 ---
 
@@ -46,6 +46,13 @@
 
 ### Task N: 교차모델 issue-audit 검증 — 사용자 수동 수행
 
-- **결과**:
+- **결과**: 완료 — 교차모델 audit 수행(사용자) 후 발견 2건 처리 방침 확정 (F-1 반영, F-2 보류).
 - **수행 내용 요약**:
-- **특이 사항**:
+  - 리포트: [`./issue-0037-audit-report.md`](./issue-0037-audit-report.md) (작성 시점 경로는 `.ai/99_workspace/issue-0037-audit-report.md`, --clear로 이관)
+  - [D] 검증 재실행 결과: `grep -c '경로 참조 갱신' issue-work/SKILL.md` = 2, `grep -c 'grep -' issue-work/SKILL.md` = 3, workflow 템플릿·active 사본 동일, 설치본 동기화 확인.
+  - 주요 지적: `issue-work/SKILL.md`의 stale 참조 검증 스니펫이 spec에 명시된 `active/issue-<번호>` 상대 경로를 놓칠 수 있어 QD DoD는 PARTIAL 판정. bare `.ai/99_workspace/` 디렉토리 참조 탐지 사각도 LOW로 기록.
+  - `--response` 처리 결과 (항목별 사용자 승인):
+    - **F-1 (MEDIUM) 반영**: 스니펫 1차 패턴에 `active/issue-[0-9]+` 대안 추가 — 감사 제안(`active/issue-[0-9]+/`, 후행 슬래시 필수)보다 넓게 잡도록 슬래시 제외. 보정 후 기존 패턴으로 0건이던 실사례(`archive/issue-0009/issue-0009-summary.md:108`의 `active/issue-0009/` 표기)가 검출됨을 확인. 설치본 재동기화·[D] 3건 재검증 통과.
+    - **F-2 (LOW) 보류**: 현행 유지 — bare 디렉토리 참조는 `99_workspace/`가 `.gitkeep`으로 상주해 링크로는 dead가 아니고, "`.ai/99_workspace/` 정리" 류 절차 서술이 archive에 다수라 패턴 확대 시 매 --clear 상시 오탐 발생. 갱신 규칙 5(archive 본문에 99_workspace 참조 금지)와 AI 건별 판정이 이 영역을 담당하는 의도된 설계 경계로 기록.
+  - 2차 재감사 결과 (동일 모델, F-1 보정 후): 요구사항 7/7·DoD 6/6 전건 PASS — 1차 PARTIAL이던 요구사항 2·5번과 QD DoD가 PASS로 확정. F-1은 INFO로 해소 확인(감사인이 실사례 검출을 독립 재현), F-2는 보류 유지 인정("이슈 완료를 막는 결함 아님") + 향후 실제 dead link 사례 발생 시 별도 이슈로 bare `99_workspace/` 참조 보조 스니펫을 검토하라는 조건부 단서 기록. 보정 요구 발견 0건으로 --response 종결.
+- **특이 사항**: 구현 방향과 문서 동기화는 대체로 PASS. 감사가 PARTIAL로 본 QD 항목은 F-1 보정으로 해소되어 2차 재감사에서 PASS 확정. audit 모델(OpenAI, GPT-5.5) ≠ 구현 모델(Anthropic, Claude Fable 5) 교차 조건 충족.
