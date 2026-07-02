@@ -144,6 +144,12 @@ mk_skill "$single_skill" "solo"
 assert_exit 0 "가드: 단일 스킬 repo(1건) → 통과" \
   bash -c 'cd "$1" && bash "$2"' _ "$single_skill" "$snip_dir/guard.sh"
 
+# --- 가드: nullglob 켠 셸에서도 오작동 없이 판정 (source 로 셸 옵션을 유지한 채 실행) ---
+assert_exit 1 "가드: nullglob 셸(0건) → 중단" \
+  bash -c 'shopt -s nullglob; cd "$1" && . "$2"' _ "$non_skill" "$snip_dir/guard.sh"
+assert_exit 0 "가드: nullglob 셸(1건) → 통과" \
+  bash -c 'shopt -s nullglob; cd "$1" && . "$2"' _ "$single_skill" "$snip_dir/guard.sh"
+
 # --- 스캔: 기본은 install-skills 자신 제외, self_install=true 면 포함 ---
 scan_repo="$sandbox/scan-repo"
 mk_skill "$scan_repo" "alpha"
