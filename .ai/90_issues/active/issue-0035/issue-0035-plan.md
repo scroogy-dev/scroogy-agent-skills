@@ -55,6 +55,40 @@
 
 ---
 
+### Task 5: [audit P1] description 트리거 커버리지 확장
+
+- [x] 완료
+- **목표**: description이 실제 기능 범위(5개 설치 경로·주요 옵션)를 드러내 언더트리거를 없앤다.
+- **작업 내용**:
+  1. frontmatter description에 5개 설치 경로(Claude Code/Agents/Antigravity/Codex/Junie), 주요 옵션(`--all`/`--clear`/`--self`), "스킬 배포·재설치·self-install" 키워드를 3인칭 문장으로 반영한다.
+- **완료 기준**: `head -4 install-skills/SKILL.md`에서 `Codex`·`Junie`·`self-install` grep 통과.
+- **근거**: `.ai/99_workspace/skill-audit-report.md` install-skills P1 (언더트리거).
+
+---
+
+### Task 6: [audit P1] 설치본에서 깨지는 ADR 상대 링크 정리
+
+- [x] 완료
+- **목표**: `~/.claude/skills/`로 설치된 사본에서 dead link가 되는 `../.ai/...` 상대 링크를 없앤다.
+- **작업 내용**:
+  1. 개요의 ADR 마크다운 링크를 제거하고, 규칙 요지 1줄 + "repo 전용 문서" 명시로 대체한다.
+- **완료 기준**: `! grep -F '](../' install-skills/SKILL.md` 통과 (skill 디렉토리 밖으로 나가는 링크 0건).
+- **근거**: audit P1 (설치본 무결성).
+
+---
+
+### Task 7: [audit P2·P3] 6·7단계 상세 references/ 분리·중복 서술 통합
+
+- [x] 완료
+- **목표**: 본문 6·7단계는 "스크립트 실행 → PASS/FAIL 해석" 요약만 남기고 상세를 위임하며, 환경 과적합 서사·중복 서술을 정리한다.
+- **작업 내용**:
+  1. Antigravity 레거시 판정 분기·배경을 `install-skills/references/antigravity-legacy.md`로 분리하고 본문 6·7단계는 요약+포인터로 축약한다. "이 환경의 inode 동일 사례" 등 환경 과적합 서술은 일반화한다.
+  2. 클린 설치·`--clear`·self-install 중복 서술을 각 1곳(단일 출처)으로 통합하고 나머지 위치는 참조로 바꾼다.
+- **완료 기준**: `test -f install-skills/references/antigravity-legacy.md` + SKILL.md의 해당 파일 참조 grep + `! grep -qi 'inode' install-skills/SKILL.md` + `bash install-skills/tests/run-tests.sh` 0 실패.
+- **근거**: audit P2 (토큰 절감)·P3 (중복 서술).
+
+---
+
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
 <!--

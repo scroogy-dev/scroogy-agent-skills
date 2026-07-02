@@ -58,6 +58,33 @@
 
 ---
 
+### Task 5: [audit P1] description 트리거 커버리지 확장
+
+- **결과**: 완료
+- **수행 내용 요약**: frontmatter description을 재작성 — 5개 설치 경로(Claude Code·Agents·Antigravity·Codex·Junie), 주요 옵션(`--all`/`--clear`/`--self`), "스킬 배포·재설치·self-install" 트리거 키워드를 3인칭 문장으로 반영.
+- **특이 사항**: 감사 리포트(`.ai/99_workspace/skill-audit-report.md`) install-skills P1 항목 반영. 사용자 지시로 audit 피드백 중 install-skills 항목만 이 이슈에서 처리 (issue-work 등 다른 스킬은 범위 외).
+- **검증**: `head -4`에서 `Codex`·`Junie`·`self-install` grep 통과 (L1).
+
+---
+
+### Task 6: [audit P1] 설치본에서 깨지는 ADR 상대 링크 정리
+
+- **결과**: 완료
+- **수행 내용 요약**: 개요의 `../.ai/50_adr/...` 마크다운 링크를 제거하고, 규칙 요지(결정적 헬퍼의 테스트는 스킬과 함께 두되 배포에서 제외) 1줄과 "repo 전용 문서라 설치본에서 열람 불가" 명시로 대체. 클린 설치 중복 서술도 이 문장으로 통합 (단일 출처: 설치 절차 5단계).
+- **특이 사항**: ADR 0001 → SKILL.md 방향의 SSoT 참조는 그대로 유효 (역방향 링크만 제거).
+- **검증**: `! grep -F '](../' install-skills/SKILL.md` 통과 — skill 디렉토리 밖 상대 링크 0건 (L1).
+
+---
+
+### Task 7: [audit P2·P3] 6·7단계 상세 references/ 분리·중복 서술 통합
+
+- **결과**: 완료
+- **수행 내용 요약**: Antigravity 레거시 점검의 적용 조건·판정 기준(4분기 표)·배경을 `install-skills/references/antigravity-legacy.md`로 분리하고, 본문 6·7단계는 "FAIL이면 경고·승인 시 제거, INFO는 보존" 요약+포인터로 축약. "이 환경의 inode 동일 사례" 환경 과적합 서술을 일반 서술로 교체. 추가 옵션 표의 `--clear`/`--self` 설명을 각 단일 출처(설치 절차 2단계 / Self-install 부트스트랩 섹션) 참조로 정리.
+- **특이 사항**: `references/`는 배포 제외 패턴(`tests/`, `*.test.*`)에 해당하지 않아 설치본에 포함됨 — 본문에서 상대 링크로 참조해도 설치본에서 깨지지 않음.
+- **검증**: `test -f references/antigravity-legacy.md` + SKILL.md 참조 grep + `! grep -qi inode` 통과, `bash install-skills/tests/run-tests.sh` 9개 전부 통과·0 실패 — Task 1~3 DoD grep도 재확인 통과 (L1).
+
+---
+
 ### Task N: 교차모델 issue-audit 검증
 
 - **결과**:
