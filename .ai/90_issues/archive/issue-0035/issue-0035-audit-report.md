@@ -3,7 +3,7 @@
 > 감사 일시: 2026-07-02  
 > 감사 모델: OpenAI, GPT-5.5  
 > 감사 대상 브랜치: issue-0035  
-> 스펙 출처: `.ai/90_issues/active/issue-0035/issue-0035-spec.md`
+> 스펙 출처: [`./issue-0035-spec.md`](./issue-0035-spec.md) (감사 수행 시점에는 `active/issue-0035/`, 이슈 완료로 리포트와 함께 archive 이관)
 
 ---
 

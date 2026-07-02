@@ -17,7 +17,7 @@
 | 구분 | 모델 |
 |------|------|
 | 계획·구현 모델 | 계획: Anthropic, Claude Opus 4.8 (claude-opus-4-8) / 구현: Anthropic, Claude Fable 5 (claude-fable-5) |
-| audit 모델 | OpenAI, GPT-5 |
+| audit 모델 | OpenAI, GPT-5.5 |
 
 ---
 
@@ -90,7 +90,7 @@
 ### Task 8: 교차모델 audit 발견사항 보정 (F-1·F-2·F-3)
 
 - **결과**: 완료
-- **수행 내용 요약**: 교차모델 audit 리포트(`.ai/99_workspace/issue-0035-audit-report.md`, OpenAI GPT-5)를 `--response` 게이트로 검토 — 피드백 제시 후 사용자가 F-1(수정안 A)·F-2(이번 이슈 반영)·F-3(spec 명시)을 항목별 승인.
+- **수행 내용 요약**: 교차모델 audit 리포트(`.ai/99_workspace/issue-0035-audit-report.md`, OpenAI GPT-5.5)를 `--response` 게이트로 검토 — 피드백 제시 후 사용자가 F-1(수정안 A)·F-2(이번 이슈 반영)·F-3(spec 명시)을 항목별 승인.
   - F-1·F-3: 가드의 "0건 차단(1건 이상 통과)"을 설계 의도로 확정. spec 범위·DoD와 plan Task 3의 "복수 존재 확인" 문구를 "1건 이상 존재 확인"으로 정합화하고, spec에 단일 스킬 repo 지원 의도를 명시. SKILL.md 가드에 "1건만 매칭되면 사용자 확인 후 진행" 문구 보강. 감사 권고(≥2 강화)는 반려 — 후속 이슈로 복제본이 제거되면 `scroogy-content-skills`가 단일 스킬 repo가 되어 차단되는 부작용 근거.
   - F-2: SKILL.md 본문에서 가드·자기제외 스캔·헬퍼 탐색 bash 블록을 추출해 픽스처에서 실행하는 스모크 테스트 9건을 `tests/run-tests.sh`에 추가 (문서-구현 드리프트 감지).
 - **특이 사항**: Task N의 audit 모델·결과 기록은 사용자 지시로 보류 — 모델 칸·체크박스 미변경. 테스트 작성 중 추출 marker가 산문과 겹쳐 1회 수정(블록 내 주석 고유 문자열로 좁힘).
@@ -101,5 +101,5 @@
 ### Task N: 교차모델 issue-audit 검증
 
 - **결과**: 완료 — 재감사 전부 PASS
-- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 `issue-audit`를 직접 수행 (2026-07-02, 2회). 1차 감사에서 F-1(MEDIUM, 가드 설계 모호)·F-2(LOW, 스니펫 테스트 부재)·F-3(INFO, 단일 스킬 repo 지원 모호) 발견 → issue-work `--response` 게이트로 항목별 승인 후 Task 8에서 보정. 재감사(`issue-0035-audit-report.md`, 이 디렉토리에 보존)에서 요구사항 6건·DoD 10건 전부 PASS, F-1~F-3 모두 해소 판정, 추가 보정 필요 없음으로 종결. 마감 전 spec DoD `[D]` 검증 명령 전부 재실행 통과 (grep 6건 + `run-tests.sh` 18개·0 실패).
-- **특이 사항**: 구현 모델(Anthropic, Claude Fable 5) ≠ audit 모델(OpenAI, GPT-5) — 교차모델 조건 충족, 모델 기록 칸 반영. audit 리포트는 `--clear` 시 `archive/issue-0035/`로 이동해 보존했다.
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5.5로 `issue-audit`를 직접 수행 (2026-07-02, 2회). 1차 감사에서 F-1(MEDIUM, 가드 설계 모호)·F-2(LOW, 스니펫 테스트 부재)·F-3(INFO, 단일 스킬 repo 지원 모호) 발견 → issue-work `--response` 게이트로 항목별 승인 후 Task 8에서 보정. 재감사(`issue-0035-audit-report.md`, 이 디렉토리에 보존)에서 요구사항 6건·DoD 10건 전부 PASS, F-1~F-3 모두 해소 판정, 추가 보정 필요 없음으로 종결. 마감 전 spec DoD `[D]` 검증 명령 전부 재실행 통과 (grep 6건 + `run-tests.sh` 18개·0 실패).
+- **특이 사항**: 구현 모델(Anthropic, Claude Fable 5) ≠ audit 모델(OpenAI, GPT-5.5) — 교차모델 조건 충족, 모델 기록 칸 반영 (표기는 PR #36 Copilot 리뷰 지적으로 GPT-5 → GPT-5.5 정정, 리포트 원문 기준). audit 리포트는 `--clear` 시 `archive/issue-0035/`로 이동해 보존했다.
