@@ -1,13 +1,13 @@
 ---
 name: install-skills
-description: 현재 저장소의 skill을 선택하여 ~/.claude/skills/에 설치합니다. skill 설치, install skills 시 사용합니다.
+description: 현재 스킬 repo의 skill을 선택하여 Claude Code·Agents·Antigravity·Codex·Junie 경로(~/.claude/skills/ 등 5개)에 설치합니다. --all(전체 경로)·--clear(클린 재설치)·--self(self-install 부트스트랩) 옵션을 지원합니다. skill 설치, install skills, 스킬 배포, 스킬 재설치, self-install 시 사용합니다.
 ---
 
 ## 개요
 
 이 저장소의 skill을 선택하여 설치합니다.
-이미 설치된 skill은 삭제 후 클린 설치합니다.
-설치 시 `tests/` 같은 개발 전용 경로는 배포 결과물에서 제외합니다 — 제외 패턴의 단일 출처는 [설치 절차](#설치-절차) 5단계이며, 규칙 배경은 [ADR](../.ai/50_adr/active/0001-skill-deterministic-helper-test-convention.md)를 참조하세요.
+클린 설치(기존 설치본 삭제 후 복사)와 개발 전용 경로(`tests/` 등) 배포 제외의 단일 출처는 [설치 절차](#설치-절차) 5단계입니다.
+규칙 배경(결정적 헬퍼의 테스트는 스킬 디렉토리에 함께 두되 배포에서 제외)은 이 repo의 ADR 0001에 있습니다 — repo 전용 문서라 설치본에서는 열람할 수 없어 링크하지 않습니다.
 
 ### 설치 경로 옵션
 
@@ -25,8 +25,8 @@ description: 현재 저장소의 skill을 선택하여 ~/.claude/skills/에 설�
 
 | 옵션       | 설명                                                                 |
 | ---------- | -------------------------------------------------------------------- |
-| `--clear`  | 설치 전 대상 skills 디렉토리 내부의 모든 하위 항목을 삭제하고 클린 설치합니다. |
-| `--self`   | `install-skills` 자신을 설치 대상에 포함합니다 (self-install 부트스트랩용).    |
+| `--clear`  | 설치 전 대상 skills 디렉토리 내부를 비웁니다 — 동작은 [설치 절차](#설치-절차) 2단계. |
+| `--self`   | `install-skills` 자신을 설치 대상에 포함합니다 — 절차는 아래 Self-install 부트스트랩. |
 
 > `--clear`는 스킬명 변경 등으로 기존 스킬이 남아 있을 때 유용합니다. 디렉토리 자체(`~/.claude/skills/` 등)는 유지됩니다.
 
@@ -103,17 +103,12 @@ done
    # 5단계의 skills·target 배열을 그대로 재사용 — 공통 검증(모든 대상에 적용).
    "$verify" --target "$target" "${skills[@]}"
    ```
-   **Antigravity 경로가 설치 대상일 때만**(`--antigravity` 또는 `--all`) 구 Antigravity skills 경로의 레거시 잔존을 추가로 점검합니다. 이때만 `--antigravity-legacy`를 붙이며, Antigravity 경로를 설치하지 않는 대상(`--claude` 등 단독)에는 붙이지 않습니다 — 붙이면 무관한 구 경로 상태로 거짓 FAIL이 날 수 있습니다.
+   **Antigravity 경로가 설치 대상일 때만**(`--antigravity` 또는 `--all`) `--antigravity-legacy`를 붙여 구 Antigravity skills 경로의 레거시 잔존을 추가 점검합니다. 적용 조건·판정 기준·배경 상세는 [references/antigravity-legacy.md](references/antigravity-legacy.md)를 참조하세요.
    ```bash
-   # Antigravity 대상 경로(예: $HOME/.gemini/config/skills)에 대해서만 추가 실행.
-   # $verify 는 위 헬퍼 탐색(홈 우선, cwd 폴백) 결과를 재사용.
+   # Antigravity 대상 경로에 대해서만 추가 실행. $verify 는 위 헬퍼 탐색 결과를 재사용.
    "$verify" --target "$antigravity_target" --antigravity-legacy "${skills[@]}"
    ```
-   `--antigravity-legacy`가 점검하는 구 Antigravity skills 경로의 리터럴은 SKILL.md가 아니라 스크립트가 보유합니다.
-7. **레거시 경로 마이그레이션 (Antigravity 경로 한정 — `--antigravity` 또는 `--all`)**: 6단계의 Antigravity 검증이 구 경로를 다음과 같이 판정하면 그에 맞춰 처리합니다.
-   - **심링크이거나, 없거나, 빈 실제 디렉토리면 보존**합니다(PASS). 심링크는 신(공식) 경로와 동일 위치를 가리키고(이 환경의 inode 동일 사례), 빈 디렉토리는 중복 인식 위험이 없으므로 건드리지 않고 정보만 출력합니다.
-   - **비어있지 않은 실제 디렉토리로 잔존하면**(FAIL) 사용자에게 경고하고 정리(제거)를 제안합니다. 승인 시에만 제거합니다.
-   - 배경: `--clear`는 신(대상) 경로만 비우므로, 구 경로가 비어있지 않은 실제 디렉토리로 남으면 동일 skill이 중복 인식될 수 있어 install-skills가 이 레거시 잔존을 명시적으로 처리합니다.
+7. **레거시 경로 마이그레이션 (Antigravity 경로 한정)**: 6단계 레거시 점검이 FAIL(비어있지 않은 실제 디렉토리 잔존)이면 사용자에게 경고하고 정리를 제안하며, **승인 시에만 제거**합니다. INFO(심링크·부재·빈 디렉토리)는 보존하고 조치하지 않습니다 — 판정 기준·배경은 [references/antigravity-legacy.md](references/antigravity-legacy.md)에 있습니다.
 8. 복사 완료 후 설치된 skill 목록을 대상 경로별로 출력합니다.
 
 ## 참고
