@@ -16,7 +16,7 @@
   - 상단 동기화 헤더: `<!-- SYNCED by ai-workspace — 원본: ai-workspace/templates/shared/.ai/10_rules/writing-principles.md, DO NOT EDIT -->` + 버전 표기
   - 최상단 우선순위 선언: 스킬 템플릿이 산출물 구조(섹션·순서)를 정의하면 템플릿이 우선하며, 이 원칙은 그 구조 안의 서술 방식만 제한
   - 적용/제외 범위 선언 (적용: AI 생성 산출 문서·PR 본문·이슈 본문·리뷰 코멘트 / 제외: 소스·테스트 코드, 설정, 코드 주석, README 등 코드베이스 내 문서, 커밋 메시지)
-  - 제약 규칙 — 모든 산출물에 적용, 템플릿 구조와 직교: 분량 예산 기본값, 금지 패턴, 결정(What) 본문·근거(Why) 접기 분리, 접기(`<details>`) 가능/금지 규칙, 중요도 태그(`[BLOCKER]`/`[MAJOR]`/`[MINOR]`/`[NIT]` — 발견사항·리스크 유형의 내용이 있을 때만)
+  - 제약 규칙 — 모든 산출물에 적용, 템플릿 구조와 직교: 중요한 것 먼저(중요도 태그 체계 없이 배치로 표현), 리스트형 우선, 분량 예산 기본값, 한글 표현 우선(코드 식별자·도구명·정착 기술 용어는 예외), 금지 패턴, What/Why/How 분리(결정은 본문·근거는 접기·방법은 문서 목적별 배치), 접기(`<details>`) 가능/금지 규칙
   - 구조 기본값 — 스킬 템플릿이 구조를 정의하지 않는 자유 서술 산출물에만 적용: 계층형 출력(요약 → 핵심 → 상세 → 부록)
   - 분량: 한 페이지(30~50줄) 이내
 - `writing-principles-local.md` 로컬 확장 템플릿 신설 — 사용자 관리 파일, "없을 때만 빈 템플릿 복사" 정책(`coding-convention.md`와 동일 카테고리), 두 파일 충돌 시 local 우선 규칙 명시
@@ -49,7 +49,7 @@
 - [ ] [D]  SKILL.md update 모드에 writing-principles 멱등 보강 검사가 있다  (검증: update 모드 섹션 범위에서 `writing-principles` 매칭 ≥ 1, 예: `sed -n '/^## update 모드/,$p' ai-workspace/SKILL.md | grep -c 'writing-principles'`)
 - [ ] [D]  AI-CONTEXT.md 템플릿(dev·doc)에 라우터 한 줄이 포함된다  (검증: `grep -l 'writing-principles' ai-workspace/templates/dev/.ai/AI-CONTEXT.md ai-workspace/templates/doc/.ai/AI-CONTEXT.md` 두 파일 모두 매칭)
 - [ ] [D]  설치본이 repo와 동기화되어 있다  (검증: `diff -rq ai-workspace ~/.claude/skills/ai-workspace` 차이 없음)
-- [ ] [QD] init 시 생성·update 시 구버전 갱신·local 사용자 내용 보존 시나리오가 절차상 성립하고, 원칙 본문이 이슈 요구 요소(우선순위 선언, 적용/제외 선언, 제약 규칙과 구조 기본값의 구분, 분량 예산, 금지 패턴, What/Why 분리, 접기 규칙, 중요도 태그의 조건부 적용, 자유 서술 한정 계층형 출력)를 모두 커버한다  (검증: 교차모델 audit가 채점)  ← 강등 사유: AI 수행 절차의 실행 결과와 본문의 의미 커버리지는 명령으로 판정 불가
+- [ ] [QD] init 시 생성·update 시 구버전 갱신·local 사용자 내용 보존 시나리오가 절차상 성립하고, 원칙 본문이 이슈 요구 요소(우선순위 선언, 적용/제외 선언, 제약 규칙과 구조 기본값의 구분, 중요한 것 먼저 배치, 리스트형 우선, 분량 예산, 한글 표현 우선, 금지 패턴, What/Why/How 분리, 접기 규칙, 자유 서술 한정 계층형 출력)를 모두 커버한다  (검증: 교차모델 audit가 채점)  ← 강등 사유: AI 수행 절차의 실행 결과와 본문의 의미 커버리지는 명령으로 판정 불가
 
 ---
 

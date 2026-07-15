@@ -13,10 +13,10 @@
 
 ### Task 1: writing-principles.md SSoT 원본 신설
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 산출물 작성 원칙의 단일 원본을 `templates/shared/.ai/10_rules/`에 만든다 — 스킬 템플릿 구조는 건드리지 않는 서술 제약 문서로.
 - **작업 내용**:
-  1. `ai-workspace/templates/shared/.ai/10_rules/writing-principles.md` 작성 — 상단 동기화 헤더(`<!-- SYNCED by ai-workspace — 원본: …, DO NOT EDIT -->`)와 버전 표기 → 최상단 우선순위 선언(스킬 템플릿이 구조를 정의하면 템플릿 우선, 이 원칙은 서술 방식만 제한) → 적용/제외 범위 선언 → 제약 규칙(분량 예산, 금지 패턴, What/Why 분리, 접기 가능/금지, 중요도 태그 — 발견사항·리스크 유형의 내용이 있을 때만) → 구조 기본값(템플릿이 구조를 정의하지 않는 자유 서술 산출물에만 계층형 출력) 순으로 구성한다.
+  1. `ai-workspace/templates/shared/.ai/10_rules/writing-principles.md` 작성 — 상단 동기화 헤더(`<!-- SYNCED by ai-workspace — 원본: …, DO NOT EDIT -->`)와 버전 표기 → 최상단 우선순위 선언(스킬 템플릿이 구조를 정의하면 템플릿 우선, 이 원칙은 서술 방식만 제한) → 적용/제외 범위 선언 → 제약 규칙(중요한 것 먼저, 리스트형 우선, 분량 예산, 한글 표현 우선, 금지 패턴, What/Why/How 분리, 접기 가능/금지) → 구조 기본값(템플릿이 구조를 정의하지 않는 자유 서술 산출물에만 계층형 출력) 순으로 구성한다.
   2. 분량을 한 페이지(30~50줄) 이내로 유지한다.
 - **완료 기준**: `grep -c 'SYNCED by ai-workspace' ai-workspace/templates/shared/.ai/10_rules/writing-principles.md` ≥ 1, `grep -c '템플릿이 우선' 동일 파일` ≥ 1, `wc -l < 동일 파일` ≤ 50
 
