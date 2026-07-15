@@ -81,6 +81,10 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 SKILL_DIR="<이 SKILL.md가 위치한 디렉토리>"
 PROFILE="<선택된 프로파일: dev 또는 doc>"
 
+# 기존 .ai/ 제거 — init은 전체 초기화 (2단계 모드 선택의 경고 참조).
+# GNU cp는 대상 디렉토리가 이미 있으면 .ai/.ai/로 중첩 복사하므로, 제거가 이식성 보장도 겸한다.
+rm -rf .ai
+
 # 공통 파일 복사
 cp -r "$SKILL_DIR/templates/shared/.ai/" .ai/
 
