@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 5 — 설치본 동기화·후속 이슈 후보 정리
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 ## 모델 기록
 
@@ -51,9 +51,20 @@
 
 ### Task 5: 설치본 동기화·후속 이슈 후보 정리
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: `rsync -a --delete`로 `~/.claude/skills/ai-workspace/` 동기화, `diff -rq` 차이 없음 확인. 문서 생산 스킬별 후속 이슈 후보를 아래와 같이 정리 (이슈 등록·링크 기재는 사용자 승인 시에만 수행).
+- **후속 이슈 후보 목록** — 공통 변경 요지: ① 실행 절차 1단계에 `writing-principles.md`(+local) 존재 시 적재·적용 명시 ② 원칙 파일 없는 repo용 폴백 인라인 규칙 ③ 제약 규칙에 어긋나는 서술만 손질(템플릿 구조 개편 아님) ④ 산출 직전 자가 검증 체크리스트
+  - `git-pr` — PR 본문
+  - `git-review` — 리뷰 코멘트
+  - `git-review-context` — 리뷰 사전 분석 문서(`99_workspace`)
+  - `git-qa` — QA 체크리스트(`99_workspace`)
+  - `issue-work` — 이슈 스펙·계획·요약(`90_issues`)
+  - `issue-audit` — 감사 리포트(`99_workspace`)
+  - `context-save` — 대화 맥락 노트(`99_workspace/notes`)
+  - `context-harvest` — 계약·도메인·ADR 문서(`30/40/50`)
+  - `code-map` — 코드베이스 색인(`60_codebase`)
+  - 제외: `git-commit`(커밋 메시지는 원칙 적용 제외), `readme-sync`(README는 코드베이스 내 문서로 제외), `blog-photo-draft`·`blog-topic-draft`(외부 콘텐츠, `.ai` 산출 문서 아님), `ai-workspace`·`ai-workspace-directory`·`install-skills`(산출물이 안내도·설치 동작)
+- **특이 사항**: 동기화는 `install-skills` 전체 실행 대신 동등 절차(rsync)로 Claude 경로만 수행 — 완료 기준이 `~/.claude/skills/` 일치만 요구하며, 타 도구 경로 배포는 사용자가 `install-skills`로 일괄 수행 가능.
 
 ---
 
