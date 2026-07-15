@@ -45,7 +45,7 @@
 
 ### Task 4: SKILL.md init/update 절차 반영
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 배포 메커니즘이 두 파일을 올바른 정책(버전 고정 vs 없을 때만 복사)으로 다루게 한다.
 - **작업 내용**:
   1. `ai-workspace/SKILL.md` init-1단계 파일 복사 절차에 두 파일 추가 — `writing-principles.md`는 `context-loading.md`와 동일하게 항상 복사, `writing-principles-local.md`는 `coding-convention.md`와 동일하게 없을 때만 복사.

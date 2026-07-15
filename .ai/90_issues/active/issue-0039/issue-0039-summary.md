@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — SKILL.md init/update 절차 반영
+> ▶️ 다음 작업: Task 5 — 설치본 동기화·후속 이슈 후보 정리
 
 ## 모델 기록
 
@@ -43,9 +43,9 @@
 
 ### Task 4: SKILL.md init/update 절차 반영
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: `ai-workspace/SKILL.md` 3곳 수정. init-1단계에 두 파일 복사 정책 문구 추가(일괄 복사에 포함됨을 명시, update에서 정책이 갈림을 안내). update-1단계 스크립트에 `writing-principles.md` 항상 덮어쓰기(context-loading.md와 동일 정책)와 `writing-principles-local.md` 없을 때만 복사(coding-convention.md와 동일 정책) 추가. 사용자 작성 파일 보존 목록에 `writing-principles-local.md` 추가. 완료 기준 검증 통과: 전체 7건 ≥ 2, update 섹션 5건 ≥ 1.
+- **특이 사항**: 멱등 보강은 조건 분기 대신 무조건 덮어쓰기로 구현 — "누락·구버전이면 덮어쓰기"를 항상 덮어쓰기로 단순화해도 결과가 동일(멱등)하며 context-loading.md 선례와 일치. 헤더 버전 표기는 추적용으로 유지.
 
 ---
 
