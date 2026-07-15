@@ -81,6 +81,10 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 SKILL_DIR="<이 SKILL.md가 위치한 디렉토리>"
 PROFILE="<선택된 프로파일: dev 또는 doc>"
 
+# 기존 .ai/ 제거 — init은 전체 초기화 (2단계 모드 선택의 경고 참조).
+# GNU cp는 대상 디렉토리가 이미 있으면 .ai/.ai/로 중첩 복사하므로, 제거가 이식성 보장도 겸한다.
+rm -rf .ai
+
 # 공통 파일 복사
 cp -r "$SKILL_DIR/templates/shared/.ai/" .ai/
 
@@ -93,6 +97,10 @@ cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 프로파일별 전용 파일 예시:
 - `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
 - `doc` 전용: (없음)
+
+산출물 작성 원칙 두 파일도 위 일괄 복사에 포함됩니다. 아래 구분은 update 모드의 복사 정책입니다 — init은 기존 `.ai/`가 있어도 사용자 관리 파일까지 전체를 덮어씁니다 (2단계 모드 선택의 경고 참조):
+- `writing-principles.md`: 버전 고정 — `context-loading.md`와 동일하게 항상 최신본 덮어쓰기
+- `writing-principles-local.md`: 사용자 관리 — `coding-convention.md`와 동일하게 update에서 없을 때만 복사
 
 #### last updated 치환
 
@@ -120,9 +128,12 @@ sed -i.bak "s/> last updated: YYYY-MM-DD/> last updated: $(date +%Y-%m-%d)/" .ai
 ### update-1단계: 10_rules/ 정리
 
 이전 버전에서 설치된 파일 중 개별 skill로 분리된 파일을 제거하고, 새 규칙 파일을 복사합니다.
-사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `file-change-policy.md`)은 그대로 유지합니다.
+사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `file-change-policy.md`, `writing-principles-local.md`)은 그대로 유지합니다.
 
 ```bash
+# 10_rules/ 디렉토리 보장 — 모드 결정은 .ai/ 존재만 확인하므로 10_rules/ 누락 상태로도 update에 진입할 수 있음
+mkdir -p .ai/10_rules
+
 # skill로 분리되어 더 이상 10_rules에 포함되지 않는 파일 제거
 rm -f .ai/10_rules/git-commit-policy.md
 rm -f .ai/10_rules/git-pr-policy.md
@@ -131,11 +142,15 @@ rm -f .ai/10_rules/git-review-context-builder.md
 rm -f .ai/10_rules/issue-workflow.md
 
 # 공통 규칙 파일: 버전 고정이라 항상 최신본으로 덮어쓰기
+# (writing-principles.md는 누락·구버전 여부와 무관하게 덮어쓰는 것이 멱등 보강 — 헤더의 버전 표기는 추적용)
 cp "$SKILL_DIR/templates/shared/.ai/10_rules/context-loading.md" .ai/10_rules/context-loading.md
+cp "$SKILL_DIR/templates/shared/.ai/10_rules/writing-principles.md" .ai/10_rules/writing-principles.md
 
-# 사용자 작성 대상 파일: 없을 때만 빈 템플릿 복사
+# 사용자 작성 대상 파일: 없을 때만 빈 템플릿 복사 (있으면 사용자 내용 보존)
 [ ! -f .ai/10_rules/file-change-policy.md ] && \
   cp "$SKILL_DIR/templates/shared/.ai/10_rules/file-change-policy.md" .ai/10_rules/file-change-policy.md
+[ ! -f .ai/10_rules/writing-principles-local.md ] && \
+  cp "$SKILL_DIR/templates/shared/.ai/10_rules/writing-principles-local.md" .ai/10_rules/writing-principles-local.md
 
 # dev 프로파일 전용 (없을 때만 빈 템플릿 복사)
 if [ "$PROFILE" = "dev" ]; then
