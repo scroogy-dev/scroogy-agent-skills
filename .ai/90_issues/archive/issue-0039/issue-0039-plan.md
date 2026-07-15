@@ -48,7 +48,7 @@
 - [x] 완료
 - **목표**: 배포 메커니즘이 두 파일을 올바른 정책(버전 고정 vs 없을 때만 복사)으로 다루게 한다.
 - **작업 내용**:
-  1. `ai-workspace/SKILL.md` init-1단계 파일 복사 절차에 두 파일 추가 — `writing-principles.md`는 `context-loading.md`와 동일하게 항상 복사, `writing-principles-local.md`는 `coding-convention.md`와 동일하게 없을 때만 복사.
+  1. `ai-workspace/SKILL.md` init-1단계 파일 복사 절차에 두 파일 추가 — `writing-principles.md`는 `context-loading.md`와 동일하게 항상 복사, `writing-principles-local.md`는 `coding-convention.md`와 동일 카테고리("없을 때만 복사"는 update 기준 — init은 전체 초기화 계약을 따름).
   2. update-1단계(10_rules/ 정리)에 멱등 보강 검사 추가 — `writing-principles.md` 존재·최신 여부(버전/헤더 비교) 확인, 누락·구버전이면 최신본 덮어쓰기, `writing-principles-local.md`는 없을 때만 빈 템플릿 복사·있으면 보존.
 - **완료 기준**: `grep -c 'writing-principles' ai-workspace/SKILL.md` ≥ 2, `sed -n '/^## update 모드/,$p' ai-workspace/SKILL.md | grep -c 'writing-principles'` ≥ 1
 
@@ -73,7 +73,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
 이 Task는 사용자가 직접 수행하며, 구현 AI는 자동으로 닫지 않는다.
 -->
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 스펙 위반·누락·소스코드와의 모순을 구현 모델과 다른 시각으로 잡는다.
 - **실행 주체**: **사용자가 직접** 수행한다. 구현 AI는 이 Task를 **자동으로 닫지 않으며**, `issue-audit`를 자동 실행하지도 않는다.
 - **작업 내용**:

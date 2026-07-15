@@ -19,10 +19,10 @@
   - 제약 규칙 — 모든 산출물에 적용, 템플릿 구조와 직교: 중요한 것 먼저(중요도 태그 체계 없이 배치로 표현), 리스트형 우선, 분량 예산 기본값, 한글 표현 우선(코드 식별자·도구명·정착 기술 용어는 예외), 금지 패턴, What/Why/How 분리(결정은 본문·근거는 접기·방법은 문서 목적별 배치), 접기(`<details>`) 가능/금지 규칙
   - 구조 기본값 — 스킬 템플릿이 구조를 정의하지 않는 자유 서술 산출물에만 적용: 계층형 출력(요약 → 핵심 → 상세 → 부록)
   - 분량: 한 페이지(30~50줄) 이내
-- `writing-principles-local.md` 로컬 확장 템플릿 신설 — 사용자 관리 파일, "없을 때만 빈 템플릿 복사" 정책(`coding-convention.md`와 동일 카테고리), 두 파일 충돌 시 local 우선 규칙 명시
+- `writing-principles-local.md` 로컬 확장 템플릿 신설 — 사용자 관리 파일, "없을 때만 빈 템플릿 복사" 정책은 update 기준(`coding-convention.md`와 동일 카테고리 — init 완전 재설치는 기존 계약대로 전체 초기화에 포함), 두 파일 충돌 시 local 우선 규칙 명시
 - AI-CONTEXT.md 템플릿(dev·doc)에 라우터 한 줄 추가 (내용 요약 없이 경로 안내만)
 - `ai-workspace/SKILL.md` 절차 반영
-  - init 파일 복사 절차에 두 파일 추가 (writing-principles.md는 버전 고정·항상 최신 덮어쓰기, local은 없을 때만 복사)
+  - init 파일 복사 절차에 두 파일 추가 (writing-principles.md는 버전 고정·항상 최신 덮어쓰기, local의 "없을 때만 복사"는 update 기준 — init은 전체 초기화 계약을 따름)
   - update 모드에 멱등 보강 검사 추가 (존재·최신 여부 확인, 누락·구버전이면 덮어쓰기, local은 보존)
 - 설치본(`~/.claude/skills/ai-workspace/`) 동기화
 
