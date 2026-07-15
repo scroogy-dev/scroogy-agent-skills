@@ -65,6 +65,45 @@
 
 ---
 
+### Task 6: 교차모델 audit 발견사항 보정 (--response 승인분)
+
+- [x] 완료
+- **목표**: audit 리포트(OpenAI, GPT-5) 발견사항 F-1·F-2·F-3의 사용자 승인분을 보정한다.
+- **작업 내용**:
+  1. F-1(MEDIUM) — update-4 멱등 보강 검사 표에 `## 프로젝트 규칙` 섹션·3열 표 존재 검사 행 추가 (섹션 부재 시 프로파일별 템플릿 골격 삽입, 2열 구버전 표는 3열 확장, 두 행 검사에 선행).
+  2. F-2(LOW) — spec 포함 범위에 dev update 실행 산출물 3파일 명시 (파일 제거·커밋 분리 없음 — 라우터 행이 가리키는 설치본).
+  3. F-3(LOW) — spec DoD 검증 명령을 해당 섹션 범위(awk)로 강화하고, fixture 3케이스(input/expected)+README를 `ai-workspace/tests/fixtures/update4-idempotent/`에 보존.
+  4. 홈 설치본 재동기화 — `tests/` 배포 제외 (install-skills 설치 절차 5단계와 동일 규칙).
+- **완료 기준**: spec DoD `[D]` 강화판 전부 통과 (awk 범위 grep 4건 + diff 2건 + fixture 7파일) + `[QD]` fixture 모의 실행 통과 (expected 재입력 시 무변경)
+
+---
+
+### Task 7: 재감사 발견사항 보정 (--response 승인분)
+
+- [x] 완료
+- **목표**: 재감사 리포트(OpenAI, GPT-5) 발견사항 F-1·F-2·F-3의 사용자 승인분을 보정한다.
+- **작업 내용**:
+  1. F-1(MEDIUM) — 멱등 보강 검사의 `## 프로젝트 규칙` 섹션·표 검사를 상태 3분기(섹션 부재 / 섹션 존재+표 부재 / 2열 표)로 재작성하고, `no-rules-table` fixture 케이스를 추가한다.
+  2. F-2(MEDIUM) — 2열 표 확장 범위를 "열 확장만"으로 확정한다. SKILL.md에서 `legacy-migration.md` ② 참조를 제거해 자체 서술로 바꾸고, 기본 행 복원은 별도 경로(구버전 구조 마이그레이션)임을 명시한다. fixture는 무변경.
+  3. F-3(LOW) — spec DoD의 fixture 검사를 개수(`ls | wc -l`)에서 파일명 단위(`test -f`)로, 홈 동기화 검사에 `test ! -e ~/.claude/skills/ai-workspace/tests` 부재 검사를 추가한다.
+  4. 홈 설치본 재동기화 — `tests/` 배포 제외.
+- **완료 기준**: spec DoD `[D]` 강화판 전부 통과 (awk 범위 grep 4건 + diff 2건 + fixture 파일명 9건 + 홈 `tests/` 부재) + `[QD]` fixture 4종 모의 실행 통과 (expected 재입력 시 무변경)
+
+---
+
+### Task 8: 최종 재감사 발견사항 보정 (--response 승인분)
+
+- [x] 완료
+- **목표**: 최종 재감사 리포트(OpenAI, GPT-5, PASS 22 / FAIL 0 / PARTIAL 0) 유일 발견사항 F-1(LOW)의 사용자 승인분을 보정한다.
+- **작업 내용**:
+  1. F-1(LOW) — doc 프로파일 분기의 `[QD]` 회귀 검증 공백을 대표 케이스 1개로 메운다. `missing-rows-doc` fixture(input/expected) 추가 — `SKILL.md`의 `context-loading.md` 행 검사가 doc 프로파일에서 "문서 작업 전" 문구를 쓰는지 직접 검증한다.
+  2. fixture README에 프로파일 표기 규칙(`-doc` 접미사)과 doc 케이스 행을 추가한다.
+  3. spec 포함 범위·DoD 갱신 — fixture 4종→5종, 파일명 검사 9→11건.
+- **완료 기준**: spec DoD `[D]` 전부 통과 (awk 범위 grep 4건 + diff 2건 + fixture 파일명 11건 + 홈 `tests/` 부재) + `[QD]` fixture 5종 모의 실행 통과
+- **비고**: 홈 재동기화 불필요 — `tests/`는 install-skills 배포 제외 경로
+
+---
+
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
 <!--
@@ -73,7 +112,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
 이 Task는 사용자가 직접 수행하며, 구현 AI는 자동으로 닫지 않는다.
 -->
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 스펙 위반·누락·소스코드와의 모순을 구현 모델과 다른 시각으로 잡는다.
 - **실행 주체**: **사용자가 직접** 수행한다. 구현 AI는 이 Task를 **자동으로 닫지 않으며**, `issue-audit`를 자동 실행하지도 않는다.
 - **작업 내용**:
