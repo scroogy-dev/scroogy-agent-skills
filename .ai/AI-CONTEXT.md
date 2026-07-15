@@ -52,7 +52,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
 │   ├── references/             # 구버전 마이그레이션 참조 문서
-│   └── templates/              # 프로파일별 템플릿
+│   ├── templates/              # 프로파일별 템플릿
+│   └── tests/                  # update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 │   └── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
 ├── code-map/                   # 코드베이스 색인 스킬
