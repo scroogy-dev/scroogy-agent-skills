@@ -33,6 +33,11 @@
 
 - `.ai/30_contract/index.md`
 
+## 산출 문서·PR·이슈·리뷰 코멘트 작성 시
+
+- `.ai/10_rules/writing-principles.md` — 산출물 작성 원칙 (소스 코드 미적용)
+- `.ai/10_rules/writing-principles-local.md` — repo 고유 확장 (원칙과 충돌하면 local 우선)
+
 ---
 
 **SSoT는 소스코드.** 색인(`60_codebase/`)은 오래되었을 수 있으므로 보조 자료로 활용하고 실제 코드를 확인한다.
