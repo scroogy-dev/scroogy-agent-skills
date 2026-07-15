@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — writing-principles-local.md 로컬 확장 템플릿 신설
+> ▶️ 다음 작업: Task 3 — AI-CONTEXT.md 템플릿(dev·doc) 라우터 한 줄 추가
 
 ## 모델 기록
 
@@ -27,9 +27,9 @@
 
 ### Task 2: writing-principles-local.md 로컬 확장 템플릿 신설
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: `ai-workspace/templates/shared/.ai/10_rules/writing-principles-local.md` 신설 — 상단에 사용자 관리 파일 안내("없을 때만 빈 템플릿 복사, 이후 덮어쓰지 않음")와 "충돌 시 local 우선" 규칙 기재, 본문은 `coding-convention.md` 선례를 따라 예시 주석만 담은 빈 템플릿. `writing-principles.md` 우선순위 블록에 local 우선 상호 참조 한 줄 추가(33→34줄, 예산 50줄 이내). 완료 기준 검증 통과: local 템플릿 'local 우선' 1건, 원본 상호 참조 1건, 원본 34줄 ≤ 50.
+- **특이 사항**: 사용자 관리 파일이므로 SYNCED 동기화 헤더를 넣지 않음 — 동기화 대상(`writing-principles.md`)과 시각적으로도 구분됨.
 
 ---
 

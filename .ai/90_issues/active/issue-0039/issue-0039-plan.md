@@ -24,7 +24,7 @@
 
 ### Task 2: writing-principles-local.md 로컬 확장 템플릿 신설
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 사용자 관리 로컬 확장 파일의 빈 템플릿을 만들고 충돌 시 local 우선 규칙을 명시한다.
 - **작업 내용**:
   1. `ai-workspace/templates/shared/.ai/10_rules/writing-principles-local.md` 빈 템플릿 작성 — 용도 안내와 "두 파일 충돌 시 local 우선" 규칙을 상단에 기재한다.
