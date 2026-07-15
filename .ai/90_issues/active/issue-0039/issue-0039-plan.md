@@ -35,7 +35,7 @@
 
 ### Task 3: AI-CONTEXT.md 템플릿(dev·doc) 라우터 한 줄 추가
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 안내도가 내용 요약 없이 경로만 라우팅하게 한다.
 - **작업 내용**:
   1. `ai-workspace/templates/dev/.ai/AI-CONTEXT.md`와 `ai-workspace/templates/doc/.ai/AI-CONTEXT.md`의 10_rules 안내 표(또는 대응 위치)에 한 줄 추가: "산출물 작성 규칙: `.ai/10_rules/writing-principles.md` — 문서 생산 스킬이 적용, 소스 코드 미적용".
