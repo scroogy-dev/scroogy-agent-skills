@@ -13,7 +13,7 @@
 
 ### Task 1: 템플릿 context-loading.md에 산출물 작성 라우팅 섹션 추가
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 스킬 단독 실행 경로에서 `writing-principles.md`로 가는 안내를 만든다.
 - **작업 내용**:
   1. `ai-workspace/templates/shared/.ai/10_rules/context-loading.md`의 작업 유형 목록에 "산출 문서·PR·이슈·리뷰 코멘트 작성 시" 섹션을 추가한다.
@@ -24,7 +24,7 @@
 
 ### Task 2: ai-workspace/SKILL.md 멱등 보강 검사에 프로젝트 규칙 행 검사 추가
 
-- [ ] 완료
+- [x] 완료
 - **목표**: update 모드가 기존 repo 안내도의 `## 프로젝트 규칙` 표에 라우터 행을 전파하게 한다.
 - **작업 내용**:
   1. update-4단계 멱등 보강 검사 표에 항목 추가 — 검사: `## 프로젝트 규칙` 표에 `writing-principles.md` 행 존재 여부. 누락 시 조치: 표준 행(#39에서 확정한 라우터 한 줄) 삽입, 기존 사용자 작성 행 보존.
@@ -34,7 +34,7 @@
 
 ### Task 3: 이 repo 설치본·안내도 반영
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 이 repo에서 실제 참조 경로가 이어지게 한다.
 - **작업 내용**:
   1. `.ai/10_rules/context-loading.md`를 Task 1 반영본 템플릿으로 갱신한다 (버전 고정 정책과 동일하게 복사).
@@ -45,11 +45,23 @@
 
 ### Task 4: 홈 설치본 동기화
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 갱신된 `ai-workspace` 스킬이 홈 설치본에서도 동일하게 동작하게 한다.
 - **작업 내용**:
   1. `/install-skills`로 `ai-workspace`를 재설치한다 (또는 동등한 복사).
 - **완료 기준**: `diff -r ai-workspace ~/.claude/skills/ai-workspace` 차이 0건 (배포 제외 경로 없음 — 이 스킬에는 `tests/` 없음)
+
+---
+
+### Task 5: update-4 멱등 보강 검사에 context-loading.md 행 검사 추가 (일관성 보강)
+
+- [x] 완료
+- **목표**: 버전 고정 파일 2종(`context-loading.md`, `writing-principles.md`)의 안내도 행 보장을 같은 조건으로 통일한다 (사용자 질의로 범위 확장, spec 갱신 반영).
+- **작업 내용**:
+  1. update-4단계 멱등 보강 검사 표에 `## 프로젝트 규칙` 표의 `context-loading.md` 행 검사 항목을 추가한다. 누락 시 조치: 표준 행 삽입 — 사용 시점 문구는 프로파일별 구분 (dev "코드·문서 작업 전" / doc "문서 작업 전"), 기존 사용자 작성 행 보존.
+  2. 이 repo `.ai/AI-CONTEXT.md`에는 해당 행이 이미 있어 확인만 한다.
+  3. 홈 설치본을 재동기화한다.
+- **완료 기준**: `grep -c '프로젝트 규칙.*context-loading\|context-loading.*프로젝트 규칙' ai-workspace/SKILL.md` ≥ 1, `diff -r ai-workspace ~/.claude/skills/ai-workspace` 차이 0건
 
 ---
 
