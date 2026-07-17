@@ -59,4 +59,4 @@
 | `issue-work/templates/` | 변경 대상 SSoT — spec·plan·summary·workflow 템플릿 4종 |
 | `.ai/90_issues/archive/issue-0029/` | 교차모델 audit 실행 주체·AI 자동 마감 금지 결정 (본 이슈 게이트 2건의 선례) |
 | `.ai/90_issues/archive/issue-0031/` | `--response` 게이트 — `보정 반영` 건수 정의가 의존 |
-| `../.ai/AI-CONTEXT.md` (repo 안내도) | 스킬 작성 규칙 — 템플릿 SSoT 원칙, 스킬 독립성 |
+| `.ai/AI-CONTEXT.md` (repo 안내도) | 스킬 작성 규칙 — 템플릿 SSoT 원칙, 스킬 독립성 |
