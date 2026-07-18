@@ -51,7 +51,7 @@ issue-audit 산출물 분류 값의 영문 단독 표기 3종(위험도·판정 
 - [x] [D] 출력 요약 형식의 집계 줄이 병기 표기 (검증: `grep -c '충족(PASS): N건 / 미충족(FAIL): N건 / 부분 충족(PARTIAL): N건' issue-audit/SKILL.md` = 1 && `grep -c '높음(HIGH): N건 / 중간(MEDIUM): N건 / 낮음(LOW): N건 / 정보(INFO): N건' issue-audit/SKILL.md` = 1)
 - [x] [D] 리포트 템플릿의 위험도 필드가 병기 표기 (검증: `grep -c '높음(HIGH) / 중간(MEDIUM) / 낮음(LOW) / 정보(INFO)' issue-audit/templates/issue-audit-report-template.md` = 1 && `grep -cE 'HIGH / MEDIUM / LOW / INFO' issue-audit/templates/issue-audit-report-template.md` = 0)
 - [x] [D] 변경 파일이 대상 스킬과 이슈 문서로 한정 (검증: `git diff --name-only main | grep -vE '^(issue-audit/|\.ai/90_issues/)'` = 0건)
-- [ ] [QD] 본문 참조 서술(개요 항목, 참조 문서의 단계 언급 등)이 새 단계 명명과 의미상 정합 (검증: Task N 교차모델 audit 채점) ← 강등 사유: 서술 자연스러움·의미 정합은 명령으로 환원 불가
+- [x] [QD] 본문 참조 서술(개요 항목, 참조 문서의 단계 언급 등)이 새 단계 명명과 의미상 정합 (검증: Task N 교차모델 audit 채점) ← 강등 사유: 서술 자연스러움·의미 정합은 명령으로 환원 불가
 
 ---
 
