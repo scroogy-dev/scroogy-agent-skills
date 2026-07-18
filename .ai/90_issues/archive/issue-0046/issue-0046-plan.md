@@ -66,7 +66,7 @@
   1. `issue-audit/SKILL.md` 판정 기준 표 1열 전환.
   2. `issue-audit/SKILL.md` 출력 요약 형식의 판정 집계 줄 전환.
   3. 리포트 템플릿은 판정 값 리터럴이 없음을 확인만 한다 (spec 전제 "템플릿 판정 리터럴 부재") — `grep -cE '\b(PASS|FAIL|PARTIAL)\b' issue-audit/templates/issue-audit-report-template.md` = 0 유지.
-- **완료 기준**: `grep -cE '^\| (충족\(PASS\)|미충족\(FAIL\)|부분 충족\(PARTIAL\)|판정 불가\(N/A\)) \|' issue-audit/SKILL.md` = 4 && `grep -cE '^\| (PASS|FAIL|PARTIAL|N/A) \|' issue-audit/SKILL.md` = 0 && `grep -c '충족(PASS): N건 / 미충족(FAIL): N건 / 부분 충족(PARTIAL): N건' issue-audit/SKILL.md` = 1 && 의미 문구 불변 diff(spec DoD 3항의 판정 명령) 차이 0건
+- **완료 기준**: `grep -cE '^\| (충족\(PASS\)|미충족\(FAIL\)|부분 충족\(PARTIAL\)|판정 불가\(N/A\)) \|' issue-audit/SKILL.md` = 4 && `grep -cE '^\| (PASS|FAIL|PARTIAL|N/A) \|' issue-audit/SKILL.md` = 0 && `grep -c '충족(PASS): N건 / 미충족(FAIL): N건 / 부분 충족(PARTIAL): N건 / 판정 불가(N/A): N건' issue-audit/SKILL.md` = 1 && 의미 문구 불변 diff(spec DoD 3항의 판정 명령) 차이 0건 (판정 집계 패턴은 PR #49 리뷰 보정으로 4종 갱신 — spec DoD 5항 참조)
 
 ---
 

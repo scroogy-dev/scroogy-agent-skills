@@ -134,7 +134,7 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
 ## Issue #<번호> 감사 결과 요약
 
 ### 1단계: 적합성 검증
-- 충족(PASS): N건 / 미충족(FAIL): N건 / 부분 충족(PARTIAL): N건
+- 충족(PASS): N건 / 미충족(FAIL): N건 / 부분 충족(PARTIAL): N건 / 판정 불가(N/A): N건
 
 ### 2단계: 비판적 검증
 - 높음(HIGH): N건 / 중간(MEDIUM): N건 / 낮음(LOW): N건 / 정보(INFO): N건
