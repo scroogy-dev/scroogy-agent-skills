@@ -7,7 +7,7 @@
 
 ---
 
-## Phase 1: 적합성 검증 (Compliance Check)
+## 1단계: 적합성 검증 (Compliance Check)
 
 ### 요구사항 대조
 
@@ -34,7 +34,7 @@
 
 ---
 
-## Phase 2: 비판적 검증 (Critical Review)
+## 2단계: 비판적 검증 (Critical Review)
 
 ### 발견 사항
 
@@ -49,7 +49,7 @@
 
 #### F-1: <발견 사항 제목>
 
-- **위험도**: HIGH / MEDIUM / LOW / INFO
+- **위험도**: 높음(HIGH) / 중간(MEDIUM) / 낮음(LOW) / 정보(INFO)
 - **분류**: 엣지케이스 / 암묵적 가정 / 부작용 / 스펙 모호성 / 누락된 검증
 - **설명**:
 - **영향**:
