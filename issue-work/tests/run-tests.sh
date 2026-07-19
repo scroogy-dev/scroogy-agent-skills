@@ -26,9 +26,16 @@ extract_gate() {
   grep -F "$1" "$TEMPLATE" | sed -E 's/.*`S=[^;]+; (awk [^`]+)` 출력 0.*/\1/'
 }
 
+# 집합 대조 게이트는 plan 과 summary 두 경로를 받으므로 스팬 서식이 다르다.
+extract_pair_gate() {
+  grep -F "$1" "$TEMPLATE" | sed -E 's/.*`P=[^;]+; S=[^;]+; (diff [^`]+)` 출력 0.*/\1/'
+}
+
+GATE0="$(extract_pair_gate 'summary의 Task 헤더 집합이 plan과 일치')"
 GATE1="$(extract_gate '블록마다 유효 `결과` 행 정확히 1개')"
 GATE2="$(extract_gate '`-`도 아닌 행 정확히 1개')"
 
+case "$GATE0" in diff\ *) ok "추출: Task 집합 대조 게이트" ;; *) ng "추출: Task 집합 대조 게이트 — [$GATE0]" ;; esac
 case "$GATE1" in awk\ *) ok "추출: 결과 확정 게이트" ;; *) ng "추출: 결과 확정 게이트 — [$GATE1]" ;; esac
 case "$GATE2" in awk\ *) ok "추출: 수행 모델 게이트" ;; *) ng "추출: 수행 모델 게이트 — [$GATE2]" ;; esac
 
@@ -36,6 +43,17 @@ case "$GATE2" in awk\ *) ok "추출: 수행 모델 게이트" ;; *) ng "추출: 
 run_gate() {
   local prog="$1" S="$2"
   eval "$prog"
+}
+
+# assert_pair_gate <diff 프로그램> <plan> <summary> <기대: pass|fail> <설명>
+# 집합 대조는 위반 건수가 아니라 diff 출력 자체로 판정한다 (출력 0건이면 통과).
+assert_pair_gate() {
+  local out P="$2" S="$3"
+  out="$(eval "$1")"
+  case "$4" in
+    pass) if [ -z "$out" ]; then ok "$5 (diff 0건)"; else ng "$5 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$5 (diff 검출)"; else ng "$5 (기대 >0건, 실제 0건)"; fi ;;
+  esac
 }
 
 # assert_gate <awk 프로그램> <fixture> <기대: pass|fail> <설명>
@@ -82,7 +100,36 @@ cat > "$base" <<'EOF'
 - **수행 내용 요약**:
 EOF
 
+# 집합 대조용 plan fixture: base 와 Task 헤더가 정확히 같다.
+plan="$sandbox/plan-valid.md"
+cat > "$plan" <<'EOF'
+# Issue #99 실행계획 — 게이트 테스트 fixture
+
+## Tasks
+
+### Task 0 (고정): 구현 시작 게이트 — 전제·모호점 확인
+
+- [x] 완료
+
+### Task 1: 본작업
+
+- [x] 완료
+
+### Task 2: 후속 작업
+
+- [ ] 완료
+
+### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
+
+- [ ] 완료
+EOF
+
 # 반례 fixture 는 base 의 awk 변형으로 만든다 (BSD sed 의 GNU 확장 미지원 회피).
+
+# F-1(3차 audit) 반례: Task 블록이 통째로 없으면 아래 두 게이트는 검사 대상이 사라져 통과한다.
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !s' "$base" > "$sandbox/f0-block-missing.md"
+awk '/^### Task N/{s=1} !s' "$base" > "$sandbox/f0-taskn-missing.md"
+: > "$sandbox/f0-empty.md"
 
 # F-1 반례(2차 audit 재현): Task 0 결과 미확정 + Task 1 에 유효 행 중복 → 총개수는 상쇄돼 같다.
 awk '/^- \*\*결과\*\*: 완료$/ && !a {print "- **결과**: "; a=1; next} {print}
@@ -102,6 +149,11 @@ awk '!/^- \*\*수행 모델\*\*: OpenAI/ {print}' "$base" > "$sandbox/f2-missing
 awk '/^- \*\*수행 모델\*\*: Anthropic/ {print "- **수행 모델**: -"; next} {print}' \
   "$base" > "$sandbox/f2-dash.md"
 awk '{print} /^- \*\*수행 모델\*\*: OpenAI/ {print}' "$base" > "$sandbox/f2-dup.md"
+
+assert_pair_gate "$GATE0" "$plan" "$base" pass "집합 게이트: 정상 fixture 통과"
+assert_pair_gate "$GATE0" "$plan" "$sandbox/f0-block-missing.md" fail "집합 게이트: Task 블록 전체 누락(3차 audit F-1 반례) 격추"
+assert_pair_gate "$GATE0" "$plan" "$sandbox/f0-taskn-missing.md" fail "집합 게이트: Task N 블록 누락 격추"
+assert_pair_gate "$GATE0" "$plan" "$sandbox/f0-empty.md"         fail "집합 게이트: 빈 summary 격추"
 
 assert_gate "$GATE1" "$base" pass "결과 게이트: 정상 fixture 통과"
 assert_gate "$GATE2" "$base" pass "수행 모델 게이트: 정상 fixture 통과"
