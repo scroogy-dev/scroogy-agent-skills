@@ -16,6 +16,7 @@ issue-work plan 템플릿의 Task별 완료 기준을 spec 완료의 정의와 �
   - Task 0 고정 블록: `완료 기준`을 같은 리스트 형식으로 정리
   - Task N 고정 블록: `완료 기준`을 같은 리스트 형식으로 분해
 - `issue-work/SKILL.md`: `## 작업 진행 중`의 완료 기준 문장 확인, 새 형식과 어긋나면 소폭 보정
+- `issue-work/tests/run-tests.sh` (신규): Task N `[D]` 게이트 명령의 반례 회귀 테스트 — 2차 audit F-1·F-2 보정에 대한 `--response` 항목별 승인으로 범위 확장 (2026-07-19)
 
 **비포함 (Out)**
 
@@ -40,6 +41,7 @@ issue-work plan 템플릿의 Task별 완료 기준을 spec 완료의 정의와 �
 - [x] [D] Task 헤더 행 구조 유지 — `^### Task ` 4건, 그 외 0건  (검증: `grep -cE '^### Task ' issue-work/templates/issue-plan-template.md` = 4)
 - [x] [QD] Task 0·N 고정 블록의 기존 조건·강등 사유가 리스트 분해 후에도 누락 없음  (검증: 교차모델 audit이 개정 전후 대조 채점)  ← 강등 사유: 조건 보존 여부는 의미 대조라 명령으로 환원 불가
 - [x] [ND] SKILL.md `## 작업 진행 중` 완료 기준 문장이 새 형식과 모순 없음  (검증: 사람 리뷰)  ← 강등 사유: 위임 문장과 새 형식의 정합 여부는 의미 판단
+- [x] [D] Task N `[D]` 게이트 명령이 정상 fixture를 통과시키고 반례 fixture(미확정 상쇄·행 누락·중복·허용 외 값·빈 값·`-`)를 격추  (검증: `bash issue-work/tests/run-tests.sh` 종료 코드 0, 실패 0건)
 
 ---
 
@@ -48,6 +50,7 @@ issue-work plan 템플릿의 Task별 완료 기준을 spec 완료의 정의와 �
 - repo 원본(`issue-work/…`)이 SSoT이고 `~/.claude/skills/issue-work/…` 설치본은 사본이다 — 구현은 repo 파일만 수정하며, 설치본 갱신은 `install-skills` 재설치로 별도 수행한다. 작성 시점에 두 경로의 plan 템플릿·SKILL.md는 diff 0건으로 동일 확인.
 - 표기 통일의 기준은 spec 템플릿 쪽이다 — L1/L2/L3 병기를 포함한 spec의 검증 레벨 인용 블록을 plan에 그대로 복제하고, spec 템플릿은 손대지 않는다.
 - 이 이슈의 plan(`issue-0050-plan.md`)은 개정 전 템플릿으로 생성하되 Task별 완료 기준은 목표 형식(레벨 태그 리스트)을 선적용했다 — 템플릿 개정 결과와 세부 문구가 달라도 소급 수정하지 않는다.
+- Task N `[D]` 게이트 명령의 SSoT는 plan 템플릿 인라인 명령이다 — 인스턴스화된 plan은 어느 repo·AI 도구에서도 자족해야 해서 `scripts/` 헬퍼 참조로 바꾸지 않고, 테스트가 템플릿 본문에서 명령을 추출해 fixture에 실행함으로써 문서와 검증의 드리프트를 막는다 (`install-skills` SKILL.md 스니펫 스모크와 같은 방식, 2차 audit `--response` 승인으로 확정).
 
 ---
 

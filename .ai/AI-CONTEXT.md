@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-07-16
+> last updated: 2026-07-19
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -81,7 +81,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── issue-audit/                # 이슈 감사 스킬
 │   └── templates/              # 감사 리포트 템플릿
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
-│   └── templates/              # 이슈 템플릿
+│   ├── templates/              # 이슈 템플릿
+│   └── tests/                  # plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
 ├── readme-sync/                # README.md 생성/갱신 스킬
 │   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)
 │   └── templates/              # README 템플릿
