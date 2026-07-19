@@ -49,18 +49,19 @@ issue-work plan 템플릿의 Task별 완료 기준을 spec 완료의 정의와 �
 
 - repo 원본(`issue-work/…`)이 SSoT이고 `~/.claude/skills/issue-work/…` 설치본은 사본이다 — 구현은 repo 파일만 수정하며, 설치본 갱신은 `install-skills` 재설치로 별도 수행한다. 작성 시점에 두 경로의 plan 템플릿·SKILL.md는 diff 0건으로 동일 확인.
 - 표기 통일의 기준은 spec 템플릿 쪽이다 — L1/L2/L3 병기를 포함한 spec의 검증 레벨 인용 블록을 plan에 그대로 복제하고, spec 템플릿은 손대지 않는다.
-- 이 이슈의 plan(`issue-0050-plan.md`)은 개정 전 템플릿으로 생성하되 Task별 완료 기준은 목표 형식(레벨 태그 리스트)을 선적용했다 — 템플릿 개정 결과와 세부 문구가 달라도 소급 수정하지 않는다.
+- 이 이슈의 plan(`issue-0050-plan.md`)은 개정 전 템플릿으로 생성하되 **일반 실행 Task(Task 1~6)의 완료 기준에만** 목표 형식(레벨 태그 리스트)을 선적용했다 — 고정 블록인 Task 0·Task N은 개정 전 한 줄 서술형을 유지하며 소급하지 않는다. 템플릿 개정 결과와 세부 문구가 달라도 마찬가지다. 따라서 이 이슈의 검증 근거는 active plan이 아니라 **개정된 템플릿과 spec `완료의 정의`**다.
 - Task N `[D]` 게이트 명령의 SSoT는 plan 템플릿 인라인 명령이다 — 인스턴스화된 plan은 어느 repo·AI 도구에서도 자족해야 해서 `scripts/` 헬퍼 참조로 바꾸지 않고, 테스트가 템플릿 본문에서 명령을 추출해 fixture에 실행함으로써 문서와 검증의 드리프트를 막는다 (`install-skills` SKILL.md 스니펫 스모크와 같은 방식, 2차 audit `--response` 승인으로 확정).
 
 ---
 
 ## 연관 문서
 
-> `.ai/30_contract/`·`40_domain/`·`50_adr/` index를 훑은 결과 직접 연관 문서 없음 — 수정 대상·기준 파일만 나열한다.
+> `.ai/30_contract/`·`40_domain/` index를 훑은 결과 연관 문서 없음. `50_adr/`은 Task 6(회귀 테스트 신설)이 ADR 0001을 직접 근거로 사용한다.
 
 | 문서 | 역할 |
 |------|------|
 | `issue-work/templates/issue-plan-template.md` | 주 수정 대상 |
 | `issue-work/templates/issue-spec-template.md` | 검증 레벨 표기 통일 기준 (수정 없음) |
 | `issue-work/SKILL.md` | 부 수정 대상 — `## 작업 진행 중` 완료 기준 문장 |
+| `.ai/50_adr/active/0001-skill-deterministic-helper-test-convention.md` | Task 6 회귀 테스트의 위치(`<skill>/tests/`)·경량 러너·배포 제외 근거 |
 | `.ai/10_rules/writing-principles.md` | 산출 문서 서술 원칙 |
