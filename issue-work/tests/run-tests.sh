@@ -7,12 +7,17 @@
 # 인라인 명령이며(인스턴스화된 plan 의 자족성 때문에 scripts/ 헬퍼로 빼지 않는다),
 # 문서의 명령이 깨지거나 반례를 다시 통과시키면 여기서 감지된다
 # (install-skills 의 SKILL.md 스니펫 스모크와 같은 방식).
+#
+# 여기에 더해 SKILL.md `--response` 절의 단계 구조·앵커 토큰 계약을 스모크로 검사한다
+# — 이슈 단위 plan 의 일회성 명령으로만 지켜지면 이후 문서 개정이 구조를 깨도 감지되지 않는다.
+#
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
 set -o pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE="$HERE/../templates/issue-plan-template.md"
+SKILL="$HERE/../SKILL.md"
 
 pass=0
 fail=0
@@ -177,6 +182,59 @@ assert_gate "$GATE2" "$sandbox/f2-empty.md"   fail "수행 모델 게이트: 빈
 assert_gate "$GATE2" "$sandbox/f2-missing.md" fail "수행 모델 게이트: 행 누락(2차 audit F-2 반례) 격추"
 assert_gate "$GATE2" "$sandbox/f2-dash.md"    fail "수행 모델 게이트: 리터럴 - 격추"
 assert_gate "$GATE2" "$sandbox/f2-dup.md"     fail "수행 모델 게이트: 행 중복 격추"
+
+# --- SKILL.md `--response` 절 구조 스모크 -------------------------------------
+#
+# 검사 대상은 spec 앵커 토큰 계약과 같다 — 번호 단계 5개, 그리고 각 앵커 토큰이
+# 지정된 단계 범위 안에 있을 것. 단계 범위 추출(awk)은 다음 번호 단계 직전까지
+# 포함하므로 단계 본문이 늘어나도 판정이 유지된다.
+
+resp_section() { sed -n '/^### `--response`/,/^### `--clear`/p' "$1"; }
+
+# check_response <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_response() {
+  local sec s2 s3 s45
+  sec="$(resp_section "$1")"
+  [ "$(printf '%s\n' "$sec" | grep -cE '^  [0-9]+\. \*\*[^*]+\*\*')" = 5 ] || echo "번호 단계가 정확히 5개가 아님"
+  s2="$(printf '%s\n' "$sec" | awk '/^  2\. /{f=1} /^  3\. /{f=0} f')"
+  s3="$(printf '%s\n' "$sec" | awk '/^  3\. /{f=1} /^  4\. /{f=0} f')"
+  s45="$(printf '%s\n' "$sec" | awk '/^  4\. /{f=1} f')"
+  printf '%s\n' "$s2"  | grep -q '1단계 발견'          || echo "2단계 범위에 '1단계 발견' 없음"
+  printf '%s\n' "$s2"  | grep -q '2단계 발견'          || echo "2단계 범위에 '2단계 발견' 없음"
+  printf '%s\n' "$s3"  | grep -q '상단'                || echo "3단계 범위에 '상단' 없음"
+  printf '%s\n' "$s3"  | grep -q '미해소'              || echo "3단계 범위에 '미해소' 없음"
+  printf '%s\n' "$s45" | grep -q '순서 게이트'         || echo "4~5단계 범위에 '순서 게이트' 없음"
+  printf '%s\n' "$sec" | grep -q '항목 단위로'         || echo "절 전체에 '항목 단위로' 없음"
+  printf '%s\n' "$sec" | grep -q '자동 보정하지 않는다' || echo "절 전체에 '자동 보정하지 않는다' 없음"
+}
+
+# assert_response <파일> <기대: pass|fail> <설명>
+assert_response() {
+  local out
+  out="$(check_response "$1")"
+  case "$2" in
+    pass) if [ -z "$out" ]; then ok "$3 (위반 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$3 (위반 검출)"; else ng "$3 (기대 >0건, 실제 0건)"; fi ;;
+  esac
+}
+
+# 반례 fixture 는 실제 SKILL.md 의 awk 변형으로 만든다 (구조 드리프트를 그대로 재현하기 위함).
+awk '!/^  5\. /' "$SKILL" > "$sandbox/r-steps4.md"
+awk '/^  4\. /{gsub(/순서 게이트/, "순서 규칙")} /^  5\. /{gsub(/순서 게이트/, "순서 규칙")} {print}' \
+  "$SKILL" > "$sandbox/r-no-gate.md"
+awk '/^  2\. /{gsub(/1단계 발견/, "적합성 발견"); gsub(/2단계 발견/, "비판적 발견")} {print}' \
+  "$SKILL" > "$sandbox/r-no-split.md"
+awk '/^  3\. /{gsub(/상단/, "앞쪽"); gsub(/미해소/, "남은")} {print}' "$SKILL" > "$sandbox/r-no-order.md"
+awk '{gsub(/항목 단위로/, "하나씩"); print}' "$SKILL" > "$sandbox/r-no-approval.md"
+awk '!/^### `--response`/' "$SKILL" > "$sandbox/r-no-section.md"
+
+assert_response "$SKILL"                     pass "response 스모크: 실제 SKILL.md 통과"
+assert_response "$sandbox/r-steps4.md"       fail "response 스모크: 번호 단계 수 변경 격추"
+assert_response "$sandbox/r-no-gate.md"      fail "response 스모크: 순서 게이트 토큰 소실 격추"
+assert_response "$sandbox/r-no-split.md"     fail "response 스모크: 2단계 구분 제시 소실 격추"
+assert_response "$sandbox/r-no-order.md"     fail "response 스모크: 상단 배치·미해소 명시 소실 격추"
+assert_response "$sandbox/r-no-approval.md"  fail "response 스모크: 항목별 승인 원칙 소실 격추"
+assert_response "$sandbox/r-no-section.md"   fail "response 스모크: 절 헤더 소실 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
