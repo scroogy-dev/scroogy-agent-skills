@@ -28,14 +28,14 @@ extract_gate() {
 
 # 집합 대조 게이트는 plan 과 summary 두 경로를 받으므로 스팬 서식이 다르다.
 extract_pair_gate() {
-  grep -F "$1" "$TEMPLATE" | sed -E 's/.*`P=[^;]+; S=[^;]+; (diff [^`]+)` 출력 0.*/\1/'
+  grep -F "$1" "$TEMPLATE" | sed -E 's/.*`P=[^;]+; S=[^;]+; (\{ grep [^`]+)` 출력 0.*/\1/'
 }
 
 GATE0="$(extract_pair_gate 'summary의 Task 헤더 집합이 plan과 일치')"
 GATE1="$(extract_gate '블록마다 유효 `결과` 행 정확히 1개')"
 GATE2="$(extract_gate '`-`도 아닌 행 정확히 1개')"
 
-case "$GATE0" in diff\ *) ok "추출: Task 집합 대조 게이트" ;; *) ng "추출: Task 집합 대조 게이트 — [$GATE0]" ;; esac
+case "$GATE0" in '{ grep '*) ok "추출: Task 집합 대조 게이트" ;; *) ng "추출: Task 집합 대조 게이트 — [$GATE0]" ;; esac
 case "$GATE1" in awk\ *) ok "추출: 결과 확정 게이트" ;; *) ng "추출: 결과 확정 게이트 — [$GATE1]" ;; esac
 case "$GATE2" in awk\ *) ok "추출: 수행 모델 게이트" ;; *) ng "추출: 수행 모델 게이트 — [$GATE2]" ;; esac
 
@@ -45,11 +45,13 @@ run_gate() {
   eval "$prog"
 }
 
-# assert_pair_gate <diff 프로그램> <plan> <summary> <기대: pass|fail> <설명>
-# 집합 대조는 위반 건수가 아니라 diff 출력 자체로 판정한다 (출력 0건이면 통과).
+# assert_pair_gate <집합 대조 프로그램> <plan> <summary> <기대: pass|fail> <설명>
+# 집합 대조는 위반 건수가 아니라 출력 자체로 판정한다 (출력 0건이면 통과).
+# stderr 는 버린다 — 경로 오기 fixture 의 `grep` 오류 메시지가 테스트 출력을 덮지 않게 하기 위함이며,
+# 게이트가 실행 실패를 stdout 위반 행으로 환원하므로 판정에 필요한 정보는 stdout 에 남는다.
 assert_pair_gate() {
   local out P="$2" S="$3"
-  out="$(eval "$1")"
+  out="$(eval "$1" 2>/dev/null)"
   case "$4" in
     pass) if [ -z "$out" ]; then ok "$5 (diff 0건)"; else ng "$5 (기대 0건, 실제 [$out])"; fi ;;
     fail) if [ -n "$out" ]; then ok "$5 (diff 검출)"; else ng "$5 (기대 >0건, 실제 0건)"; fi ;;
@@ -154,6 +156,14 @@ assert_pair_gate "$GATE0" "$plan" "$base" pass "집합 게이트: 정상 fixture
 assert_pair_gate "$GATE0" "$plan" "$sandbox/f0-block-missing.md" fail "집합 게이트: Task 블록 전체 누락(3차 audit F-1 반례) 격추"
 assert_pair_gate "$GATE0" "$plan" "$sandbox/f0-taskn-missing.md" fail "집합 게이트: Task N 블록 누락 격추"
 assert_pair_gate "$GATE0" "$plan" "$sandbox/f0-empty.md"         fail "집합 게이트: 빈 summary 격추"
+
+# F-1(4차 audit) 반례: 두 경로가 모두 잘못되면 빈 입력끼리 비교돼 diff 만으로는 통과한다.
+assert_pair_gate "$GATE0" "$sandbox/f0-nonexistent-plan.md" "$sandbox/f0-nonexistent-summary.md" \
+  fail "집합 게이트: plan·summary 경로 동시 누락(4차 audit F-1 반례) 격추"
+assert_pair_gate "$GATE0" '.ai/90_issues/active/issue-<번호>/issue-<번호>-plan.md' \
+  '.ai/90_issues/active/issue-<번호>/issue-<번호>-summary.md' \
+  fail "집합 게이트: 미치환 <번호> 경로 격추"
+assert_pair_gate "$GATE0" "$sandbox/f0-nonexistent-plan.md" "$base" fail "집합 게이트: plan 경로만 누락 격추"
 
 assert_gate "$GATE1" "$base" pass "결과 게이트: 정상 fixture 통과"
 assert_gate "$GATE2" "$base" pass "수행 모델 게이트: 정상 fixture 통과"
