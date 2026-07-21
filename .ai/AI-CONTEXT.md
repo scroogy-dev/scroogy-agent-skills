@@ -80,6 +80,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
 │   └── templates/              # 감사 리포트 템플릿
+├── issue-model-triage/         # 이슈 시작 전 모델 조합 분류·추천 스킬 (문서 전용)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   ├── templates/              # 이슈 템플릿
 │   └── tests/                  # plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
@@ -107,6 +108,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `install-skills` | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
 | `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
+| `issue-model-triage` | 이슈 시작 전 플랜·구현·검증 3역할의 모델 조합을 분류·추천 (경량, 문서 전용) |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | `readme-sync` | 프로젝트를 분석하여 README.md 생성 또는 최신화 (init/update 모드, individual/business 프로파일) |
 
