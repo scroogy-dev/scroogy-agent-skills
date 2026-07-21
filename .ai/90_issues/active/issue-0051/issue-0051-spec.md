@@ -50,6 +50,7 @@
 - [ ] [D] **D9** `## 관련 skill` 절에 issue-work·issue-audit 언급  (검증: `S=issue-model-triage/SKILL.md; A=$(awk '/^## 관련 skill/{f=1;next} /^## /{f=0} f' "$S"); echo "$A" | grep -q 'issue-work' && echo "$A" | grep -q 'issue-audit' && echo OK` 출력 `OK`)
 - [ ] [QD] **D10** `## 출력` 절에 추천 표 형식(역할|모델|벤더|선정 사유)·분류 근거 요약·"최종 선택은 사용자, 조합 확정·워크플로우 자동 실행 없음"이 정의됨  (검증: 교차모델 audit 채점, 별도 세션)  ← 강등 사유: 문구 고정 grep은 표기 변형에 취약해(행 구조 원칙) 의미 대조가 필요
 - [ ] [D] **D11** 안내도에 신규 스킬 행이 반영됨  (검증: `[ $(grep -cE '^\| .issue-model-triage. \|' .ai/AI-CONTEXT.md) -eq 1 ] && [ $(grep -cE '^(├|└)── issue-model-triage/' .ai/AI-CONTEXT.md) -eq 1 ] && [ $(grep -cE '^\| \[issue-model-triage\]' README.md) -eq 1 ] && [ $(grep -cE '^(├|└)── issue-model-triage( |/|$)' README.md) -ge 1 ] && echo OK` 출력 `OK`)
+- [ ] [D] **D12** 판정 보류 경로 산출물(예시 4 + `## 출력` 비추천 분기 2종: 판정 보류·제약 미충족)이 실재 — F-6/F-7로 추가한 판정 보류 경로의 회귀 게이트  (검증: `S=issue-model-triage/SKILL.md; [ $(grep -c '^### 예시 4' "$S") -eq 1 ] && [ $(grep -cE '^- \*\*판정 보류\*\*' "$S") -eq 1 ] && [ $(grep -cE '^- \*\*제약 미충족\*\*' "$S") -eq 1 ] && echo OK` 출력 `OK`)
 
 ---
 
