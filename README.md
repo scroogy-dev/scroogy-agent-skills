@@ -22,6 +22,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
 | [install-skills](./install-skills/) | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
 | [issue-audit](./issue-audit/) | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
+| [issue-model-triage](./issue-model-triage/) | 이슈 시작 전 플랜·구현·검증 3역할의 모델 조합을 분류·추천 (경량, 문서 전용) |
 | [issue-work](./issue-work/) | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | [readme-sync](./readme-sync/) | 프로젝트 분석 후 README.md 생성/재작성 |
 
@@ -39,6 +40,7 @@ ai-workspace (디렉토리 스캐폴딩)
 ├── git-review          ← .ai/ 문서 활용
 ├── git-review-context  ← .ai/ 문서 활용, git-review와 함께 사용 가능
 ├── issue-audit         ← issue-work 스펙 활용, .ai/ 문서 활용
+├── issue-model-triage  ← issue-work 앞단 활용 가능, issue-audit 검증 제약 참조
 ├── issue-work          ← .ai/90_issues/ 활용
 └── readme-sync         ← 독립 사용 가능
 ```

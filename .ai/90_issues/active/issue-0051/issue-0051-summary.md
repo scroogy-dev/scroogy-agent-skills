@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 3 — 안내도 반영 (AI-CONTEXT.md·README.md)
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자가 직접 타벤더 모델로 수행)
 
 ## 모델 기록
 
@@ -110,13 +110,13 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 3: 안내도 반영 (AI-CONTEXT.md·README.md)
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 4.8 (claude-opus-4-8)
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 신규 스킬 `issue-model-triage`를 안내도 4곳에 알파벳 순(issue-audit·issue-work 사이)으로 행 추가. (1) `.ai/AI-CONTEXT.md` 디렉토리 트리, (2) 동 파일 스킬 목록 표, (3) `README.md` 스킬 표, (4) 동 파일 "Skill 간 관계" 트리. 트리 정렬은 각 파일 기존 필드폭(AI-CONTEXT 이름 28칸, README `←` 앞 20칸)에 맞춤. spec D11 명령 재실행 결과 `OK`.
+- **특이 사항**: README "Skill 간 관계" 트리는 install-skills를 생략하는 별도 구성이라 그 관례를 유지하고 issue-model-triage만 추가. 전면 재작성은 하지 않고 행 추가에 국한(범위 준수).
 
 ---
 
