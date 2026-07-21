@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 1 — 스킬명 확정 및 이슈 #51 댓글 기록
+> ▶️ 다음 작업: Task 2 — 신규 스킬 SKILL.md 작성
 
 ## 모델 기록
 
@@ -86,13 +86,13 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 1: 스킬명 확정 및 이슈 #51 댓글 기록
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 4.8 (claude-opus-4-8)
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 후보 3종(issue-triage / issue-model / model-triage)을 대상-행위 패턴 일관성 + 사용자 의도 기준으로 비교. 사용자가 3-토큰 `issue-model-triage`를 제안·확정(issue 계열 일관성 + model 산출물 + triage 동작을 모두 명시, 자동완성으로 길이 부담 해소, ai-workspace-directory·git-review-context 선례). 이슈 #51에 확정 댓글 등록(comment 5029662524), spec·plan의 `<스킬명>` placeholder를 실명으로 전부 치환. D1·placeholder 잔존 0건 통과.
+- **특이 사항**: sed 치환이 placeholder를 설명하는 메타 문장 2곳(spec 40행·plan 74행)까지 바꿔 자기모순이 발생 → `<스킬명>` 토큰 없이 문장을 정정(토큰 복원 시 잔존 0건 D-check가 깨짐).
 
 ---
 

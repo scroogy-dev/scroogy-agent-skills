@@ -37,19 +37,19 @@
 > - `[QD]` L2 준결정적 — 다른 AI·기준 체크리스트가 채점
 > - `[ND]` L3 비결정적 — 사람이 직접 읽고 판단
 >
-> 명령은 repo 루트 기준. `<스킬명>`은 Task 1 확정 직후 실제 스킬명으로 치환한다 — 치환 전에는 D2 이하 명령을 실행할 수 없다.
+> 명령은 repo 루트 기준. 아래 명령의 스킬명은 Task 1에서 `issue-model-triage`로 확정됐다 (확정 전에는 D2 이하 명령을 실행할 수 없었다).
 
 - [ ] [D] **D1** 확정 스킬명이 이슈 #51 댓글에 기록됨  (검증: `gh issue view 51 --repo scroogy-dev/scroogy-agent-skills --comments` 출력에 확정 스킬명 포함)
-- [ ] [D] **D2** `<스킬명>/SKILL.md`의 프론트매터가 규칙 준수  (검증: `S=<스킬명>/SKILL.md; [ $(grep -cE '^name: <스킬명>$' "$S") -eq 1 ] && [ $(grep -cE '^description: .+' "$S") -eq 1 ] && echo OK` 출력 `OK`)
-- [ ] [D] **D3** 진입 경로 3종이 하위 절로 존재하고 중복·누락 없음  (검증: `diff <(grep -E '^### (인자 입력|프롬프트 입력|미입력 시 질의)$' <스킬명>/SKILL.md | LC_ALL=C sort) <(printf '### 미입력 시 질의\n### 인자 입력\n### 프롬프트 입력\n')` 출력 0건)
-- [ ] [D] **D4** 제약 검증 절과 만족 불가 시 동작 행이 존재  (검증: `S=<스킬명>/SKILL.md; [ $(grep -c '^### 제약 검증$' "$S") -eq 1 ] && [ $(grep -cE '^- \*\*만족 불가 시\*\*:' "$S") -eq 1 ] && echo OK` 출력 `OK`)
-- [ ] [D] **D5** 분류 기준 절이 존재  (검증: `grep -c '^### 분류 기준$' <스킬명>/SKILL.md` 출력 `1`)
+- [ ] [D] **D2** `issue-model-triage/SKILL.md`의 프론트매터가 규칙 준수  (검증: `S=issue-model-triage/SKILL.md; [ $(grep -cE '^name: issue-model-triage$' "$S") -eq 1 ] && [ $(grep -cE '^description: .+' "$S") -eq 1 ] && echo OK` 출력 `OK`)
+- [ ] [D] **D3** 진입 경로 3종이 하위 절로 존재하고 중복·누락 없음  (검증: `diff <(grep -E '^### (인자 입력|프롬프트 입력|미입력 시 질의)$' issue-model-triage/SKILL.md | LC_ALL=C sort) <(printf '### 미입력 시 질의\n### 인자 입력\n### 프롬프트 입력\n')` 출력 0건)
+- [ ] [D] **D4** 제약 검증 절과 만족 불가 시 동작 행이 존재  (검증: `S=issue-model-triage/SKILL.md; [ $(grep -c '^### 제약 검증$' "$S") -eq 1 ] && [ $(grep -cE '^- \*\*만족 불가 시\*\*:' "$S") -eq 1 ] && echo OK` 출력 `OK`)
+- [ ] [D] **D5** 분류 기준 절이 존재  (검증: `grep -c '^### 분류 기준$' issue-model-triage/SKILL.md` 출력 `1`)
 - [ ] [QD] **D6** 분류 기준 목록이 이슈의 예시 4항목(설계 선택지 복수 / ADR 관련 / 계약 영향 / 완료 기준 비결정성)을 기반으로 확정·문서화됨  (검증: 교차모델 audit 채점, 별도 세션)  ← 강등 사유: 기준의 완결성·적정성은 의미 판단이라 명령으로 환원 불가
-- [ ] [D] **D7** 시나리오 예시 2종이 존재  (검증: `S=<스킬명>/SKILL.md; [ $(grep -c '^### 예시 1:' "$S") -eq 1 ] && [ $(grep -c '^### 예시 2:' "$S") -eq 1 ] && echo OK` 출력 `OK`)
+- [ ] [D] **D7** 시나리오 예시 2종이 존재  (검증: `S=issue-model-triage/SKILL.md; [ $(grep -c '^### 예시 1:' "$S") -eq 1 ] && [ $(grep -c '^### 예시 2:' "$S") -eq 1 ] && echo OK` 출력 `OK`)
 - [ ] [QD] **D8** 예시 1(후보 fable5·opus4.8·gpt-5.6sol 입력 시 추천 표)과 예시 2(타벤더 검증 모델 부재 시 부족 조건 안내)가 기대 동작을 담음  (검증: 교차모델 audit 채점, 별도 세션)  ← 강등 사유: 기대 동작 충족 여부는 예시 서술의 의미 판단이라 명령으로 환원 불가
-- [ ] [D] **D9** `## 관련 skill` 절에 issue-work·issue-audit 언급  (검증: `S=<스킬명>/SKILL.md; A=$(awk '/^## 관련 skill/{f=1;next} /^## /{f=0} f' "$S"); echo "$A" | grep -q 'issue-work' && echo "$A" | grep -q 'issue-audit' && echo OK` 출력 `OK`)
+- [ ] [D] **D9** `## 관련 skill` 절에 issue-work·issue-audit 언급  (검증: `S=issue-model-triage/SKILL.md; A=$(awk '/^## 관련 skill/{f=1;next} /^## /{f=0} f' "$S"); echo "$A" | grep -q 'issue-work' && echo "$A" | grep -q 'issue-audit' && echo OK` 출력 `OK`)
 - [ ] [QD] **D10** `## 출력` 절에 추천 표 형식(역할|모델|벤더|선정 사유)·분류 근거 요약·"최종 선택은 사용자, 조합 확정·워크플로우 자동 실행 없음"이 정의됨  (검증: 교차모델 audit 채점, 별도 세션)  ← 강등 사유: 문구 고정 grep은 표기 변형에 취약해(행 구조 원칙) 의미 대조가 필요
-- [ ] [D] **D11** 안내도에 신규 스킬 행이 반영됨  (검증: `[ $(grep -cE '^\| .<스킬명>. \|' .ai/AI-CONTEXT.md) -eq 1 ] && [ $(grep -cE '^(├|└)── <스킬명>/' .ai/AI-CONTEXT.md) -eq 1 ] && [ $(grep -cE '^\| \[<스킬명>\]' README.md) -eq 1 ] && [ $(grep -cE '^(├|└)── <스킬명>( |/|$)' README.md) -ge 1 ] && echo OK` 출력 `OK`)
+- [ ] [D] **D11** 안내도에 신규 스킬 행이 반영됨  (검증: `[ $(grep -cE '^\| .issue-model-triage. \|' .ai/AI-CONTEXT.md) -eq 1 ] && [ $(grep -cE '^(├|└)── issue-model-triage/' .ai/AI-CONTEXT.md) -eq 1 ] && [ $(grep -cE '^\| \[issue-model-triage\]' README.md) -eq 1 ] && [ $(grep -cE '^(├|└)── issue-model-triage( |/|$)' README.md) -ge 1 ] && echo OK` 출력 `OK`)
 
 ---
 
