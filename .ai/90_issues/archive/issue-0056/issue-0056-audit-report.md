@@ -1,8 +1,8 @@
 # Issue #56 감사 리포트 issue-model-triage 구현 역할 추천을 역량 기반 토큰 효율 방식으로 전환 — 보정 후 재검증
 
-> 감사 일시: 2026-07-28  
-> 감사 모델: OpenAI, GPT-5  
-> 감사 대상 브랜치: `issue-0056` (`c9dd366` + 작업 트리 보정)  
+> 감사 일시: 2026-07-28
+> 감사 모델: OpenAI, GPT-5
+> 감사 대상 브랜치: `issue-0056` (`c9dd366` + 작업 트리 보정)
 > 스펙 출처: [issue-0056-spec.md](./issue-0056-spec.md) (작성 시점 경로는 `.ai/90_issues/active/issue-0056/issue-0056-spec.md`, --clear로 이관)
 
 ---
