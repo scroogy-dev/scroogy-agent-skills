@@ -118,9 +118,11 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 - **작업 내용**:
   1. `README.md` 스킬 표의 git-pr 행에 승인 후 PR 생성(정식/드래프트)을 반영한다.
   2. `.ai/AI-CONTEXT.md` `## 스킬 목록` 표의 git-pr 행을 같은 내용으로 갱신한다.
+  3. `ai-workspace/SKILL.md` `## 이 구조와 함께 사용 가능한 skill` 목록의 git-pr 행을 같은 내용으로 갱신한다 (교차모델 audit F-4로 추가된 대상).
 - **완료 기준**:
   - [D] README 행 반영  (검증: repo 루트에서 `grep -cE '^\| \[git-pr\]\(\./git-pr/\) \|.*드래프트' README.md` 출력 1)
   - [D] AI-CONTEXT 행 반영  (검증: repo 루트에서 `grep -cE '^\| `git-pr` \|.*드래프트' .ai/AI-CONTEXT.md` 출력 1)
+  - [D] ai-workspace 행 반영  (검증: repo 루트에서 `grep -cE '^- \*\*git-pr\*\*:.*정식/드래프트 PR 생성' ai-workspace/SKILL.md` 출력 1)
   - [QD] 두 행의 설명이 `git-pr/SKILL.md` description과 의미상 일치  (검증: 교차모델 audit이 세 문구 대조 채점)  ← 강등 사유: 요약 문구의 일치는 의미 대조라 명령으로 환원 불가
 
 ---

@@ -14,7 +14,7 @@ git-pr이 메시지 작성에서 끝나지 않고, PR 유형(정식/드래프트
 - 승인 게이트 — 최종 제목·본문을 제시하고 작성자 승인 후에만 제출, 유형과 무관하게 생략 불가
 - `--draft` 옵션 — 유형 확인 질의를 생략하고 드래프트로 확정, 이후 절차는 기본 동작과 동일
 - description·개요의 "실제 PR 생성·제출이 아니라 메시지 텍스트 작성용" 문구를 새 동작에 맞게 갱신
-- `README.md`·`.ai/AI-CONTEXT.md`의 git-pr 설명 동기화
+- `README.md`·`.ai/AI-CONTEXT.md`·`ai-workspace/SKILL.md`의 git-pr 설명 동기화 (`ai-workspace/SKILL.md`는 교차모델 audit F-4로 범위 추가 — 2026-07-29 `--response` 승인)
 
 **비포함 (Out)**
 
@@ -36,6 +36,7 @@ git-pr이 메시지 작성에서 끝나지 않고, PR 유형(정식/드래프트
 - [x] [D] `git-pr/SKILL.md`에 `## 옵션` 섹션과 `--draft` 하위 섹션이 각 1개 존재  (검증: repo 루트에서 `grep -cE '^## 옵션$' git-pr/SKILL.md` 출력 1, `grep -cE '^### `--draft`$' git-pr/SKILL.md` 출력 1)
 - [x] [D] 기존 단정 문구가 제거되고 description에 `--draft` 분기가 명시  (검증: repo 루트에서 `grep -c '실제 PR 생성·제출이 아니라 메시지 텍스트 작성용' git-pr/SKILL.md` 출력 0, `grep -cE '^description:.*--draft' git-pr/SKILL.md` 출력 1)
 - [x] [D] README·AI-CONTEXT의 git-pr 행에 드래프트 PR 언급이 반영  (검증: repo 루트에서 `grep -cE '^\| \[git-pr\]\(\./git-pr/\) \|.*드래프트' README.md` 출력 1, `grep -cE '^\| `git-pr` \|.*드래프트' .ai/AI-CONTEXT.md` 출력 1)
+- [x] [D] `ai-workspace/SKILL.md`의 git-pr 행에 PR 생성이 반영  (검증: repo 루트에서 `grep -cE '^- \*\*git-pr\*\*:.*정식/드래프트 PR 생성' ai-workspace/SKILL.md` 출력 1)
 - [ ] [QD] 기본 절차가 "유형 확인 질의 → 메시지 작성 → 최종 제목·본문 제시·승인 → 해당 유형으로 생성" 순서를 갖추고, 승인 게이트가 유형·옵션과 무관하게 생략 불가로 서술되며, `--draft`는 유형 확인 생략 외에는 기본 절차와 동일하다  (검증: 교차모델 audit 채점)  ← 강등 사유: 절차 서술의 의미·순서 판단이라 명령으로 환원 불가
 - [ ] [QD] Task 0에서 확정한 결정(생성 수단·베이스 브랜치·메시지만 작성 경로·정식 확정 옵션)이 본문에 반영된다  (검증: 교차모델 audit이 spec `전제`와 본문을 대조 채점)  ← 강등 사유: 합의 내용과 서술의 일치는 의미 대조라 명령으로 환원 불가
 
