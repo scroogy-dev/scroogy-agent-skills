@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — README.md·.ai/AI-CONTEXT.md의 git-pr 행 동기화
+> ▶️ 다음 작업: Task N — 사용자가 직접 타벤더 모델로 issue-audit 수행 (구현 모델: Anthropic, Claude Opus 5)
 
 ## 모델 기록
 
@@ -122,13 +122,13 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 4: README·AI-CONTEXT 동기화
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `README.md` 스킬 표와 `.ai/AI-CONTEXT.md` 스킬 목록 표의 git-pr 행을 "PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성"으로 동일하게 갱신. 검증: README·AI-CONTEXT 각 grep 출력 1.
+- **특이 사항**: AI-CONTEXT 디렉토리 구조 트리의 git-pr 주석도 같은 낡은 서술이라 "PR 제목/메시지 작성·제출 스킬"로 함께 갱신(표 2곳 외 추가 1곳). `## Git 정책` 표의 `/git-pr` 행("PR 생성 규칙")과 README `## Skill 간 관계` 트리는 새 동작과 어긋나지 않아 유지.
 
 ---
 

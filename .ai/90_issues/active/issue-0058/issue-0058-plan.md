@@ -113,7 +113,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 4: README·AI-CONTEXT 동기화
 
-- [ ] 완료
+- [x] 완료
 - **목표**: description 변경 신호에 따라 `README.md`·`.ai/AI-CONTEXT.md`의 git-pr 설명을 새 동작에 맞게 동기화한다.
 - **작업 내용**:
   1. `README.md` 스킬 표의 git-pr 행에 승인 후 PR 생성(정식/드래프트)을 반영한다.
