@@ -21,6 +21,7 @@ git-pr이 메시지 작성에서 끝나지 않고, PR 유형(정식/드래프트
 - PR 메시지 구조·정책(비즈니스/테크 관점) 자체의 변경
 - 드래프트 → 정식 전환(ready for review) 자동화
 - 설치본(`~/.claude/skills/` 등 5개 경로) 갱신 — repo가 SSoT, 배포는 install-skills 재실행으로 별도 수행
+- 포크(fork) 기반 PR 제출 경로 — head 저장소가 upstream과 다른 경우의 `<소유자>:<브랜치>` head 지정·포크 생성·게시 절차. 같은 저장소의 브랜치를 소스로 하는 제출만 다룬다 (교차모델 audit F-1 — 2026-07-29 `--response` 사용자 지시로 범위 제외)
 
 ---
 
@@ -64,6 +65,7 @@ git-pr이 메시지 작성에서 끝나지 않고, PR 유형(정식/드래프트
 | `git-pr/SKILL.md` | 수정 대상 — PR 제출 절차·옵션 신설, description·개요 갱신 |
 | `README.md` | 동기화 대상 — 스킬 표 git-pr 행 |
 | `.ai/AI-CONTEXT.md` | 동기화 대상 — 스킬 목록 git-pr 행 |
+| `ai-workspace/SKILL.md` | 동기화 대상 — 함께 사용 가능한 skill 목록 git-pr 행 (교차모델 audit F-4로 범위 추가) |
 | `.ai/10_rules/writing-principles.md` | 이슈 산출 문서 작성 원칙 |
 
 > `.ai/30_contract/`·`.ai/40_domain/`·`.ai/50_adr/` index를 훑은 결과 이 이슈와 직접 관련된 문서는 없다.

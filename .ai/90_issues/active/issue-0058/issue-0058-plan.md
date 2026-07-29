@@ -77,6 +77,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
   2. 승인 게이트는 유형·옵션과 무관하게 생략 불가임을 명시한다.
   3. `## 실행 절차` 목록에 유형 확인·승인·제출 단계를 연결해, 절차 목록만 읽어도 제출까지의 흐름이 드러나게 한다.
   4. 첫 언급 표기는 "드래프트(draft)"로 병기한다 — spec DoD의 `드래프트` grep이 이 표기에 의존한다.
+  5. 포크(fork) 기반 head 지정(`<소유자>:<브랜치>`)·포크 생성·게시 절차는 이 이슈 범위 밖이다 (spec `비포함 (Out)`) — 소스 브랜치는 같은 저장소 기준으로만 서술한다.
 - **완료 기준**:
   - [D] PR 제출 섹션 헤더 1개  (검증: repo 루트에서 `grep -cE '^## PR 제출$' git-pr/SKILL.md` 출력 1)
   - [QD] 절차 순서(유형 확인 → 메시지 작성 → 제시·승인 → 해당 유형 생성)·승인 게이트 생략 불가·Task 0 확정값 반영이 본문에 갖춰짐  (검증: 교차모델 audit 채점)  ← 강등 사유: 절차 서술의 의미·순서 판단이라 명령으로 환원 불가
@@ -114,7 +115,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 ### Task 4: README·AI-CONTEXT 동기화
 
 - [x] 완료
-- **목표**: description 변경 신호에 따라 `README.md`·`.ai/AI-CONTEXT.md`의 git-pr 설명을 새 동작에 맞게 동기화한다.
+- **목표**: description 변경 신호에 따라 `README.md`·`.ai/AI-CONTEXT.md`·`ai-workspace/SKILL.md` 세 문서의 git-pr 설명을 새 동작에 맞게 동기화한다 (세 번째 대상은 교차모델 audit F-4로 추가).
 - **작업 내용**:
   1. `README.md` 스킬 표의 git-pr 행에 승인 후 PR 생성(정식/드래프트)을 반영한다.
   2. `.ai/AI-CONTEXT.md` `## 스킬 목록` 표의 git-pr 행을 같은 내용으로 갱신한다.
@@ -123,7 +124,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
   - [D] README 행 반영  (검증: repo 루트에서 `grep -cE '^\| \[git-pr\]\(\./git-pr/\) \|.*드래프트' README.md` 출력 1)
   - [D] AI-CONTEXT 행 반영  (검증: repo 루트에서 `grep -cE '^\| `git-pr` \|.*드래프트' .ai/AI-CONTEXT.md` 출력 1)
   - [D] ai-workspace 행 반영  (검증: repo 루트에서 `grep -cE '^- \*\*git-pr\*\*:.*정식/드래프트 PR 생성' ai-workspace/SKILL.md` 출력 1)
-  - [QD] 두 행의 설명이 `git-pr/SKILL.md` description과 의미상 일치  (검증: 교차모델 audit이 세 문구 대조 채점)  ← 강등 사유: 요약 문구의 일치는 의미 대조라 명령으로 환원 불가
+  - [QD] 세 문구(README·AI-CONTEXT·ai-workspace)의 설명이 `git-pr/SKILL.md` description과 의미상 일치  (검증: 교차모델 audit이 세 문구 대조 채점)  ← 강등 사유: 요약 문구의 일치는 의미 대조라 명령으로 환원 불가
 
 ---
 
