@@ -14,11 +14,21 @@ tags: []
 
 ## 배경 (Why)
 
+<details>
+<summary>상세 펼치기</summary>
+
 <!-- 왜 이 논의가 시작되었는가. 어떤 문제/기회였는가. -->
+
+</details>
 
 ## 논의 요약
 
+<details>
+<summary>상세 펼치기</summary>
+
 <!-- 핵심 옵션·트레이드오프·근거. 누가 뭐라고 말했는지는 적지 않습니다. -->
+
+</details>
 
 ## 결정사항
 
@@ -40,6 +50,11 @@ tags: []
 
 ## 참조
 
+<details>
+<summary>상세 펼치기</summary>
+
 <!-- 파일 경로(repo 루트 기준), 커밋 해시, 이슈/PR 번호, URL 등. -->
 
 -
+
+</details>

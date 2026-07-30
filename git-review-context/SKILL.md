@@ -20,6 +20,7 @@ AI가 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 
 - **스킬 고유 추가 참조**:
   - `.ai/60_codebase/index.md` — 호출 흐름 파악
   - `.ai/30_contract/index.md`, `.ai/40_domain/index.md` — 리뷰 포인트 도출 (계약·정책 영향 확인)
+  - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
 
 ---
 
@@ -100,6 +101,17 @@ OrderController#createOrder
 
 ---
 
+## 산출물 접기 기준
+
+산출물의 상세 내용은 `<details>` 접기로 분량을 줄이되, 아래 기준을 따릅니다.
+
+- **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
+- **접기 금지**: 결정사항·리스크·액션 아이템
+
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.
+
+---
+
 ## 결과 기록
 
 분석이 완료되면 `.ai/99_workspace/temp_review_context.md`에 아래 구조로 기록합니다.
@@ -114,11 +126,19 @@ OrderController#createOrder
 <!-- 기능명과 해당 엔트리 포인트(파일 경로 + 함수/메서드명) -->
 
 ## 호출 흐름
+
+<details>
+<summary>엔트리 포인트별 호출 흐름 펼치기</summary>
+
 <!-- 엔트리 포인트별 호출 흐름 -->
+
+</details>
 
 ## 리뷰 포인트
 <!-- 분류별 리뷰 집중 항목 -->
 ```
+
+호출 흐름 상세는 접고, 변경 요약·리뷰 포인트는 본문에 유지합니다 ("산출물 접기 기준" 참조).
 
 기록 완료 후 사용자에게 파일 위치를 안내합니다.
 

@@ -31,6 +31,7 @@ description: 소스코드 바깥의 What(계약, 명세)과 Why(정책, 의사�
 - **공통 규칙**: `.ai/10_rules/context-loading.md` — 있으면 따르며, 이미 적재되어 있으면 재로딩하지 않습니다.
 - **스킬 고유 추가 참조**:
   - 기존 `.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 문서의 프론트매터 — 증분 수집 판정(`last_harvested` 비교)
+  - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
 
 ---
 
@@ -201,6 +202,17 @@ description: 소스코드 바깥의 What(계약, 명세)과 Why(정책, 의사�
 
 > 다음 단계: /code-map --local sync 로 교차 참조를 연결하세요.
 ```
+
+---
+
+## 산출물 접기 기준
+
+산출물의 상세 내용은 `<details>` 접기로 분량을 줄이되, 아래 기준을 따릅니다.
+
+- **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
+- **접기 금지**: 결정사항·리스크·액션 아이템
+
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.
 
 ---
 

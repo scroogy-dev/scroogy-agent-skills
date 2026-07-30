@@ -20,6 +20,7 @@ PR 리뷰와 Self 리뷰 모두 **비즈니스 리뷰**와 **테크 리뷰** 두
   - `.ai/30_contract/index.md`, `.ai/40_domain/index.md` — 비즈니스 리뷰 (index 먼저 → 관련 파일만 선택적으로)
   - `.ai/60_codebase/index.md` — 테크 리뷰 호출 흐름 파악
   - `.ai/50_adr/index.md` — 테크 리뷰에서 관련 ADR 정합성 대조 (index 먼저 → 관련 ADR만 선택적으로)
+  - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
 
 ---
 
@@ -70,7 +71,7 @@ index.md나 관련 문서가 없어 도메인/계약 정보를 참조할 수 없
 
 ### 3단계: 결과 기록
 
-`.ai/99_workspace/temp_review_result.md`의 **비즈니스 리뷰** 섹션에 검토 결과를 기록합니다.
+`.ai/99_workspace/temp_review_result.md`의 **비즈니스 리뷰** 섹션에 검토 결과를 기록합니다 (구조는 "결과 기록 형식" 참조).
 
 ---
 
@@ -95,4 +96,53 @@ index.md나 관련 문서가 없어 도메인/계약 정보를 참조할 수 없
 
 ### 4단계: 결과 기록
 
-`.ai/99_workspace/temp_review_result.md`의 **테크 리뷰** 섹션에 검토 결과를 기록합니다.
+`.ai/99_workspace/temp_review_result.md`의 **테크 리뷰** 섹션에 검토 결과를 기록합니다 (구조는 "결과 기록 형식" 참조).
+
+---
+
+## 결과 기록 형식
+
+`.ai/99_workspace/temp_review_result.md`는 아래 구조로 기록합니다.
+리뷰 포인트·결론은 본문에 유지하고, 상세 분석·근거는 접습니다 ("산출물 접기 기준" 참조).
+
+```markdown
+# 리뷰 결과
+
+## 비즈니스 리뷰
+
+### 리뷰 포인트
+<!-- 도메인 정책·소프트웨어 계약 관점의 지적 사항과 결론 -->
+
+<details>
+<summary>상세 분석·근거 펼치기</summary>
+
+<!-- 참조 문서 대조 근거, 검토 과정 상세 -->
+
+</details>
+
+## 테크 리뷰
+
+### 리뷰 포인트
+<!-- 기능·테스트·아키텍처 관점의 지적 사항과 결론 -->
+
+<details>
+<summary>상세 분석·근거 펼치기</summary>
+
+<!-- 호출 흐름 추적, 코드 근거 상세 -->
+
+</details>
+
+## 결론
+<!-- 리뷰 종합 판단과 후속 액션 -->
+```
+
+---
+
+## 산출물 접기 기준
+
+산출물의 상세 내용은 `<details>` 접기로 분량을 줄이되, 아래 기준을 따릅니다.
+
+- **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
+- **접기 금지**: 결정사항·리스크·액션 아이템
+
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.

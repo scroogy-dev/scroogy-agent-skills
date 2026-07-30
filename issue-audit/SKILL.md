@@ -30,6 +30,7 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
   - `.ai/30_contract/index.md`, `.ai/40_domain/index.md` — 도메인·계약 정합성 (index 먼저 → 관련 파일만 선택적으로)
   - `.ai/50_adr/index.md` — 1단계 범위 검증 시 ADR과의 정합성 대조 (index 먼저 → 관련 ADR만 선택적으로)
   - `.ai/60_codebase/index.md` — 관련 기능의 호출 흐름
+  - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
 
 ---
 
@@ -123,6 +124,17 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
 2. 리포트를 `.ai/99_workspace/issue-<번호>-audit-report.md`에 저장한다.
 3. 사용자에게 주요 발견 사항을 요약 보고한다.
 4. 감사에 사용한 모델은 **"벤더, 모델명" 형식**으로 기록한다 (예: `OpenAI, GPT-5.x` / `Google, Gemini 3.x`). 이는 `issue-work`의 summary 모델 기록과 **동일한 형식**이며, 리포트 템플릿의 '감사 모델' 줄(#26)도 이 형식을 따른다.
+
+---
+
+## 산출물 접기 기준
+
+산출물의 상세 내용은 `<details>` 접기로 분량을 줄이되, 아래 기준을 따릅니다.
+
+- **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
+- **접기 금지**: 결정사항·리스크·액션 아이템
+
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.
 
 ---
 
