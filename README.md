@@ -16,7 +16,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [context-harvest](./context-harvest/) | 소스코드 바깥의 What+Why를 수집·증류하여 `.ai/30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
 | [context-save](./context-save/) | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | [git-commit](./git-commit/) | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
-| [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+테크 관점) |
+| [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
 | [git-qa](./git-qa/) | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | [git-review](./git-review/) | 비즈니스/테크 리뷰 수행 |
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
