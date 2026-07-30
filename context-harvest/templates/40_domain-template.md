@@ -10,4 +10,9 @@ last_harvested: <수집 일시>
 
 ## 원본 출처
 
+<details>
+<summary>출처 목록 펼치기</summary>
+
 - [출처 제목](원본 URL)
+
+</details>

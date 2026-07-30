@@ -17,6 +17,7 @@ description: 배포 대상 PR 목록에서 관련 이슈를 수집하고 repo별
 - **스킬 고유 추가 참조**:
   - `.ai/40_domain/index.md` — 관련 도메인 spec·policy가 있으면 해당 기준을 테스트 항목에 반영 (index 먼저 → 관련 파일만 선택적으로)
   - `.ai/30_contract/index.md` — 외부 API 제공이 QA 대상에 포함되면 계약을 테스트 항목 기준으로 활용 (index 먼저 → 관련 파일만 선택적으로)
+  - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
 
 ---
 
@@ -106,6 +107,17 @@ QA 이슈 링크가 제공된 경우, 해당 이슈의 body를 아래 템플릿 
 
 ---
 
+## 산출물 접기 기준
+
+산출물의 상세 내용은 `<details>` 접기로 분량을 줄이되, 아래 기준을 따릅니다.
+
+- **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
+- **접기 금지**: 결정사항·리스크·액션 아이템
+
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.
+
+---
+
 ## 출력 템플릿
 
 ```markdown
@@ -122,21 +134,33 @@ QA 이슈 링크가 제공된 경우, 해당 이슈의 body를 아래 템플릿 
 ## repo-A
 
 ### Issue #5 - [이슈 제목]
+
+<details>
+<summary>변경 요약·영향 범위</summary>
+
 - **변경 요약:**
   - ...
 - **영향 범위:**
   - API
   - DB
 
+</details>
+
 #### 테스트 체크리스트
 - [ ] `POST /api/orders` 호출 후 201 응답 확인 — 응답 body 캡처
 - [ ] `orders` 테이블에 신규 레코드 생성 확인 — 쿼리 결과 캡처
 
 ### Issue #6 - [이슈 제목]
+
+<details>
+<summary>변경 요약·영향 범위</summary>
+
 - **변경 요약:**
   - ...
 - **영향 범위:**
   - 웹 UI
+
+</details>
 
 #### 테스트 체크리스트
 - [ ] 주문 목록 페이지 접속 후 정상 렌더링 확인 — 스크린샷 첨부

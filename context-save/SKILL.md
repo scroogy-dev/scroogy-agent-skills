@@ -30,6 +30,7 @@ description: 대화 중 중요한 맥락(배경, 결정, 미결 사항, 다음 �
 - **스킬 고유 추가 참조**:
   - `.ai/90_issues/active/` — 활성 이슈 번호 자동 감지 (있을 경우)
   - `.ai/99_workspace/notes/` — 기존 노트 파일명 충돌 확인
+  - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
 
 ---
 
@@ -139,6 +140,17 @@ slug는 기본적으로 **대화 주제에서 자동 생성**합니다. 인자�
 - 요약: 미결 2건, 다음 액션 1건
 - 다음 세션에서 `/issue-work --resume`으로 자동 로드됩니다.
 ```
+
+---
+
+## 산출물 접기 기준
+
+산출물의 상세 내용은 `<details>` 접기로 분량을 줄이되, 아래 기준을 따릅니다.
+
+- **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
+- **접기 금지**: 결정사항·리스크·액션 아이템
+
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.
 
 ---
 
