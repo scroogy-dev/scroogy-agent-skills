@@ -170,7 +170,11 @@ gh api graphql --hostname '<호스트>' --paginate -f query='
 |------|-----------|-----------------|
 | 일반 댓글 답글 | `gh pr comment` | `add_issue_comment` |
 | 코드 라인 스레드 답글 | `gh api …/replies` | `add_reply_to_pull_request_comment` |
-| 스레드 resolve | `gh api graphql` (mutation) | `pull_request_review_write` (method: `resolve_thread`) |
+| 스레드 resolve | `gh api graphql` (mutation) | 미지원 — 아래 규칙 참조 |
+
+스레드 resolve는 MCP 폴백이 없습니다 — 현재 GitHub MCP 도구 계약에는 스레드 resolve 도구가 없습니다.
+`gh` 불가 환경에서 resolve가 승인된 스레드는 답글만 게시하고 unresolved 상태로 남긴 뒤
+그 사실과 사유를 결과 요약에 명시합니다. 계약에 없는 메서드를 추측해 호출하지 않습니다.
 
 연결된 MCP가 읽기 전용 모드이거나, 활성화된 도구 구성(toolset)에 위 쓰기 도구가 없거나,
 대상 호스트 일치를 확인할 수 없으면("수집 수단"의 호스트 확인 규칙) 그 조치는 실행하지 않습니다 —
@@ -200,12 +204,18 @@ REST/GraphQL API를 직접 호출(`curl` 등)하는 제3의 수단은 이 스킬
   애초에 대상 PR과 다른 저장소를 가리키는 원격을 걸러내지 못합니다.
 - push는 외부 공개 행위이므로 승인 게이트를 거친 뒤에만 수행합니다. 실행 직전에 원격 이름·정규화한 URL·현재 커밋 SHA·대상 브랜치를
   승인 시 보관값과 재대조하고, 하나라도 다르면 중단한 뒤 변경된 최종 대상을 다시 제시해 승인받습니다.
+- push 직전에 원격 ref의 현재 SHA도 조회해 보관한 `headRefOid`와 대조합니다 — 다르거나 ref가 없으면(삭제됨) push하지 않고 중단합니다.
+  그사이 원격이 갱신·rewind·삭제된 것이므로, 새 head 기준으로 diff·검증·승인을 다시 수행합니다.
+  non-force push는 원격 전진 경합은 거부하지만 rewind·삭제 뒤에는 성공해, 승인 당시와 다른 원격 상태를 되살릴 수 있습니다.
 - push 명령은 승인 SHA와 대상 브랜치를 refspec으로 고정해 실행합니다 — 대상 브랜치는 보관한 head 브랜치(`headRefName`)입니다.
   기본 `git push`는 현재 브랜치의 upstream 설정을 따라가 승인받지 않은 원격 브랜치를 갱신할 수 있습니다.
 - push 뒤 대상 PR의 `headRefOid`를 재조회해 승인 SHA와 일치할 때만 반영 완료로 보고합니다 —
   일치하지 않으면 대상 PR이 갱신되지 않았거나 다른 경로로 갱신된 것이므로, 결과 요약에 미반영과 사유를 남깁니다.
 
 ```bash
+# push 직전 원격 ref 대조 — 출력 SHA가 보관한 headRefOid와 다르거나 출력이 비면(삭제됨) 중단
+git ls-remote '<원격 이름>' 'refs/heads/<승인 대상 브랜치>'
+
 git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>'
 
 # push 반영 확인 — 대상 PR head가 승인 SHA로 갱신됐는지 재조회
