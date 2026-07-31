@@ -47,6 +47,8 @@ PR 머지·닫기는 이 스킬의 범위가 아닙니다.
 
 - 인자로 PR 번호를 받으면 그 PR을 대상으로 합니다.
 - 인자가 없으면 현재 브랜치의 열린 PR을 자동 감지합니다. 감지에 실패하면(열린 PR 없음·복수 매칭 등) 대상 PR을 사용자에게 질의합니다.
+- 식별한 소유자/저장소와 PR 번호·URL은 불변값으로 보관하고, 이후 모든 `gh` 명령에 `--repo '<소유자>/<저장소>'`를 명시합니다 —
+  실행 디렉토리나 `GH_REPO` 환경 변수가 다른 저장소의 동명 PR을 선택하는 것을 차단합니다.
 
 ```bash
 # 현재 브랜치의 열린 PR 자동 감지
@@ -66,16 +68,23 @@ gh pr view --json number,title,url
 gh pr view '<PR 번호>' --json reviews,comments
 
 # 코드 라인 스레드 — REST 응답에는 resolve 상태가 없어 GraphQL로 조회
-gh api graphql -f query='
-  query($owner: String!, $repo: String!, $pr: Int!) {
+# --paginate로 스레드 목록을 끝까지 순회한다 ($endCursor 변수와 pageInfo 필수)
+gh api graphql --paginate -f query='
+  query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $pr) {
-        reviewThreads(first: 100) {
+        reviewThreads(first: 100, after: $endCursor) {
+          pageInfo { hasNextPage endCursor }
           nodes {
             id
             isResolved
             path
-            comments(first: 50) { nodes { author { login } body url } }
+            line
+            originalLine
+            comments(first: 50) {
+              pageInfo { hasNextPage }
+              nodes { databaseId author { login } body url }
+            }
           }
         }
       }
@@ -83,9 +92,15 @@ gh api graphql -f query='
   }' -F owner='<소유자>' -F repo='<저장소>' -F pr='<PR 번호>'
 ```
 
+- 스레드 `id`(resolve 대상)와 첫 코멘트의 `databaseId`(코드 라인 답글 대상), `path`·`line`(`line`이 비면 `originalLine`)을
+  항목 표시와 조치 대상 지정에 사용하므로 수집 결과에 보존합니다.
+- 한 스레드의 댓글이 50개를 넘으면(`comments.pageInfo.hasNextPage`가 true) 뒤 댓글이 잘린 것이므로,
+  해당 스레드의 누락 가능성을 사용자에게 알립니다.
+
 ### 수집 수단
 
-- `gh` CLI(GitHub 명령줄 도구)를 기본으로 하고, `gh`가 없거나 인증되지 않았으면 GitHub MCP(Model Context Protocol)의 PR 조회 도구로 폴백합니다.
+- `gh` CLI(GitHub 명령줄 도구)를 기본으로 하고, `gh`가 없거나 인증되지 않았으면 GitHub MCP(Model Context Protocol)로 폴백합니다 —
+  조회는 `pull_request_read` 도구를 사용하고, 조치 단계의 폴백 매핑은 "조치 실행"을 따릅니다.
 - 둘 다 쓸 수 없으면 그 사실을 알리고 종료합니다.
 
 ---
@@ -102,6 +117,8 @@ gh api graphql -f query='
 | **확인 필요** | 질문이거나 판단 근거 부족 | 쟁점 정리 — 판단은 사용자에게 위임 |
 
 - 항목 목록은 표로 제시합니다: 번호 | 출처(리뷰어, 파일:라인 또는 리뷰 본문·일반 댓글) | 요지 | 의견 유형 | 근거·제안.
+- 항목마다 수집한 스레드 `id`·코멘트 `databaseId`를 함께 보존해 승인된 항목과 조치 실행의 대상(`<코멘트 ID>`·`<스레드 ID>`)을 연결합니다 —
+  URL 파싱으로 대상을 추측하지 않습니다.
 - 근거·상세 분석이 길면 접습니다 ("산출물 접기 기준" 참조) — 의견 유형과 제안의 결론은 본문에 유지합니다.
 - **의견은 제안일 뿐입니다.** 이 단계에서는 파일을 수정하지 않고, 답글도 게시하지 않습니다.
 
@@ -121,9 +138,9 @@ gh api graphql -f query='
 
 답글 게시, 스레드 resolve, push는 **외부 공개 행위**입니다. 실행 직전에 최종 내용을 그대로 제시하고 사용자의 승인을 받습니다.
 
-- 답글 게시 — 게시할 답글 본문 전문과 대상 스레드(또는 대화 탭)
+- 답글 게시 — 게시할 답글 본문 전문과 대상 PR(소유자/저장소·번호)·스레드(또는 대화 탭)
 - 스레드 resolve — resolve할 스레드 목록
-- push — 대상 원격·브랜치와 포함 커밋
+- push — 대상 원격(이름과 정규화한 URL)·브랜치·포함 커밋의 SHA. 이 값은 실행 직전 재대조에 사용하므로 승인 시점 값으로 보관합니다
 
 **승인 게이트는 생략하지 않습니다.** 승인을 거절한 항목은 실행 없이 보류로 남습니다.
 사용자가 내용 수정을 요청하면 반영한 뒤 다시 제시하고 승인받습니다 — 승인 후 내용을 바꾸면 다시 승인 대상입니다.
@@ -132,12 +149,23 @@ gh api graphql -f query='
 
 ## 조치 실행
 
-승인된 항목만 실행합니다.
+승인된 항목만 실행합니다. `gh` 불가 환경에서는 아래 매핑의 GitHub MCP 도구로 폴백합니다.
+
+| 조치 | `gh` 기본 | GitHub MCP 폴백 |
+|------|-----------|-----------------|
+| 일반 댓글 답글 | `gh pr comment` | `add_issue_comment` |
+| 코드 라인 스레드 답글 | `gh api …/replies` | `add_reply_to_pull_request_comment` |
+| 스레드 resolve | `gh api graphql` (mutation) | `pull_request_review_write` (method: `resolve_thread`) |
+
+연결된 MCP가 읽기 전용 모드이거나 활성화된 도구 구성(toolset)에 위 쓰기 도구가 없으면 그 조치는 실행하지 않습니다 —
+승인받은 답글 초안과 미처리 사유를 결과 요약에 남기고 해당 항목을 미처리로 종료합니다.
+REST/GraphQL API를 직접 호출(`curl` 등)하는 제3의 수단은 이 스킬의 범위가 아닙니다.
 
 ### 코드 수정
 
 - 변경을 반영하고, 커밋 메시지는 git-commit 규칙을 따릅니다 ("관련 skill" 참조).
-- push는 외부 공개 행위이므로 승인 게이트를 거친 뒤에만 수행합니다.
+- push는 외부 공개 행위이므로 승인 게이트를 거친 뒤에만 수행합니다. 실행 직전에 원격 URL과 현재 커밋 SHA를 승인 시 보관값과 재대조하고,
+  하나라도 다르면 중단한 뒤 변경된 최종 대상을 다시 제시해 승인받습니다.
 
 ### 답글 게시
 
@@ -145,10 +173,10 @@ gh api graphql -f query='
   본문에 `$(...)`·백틱이 있으면 셸이 명령 치환을 실행해, 승인 화면에 보인 값과 실제 게시되는 값이 달라질 수 있습니다.
 
 ```bash
-# 일반 댓글 답글
-gh pr comment '<PR 번호>' --body-file '<본문 파일>'
+# 일반 댓글 답글 — --repo는 대상 PR 식별에서 보관한 불변값
+gh pr comment '<PR 번호>' --repo '<소유자>/<저장소>' --body-file '<본문 파일>'
 
-# 코드 라인 스레드 답글
+# 코드 라인 스레드 답글 — <코멘트 ID>는 수집한 스레드 첫 코멘트의 databaseId
 gh api "repos/<소유자>/<저장소>/pulls/<PR 번호>/comments/<코멘트 ID>/replies" --field body=@'<본문 파일>'
 ```
 

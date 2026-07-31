@@ -46,11 +46,11 @@
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Fable 5 (claude-fable-5)
-- **audit 발견**: 0건
-- **보정 반영**: 0건
+- **audit 발견**: 4건
+- **보정 반영**: 4건
 - **재시도**: 0회
 - **수행 내용 요약**: `git-pr-feedback/SKILL.md` 신규 작성 — 절차 5단계(코멘트 수집 → 분류·의견 제시 → 사용자 선택·승인 게이트 → 조치 실행 → 결과 요약), 의견 유형 4종 표, 외부 공개 행위 3종(답글 게시·스레드 resolve·push) 승인 게이트 자체 기재, gh CLI 기본·GitHub MCP 폴백, 산출물 접기 기준 블록·writing-principles 참조 포함. [D] 검증 3건 통과 (name 일치 1, 접기 기준 섹션 1, writing-principles 참조 2).
-- **특이 사항**: 승인 게이트 규칙은 스킬 독립성 원칙에 따라 git-pr 링크 참조 없이 본문에 자체 기재 (spec 전제 반영). 승인값 셸 보간 금지·resolve GraphQL 조회 등 git-pr 안전장치 패턴을 축약 적용. [QD] 항목(절차 정의 완전성)은 Task N 교차모델 audit에서 채점.
+- **특이 사항**: 승인 게이트 규칙은 스킬 독립성 원칙에 따라 git-pr 링크 참조 없이 본문에 자체 기재 (spec 전제 반영). 승인값 셸 보간 금지·resolve GraphQL 조회 등 git-pr 안전장치 패턴을 축약 적용. [QD] 항목(절차 정의 완전성)은 Task N 교차모델 audit에서 채점. 1차 audit(2026-07-31, OpenAI GPT-5) 발견 F-1~F-4는 1단계 PARTIAL(요구사항 7·DoD 6) 근거와 동일해 병합 규칙에 따라 1단계 발견 4건으로 집계 — `--response` 항목별 승인 후 전부 반영 (F-1 승인 대상 불변값 고정·`--repo` 명시·push 재대조, F-2 `databaseId`·`line` 수집과 식별자 연결, F-3 MCP 게시·resolve 도구 매핑과 미지원 시 안전 중단, F-4 `--paginate` 페이지네이션·스레드 내 상한 초과 알림). 요구사항 7은 스펙 결함이 아닌 구현 문서 결함으로 확정(spec 전제가 이미 조회·게시 양쪽 MCP 폴백을 요구), `curl` 제3 폴백은 범위 외 유지.
 
 ---
 
