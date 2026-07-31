@@ -47,13 +47,18 @@ PR 머지·닫기는 이 스킬의 범위가 아닙니다.
 
 - 인자로 PR 번호를 받으면 그 PR을 대상으로 합니다.
 - 인자가 없으면 현재 브랜치의 열린 PR을 자동 감지합니다. 감지에 실패하면(열린 PR 없음·복수 매칭 등) 대상 PR을 사용자에게 질의합니다.
-- 식별한 소유자/저장소와 PR 번호·URL은 불변값으로 보관하고, 이후 `gh pr` 계열 명령에는 `--repo '<소유자>/<저장소>'`를 명시하고
-  `gh api` 계열 명령에는 경로·변수의 소유자/저장소 값을 이 불변값으로 지정합니다 —
-  실행 디렉토리나 `GH_REPO` 환경 변수가 다른 저장소의 동명 PR을 선택하는 것을 차단합니다.
+- 식별한 호스트/소유자/저장소와 PR 번호·URL은 불변값으로 보관합니다 (호스트는 PR URL에서 확정).
+  이후 `gh pr` 계열 명령에는 `--repo '<호스트>/<소유자>/<저장소>'`를 명시하고,
+  `gh api` 계열 명령에는 `--hostname '<호스트>'`와 함께 경로·변수의 소유자/저장소 값을 이 불변값으로 지정합니다 —
+  `gh api`의 기본 호스트는 github.com이라 호스트를 생략하면, GitHub Enterprise의 PR을 다룰 때
+  같은 소유자/저장소·번호의 무관한 github.com PR을 읽거나 거기에 게시할 수 있습니다.
+  실행 디렉토리나 `GH_REPO`·`GH_HOST` 환경 변수가 다른 호스트·저장소의 동명 PR을 선택하는 것도 같은 방식으로 차단합니다.
+- 대상 PR의 head 브랜치(`headRefName`)·SHA(`headRefOid`)·head 저장소(`headRepositoryOwner`/`headRepository`·`isCrossRepository`)도
+  불변값으로 보관합니다 — 코드 수정·push를 대상 PR head에 결속하는 기준값입니다 ("코드 수정" 참조).
 
 ```bash
-# 현재 브랜치의 열린 PR 자동 감지
-gh pr view --json number,title,url
+# 현재 브랜치의 열린 PR 자동 감지 — head 결속용 필드까지 함께 수집
+gh pr view --json number,title,url,headRefName,headRefOid,headRepository,headRepositoryOwner,isCrossRepository
 ```
 
 ### 수집 대상
@@ -67,12 +72,12 @@ gh pr view --json number,title,url
 ```bash
 # 리뷰 본문·일반 댓글 — gh pr view --json reviews,comments는 각 100개 단일 요청으로 끝나
 # 후속 페이지가 누락되므로, --paginate REST 조회로 끝까지 수집한다
-gh api --paginate "repos/<소유자>/<저장소>/pulls/<PR 번호>/reviews"
-gh api --paginate "repos/<소유자>/<저장소>/issues/<PR 번호>/comments"
+gh api --hostname '<호스트>' --paginate "repos/<소유자>/<저장소>/pulls/<PR 번호>/reviews"
+gh api --hostname '<호스트>' --paginate "repos/<소유자>/<저장소>/issues/<PR 번호>/comments"
 
 # 코드 라인 스레드 — REST 응답에는 resolve 상태가 없어 GraphQL로 조회
 # --paginate로 스레드 목록을 끝까지 순회한다 ($endCursor 변수와 pageInfo 필수)
-gh api graphql --paginate -f query='
+gh api graphql --hostname '<호스트>' --paginate -f query='
   query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $pr) {
@@ -106,6 +111,9 @@ gh api graphql --paginate -f query='
 - `gh` CLI(GitHub 명령줄 도구)를 기본으로 하고, `gh`가 없거나 인증되지 않았으면 GitHub MCP(Model Context Protocol)로 폴백합니다 —
   조회는 `pull_request_read` 도구의 `get_reviews`(리뷰 본문)·`get_comments`(일반 댓글)·`get_review_comments`(코드 라인 스레드)를 구분해 사용하고,
   응답이 후속 페이지를 알리면 페이지 파라미터로 끝까지 순회합니다. 조치 단계의 폴백 매핑은 "조치 실행"을 따릅니다.
+- MCP 도구 입력은 소유자/저장소만 받고 호스트를 받지 않으므로, MCP 폴백은 연결된 MCP의 대상 호스트가
+  보관한 불변값의 호스트와 일치함을 확인할 수 있을 때만 사용합니다 —
+  확인할 수 없거나 다른 호스트면 폴백하지 않고 그 사실을 알리고 종료합니다 (쓰기 없이 안전 종료).
 - 둘 다 쓸 수 없으면 그 사실을 알리고 종료합니다.
 
 ---
@@ -143,9 +151,11 @@ gh api graphql --paginate -f query='
 
 답글 게시, 스레드 resolve, push는 **외부 공개 행위**입니다. 실행 직전에 최종 내용을 그대로 제시하고 사용자의 승인을 받습니다.
 
-- 답글 게시 — 게시할 답글 본문 전문과 대상 PR(소유자/저장소·번호)·스레드(또는 대화 탭)
+- 답글 게시 — 게시할 답글 본문 전문과 대상 PR(호스트/소유자/저장소·번호)·스레드(또는 대화 탭)
 - 스레드 resolve — resolve할 스레드 목록
-- push — 대상 원격(이름과 정규화한 URL)·브랜치·포함 커밋의 SHA. 이 값은 실행 직전 재대조에 사용하므로 승인 시점 값으로 보관합니다
+- push — 대상 원격(이름과 정규화한 URL)·브랜치·포함 커밋의 SHA·검증 결과("코드 수정"의 검증 수행 내역과 합/불,
+  미검증이면 그 범위와 이유)에 더해, 보관한 `headRefOid`부터 승인 SHA까지의 커밋 목록·diffstat·최종 diff를 제시합니다 —
+  SHA는 불투명해 그것만으로는 공개될 실제 변경을 확인할 수 없습니다. 이 값은 실행 직전 재대조에 사용하므로 승인 시점 값으로 보관합니다
 
 **승인 게이트는 생략하지 않습니다.** 승인을 거절한 항목은 실행 없이 보류로 남습니다.
 사용자가 내용 수정을 요청하면 반영한 뒤 다시 제시하고 승인받습니다 — 승인 후 내용을 바꾸면 다시 승인 대상입니다.
@@ -162,20 +172,44 @@ gh api graphql --paginate -f query='
 | 코드 라인 스레드 답글 | `gh api …/replies` | `add_reply_to_pull_request_comment` |
 | 스레드 resolve | `gh api graphql` (mutation) | `pull_request_review_write` (method: `resolve_thread`) |
 
-연결된 MCP가 읽기 전용 모드이거나 활성화된 도구 구성(toolset)에 위 쓰기 도구가 없으면 그 조치는 실행하지 않습니다 —
+연결된 MCP가 읽기 전용 모드이거나, 활성화된 도구 구성(toolset)에 위 쓰기 도구가 없거나,
+대상 호스트 일치를 확인할 수 없으면("수집 수단"의 호스트 확인 규칙) 그 조치는 실행하지 않습니다 —
 승인받은 답글 초안과 미처리 사유를 결과 요약에 남기고 해당 항목을 미처리로 종료합니다.
 REST/GraphQL API를 직접 호출(`curl` 등)하는 제3의 수단은 이 스킬의 범위가 아닙니다.
 
 ### 코드 수정
 
+- 수정 전에 현재 작업트리의 브랜치·기준 커밋이 보관한 대상 PR head(`headRefName`·`headRefOid`)와 일치하는지 확인합니다.
+  다르면 명시적으로 fetch·checkout하거나 어느 작업트리를 수정할지 사용자에게 확인받은 뒤 진행합니다 —
+  PR 번호 인자로 다른 PR을 지정한 채 현재 작업트리를 수정하는 사고를 차단합니다.
+- 수정 전에 `git status --porcelain`으로 기존 staged·unstaged·untracked 변경을 고정해 둡니다.
+  기존 변경이 있으면 이번 커밋에 포함할지 제외할지 사용자에게 확인받습니다 —
+  스킬 실행 전부터 있던 무관한 파일(다른 작업, 로컬 설정·비밀값 등)이 커밋에 섞여 공개되는 것을 차단합니다.
+- 포크 PR(`isCrossRepository`가 true)은 head 저장소의 쓰기 권한과 push 대상을 판정할 수 없으면
+  코드 수정·push 없이 답글 게시 또는 보류로 종료합니다.
 - 변경을 반영하고, 커밋 메시지는 git-commit 규칙을 따릅니다 ("관련 skill" 참조).
+  커밋은 이번 리뷰 대응으로 수정한 파일(과 사용자가 포함을 확인한 기존 변경)만 명시적으로 stage해 만듭니다 —
+  `git add -A`·`git commit -a`처럼 작업트리 전체를 쓸어 담는 방식은 사용하지 않습니다.
+- 커밋 전에 변경에 맞는 검증(관련 테스트·정적 검사·빌드 중 해당하는 것)을 커밋에 담길 최종 내용 기준으로 수행하고, 결과를 push 승인 정보에 포함합니다.
+  검증 수단을 찾을 수 없으면 repo 지침·기존 CI 설정을 확인하고, 그래도 판정할 수 없으면 미검증 범위와 이유를 승인 정보에 명시합니다.
+  검증이 실패하면 커밋·push를 중단하는 것이 기본이며, 사용자가 실패 내용과 위험을 확인하고
+  예외 진행을 명시적으로 승인한 경우에만 그 승인값으로 진행합니다.
+- push 승인에 들어가기 전에 후보 원격의 정규화한 URL이 보관한 head 저장소(호스트/소유자/저장소)와 일치하는지,
+  승인 대상 SHA가 보관한 `headRefOid`를 조상으로 포함하는지(`git merge-base --is-ancestor`) 확인합니다.
+  하나라도 어긋나면 승인을 제시하지 않고 중단합니다 — 승인 시점 값과의 재대조는 시점 고정일 뿐,
+  애초에 대상 PR과 다른 저장소를 가리키는 원격을 걸러내지 못합니다.
 - push는 외부 공개 행위이므로 승인 게이트를 거친 뒤에만 수행합니다. 실행 직전에 원격 이름·정규화한 URL·현재 커밋 SHA·대상 브랜치를
   승인 시 보관값과 재대조하고, 하나라도 다르면 중단한 뒤 변경된 최종 대상을 다시 제시해 승인받습니다.
-- push 명령은 승인 SHA와 대상 브랜치를 refspec으로 고정해 실행합니다 — 기본 `git push`는 현재 브랜치의 upstream 설정을 따라가
-  승인받지 않은 원격 브랜치를 갱신할 수 있습니다.
+- push 명령은 승인 SHA와 대상 브랜치를 refspec으로 고정해 실행합니다 — 대상 브랜치는 보관한 head 브랜치(`headRefName`)입니다.
+  기본 `git push`는 현재 브랜치의 upstream 설정을 따라가 승인받지 않은 원격 브랜치를 갱신할 수 있습니다.
+- push 뒤 대상 PR의 `headRefOid`를 재조회해 승인 SHA와 일치할 때만 반영 완료로 보고합니다 —
+  일치하지 않으면 대상 PR이 갱신되지 않았거나 다른 경로로 갱신된 것이므로, 결과 요약에 미반영과 사유를 남깁니다.
 
 ```bash
 git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>'
+
+# push 반영 확인 — 대상 PR head가 승인 SHA로 갱신됐는지 재조회
+gh pr view '<PR 번호>' --repo '<호스트>/<소유자>/<저장소>' --json headRefOid
 ```
 
 ### 답글 게시
@@ -184,11 +218,11 @@ git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>'
   본문에 `$(...)`·백틱이 있으면 셸이 명령 치환을 실행해, 승인 화면에 보인 값과 실제 게시되는 값이 달라질 수 있습니다.
 
 ```bash
-# 일반 댓글 답글 — --repo는 대상 PR 식별에서 보관한 불변값
-gh pr comment '<PR 번호>' --repo '<소유자>/<저장소>' --body-file '<본문 파일>'
+# 일반 댓글 답글 — --repo의 호스트/소유자/저장소는 대상 PR 식별에서 보관한 불변값
+gh pr comment '<PR 번호>' --repo '<호스트>/<소유자>/<저장소>' --body-file '<본문 파일>'
 
 # 코드 라인 스레드 답글 — <코멘트 ID>는 수집한 스레드 첫 코멘트의 databaseId
-gh api "repos/<소유자>/<저장소>/pulls/<PR 번호>/comments/<코멘트 ID>/replies" --field body=@'<본문 파일>'
+gh api --hostname '<호스트>' "repos/<소유자>/<저장소>/pulls/<PR 번호>/comments/<코멘트 ID>/replies" --field body=@'<본문 파일>'
 ```
 
 ### 스레드 resolve
@@ -196,7 +230,7 @@ gh api "repos/<소유자>/<저장소>/pulls/<PR 번호>/comments/<코멘트 ID>/
 - 조치를 마친 스레드의 resolve 여부도 사용자 선택에 따릅니다 — 자동으로 resolve하지 않습니다.
 
 ```bash
-gh api graphql -f query='
+gh api graphql --hostname '<호스트>' -f query='
   mutation($id: ID!) {
     resolveReviewThread(input: {threadId: $id}) { thread { isResolved } }
   }' -F id='<스레드 ID>'
@@ -215,6 +249,7 @@ gh api graphql -f query='
 | 3. `<출처·요지>` | 확인 필요 | 보류 | 미처리 |
 
 - 보류 항목과 남은 리스크·후속 액션은 접지 않고 본문에 유지합니다 ("산출물 접기 기준" 참조).
+- push를 수행했고 작업트리에 남은 미커밋 변경이 있으면, 그 변경이 이번 push에 포함되지 않았음을 결과에 명시합니다.
 - 항목별 근거·상세 경위는 접어도 됩니다.
 
 ---
