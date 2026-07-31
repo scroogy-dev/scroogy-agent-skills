@@ -71,6 +71,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   └── templates/              # 노트 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
 ├── git-pr/                     # PR 제목/메시지 작성·제출 스킬
+├── git-pr-feedback/            # PR 리뷰 코멘트 검토·대응 스킬
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 ├── git-review/                 # 리뷰 수행 스킬
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
@@ -103,6 +104,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `context-save` | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
 | `git-pr` | PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
+| `git-pr-feedback` | PR 리뷰 코멘트를 수집·분류하고 항목별 의견 제시 후 사용자 선택에 따라 답글 게시 또는 코드 변경으로 대응 |
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
