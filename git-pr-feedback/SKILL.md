@@ -47,7 +47,8 @@ PR 머지·닫기는 이 스킬의 범위가 아닙니다.
 
 - 인자로 PR 번호를 받으면 그 PR을 대상으로 합니다.
 - 인자가 없으면 현재 브랜치의 열린 PR을 자동 감지합니다. 감지에 실패하면(열린 PR 없음·복수 매칭 등) 대상 PR을 사용자에게 질의합니다.
-- 식별한 소유자/저장소와 PR 번호·URL은 불변값으로 보관하고, 이후 모든 `gh` 명령에 `--repo '<소유자>/<저장소>'`를 명시합니다 —
+- 식별한 소유자/저장소와 PR 번호·URL은 불변값으로 보관하고, 이후 `gh pr` 계열 명령에는 `--repo '<소유자>/<저장소>'`를 명시하고
+  `gh api` 계열 명령에는 경로·변수의 소유자/저장소 값을 이 불변값으로 지정합니다 —
   실행 디렉토리나 `GH_REPO` 환경 변수가 다른 저장소의 동명 PR을 선택하는 것을 차단합니다.
 
 ```bash
@@ -64,8 +65,10 @@ gh pr view --json number,title,url
 미해결(unresolved) 스레드를 우선합니다 — 이미 resolve된 스레드는 기본 제외하고, 사용자가 요청할 때만 포함합니다.
 
 ```bash
-# 리뷰 본문·일반 댓글
-gh pr view '<PR 번호>' --json reviews,comments
+# 리뷰 본문·일반 댓글 — gh pr view --json reviews,comments는 각 100개 단일 요청으로 끝나
+# 후속 페이지가 누락되므로, --paginate REST 조회로 끝까지 수집한다
+gh api --paginate "repos/<소유자>/<저장소>/pulls/<PR 번호>/reviews"
+gh api --paginate "repos/<소유자>/<저장소>/issues/<PR 번호>/comments"
 
 # 코드 라인 스레드 — REST 응답에는 resolve 상태가 없어 GraphQL로 조회
 # --paginate로 스레드 목록을 끝까지 순회한다 ($endCursor 변수와 pageInfo 필수)
@@ -82,7 +85,7 @@ gh api graphql --paginate -f query='
             line
             originalLine
             comments(first: 50) {
-              pageInfo { hasNextPage }
+              pageInfo { hasNextPage endCursor }
               nodes { databaseId author { login } body url }
             }
           }
@@ -94,13 +97,15 @@ gh api graphql --paginate -f query='
 
 - 스레드 `id`(resolve 대상)와 첫 코멘트의 `databaseId`(코드 라인 답글 대상), `path`·`line`(`line`이 비면 `originalLine`)을
   항목 표시와 조치 대상 지정에 사용하므로 수집 결과에 보존합니다.
-- 한 스레드의 댓글이 50개를 넘으면(`comments.pageInfo.hasNextPage`가 true) 뒤 댓글이 잘린 것이므로,
-  해당 스레드의 누락 가능성을 사용자에게 알립니다.
+- 한 스레드의 댓글이 50개를 넘으면(`comments.pageInfo.hasNextPage`가 true) 그 스레드 `id`에
+  `comments(after: <endCursor>)` cursor를 둔 GraphQL 추가 조회로 남은 댓글을 끝까지 수집합니다 —
+  완전 수집 전에는 분류·의견 제시 단계로 진행하지 않습니다.
 
 ### 수집 수단
 
 - `gh` CLI(GitHub 명령줄 도구)를 기본으로 하고, `gh`가 없거나 인증되지 않았으면 GitHub MCP(Model Context Protocol)로 폴백합니다 —
-  조회는 `pull_request_read` 도구를 사용하고, 조치 단계의 폴백 매핑은 "조치 실행"을 따릅니다.
+  조회는 `pull_request_read` 도구의 `get_reviews`(리뷰 본문)·`get_comments`(일반 댓글)·`get_review_comments`(코드 라인 스레드)를 구분해 사용하고,
+  응답이 후속 페이지를 알리면 페이지 파라미터로 끝까지 순회합니다. 조치 단계의 폴백 매핑은 "조치 실행"을 따릅니다.
 - 둘 다 쓸 수 없으면 그 사실을 알리고 종료합니다.
 
 ---
@@ -164,8 +169,14 @@ REST/GraphQL API를 직접 호출(`curl` 등)하는 제3의 수단은 이 스킬
 ### 코드 수정
 
 - 변경을 반영하고, 커밋 메시지는 git-commit 규칙을 따릅니다 ("관련 skill" 참조).
-- push는 외부 공개 행위이므로 승인 게이트를 거친 뒤에만 수행합니다. 실행 직전에 원격 URL과 현재 커밋 SHA를 승인 시 보관값과 재대조하고,
-  하나라도 다르면 중단한 뒤 변경된 최종 대상을 다시 제시해 승인받습니다.
+- push는 외부 공개 행위이므로 승인 게이트를 거친 뒤에만 수행합니다. 실행 직전에 원격 이름·정규화한 URL·현재 커밋 SHA·대상 브랜치를
+  승인 시 보관값과 재대조하고, 하나라도 다르면 중단한 뒤 변경된 최종 대상을 다시 제시해 승인받습니다.
+- push 명령은 승인 SHA와 대상 브랜치를 refspec으로 고정해 실행합니다 — 기본 `git push`는 현재 브랜치의 upstream 설정을 따라가
+  승인받지 않은 원격 브랜치를 갱신할 수 있습니다.
+
+```bash
+git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>'
+```
 
 ### 답글 게시
 
