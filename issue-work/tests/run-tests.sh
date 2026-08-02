@@ -4,7 +4,7 @@
 #
 # plan 템플릿 Task N 블록의 [D] 게이트 명령(결과 확정·수행 모델 검사)을
 # 템플릿 본문에서 추출해 fixture 에 실행한다 — 게이트 명령의 SSoT 는 템플릿
-# 인라인 명령이며(인스턴스화된 plan 의 자족성 때문에 scripts/ 헬퍼로 빼지 않는다),
+# 완료 기준의 접기 안 코드 블록이며(인스턴스화된 plan 의 자족성 때문에 scripts/ 헬퍼로 빼지 않는다),
 # 문서의 명령이 깨지거나 반례를 다시 통과시키면 여기서 감지된다
 # (install-skills 의 SKILL.md 스니펫 스모크와 같은 방식).
 #
@@ -25,24 +25,39 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-# 템플릿 행에서 `S=…; awk …' $S` 코드 스팬의 awk 프로그램만 추출한다.
-# 스팬 서식이 바뀌어 추출이 깨지면 아래 "추출:" 검사가 실패해 드리프트를 알린다.
+# 완료 기준 항목의 접기 안 bash 코드 블록에서 게이트 명령을 추출한다.
+# 앵커 문구가 있는 본문 행 다음에 오는 첫 ```bash 블록이 대상이며,
+# `P=`/`S=` 경로 할당 행은 제외한다 — fixture 경로는 호출자(run_gate·assert_pair_gate)가
+# 로컬 변수로 주입하는 현행 계약을 그대로 유지하기 위함이다.
+# 블록의 공통 들여쓰기(완료 기준 리스트 하위 배치)는 첫 행 기준으로 벗겨낸다.
+# 블록 서식이 바뀌어 추출이 깨지면 아래 "추출:" 검사가 실패해 드리프트를 알린다.
 extract_gate() {
-  grep -F "$1" "$TEMPLATE" | sed -E 's/.*`S=[^;]+; (awk [^`]+)` 출력 0.*/\1/'
+  awk -v anchor="$1" '
+    !found && index($0, anchor) { found = 1; next }
+    found && !inblock && /^[[:space:]]*```bash[[:space:]]*$/ { inblock = 1; next }
+    inblock && /^[[:space:]]*```[[:space:]]*$/ { exit }
+    inblock {
+      if (!measured) { match($0, /^[[:space:]]*/); ind = RLENGTH; measured = 1 }
+      line = substr($0, ind + 1)
+      if (line !~ /^[PS]=/) print line
+    }
+  ' "$TEMPLATE"
 }
 
-# 집합 대조 게이트는 plan 과 summary 두 경로를 받으므로 스팬 서식이 다르다.
-extract_pair_gate() {
-  grep -F "$1" "$TEMPLATE" | sed -E 's/.*`P=[^;]+; S=[^;]+; (\{ grep [^`]+)` 출력 0.*/\1/'
-}
-
-GATE0="$(extract_pair_gate 'summary의 Task 헤더 집합이 plan과 일치')"
+GATE0="$(extract_gate 'summary의 Task 헤더 집합이 plan과 일치')"
 GATE1="$(extract_gate '블록마다 유효 `결과` 행 정확히 1개')"
 GATE2="$(extract_gate '`-`도 아닌 행 정확히 1개')"
 
 case "$GATE0" in '{ grep '*) ok "추출: Task 집합 대조 게이트" ;; *) ng "추출: Task 집합 대조 게이트 — [$GATE0]" ;; esac
 case "$GATE1" in awk\ *) ok "추출: 결과 확정 게이트" ;; *) ng "추출: 결과 확정 게이트 — [$GATE1]" ;; esac
 case "$GATE2" in awk\ *) ok "추출: 수행 모델 게이트" ;; *) ng "추출: 수행 모델 게이트 — [$GATE2]" ;; esac
+
+# 경로 할당 행이 남으면 템플릿의 미치환 `<번호>` 경로가 fixture 경로를 덮어써
+# 정상 fixture 검사부터 무너진다. 추출 단계에서 먼저 끊는다.
+case "$GATE0$GATE1$GATE2" in
+  *'.ai/90_issues/'*) ng "추출: 경로 할당 행이 제거되지 않음 (fixture 경로 주입 계약 위반)" ;;
+  *) ok "추출: fixture 경로 주입 계약 유지" ;;
+esac
 
 # run_gate <awk 프로그램> <summary 경로> → stdout 에 위반 건수
 run_gate() {
