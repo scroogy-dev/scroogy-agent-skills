@@ -17,6 +17,7 @@ PR에 포함된 **각 이슈별로** 반드시 '비즈니스 관점'과 '테크 
 
 - git-commit (권장): PR 제목은 커밋 메시지와 동일한 Conventional Commits 형식을 따릅니다.
 - ai-workspace (권장): `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 경로의 문서를 참조합니다.
+- git-pr-feedback (권장): 제출 후 단계 — 제출한 PR에 달린 리뷰 코멘트의 검토·대응은 git-pr-feedback으로 진행합니다.
 
 ## 참조 문서
 
