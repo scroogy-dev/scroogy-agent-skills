@@ -58,7 +58,7 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션이 바뀌면 전제는 똑같이 유실된다.
 -->
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 구현에 필요하지만 문서만으로는 알 수 없는 전제·모호점을 코드 작성 전에 걷어낸다.
 - **작업 내용**:
   1. spec/plan을 읽고, 구현에 필요하지만 문서만으로는 알 수 없는 전제·모호점을 나열한다.
@@ -69,14 +69,14 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ---
 
-### Task 1: 원장 구조·항목 템플릿·index 형식 정의
+### Task 1: 원장 항목 템플릿 정의
 
-- [ ] 완료
-- **목표**: 원장의 물리 구조와 항목·index 표준 형식, 수명 주기 규칙을 확정하고 이 repo에 첫 인스턴스를 만든다.
+- [x] 완료
+- **목표**: 원장 항목의 표준 형식을 확정한다 — 등재 절차(`--response`·git-pr-feedback)가 참조할 단일 템플릿.
 - **작업 내용**:
-  1. `issue-work/templates/ledger-entry-template.md` 생성 — 필수 필드 7종을 `- **<필드>**:` 앵커로 고정: 유형(known issue / 기술부채), 등재일, 출처(이슈 #N·audit 발견 ID), 위험도(높음(HIGH) / 중간(MEDIUM) / 낮음(LOW) / 정보(INFO)), 수용 사유(필수 — 왜 지금 고치지 않는지), 재검토 조건(필수 — 언제 다시 볼지), 상태(수용 / 승격(이슈 #N) / 해소(PR #N)). 파일명 규칙 `K-<번호>-<slug>.md`(번호 4자리 zero-padding)를 본문에 명시한다.
-  2. `issue-work/templates/ledger-index-template.md` 생성 — 항목 목록 표(ID·제목·유형·위험도·재검토 조건·상태)와 `## 수명 주기` 섹션(등재 → 재검토 조건 충족 시 재평가 → 승격(정식 GitHub 이슈) 또는 해소(PR) → `ledger/archive/` 이관)을 담는다.
-  3. 이 repo `.ai/90_issues/ledger/`를 생성한다 — index 템플릿 기반 `index.md`(항목 0건) + `archive/`(빈 디렉토리 유지 수단은 이웃 관례 준용, spec 전제 참조).
+  1. `issue-work/templates/ledger-entry-template.md` 생성 — 필수 필드 7종을 `- **<필드>**:` 앵커로 고정: 유형(known issue / 기술부채), 등재일, 출처, 위험도(높음(HIGH) / 중간(MEDIUM) / 낮음(LOW) / 정보(INFO)), 수용 사유(필수 — 왜 지금 고치지 않는지), 재검토 조건(필수 — 언제 다시 볼지), 상태(수용 / 승격(이슈 #N) / 해소(PR #N)).
+  2. `출처` 필드는 **식별자만** 적고 파일 경로를 넣지 않음을 템플릿 본문에 명시한다 — 이슈 #N / audit 발견 `F-n` / PR 코멘트 스레드. 근거는 spec 전제 참조(`--clear` 이관으로 리포트 경로가 바뀌어도 원장이 깨지지 않게).
+  3. 파일명 규칙 `K-<번호>-<slug>.md`(번호 4자리 zero-padding)와 배치 위치(`.ai/70_ledger/active/`, 청산 시 `archive/` 이관)를 본문에 명시한다.
 - **완료 기준**:
   - [D] 항목 템플릿이 필수 필드 7종을 `- **<필드>**:` 앵커로 갖춘다
     <details>
@@ -91,26 +91,15 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
     - 설계 주의: 파일이 없으면 `grep -q`가 실패해 7건 전부 위반으로 출력된다 — 파일 실재 검사를 겸한다.
     </details>
-  - [D] index 템플릿에 `## 수명 주기` 섹션과 승격·해소·`ledger/archive/` 이관 경로가 명시된다
+  - [D] 템플릿이 파일명 규칙과 배치 위치, 출처의 경로 미기재 원칙을 본문에 명시한다
     <details>
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    T=issue-work/templates/ledger-index-template.md
-    grep -qE '^## 수명 주기' "$T" || echo '위반: 수명 주기 섹션 누락 또는 파일 없음'
-    for w in '승격' '해소' 'ledger/archive/'; do
-      grep -q "$w" "$T" || echo "위반: $w 미명시"
-    done
-    ```
-
-    </details>
-  - [D] 이 repo에 원장 첫 인스턴스가 존재한다 — Task 4의 안내도 갱신이 가리킬 실체이며, 없으면 안내도가 존재하지 않는 구조를 서술하게 된다
-    <details>
-    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
-
-    ```bash
-    test -f .ai/90_issues/ledger/index.md || echo '위반: repo 원장 index.md 없음'
-    test -d .ai/90_issues/ledger/archive || echo '위반: repo 원장 archive/ 없음'
+    T=issue-work/templates/ledger-entry-template.md
+    grep -q 'K-<번호>-<slug>.md' "$T" || echo '위반: 파일명 규칙 없음'
+    grep -q '70_ledger/active' "$T" || echo '위반: 배치 위치 없음'
+    grep -q '경로' "$T" || echo '위반: 출처 경로 미기재 원칙 없음'
     ```
 
     </details>
@@ -119,10 +108,10 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 2: issue-work `--response` 원장 이관 규칙 반영
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 미승인·보류 발견의 이관 목적지를 원장으로 표준화해, "별도 이슈로 이관"의 모호함을 없앤다.
 - **작업 내용**:
-  1. `issue-work/SKILL.md`의 `--response` 3~5단계를 개정한다 — 처리 방향 "이관"의 목적지를 `.ai/90_issues/ledger/` 등재로 표준화하고, 등재 시 수용 사유·재검토 조건을 필수 기재로 명시한다(`ledger-entry-template.md` 참조 연결).
+  1. `issue-work/SKILL.md`의 `--response` 3~5단계를 개정한다 — 처리 방향 "이관"의 목적지를 `.ai/70_ledger/` 등재로 표준화하고, 등재 시 수용 사유·재검토 조건을 필수 기재로 명시한다(`ledger-entry-template.md` 참조 연결).
   2. `issue-work/templates/issue-workflow-template.md`의 `--response` 안내 행에 이관 목적지(원장)를 한 줄 반영하고, `.ai/90_issues/active/issue-workflow.md` 사본을 동기화한다.
 - **완료 기준**:
   - [D] SKILL.md가 이관 목적지(원장 경로)와 등재 필수 필드 2종을 명시한다
@@ -131,7 +120,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
     ```bash
     F=issue-work/SKILL.md
-    grep -q '90_issues/ledger' "$F" || echo '위반: 원장 경로 없음'
+    grep -q '70_ledger' "$F" || echo '위반: 원장 경로 없음'
     grep -E 'ledger|원장' "$F" | grep -q '수용 사유' || echo '위반: 수용 사유 필수 기재 없음'
     grep -E 'ledger|원장' "$F" | grep -q '재검토 조건' || echo '위반: 재검토 조건 필수 기재 없음'
     ```
@@ -155,9 +144,10 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 - [ ] 완료
 - **목표**: audit이 기등재 발견을 신규로 재보고하지 않게 하여 개선 → 재검증 무한반복 구조를 끊는다.
 - **작업 내용**:
-  1. `issue-audit/SKILL.md` 0단계(컨텍스트 수집)에 `ledger/index.md`를 읽고 관련 항목만 선택 적재하는 절차를 추가한다.
+  1. `issue-audit/SKILL.md` 0단계(컨텍스트 수집)에 `.ai/70_ledger/index.md`를 읽고 관련 항목만 선택 적재하는 절차를 추가하고, `## 참조 문서`의 스킬 고유 추가 참조에도 같은 경로를 넣는다.
   2. 2단계(비판적 검증) 발견이 기등재 항목과 일치하면 신규 발견으로 보고하지 않고 "기등재 K-<번호> 참조"로 표기하며 집계에서 제외하는 규칙을 추가한다. 재검토 조건이 충족된 항목만 재제기 가능함을 함께 명시한다.
-  3. `issue-audit/templates/`의 감사 리포트 템플릿에 기등재 참조 표기 자리를 반영한다(템플릿 구조를 확인해 최소 변경으로).
+  3. `issue-audit/templates/issue-audit-report-template.md`에 `### 기등재 참조 항목` 섹션을 2단계 안, `### 발견 사항` 표 바깥에 신설한다 — 표는 곧 집계 대상이라 기등재를 표 안에 두면 집계가 오염되고 `F-` 번호를 소비한다(spec 전제 참조).
+  4. `## 출력 요약 형식`에 기등재 참조 건수를 집계와 분리해 표기하는 줄을 추가한다.
 - **완료 기준**:
   - [D] SKILL.md가 원장 index 선택 적재와 기등재 참조·집계 제외 규칙을 명시한다
     <details>
@@ -165,37 +155,106 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
     ```bash
     F=issue-audit/SKILL.md
-    grep -q 'ledger/index.md' "$F" || echo '위반: 원장 index 적재 규칙 없음'
+    grep -q '70_ledger/index.md' "$F" || echo '위반: 원장 index 적재 규칙 없음'
     grep -q '기등재' "$F" || echo '위반: 기등재 참조·집계 제외 규칙 없음'
     grep -q '재검토 조건' "$F" || echo '위반: 재검토 조건 판정 규칙 없음'
     ```
 
     </details>
-  - [QD] 기등재 판정·재검토 조건 규칙이 audit 절차(0단계 적재 → 2단계 대조)와 의미적으로 정합해 반복 보고가 실제로 차단된다  (검증: 교차모델 audit 채점)  ← 강등 사유: 절차 간 의미 정합성은 문자열 대조로 환원 불가
-
----
-
-### Task 4: ai-workspace·안내도에 ledger/ 반영
-
-- [ ] 완료
-- **목표**: 새로 설치·갱신되는 `.ai` 구조와 이 repo 안내도가 원장을 포함하게 한다.
-- **작업 내용**:
-  1. `ai-workspace/templates/shared/.ai/90_issues/`에 `ledger/`(+ `archive/`) 골격을 추가한다 — 빈 디렉토리 유지 수단·초기 index 포함 여부는 이웃 디렉토리 관례 준용(spec 전제 참조).
-  2. `ai-workspace/templates/dev/.ai/AI-CONTEXT.md`·`ai-workspace/templates/doc/.ai/AI-CONTEXT.md`의 `90_issues/` 구조 서술을 `(active/ + archive/ + ledger/)`로 갱신한다.
-  3. `ai-workspace/SKILL.md`의 `90_issues/` 하위 구조 표에 `ledger/`를 추가하고, update 분류 규칙에 원장 관련 이동 규칙이 필요한지 확인해 최소 변경으로 반영한다.
-  4. 이 repo `.ai/AI-CONTEXT.md`의 `.ai 디렉토리 구조` 서술을 같은 형태로 갱신한다.
-- **완료 기준**:
-  - [D] 템플릿 골격·AI-CONTEXT 템플릿(dev/doc)·ai-workspace SKILL.md·이 repo 안내도에 `ledger/`가 반영된다
+  - [D] 리포트 템플릿에 기등재 참조 섹션이 발견 사항 표 바깥에 존재한다
     <details>
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    test -d ai-workspace/templates/shared/.ai/90_issues/ledger || echo '위반: 템플릿 골격에 ledger/ 없음'
-    for f in ai-workspace/templates/dev/.ai/AI-CONTEXT.md \
-             ai-workspace/templates/doc/.ai/AI-CONTEXT.md \
-             ai-workspace/SKILL.md .ai/AI-CONTEXT.md; do
-      grep -q 'ledger' "$f" || echo "위반: $f 에 ledger 미반영"
+    T=issue-audit/templates/issue-audit-report-template.md
+    grep -qE '^### 기등재 참조 항목' "$T" || echo '위반: 기등재 참조 섹션 없음'
+    awk '/^### 발견 사항/{f=1} /^### 기등재 참조 항목/{if(f)g=1} END{exit !g}' "$T" \
+      || echo '위반: 기등재 섹션이 발견 사항 뒤에 없음 — 표 안에 섞였을 수 있음'
+    ```
+
+    - 설계 주의: 섹션 존재만 보면 표 안에 행으로 들어간 형태를 못 거른다 — `^### ` 앵커로 독립 섹션임을 함께 확인한다.
+    </details>
+  - [QD] 기등재 판정·재검토 조건 규칙이 audit 절차(0단계 적재 → 2단계 대조)와 의미적으로 정합해 반복 보고가 실제로 차단된다  (검증: 교차모델 audit 채점)  ← 강등 사유: 절차 간 의미 정합성은 문자열 대조로 환원 불가
+
+---
+
+### Task 4: git-pr-feedback 원장 등재 선택지 추가
+
+- [ ] 완료
+- **목표**: PR 리뷰에서 "타당하나 이번에 미조치"로 판정한 항목의 이관 목적지를 원장으로 확정한다 — 이슈 #61 코멘트의 확정 사항이며, 이 연계 때문에 원장이 이슈 흐름 밖 `70_ledger/`에 놓인다.
+- **작업 내용**:
+  1. `git-pr-feedback/SKILL.md`의 `### 항목별 선택` 목록에 `- **수용 — 원장 등재**` 선택지를 추가한다 — 기존 3종(코드 수정 / 답글 게시 / 보류(건너뜀)) 다음에 두고, `.ai/70_ledger/active/`에 `ledger-entry-template.md` 형식으로 등재함을 명시한다.
+  2. 등재 시 수용 사유(발생확률·영향도)·재검토 조건을 필수 기재로 명시한다 — 의견 유형 `수용(known issue)`이 이미 수용 근거를 요구하므로, 그 근거를 원장 항목의 `수용 사유`로 옮겨 적는 관계를 함께 적는다.
+  3. 결과 기록 형식(처리 표·본문 유지 규칙)에 원장 등재 항목의 `K-<번호>` 표기를 반영한다.
+- **완료 기준**:
+  - [D] 항목별 선택지에 원장 등재가 추가되고 원장 경로·필수 필드 2종이 명시된다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+    ```bash
+    F=git-pr-feedback/SKILL.md
+    grep -qE '^- \*\*수용 — 원장 등재\*\*' "$F" || echo '위반: 항목별 선택지에 원장 등재 없음'
+    grep -q '70_ledger' "$F" || echo '위반: 원장 경로 없음'
+    grep -E 'ledger|원장' "$F" | grep -q '수용 사유' || echo '위반: 수용 사유 필수 기재 없음'
+    grep -E 'ledger|원장' "$F" | grep -q '재검토 조건' || echo '위반: 재검토 조건 필수 기재 없음'
+    ```
+
+    - 설계 주의: 선택지는 `^- \*\*…\*\*` 앵커로 센다 — 본문 서술에 같은 문구가 있어도 선택지 목록에 들어갔는지는 앵커로만 판정된다.
+    </details>
+
+---
+
+### Task 5: ai-workspace·안내도에 70_ledger/ 반영
+
+- [ ] 완료
+- **목표**: 새로 설치·갱신되는 `.ai` 구조와 이 repo 안내도가 원장을 포함하게 하고, 이 repo에 첫 인스턴스를 만든다.
+- **작업 내용**:
+  1. `ai-workspace/templates/shared/.ai/70_ledger/`를 신설한다 — `index.md`(항목 목록 표 + `## 수명 주기` 섹션) + `active/.gitkeep` + `archive/.gitkeep`. index 골격은 ai-workspace 단독 소유이며 issue-work에는 두지 않는다(spec 전제 참조). `index.md` 문체는 이웃 index(`50_adr/index.md`)의 형식을 따른다.
+  2. `ai-workspace/templates/shared/.ai/10_rules/context-loading.md`의 `## 참조 원칙` 첫 행 열거에 `70_ledger/`를 추가한다 — index 먼저 읽고 관련 항목만 선택 적재하는 대상이다. 이 파일은 update-1단계에서 무조건 덮어쓰는 버전 고정 파일이라 갱신이 기존 설치본에도 전파된다.
+  3. `ai-workspace/templates/dev|doc/.ai/AI-CONTEXT.md`를 갱신한다 — `.ai 디렉토리 구조` 트리에 `70_ledger/ # [6순위] …` 행 추가, 진입 절차의 선택 적재 문장에 `70_ledger/index.md` 추가.
+  4. `ai-workspace/SKILL.md` update-3단계를 갱신한다 — 대상 디렉토리 목록에 `70_ledger/` 추가, 하위 구조 표에 `active/`, `archive/` 행 신설, 이동 판단 기준 표에 `70_ledger/` 행 신설(상태가 승격·해소면 `archive/`, 아니면 `active/`).
+  5. 이 repo에 반영한다 — `.ai/70_ledger/` 첫 인스턴스 생성(index.md + active/ + archive/), `.ai/AI-CONTEXT.md` 디렉토리 구조·진입 절차, `.ai/10_rules/context-loading.md` 참조 원칙.
+- **완료 기준**:
+  - [D] 템플릿 골격이 `index.md` + `active/` + `archive/` 구조를 갖추고 index에 수명 주기가 명시된다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+    ```bash
+    B=ai-workspace/templates/shared/.ai/70_ledger
+    test -d "$B/active" || echo '위반: 템플릿 골격에 active/ 없음'
+    test -d "$B/archive" || echo '위반: 템플릿 골격에 archive/ 없음'
+    grep -qE '^## 수명 주기' "$B/index.md" || echo '위반: 수명 주기 섹션 누락 또는 index.md 없음'
+    for w in '승격' '해소' 'archive/'; do
+      grep -q "$w" "$B/index.md" || echo "위반: $w 미명시"
     done
+    test -f issue-work/templates/ledger-index-template.md \
+      && echo '위반: index 템플릿이 issue-work에도 존재 — SSoT 이중화'
+    ```
+
+    - 설계 주의: 마지막 검사는 "없어야 통과"다 — index 골격의 소유자를 ai-workspace 단독으로 고정하는 불변식이라, 존재 검사만 두면 양쪽에 생겨도 통과한다.
+    </details>
+  - [D] context-loading·AI-CONTEXT 템플릿(dev/doc)·ai-workspace SKILL.md·이 repo 안내도와 규칙에 `70_ledger`가 반영된다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+    ```bash
+    for f in ai-workspace/templates/shared/.ai/10_rules/context-loading.md \
+             ai-workspace/templates/dev/.ai/AI-CONTEXT.md \
+             ai-workspace/templates/doc/.ai/AI-CONTEXT.md \
+             ai-workspace/SKILL.md .ai/AI-CONTEXT.md .ai/10_rules/context-loading.md; do
+      grep -q '70_ledger' "$f" || echo "위반: $f 에 70_ledger 미반영"
+    done
+    ```
+
+    </details>
+  - [D] 이 repo에 원장 첫 인스턴스가 존재한다 — 안내도 갱신이 가리킬 실체이며, 없으면 안내도가 존재하지 않는 구조를 서술하게 된다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+    ```bash
+    test -f .ai/70_ledger/index.md || echo '위반: repo 원장 index.md 없음'
+    test -d .ai/70_ledger/active || echo '위반: repo 원장 active/ 없음'
+    test -d .ai/70_ledger/archive || echo '위반: repo 원장 archive/ 없음'
     ```
 
     </details>
