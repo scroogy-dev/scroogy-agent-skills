@@ -206,7 +206,12 @@ REST/GraphQL API를 직접 호출(`curl` 등)하는 제3의 수단은 이 스킬
   승인 시 보관값과 재대조하고, 하나라도 다르면 중단한 뒤 변경된 최종 대상을 다시 제시해 승인받습니다.
 - push 직전에 원격 ref의 현재 SHA도 조회해 보관한 `headRefOid`와 대조합니다 — 다르거나 ref가 없으면(삭제됨) push하지 않고 중단합니다.
   그사이 원격이 갱신·rewind·삭제된 것이므로, 새 head 기준으로 diff·검증·승인을 다시 수행합니다.
-  non-force push는 원격 전진 경합은 거부하지만 rewind·삭제 뒤에는 성공해, 승인 당시와 다른 원격 상태를 되살릴 수 있습니다.
+- 이 대조와 push는 별도 명령이라 그 사이의 원격 변경까지는 막지 못하므로, push 명령에
+  `--force-with-lease='refs/heads/<승인 대상 브랜치>:<headRefOid>'`로 예상 이전 SHA를 고정해 수신 시점 변경을 원자적으로 거부합니다 —
+  non-force push만으로는 원격 전진 경합은 거부해도 rewind·삭제 뒤에는 성공해, 승인 당시와 다른 원격 상태를 되살릴 수 있습니다.
+  승인 SHA가 `headRefOid`를 조상으로 포함함은 이미 확인했으므로, lease가 성립한 push는 항상 전진이며 강제 덮어쓰기로 동작하지 않습니다.
+  lease 거부를 포함해 원자 대조가 실패하면 push 성공·반영 완료로 보고하지 않고, 새 head 기준으로
+  diff·검증·승인을 다시 수행합니다 — 기존 승인값으로 재시도하지 않습니다.
 - push 명령은 승인 SHA와 대상 브랜치를 refspec으로 고정해 실행합니다 — 대상 브랜치는 보관한 head 브랜치(`headRefName`)입니다.
   기본 `git push`는 현재 브랜치의 upstream 설정을 따라가 승인받지 않은 원격 브랜치를 갱신할 수 있습니다.
 - push 뒤 대상 PR의 `headRefOid`를 재조회해 승인 SHA와 일치할 때만 반영 완료로 보고합니다 —
@@ -216,7 +221,8 @@ REST/GraphQL API를 직접 호출(`curl` 등)하는 제3의 수단은 이 스킬
 # push 직전 원격 ref 대조 — 출력 SHA가 보관한 headRefOid와 다르거나 출력이 비면(삭제됨) 중단
 git ls-remote '<원격 이름>' 'refs/heads/<승인 대상 브랜치>'
 
-git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>'
+git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>' \
+  --force-with-lease='refs/heads/<승인 대상 브랜치>:<보관한 headRefOid>'
 
 # push 반영 확인 — 대상 PR head가 승인 SHA로 갱신됐는지 재조회
 gh pr view '<PR 번호>' --repo '<호스트>/<소유자>/<저장소>' --json headRefOid
