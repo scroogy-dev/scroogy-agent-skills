@@ -45,9 +45,17 @@ PR 머지·닫기는 이 스킬의 범위가 아닙니다.
 
 ### 대상 PR 식별
 
+- 최초 조회 전에 대상 저장소를 독립적으로 확정합니다 — 현재 브랜치의 upstream 원격(없으면 `origin`)의 URL을
+  정규화해 호스트/소유자/저장소를 얻고, 원격이 없거나 후보가 복수면 대상 저장소를 사용자에게 질의합니다.
+  최초 `gh pr view`부터 이 값을 `--repo`로 명시합니다 — 최초 조회를 무보호로 두면 `GH_REPO`·`GH_HOST`
+  환경 변수나 실행 디렉토리가 다른 저장소의 동명 PR을 선택할 수 있고, 그 응답을 불변값으로 보관하면
+  잘못된 대상이 그대로 고정되어 이후의 결속 검증 전체가 잘못된 PR 기준으로 통과합니다.
 - 인자로 PR 번호를 받으면 그 PR을 대상으로 합니다.
-- 인자가 없으면 현재 브랜치의 열린 PR을 자동 감지합니다. 감지에 실패하면(열린 PR 없음·복수 매칭 등) 대상 PR을 사용자에게 질의합니다.
-- 식별한 호스트/소유자/저장소와 PR 번호·URL은 불변값으로 보관합니다 (호스트는 PR URL에서 확정).
+- 인자가 없으면 현재 브랜치의 열린 PR을 자동 감지합니다 — `--repo`를 쓰면 선택자 인자가 필수이므로
+  현재 브랜치 이름을 선택자로 지정합니다. 감지에 실패하면(열린 PR 없음·복수 매칭, 포크 작업 등
+  확정한 저장소에 PR이 없는 경우 포함) 대상 PR을 사용자에게 질의합니다.
+- 조회 응답의 PR URL이 확정한 저장소와 일치하는지 확인한 뒤, 호스트/소유자/저장소와 PR 번호·URL을
+  불변값으로 보관합니다 (호스트는 PR URL에서 확정).
   이후 `gh pr` 계열 명령에는 `--repo '<호스트>/<소유자>/<저장소>'`를 명시하고,
   `gh api` 계열 명령에는 `--hostname '<호스트>'`와 함께 경로·변수의 소유자/저장소 값을 이 불변값으로 지정합니다 —
   `gh api`의 기본 호스트는 github.com이라 호스트를 생략하면, GitHub Enterprise의 PR을 다룰 때
@@ -57,8 +65,13 @@ PR 머지·닫기는 이 스킬의 범위가 아닙니다.
   불변값으로 보관합니다 — 코드 수정·push를 대상 PR head에 결속하는 기준값입니다 ("코드 수정" 참조).
 
 ```bash
-# 현재 브랜치의 열린 PR 자동 감지 — head 결속용 필드까지 함께 수집
-gh pr view --json number,title,url,headRefName,headRefOid,headRepository,headRepositoryOwner,isCrossRepository
+# 대상 저장소 확정 — 현재 브랜치의 upstream 원격(없으면 origin)의 URL을 정규화해 호스트/소유자/저장소를 얻는다
+git rev-parse --abbrev-ref '@{upstream}'      # '<원격 이름>/<브랜치>' — 원격 이름 확인
+git remote get-url '<원격 이름>'
+
+# 현재 브랜치의 열린 PR 자동 감지 — 확정한 저장소를 --repo로 명시(선택자 필수라 브랜치 이름 지정), head 결속용 필드까지 함께 수집
+gh pr view '<현재 브랜치>' --repo '<호스트>/<소유자>/<저장소>' \
+  --json number,title,url,headRefName,headRefOid,headRepository,headRepositoryOwner,isCrossRepository
 ```
 
 ### 수집 대상
@@ -264,6 +277,10 @@ gh api --hostname '<호스트>' "repos/<소유자>/<저장소>/pulls/<PR 번호>
 ### 스레드 resolve
 
 - 조치를 마친 스레드의 resolve 여부도 사용자 선택에 따릅니다 — 자동으로 resolve하지 않습니다.
+- resolve 실행 직전에 대상 스레드를 재조회해("코멘트 수집"의 GraphQL 조회) 수집 시점 스냅샷과 대조합니다 —
+  코멘트 목록(`databaseId`)이나 resolve 상태가 승인 당시와 다르면(새 코멘트 추가·이미 resolve됨 등)
+  실행하지 않고 중단한 뒤, 달라진 스레드를 다시 분류·승인 대상으로 올립니다.
+  수집·승인 사이에 리뷰어가 남긴 새 피드백을 보지 못한 채 resolve로 닫는 것을 차단합니다.
 
 ```bash
 gh api graphql --hostname '<호스트>' -f query='
