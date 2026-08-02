@@ -24,7 +24,7 @@
 |------|------|
 | 설계 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
 | 구현 모델 | Anthropic, Claude Opus 5 (claude-opus-5) |
-| audit 모델 | OpenAI, GPT-5 | |
+| audit 모델 | OpenAI, GPT-5 |
 
 ---
 
