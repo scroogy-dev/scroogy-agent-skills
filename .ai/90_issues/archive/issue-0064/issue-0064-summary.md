@@ -83,3 +83,14 @@
 - **결과**: 완료
 - **수행 내용 요약**: 사용자가 OpenAI GPT-5로 7차에 걸쳐 issue-audit를 직접 수행. 리포트는 4~7차 4건 보존 — ./issue-0064-audit-report-4.md, ./issue-0064-audit-report-5.md, ./issue-0064-audit-report-6.md, ./issue-0064-audit-report.md(7차 최종) (1~3차는 이력화 도입 전 덮어쓰기로 파일 미보존, 대응 내역은 Task 2 특이 사항에 기록). 누적 발견 20건(Task 2 귀속 16건, Task 4 귀속 4건)은 회차마다 issue-work `--response`로 피드백 제시·항목별 승인을 거쳐 전부 반영. 7차 최종 판정 충족(PASS) — 1단계 PASS 15건/FAIL 0건/PARTIAL 0건, spec `[D]` 검증·회귀 테스트(install-skills 20건, issue-work 27건) 통과.
 - **특이 사항**: 교차 벤더 조건 충족 — 구현·설계는 Anthropic(Claude Fable 5), 감사는 OpenAI(GPT-5). 7차 2단계 발견 F-20(MCP resolve 폴백) 보정은 사용자 결정으로 8차 재감사 없이 종결 — 이 이슈의 후속 감사가 생기면 발견 번호는 F-21부터.
+
+---
+
+## 완료 후 PR 리뷰 대응 (PR #65)
+
+이슈 완료·archive 이관 후 PR #65의 GitHub Copilot 리뷰에 git-pr-feedback 절차(수집 → 분류·의견 → 항목별 승인 → 조치)로 대응했다.
+수행 모델: Anthropic, Claude Fable 5 / 리뷰어: GitHub Copilot (copilot-pull-request-reviewer).
+
+- **1차 대응 (2026-08-02, 커밋 c5dadf6)**: 지적 2건 승인 반영 — 조치 실행 절에 동적 인자 작은따옴표 이스케이프 규칙 추가, push 승인 검증을 fetch·push URL 전수(`--push --all`) 대조로 확장. 답글 게시·스레드 resolve 완료.
+- **2차 대응 (2026-08-02, 커밋 34b0204·51f1c19)**: 지적 3건(미해결 스레드 1건 + 억제 코멘트 2건) 승인 반영 — 최초 PR 감지 전 저장소를 git 원격에서 독립 확정 후 `--repo` 명시(`GH_REPO` 가로채기 차단, 재현 실험으로 실증), resolve 직전 스레드 재조회·스냅샷 대조 규칙 추가, issue-audit 이전 리포트 탐색에 archive 이관 경로 추가. 미해결 스레드 답글 게시·resolve 완료.
+- **범위 확장 (2026-08-02, 커밋 e1499e0)**: 수용(known issue) 의견 유형 추가로 5종 확장 — 보안·결함 지적은 발생확률·영향도 대비 수정 비용으로 판단하고 과한 항목은 수용 의견으로 제시 (사용자 결정, spec `포함 (In)`에 기록). 원장 기록 목적지 연결은 #61 유지.
