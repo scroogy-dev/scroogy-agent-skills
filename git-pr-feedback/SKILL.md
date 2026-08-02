@@ -293,7 +293,9 @@ gh api graphql --hostname '<호스트>' -f query='
 ```
 
 - MCP 폴백은 활성 스키마가 `resolve_thread`를 지원할 때만 사용합니다 ("조치 실행"의 매핑 표·규칙 참조) —
-  `pull_request_review_write`에 `method: resolve_thread`와 보존한 스레드 `id`(`threadId`)를 지정해 실행합니다.
+  `pull_request_review_write`에 `method: resolve_thread`와 보존한 스레드 `id`(`threadId`)를 지정하고,
+  활성 스키마가 요구하는 나머지 필수 입력(`owner`/`repo`/`pullNumber` 등)은 보관한 불변값으로 채워 실행합니다 —
+  필수 입력은 method와 무관하게 스키마 전체에 걸리므로, 두 값만 전달하면 지원 서버에서도 입력 검증에 실패합니다.
 
 ---
 
