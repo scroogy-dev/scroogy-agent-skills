@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 재감사 8차 (사용자가 직접 타벤더 모델로 수행. DoD #6은 spec의 유한 체크리스트 6항목으로만 채점, 발견 번호는 7차 계승 — F-21부터)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -12,7 +12,7 @@
 |------|------|
 | 설계 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
 | 구현 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, GPT-5 |
 
 ---
 
@@ -80,6 +80,6 @@
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 7차에 걸쳐 issue-audit를 직접 수행. 리포트는 4~7차 4건 보존 — ./issue-0064-audit-report-4.md, ./issue-0064-audit-report-5.md, ./issue-0064-audit-report-6.md, ./issue-0064-audit-report.md(7차 최종) (1~3차는 이력화 도입 전 덮어쓰기로 파일 미보존, 대응 내역은 Task 2 특이 사항에 기록). 누적 발견 20건(Task 2 귀속 16건, Task 4 귀속 4건)은 회차마다 issue-work `--response`로 피드백 제시·항목별 승인을 거쳐 전부 반영. 7차 최종 판정 충족(PASS) — 1단계 PASS 15건/FAIL 0건/PARTIAL 0건, spec `[D]` 검증·회귀 테스트(install-skills 20건, issue-work 27건) 통과.
+- **특이 사항**: 교차 벤더 조건 충족 — 구현·설계는 Anthropic(Claude Fable 5), 감사는 OpenAI(GPT-5). 7차 2단계 발견 F-20(MCP resolve 폴백) 보정은 사용자 결정으로 8차 재감사 없이 종결 — 이 이슈의 후속 감사가 생기면 발견 번호는 F-21부터.
