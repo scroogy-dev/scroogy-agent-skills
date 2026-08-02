@@ -170,11 +170,14 @@ gh api graphql --hostname '<호스트>' --paginate -f query='
 |------|-----------|-----------------|
 | 일반 댓글 답글 | `gh pr comment` | `add_issue_comment` |
 | 코드 라인 스레드 답글 | `gh api …/replies` | `add_reply_to_pull_request_comment` |
-| 스레드 resolve | `gh api graphql` (mutation) | 미지원 — 아래 규칙 참조 |
+| 스레드 resolve | `gh api graphql` (mutation) | `pull_request_review_write` (`method: resolve_thread`) — 활성 스키마 지원 시에만, 아래 규칙 참조 |
 
-스레드 resolve는 MCP 폴백이 없습니다 — 현재 GitHub MCP 도구 계약에는 스레드 resolve 도구가 없습니다.
-`gh` 불가 환경에서 resolve가 승인된 스레드는 답글만 게시하고 unresolved 상태로 남긴 뒤
-그 사실과 사유를 결과 요약에 명시합니다. 계약에 없는 메서드를 추측해 호출하지 않습니다.
+스레드 resolve의 MCP 폴백은 서버 인스턴스마다 도구 계약이 달라 지원 여부가 갈리므로,
+고정 단정 대신 실행 시점에 활성 도구 스키마를 확인해 결정합니다 —
+`pull_request_review_write`의 method 목록에 `resolve_thread`가 있고 스레드 식별 입력(`threadId`)을 받으면,
+보존한 스레드 `id`로 승인된 resolve를 실행합니다. 스키마에 없으면 미지원으로 처리합니다 —
+답글만 게시하고 unresolved 상태로 남긴 뒤 그 사실과 사유를 결과 요약에 명시하며,
+계약에 없는 메서드를 추측해 호출하지 않습니다.
 
 연결된 MCP가 읽기 전용 모드이거나, 활성화된 도구 구성(toolset)에 위 쓰기 도구가 없거나,
 대상 호스트 일치를 확인할 수 없으면("수집 수단"의 호스트 확인 규칙) 그 조치는 실행하지 않습니다 —
@@ -252,6 +255,9 @@ gh api graphql --hostname '<호스트>' -f query='
   }' -F id='<스레드 ID>'
 ```
 
+- MCP 폴백은 활성 스키마가 `resolve_thread`를 지원할 때만 사용합니다 ("조치 실행"의 매핑 표·규칙 참조) —
+  `pull_request_review_write`에 `method: resolve_thread`와 보존한 스레드 `id`(`threadId`)를 지정해 실행합니다.
+
 ---
 
 ## 결과 요약
@@ -266,6 +272,7 @@ gh api graphql --hostname '<호스트>' -f query='
 
 - 보류 항목과 남은 리스크·후속 액션은 접지 않고 본문에 유지합니다 ("산출물 접기 기준" 참조).
 - push를 수행했고 작업트리에 남은 미커밋 변경이 있으면, 그 변경이 이번 push에 포함되지 않았음을 결과에 명시합니다.
+- resolve는 실행 완료와 미지원 미실행을 구분해 기록합니다 — 미지원이면 unresolved 상태와 사유를 결과에 남깁니다.
 - 항목별 근거·상세 경위는 접어도 됩니다.
 
 ---
