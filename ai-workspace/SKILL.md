@@ -20,9 +20,11 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 - **code-map**: 소스코드 기능별 엔트리포인트·호출 흐름 색인 (`.ai/60_codebase/` 활용)
 - **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
 - **git-pr**: PR 제목/메시지 작성 (비즈니스+테크 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성
+- **git-pr-feedback**: PR 리뷰 코멘트 수집·분류 후 항목별 대응 (답글 게시·코드 변경·원장 등재). 수용한 지적을 `.ai/70_ledger/`에 등재하고, 코드 수정으로 원인이 사라진 기존 항목을 종결합니다.
 - **git-qa**: 배포 대상 PR에서 repo별 QA 체크리스트 생성 (`.ai/99_workspace/` 활용)
 - **git-review**: 비즈니스/테크 리뷰 수행 (`.ai/30_contract/`, `.ai/40_domain/` 활용)
 - **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
+- **issue-audit**: 이슈 스펙 대비 구현 독립 감사 (`.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 활용). `.ai/70_ledger/`의 기등재 항목을 대조해 이미 수용한 발견을 신규로 재보고하지 않습니다.
 - **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때 `.ai/70_ledger/`에 등재합니다 — 원장 `index.md` 골격과 항목 템플릿(`ledger-entry-template.md`)은 둘 다 본 스킬이 배포합니다. 등재 주체가 issue-work·git-pr-feedback 둘이라 어느 한쪽 스킬에 두지 않습니다.
 
 ## 사용법

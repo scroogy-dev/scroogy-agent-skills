@@ -4,11 +4,11 @@
 기술부채·known issue 원장의 항목 파일 템플릿입니다.
 
 파일명: `K-<번호>-<slug>.md` — 번호는 4자리 zero-padding (예: `K-0001-audit-report-path-fragile.md`).
-번호는 원장 전체에서 이어 붙입니다. `70_ledger/index.md`의 항목 목록과 `active/`·`archive/` 양쪽을 합쳐
+번호는 원장 전체에서 이어 붙입니다. `.ai/70_ledger/index.md`의 항목 목록과 `active/`·`archive/` 양쪽을 합쳐
 가장 큰 번호 + 1을 씁니다 — archive만 빼고 세면 청산된 항목의 번호를 재사용하게 됩니다.
 
 배치: 등재 시 `.ai/70_ledger/active/`, 청산(승격·해소) 시 `.ai/70_ledger/archive/`로 이동합니다.
-등재·이동 후에는 `70_ledger/index.md`의 항목 목록 표를 함께 갱신합니다.
+등재·이동 후에는 `.ai/70_ledger/index.md`의 항목 목록 표를 함께 갱신합니다.
 
 등재 주체: issue-work `--response`(미승인·보류 발견), git-pr-feedback(수용 — 원장 등재).
 아래 필드 7종은 `- **<필드>**:` 형식을 유지합니다 — 원장 집계·검증이 이 앵커에 의존합니다.
