@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-08-02
+> last updated: 2026-08-03
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -59,7 +59,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
 │   ├── references/             # 구버전 마이그레이션 참조 문서
-│   ├── templates/              # 프로파일별 템플릿
+│   ├── templates/              # 프로파일별 템플릿 (원장 index 골격·항목 템플릿 포함)
 │   └── tests/                  # update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 │   └── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
@@ -103,7 +103,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `context-save` | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
 | `git-pr` | PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
-| `git-pr-feedback` | PR 리뷰 코멘트를 수집·분류하고 항목별 의견 제시 후 사용자 선택에 따라 답글 게시 또는 코드 변경으로 대응 |
+| `git-pr-feedback` | PR 리뷰 코멘트를 수집·분류하고 항목별 의견 제시 후 사용자 선택에 따라 답글 게시·코드 변경·원장 등재로 대응 |
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
@@ -165,6 +165,7 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 │   └── specs/       # 기능 명세
 ├── 50_adr/          # [4순위] 의사결정 기록 (index.md로 선택적 참조)
 ├── 60_codebase/     # [5순위] 소스코드 엔트리포인트·호출 흐름 색인 (index.md로 선택적 참조)
+├── 70_ledger/       # [6순위] 수용한 기술부채·known issue 원장 (index.md로 선택적 참조)
 ├── 90_issues/       # 이슈 단위 작업 (active/ + archive/)
 └── 99_workspace/    # AI 임시 작업공간
 ```
@@ -180,12 +181,12 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
    - **이 repo를 직접 열고 진입한 경우** (IDE가 이 repo 폴더만 연 상태):
      - `../.ai/AI-CONTEXT.md`가 존재하면 상위 워크스페이스의 일부 — 인접 repo가 필요한 질의면 그 경로로 거슬러 올라가 다른 repo를 참조한다.
      - `../.ai/AI-CONTEXT.md`가 없으면 단독 repo — 이 안내도만으로 답변을 시작한다.
-2. `.ai/10_rules/context-loading.md`를 먼저 적재하고, 질의 유형에 따라 `30_contract/index.md`(계약) → `40_domain/index.md`(도메인 본문/정책) → `50_adr/index.md`(결정 이력) → `60_codebase/index.md`(코드 진입점) 중 필요한 항목만 **선택 적재**한다.
+2. `.ai/10_rules/context-loading.md`를 먼저 적재하고, 질의 유형에 따라 `30_contract/index.md`(계약) → `40_domain/index.md`(도메인 본문/정책) → `50_adr/index.md`(결정 이력) → `60_codebase/index.md`(코드 진입점) → `70_ledger/index.md`(수용한 기술부채·known issue) 중 필요한 항목만 **선택 적재**한다.
 3. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**.
 
 ### 작성 규칙 (이 파일을 손볼 때)
 
-- 도메인 본문은 `40_domain/`, 계약은 `30_contract/`, 결정 이력은 `50_adr/`, 코드 상세는 `60_codebase/`에 둔다. 이 파일에는 포인터만.
+- 도메인 본문은 `40_domain/`, 계약은 `30_contract/`, 결정 이력은 `50_adr/`, 코드 상세는 `60_codebase/`, 수용한 기술부채·known issue는 `70_ledger/`에 둔다. 이 파일에는 포인터만.
 - `domain`/`keywords`를 바꾸면 상위 워크스페이스 안내도의 `Repos` 행도 같이 갱신한다 (멀티 워크스페이스의 일부일 때에 한함).
 
 ## Git 정책

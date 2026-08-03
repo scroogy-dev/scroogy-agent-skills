@@ -5,7 +5,7 @@
 
 ## 참조 원칙
 
-- `30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`: **index.md를 먼저 읽어 목차로 활용**하고, 작업과 관련 있는 파일만 선택적으로 추가 읽는다.
+- `30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`, `70_ledger/`: **index.md를 먼저 읽어 목차로 활용**하고, 작업과 관련 있는 파일만 선택적으로 추가 읽는다.
 - `90_issues/active/`: 하위 전체를 읽는다 (index 개념 없음).
 - `90_issues/archive/<issue-dir>/`: 사용자가 명시적으로 언급한 이슈 디렉토리 전체를 읽는다.
 - 이미 컨텍스트에 적재된 파일은 재로딩하지 않는다.

@@ -20,10 +20,12 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 - **code-map**: 소스코드 기능별 엔트리포인트·호출 흐름 색인 (`.ai/60_codebase/` 활용)
 - **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
 - **git-pr**: PR 제목/메시지 작성 (비즈니스+테크 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성
+- **git-pr-feedback**: PR 리뷰 코멘트 수집·분류 후 항목별 대응 (답글 게시·코드 변경·원장 등재). 수용한 지적을 `.ai/70_ledger/`에 등재하고, 코드 수정으로 원인이 사라진 기존 항목을 종결합니다.
 - **git-qa**: 배포 대상 PR에서 repo별 QA 체크리스트 생성 (`.ai/99_workspace/` 활용)
 - **git-review**: 비즈니스/테크 리뷰 수행 (`.ai/30_contract/`, `.ai/40_domain/` 활용)
 - **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
-- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용)
+- **issue-audit**: 이슈 스펙 대비 구현 독립 감사 (`.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 활용). `.ai/70_ledger/`의 기등재 항목을 대조해 이미 수용한 발견을 신규로 재보고하지 않습니다.
+- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때 `.ai/70_ledger/`에 등재합니다 — 원장 `index.md` 골격과 항목 템플릿(`ledger-entry-template.md`)은 둘 다 본 스킬이 배포합니다. 등재 주체가 issue-work·git-pr-feedback 둘이라 어느 한쪽 스킬에 두지 않습니다.
 
 ## 사용법
 
@@ -174,11 +176,17 @@ rm -rf .ai/20_templates/*
 
 ### update-3단계: 콘텐츠 디렉토리 구조 정비
 
-`30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`, `90_issues/` 각각에 대해 아래를 수행합니다.
+`30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`, `70_ledger/`, `90_issues/` 각각에 대해 아래를 수행합니다.
 
 #### 하위 디렉토리 구조 생성
 
 정의된 하위 디렉토리가 없으면 생성합니다. 새로 생성한 빈 디렉토리에는 `.gitkeep` 파일을 함께 생성합니다.
+
+대상 디렉토리 자체가 없으면 함께 생성하고, 템플릿의 디렉토리 루트에 있는 골격 파일(`index.md`와 `70_ledger/ledger-entry-template.md`)이
+설치본에 없으면 템플릿본을 복사합니다 (설치본에 이미 있으면 사용자 작성분이므로 덮어쓰지 않습니다) —
+`70_ledger/`처럼 나중에 추가된 디렉토리가 기존 설치본에도 전파되는 경로입니다.
+원장 항목 템플릿을 여기서 배포하는 이유는 등재 주체가 issue-work·git-pr-feedback 둘이기 때문입니다 —
+한쪽 스킬에 두면 다른 쪽이 그 스킬 설치를 전제하게 되고, 양쪽에 두면 형식이 이중화됩니다.
 
 | 디렉토리 | 생성할 하위 구조 |
 |---------|--------------|
@@ -186,11 +194,14 @@ rm -rf .ai/20_templates/*
 | `40_domain/` | `specs/`, `policies/common/`, `policies/local/` |
 | `50_adr/` | `active/`, `superseded/` |
 | `60_codebase/` | (하위 디렉토리 없음) |
+| `70_ledger/` | `active/`, `archive/` |
 | `90_issues/` | `active/`, `archive/` |
 
 #### 기존 파일 정리
 
 각 디렉토리 바로 아래에 파일이 있으면 내용과 파일명을 분석하여 적절한 하위 디렉토리로 이동합니다.
+
+**이동 제외 — 루트 상주 파일:** 템플릿 골격이 디렉토리 루트에 배포하는 파일(각 디렉토리의 `index.md`, `40_domain/glossary.md`, `70_ledger/ledger-entry-template.md`)은 이동·`legacy/` 대상에서 제외하고 루트에 그대로 둡니다. 이 파일들은 항목이 아니라 디렉토리의 진입점이라, 아래 판단 기준을 그대로 적용하면 판정 앵커·키워드가 없다는 이유로 하위 디렉토리나 `legacy/`로 밀려 `context-loading.md`가 가리키는 공통 진입점이 깨집니다.
 
 **이동 판단 기준:**
 
@@ -199,6 +210,7 @@ rm -rf .ai/20_templates/*
 | `40_domain/` | 파일명·내용이 기능 명세이면 `specs/`, 정책이면 `policies/local/`로 이동 |
 | `40_domain/policies/` | `policies/` 바로 아래에 파일이 있으면 `policies/local/`로 이동 |
 | `50_adr/` | `superseded`, `deprecated`, `replaced` 등의 키워드가 있으면 `superseded/`, 아니면 `active/`로 이동 |
+| `70_ledger/` | 항목의 `- **상태**:` 값이 `승격`·`해소`이면 `archive/`, 아니면 `active/`로 이동 |
 | `90_issues/` | 모든 Task 체크박스가 완료되었거나 완료 표시가 있으면 `archive/`, 아니면 `active/`로 이동 |
 
 판단이 불가능한 파일은 해당 디렉토리 안에 `legacy/`를 만들어 이동합니다.
