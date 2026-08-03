@@ -37,7 +37,7 @@
 > - `[QD]` L2 준결정적 — 다른 AI·기준 체크리스트가 채점
 > - `[ND]` L3 비결정적 — 사람이 직접 읽고 판단
 
-- [ ] [D] 원장 항목 템플릿이 필수 필드 7종(유형·등재일·출처·위험도·수용 사유·재검토 조건·상태)을 `- **<필드>**:` 앵커로 갖춘다
+- [x] [D] 원장 항목 템플릿이 필수 필드 7종(유형·등재일·출처·위험도·수용 사유·재검토 조건·상태)을 `- **<필드>**:` 앵커로 갖춘다
   <details>
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
@@ -50,7 +50,7 @@
 
   - 설계 주의: 파일이 없으면 `grep -q`가 실패해 7건 전부 위반으로 출력된다 — 파일 실재 검사를 겸한다.
   </details>
-- [ ] [D] 원장 index 골격에 `## 수명 주기` 섹션이 있고 승격·해소·`archive/` 이관의 종결 경로를 명시한다
+- [x] [D] 원장 index 골격에 `## 수명 주기` 섹션이 있고 승격·해소·`archive/` 이관의 종결 경로를 명시한다
   <details>
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
@@ -63,7 +63,7 @@
   ```
 
   </details>
-- [ ] [D] issue-work SKILL.md `--response`가 미승인·보류 항목의 이관 목적지를 원장으로 명시하고 등재 필수 필드 2종(수용 사유·재검토 조건)을 기재한다
+- [x] [D] issue-work SKILL.md `--response`가 미승인·보류 항목의 이관 목적지를 원장으로 명시하고 등재 필수 필드 2종(수용 사유·재검토 조건)을 기재한다
   <details>
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
@@ -75,7 +75,7 @@
   ```
 
   </details>
-- [ ] [D] issue-audit SKILL.md가 `70_ledger/index.md` 선택 적재와 기등재 일치 발견의 참조 표기·집계 제외 규칙을 명시하고, 리포트 템플릿에 기등재 참조 섹션이 있다
+- [x] [D] issue-audit SKILL.md가 `70_ledger/index.md` 선택 적재와 기등재 일치 발견의 참조 표기·집계 제외 규칙을 명시하고, 리포트 템플릿에 기등재 참조 섹션이 있다
   <details>
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
@@ -89,7 +89,7 @@
   ```
 
   </details>
-- [ ] [D] git-pr-feedback SKILL.md 항목별 선택지에 원장 등재가 추가되고 등재 필수 필드 2종을 기재한다
+- [x] [D] git-pr-feedback SKILL.md 항목별 선택지에 원장 등재가 추가되고 등재 필수 필드 2종을 기재한다
   <details>
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
@@ -102,7 +102,7 @@
   ```
 
   </details>
-- [ ] [D] ai-workspace 산출 구조(템플릿 골격·context-loading·AI-CONTEXT 템플릿·SKILL.md)와 이 repo `.ai/`에 `70_ledger/`가 반영된다
+- [x] [D] ai-workspace 산출 구조(템플릿 골격·context-loading·AI-CONTEXT 템플릿·SKILL.md)와 이 repo `.ai/`에 `70_ledger/`가 반영된다
   <details>
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 

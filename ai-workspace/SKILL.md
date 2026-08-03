@@ -23,7 +23,7 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 - **git-qa**: 배포 대상 PR에서 repo별 QA 체크리스트 생성 (`.ai/99_workspace/` 활용)
 - **git-review**: 비즈니스/테크 리뷰 수행 (`.ai/30_contract/`, `.ai/40_domain/` 활용)
 - **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
-- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용)
+- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때 `.ai/70_ledger/`에 등재하며, 항목 템플릿(`ledger-entry-template.md`)도 이 스킬이 보유합니다 — 원장 `index.md` 골격은 본 스킬이 배포합니다.
 
 ## 사용법
 
@@ -174,11 +174,14 @@ rm -rf .ai/20_templates/*
 
 ### update-3단계: 콘텐츠 디렉토리 구조 정비
 
-`30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`, `90_issues/` 각각에 대해 아래를 수행합니다.
+`30_contract/`, `40_domain/`, `50_adr/`, `60_codebase/`, `70_ledger/`, `90_issues/` 각각에 대해 아래를 수행합니다.
 
 #### 하위 디렉토리 구조 생성
 
 정의된 하위 디렉토리가 없으면 생성합니다. 새로 생성한 빈 디렉토리에는 `.gitkeep` 파일을 함께 생성합니다.
+
+대상 디렉토리 자체가 없으면 함께 생성하고, 템플릿에 골격 `index.md`가 있는데 설치본에 없으면 템플릿본을 복사합니다
+(설치본에 이미 있으면 사용자 작성분이므로 덮어쓰지 않습니다) — `70_ledger/`처럼 나중에 추가된 디렉토리가 기존 설치본에도 전파되는 경로입니다.
 
 | 디렉토리 | 생성할 하위 구조 |
 |---------|--------------|
@@ -186,6 +189,7 @@ rm -rf .ai/20_templates/*
 | `40_domain/` | `specs/`, `policies/common/`, `policies/local/` |
 | `50_adr/` | `active/`, `superseded/` |
 | `60_codebase/` | (하위 디렉토리 없음) |
+| `70_ledger/` | `active/`, `archive/` |
 | `90_issues/` | `active/`, `archive/` |
 
 #### 기존 파일 정리
@@ -199,6 +203,7 @@ rm -rf .ai/20_templates/*
 | `40_domain/` | 파일명·내용이 기능 명세이면 `specs/`, 정책이면 `policies/local/`로 이동 |
 | `40_domain/policies/` | `policies/` 바로 아래에 파일이 있으면 `policies/local/`로 이동 |
 | `50_adr/` | `superseded`, `deprecated`, `replaced` 등의 키워드가 있으면 `superseded/`, 아니면 `active/`로 이동 |
+| `70_ledger/` | 항목의 `- **상태**:` 값이 `승격`·`해소`이면 `archive/`, 아니면 `active/`로 이동 |
 | `90_issues/` | 모든 Task 체크박스가 완료되었거나 완료 표시가 있으면 `archive/`, 아니면 `active/`로 이동 |
 
 판단이 불가능한 파일은 해당 디렉토리 안에 `legacy/`를 만들어 이동합니다.
