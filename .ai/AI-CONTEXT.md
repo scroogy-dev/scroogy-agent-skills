@@ -59,7 +59,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
 │   ├── references/             # 구버전 마이그레이션 참조 문서
-│   ├── templates/              # 프로파일별 템플릿
+│   ├── templates/              # 프로파일별 템플릿 (원장 index 골격·항목 템플릿 포함)
 │   └── tests/                  # update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 │   └── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
@@ -82,7 +82,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── issue-audit/                # 이슈 감사 스킬
 │   └── templates/              # 감사 리포트 템플릿
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
-│   ├── templates/              # 이슈 템플릿 + 원장 항목 템플릿(70_ledger 등재용)
+│   ├── templates/              # 이슈 템플릿
 │   └── tests/                  # plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
 ├── readme-sync/                # README.md 생성/갱신 스킬
 │   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)

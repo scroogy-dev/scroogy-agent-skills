@@ -4,12 +4,13 @@
 AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으로 읽어옵니다.
 
 등재 주체는 issue-work `--response`(감사 리포트에서 이관으로 정한 발견)와 git-pr-feedback(수용 — 원장 등재)입니다.
-항목 파일 형식은 issue-work `templates/ledger-entry-template.md`를 따릅니다.
+항목 파일 형식은 같은 디렉토리의 `ledger-entry-template.md`를 따릅니다 — 등재 주체가 둘이라 어느 스킬에도 두지 않고 원장 골격과 함께 배포합니다.
 
 ## 파일 목록
 
 | 파일 | 설명 |
 |------|------|
+| `ledger-entry-template.md` | 항목 파일 템플릿 — 필수 필드 7종의 형식 정의 |
 | `active/` | 살아 있는 부채 — 아직 수용 상태인 항목 |
 | `archive/` | 청산한 부채 — 승격 또는 해소로 종결된 항목 |
 

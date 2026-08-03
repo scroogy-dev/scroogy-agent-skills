@@ -91,8 +91,8 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**: `issue-work/templates/ledger-entry-template.md` 신설 — 필수 필드 7종을 `- **<필드>**:` 앵커로 고정하고, 파일명 규칙(`K-<번호>-<slug>.md`, 4자리 zero-padding)·배치 위치(`active/` 등재, 청산 시 `archive/`)·출처의 경로 미기재 원칙을 본문에 명시했다. 완료 기준 2종 검증 명령 모두 출력 0건 통과.
-- **특이 사항**: 템플릿 주석에 번호 채번 규칙을 명시했다 — `active/`와 `archive/`를 합쳐 최대 번호 + 1로 정한다. archive를 빼고 세면 청산된 항목의 번호를 재사용하게 되어 출처 추적이 깨진다. 재검토 이력 섹션은 "없음" 명시를 요구해 빈 섹션과 미수행을 구분한다.
+- **수행 내용 요약**: `ai-workspace/templates/shared/.ai/70_ledger/ledger-entry-template.md` 신설 — 필수 필드 7종을 `- **<필드>**:` 앵커로 고정하고, 파일명 규칙(`K-<번호>-<slug>.md`, 4자리 zero-padding)·배치 위치(`active/` 등재, 청산 시 `archive/`)·출처의 경로 미기재 원칙을 본문에 명시했다. 완료 기준 2종 검증 명령 모두 출력 0건 통과.
+- **특이 사항**: 템플릿 주석에 번호 채번 규칙을 명시했다 — `active/`와 `archive/`를 합쳐 최대 번호 + 1로 정한다. archive를 빼고 세면 청산된 항목의 번호를 재사용하게 되어 출처 추적이 깨진다. 재검토 이력 섹션은 "없음" 명시를 요구해 빈 섹션과 미수행을 구분한다. **이슈 종료 후 변경(2026-08-03, PR #68 리뷰 중 사용자 지적)**: 템플릿 소유를 issue-work에서 **ai-workspace**로 옮겼다(`templates/shared/.ai/70_ledger/ledger-entry-template.md` + repo 배포본 `.ai/70_ledger/ledger-entry-template.md`). 원장을 `90_issues/` 밖으로 뺐는데 형식 정의만 이슈 스킬 안에 남아, 등재 주체 다른 한 축인 git-pr-feedback이 issue-work 설치를 전제하고 배포된 `70_ledger/index.md`가 특정 스킬 내부 경로를 가리키고 있었다. 참조처 5곳(git-pr-feedback 2·issue-work SKILL·workflow 템플릿·active 사본)과 원장 index 2종을 새 경로로 맞추고, ai-workspace의 골격 복사 규칙·루트 상주 파일 제외 규칙에 이 파일을 추가했다. spec `## 전제`의 해당 항목에 번복 표시를 달았고, 이 Task와 spec `완료의 정의`의 `[D]` 검증 명령 경로도 새 위치로 갱신해 재실행 통과를 확인했다.
 
 ---
 

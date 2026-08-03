@@ -20,7 +20,7 @@ PR 머지·닫기는 이 스킬의 범위가 아닙니다.
 - git-commit (권장): 조치 실행에서 코드 수정 커밋 메시지는 git-commit 규칙을 따릅니다.
 - issue-work (참고): `--response` 옵션의 절차 골격(수집 → 분류·의견 → 승인 → 조치)을 참고한 선례입니다.
   대상은 다릅니다 (issue-work `--response`: 작업공간의 감사 리포트 파일 / 이 스킬: GitHub 위의 PR 리뷰 코멘트).
-  원장 등재 형식은 issue-work `templates/ledger-entry-template.md`를 공유합니다 —
+  원장 등재 형식은 `.ai/70_ledger/ledger-entry-template.md`를 공유합니다 (ai-workspace가 원장 골격과 함께 배포) —
   두 스킬이 같은 원장에 등재하므로 항목 형식과 번호 채번 규칙을 하나로 유지합니다.
 
 ## 참조 문서
@@ -172,7 +172,7 @@ gh api graphql --hostname '<호스트>' --paginate -f query='
 
 **수용 — 원장 등재**를 선택한 항목은 아래 규칙으로 등재합니다.
 
-- issue-work `templates/ledger-entry-template.md` 형식으로 `.ai/70_ledger/active/K-<번호>-<slug>.md`를 신설하고
+- `.ai/70_ledger/ledger-entry-template.md` 형식으로 `.ai/70_ledger/active/K-<번호>-<slug>.md`를 신설하고
   `.ai/70_ledger/index.md`의 항목 목록 표를 갱신합니다. 번호는 `active/`·`archive/`를 합쳐 가장 큰 번호 + 1로 채번합니다.
 - 등재 시 원장 항목의 **수용 사유**(발생확률·영향도)와 **재검토 조건**(언제 다시 볼지)을 필수로 기재합니다 —
   수용 사유는 분류 단계에서 의견 유형 `수용(known issue)`에 붙인 수용 근거를 그대로 옮겨 적고,

@@ -74,7 +74,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 - [x] 완료
 - **목표**: 원장 항목의 표준 형식을 확정한다 — 등재 절차(`--response`·git-pr-feedback)가 참조할 단일 템플릿.
 - **작업 내용**:
-  1. `issue-work/templates/ledger-entry-template.md` 생성 — 필수 필드 7종을 `- **<필드>**:` 앵커로 고정: 유형(known issue / 기술부채), 등재일, 출처, 위험도(높음(HIGH) / 중간(MEDIUM) / 낮음(LOW) / 정보(INFO)), 수용 사유(필수 — 왜 지금 고치지 않는지), 재검토 조건(필수 — 언제 다시 볼지), 상태(수용 / 승격(이슈 #N) / 해소(PR #N)).
+  1. `ai-workspace/templates/shared/.ai/70_ledger/ledger-entry-template.md` 생성 — 필수 필드 7종을 `- **<필드>**:` 앵커로 고정: 유형(known issue / 기술부채), 등재일, 출처, 위험도(높음(HIGH) / 중간(MEDIUM) / 낮음(LOW) / 정보(INFO)), 수용 사유(필수 — 왜 지금 고치지 않는지), 재검토 조건(필수 — 언제 다시 볼지), 상태(수용 / 승격(이슈 #N) / 해소(PR #N)).
   2. `출처` 필드는 **식별자만** 적고 파일 경로를 넣지 않음을 템플릿 본문에 명시한다 — 이슈 #N / audit 발견 `F-n` / PR 코멘트 스레드. 근거는 spec 전제 참조(`--clear` 이관으로 리포트 경로가 바뀌어도 원장이 깨지지 않게).
   3. 파일명 규칙 `K-<번호>-<slug>.md`(번호 4자리 zero-padding)와 배치 위치(`.ai/70_ledger/active/`, 청산 시 `archive/` 이관)를 본문에 명시한다.
 - **완료 기준**:
@@ -83,7 +83,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    T=issue-work/templates/ledger-entry-template.md
+    T=ai-workspace/templates/shared/.ai/70_ledger/ledger-entry-template.md
     for f in '유형' '등재일' '출처' '위험도' '수용 사유' '재검토 조건' '상태'; do
       grep -qE "^- \*\*$f\*\*:" "$T" || echo "위반: $f 필드 누락 또는 파일 없음"
     done
@@ -96,7 +96,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    T=issue-work/templates/ledger-entry-template.md
+    T=ai-workspace/templates/shared/.ai/70_ledger/ledger-entry-template.md
     grep -q 'K-<번호>-<slug>.md' "$T" || echo '위반: 파일명 규칙 없음'
     grep -q '70_ledger/active' "$T" || echo '위반: 배치 위치 없음'
     grep -q '경로' "$T" || echo '위반: 출처 경로 미기재 원칙 없음'
