@@ -17,7 +17,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [context-save](./context-save/) | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | [git-commit](./git-commit/) | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
 | [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
-| [git-pr-feedback](./git-pr-feedback/) | PR 리뷰 코멘트 수집·분류 후 항목별 의견 제시, 사용자 선택에 따라 답글 게시 또는 코드 변경으로 대응 |
+| [git-pr-feedback](./git-pr-feedback/) | PR 리뷰 코멘트 수집·분류 후 항목별 의견 제시, 사용자 선택에 따라 답글 게시·코드 변경·원장 등재로 대응 |
 | [git-qa](./git-qa/) | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | [git-review](./git-review/) | 비즈니스/테크 리뷰 수행 |
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
@@ -36,12 +36,12 @@ ai-workspace (디렉토리 스캐폴딩)
 ├── context-save        ← .ai/99_workspace/notes/ 활용, issue-work --resume로 자동 로드
 ├── git-commit          ← 독립 사용 가능
 ├── git-pr              ← git-commit 규칙 참조, .ai/ 문서 활용
-├── git-pr-feedback     ← git-pr 제출 후 단계, git-commit 규칙 참조
+├── git-pr-feedback     ← git-pr 제출 후 단계, git-commit 규칙 참조, .ai/70_ledger/ 등재
 ├── git-qa              ← git-pr 참고, 독립 사용 가능
 ├── git-review          ← .ai/ 문서 활용
 ├── git-review-context  ← .ai/ 문서 활용, git-review와 함께 사용 가능
-├── issue-audit         ← issue-work 스펙 활용, .ai/ 문서 활용
-├── issue-work          ← .ai/90_issues/ 활용
+├── issue-audit         ← issue-work 스펙 활용, .ai/ 문서 활용, .ai/70_ledger/ 대조
+├── issue-work          ← .ai/90_issues/ 활용, .ai/70_ledger/ 등재
 └── readme-sync         ← 독립 사용 가능
 ```
 
