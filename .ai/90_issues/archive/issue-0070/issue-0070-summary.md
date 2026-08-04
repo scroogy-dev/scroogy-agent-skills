@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -12,7 +12,7 @@
 |------|------|
 | 설계 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
 | 구현 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
-| audit 모델 | |
+| audit 모델 | OpenAI, GPT-5 |
 
 ---
 
@@ -56,6 +56,6 @@
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 `issue-audit`를 수행했다. 리포트는 [./issue-0070-audit-report.md](./issue-0070-audit-report.md)에 있다 (작성 시점 경로는 `.ai/99_workspace/issue-0070-audit-report.md`, --clear로 이관). 1단계 적합성 검증은 요구사항 3건·DoD 4건 전부 충족(PASS), 2단계 비판적 검증은 발견 0건이었다. 이어 `issue-work --response`로 리포트를 검토하며 spec `완료의 정의`의 `[D]` 검증 3종과 Task N 선행 게이트 3종(Task 헤더 집합·결과 확정·수행 모델)을 재현 실행해 리포트 판정과 일치함을 확인했다. 보정 대상 0건이라 승인 질의 항목도 없었다.
+- **특이 사항**: DoD 4번은 spec에서 `[ND]`(사람 리뷰)로 지정된 항목인데 audit 모델이 충족(PASS)으로 판정했다 — 실질 판정 주체가 AI라 `[QD]` 수준이며 최종 확인은 리포트를 읽는 사용자에게 남는다. 추가 행의 문구가 `git-pr-feedback/SKILL.md`의 역할 서술과 부합함은 별도로 확인했다.
