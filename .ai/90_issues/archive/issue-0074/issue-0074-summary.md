@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 `issue-audit` 검증 (**사용자가 직접** 타벤더 모델로 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -24,7 +24,7 @@
 |------|------|
 | 설계 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
 | 구현 모델 | Anthropic, Claude Opus 5 (claude-opus-5) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, GPT-5 |
 
 ---
 
@@ -131,6 +131,6 @@ plan 템플릿의 마지막 고정 Task에 대응하는 블록이다. 삭제하�
 audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Task 블록에 집계된다.
 -->
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 2회 수행 — 1차([./issue-0074-audit-report-1.md](./issue-0074-audit-report-1.md)) 부분 충족(PARTIAL), 발견 3건(F-1·F-2 중간(MEDIUM), F-3 낮음(LOW)). `--response` 검토로 F-2만 반영하고 F-1·F-3은 원장 `K-0003`·`K-0004`로 이관. 2차([./issue-0074-audit-report.md](./issue-0074-audit-report.md)) 충족(PASS) — 요구사항 4건·DoD 4건 전부 충족, 신규·재제기 발견 0건, F-2 닫힘 확인.
+- **특이 사항**: 구현은 Anthropic, audit은 OpenAI로 벤더 분리 조건 충족. 기등재 `K-0003`·`K-0004`는 재검토 조건 미충족이라 2차에서 참조만 하고 위험도·카테고리 집계에서 제외 — 두 항목은 원장 `active/`에 수용 상태로 남는다.
