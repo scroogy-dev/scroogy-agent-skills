@@ -74,6 +74,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── git-pr-feedback/            # PR 리뷰 코멘트 검토·대응 스킬
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 ├── git-review/                 # 리뷰 수행 스킬
+│   └── templates/              # 리뷰 결과 템플릿
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
 ├── install-skills/             # skill 선택 설치 스킬 (self-install형)
 │   ├── references/             # Antigravity 레거시 판정 상세
