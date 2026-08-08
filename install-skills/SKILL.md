@@ -111,7 +111,7 @@ done
    "$verify" --target "$antigravity_target" --antigravity-legacy "${skills[@]}"
    ```
 7. **레거시 경로 마이그레이션 (Antigravity 경로 한정)**: 6단계 레거시 점검이 FAIL(비어있지 않은 실제 디렉토리 잔존)이면 사용자에게 경고하고 정리를 제안하며, **승인 시에만 제거**합니다. INFO(심링크·부재·빈 디렉토리)는 보존하고 조치하지 않습니다 — 판정 기준·배경은 [references/antigravity-legacy.md](references/antigravity-legacy.md)에 있습니다.
-8. 복사 완료 후 설치된 skill 목록을 대상 경로별로 출력합니다.
+8. 복사 완료 후 설치 결과를 이 skill 디렉토리의 `templates/install-result-template.md` 형식으로 보고합니다.
 
 ## 참고
 
