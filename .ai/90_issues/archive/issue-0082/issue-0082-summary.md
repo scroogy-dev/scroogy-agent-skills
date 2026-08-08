@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자가 타벤더 모델로 직접 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -12,7 +12,7 @@
 |------|------|
 | 설계 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
 | 구현 모델 | Anthropic, Claude Opus 5 (claude-opus-5) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, GPT-5.6 Sol |
 
 ---
 
@@ -68,6 +68,6 @@
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5.6 Sol로 직접 audit을 수행했고, 리포트는 [issue-0082-audit-report.md](./issue-0082-audit-report.md)에 있다 (작성 시점 경로는 `.ai/99_workspace/issue-82-audit-report.md`, --clear로 이관). 1단계 적합성은 요구사항 3건·DoD 5건 전부 충족(PASS)이고 미충족(FAIL)·부분 충족(PARTIAL)은 0건, 2단계 비판적 검증 발견도 0건이다. 발견이 없어 `--response`의 보정 대상은 없으며, 각 Task 블록의 `audit 발견`·`보정 반영`은 0건 그대로 유지한다.
+- **특이 사항**: audit 모델이 DoD 5번(`[ND]` 문구 수정이 절차·동작 의미를 바꾸지 않음)을 충족(PASS)으로 판정했고, 사용자 확인을 거쳐 spec 완료의 정의의 해당 항목을 체크했다.
