@@ -119,7 +119,7 @@ slug는 기본적으로 **대화 주제에서 자동 생성**합니다. 인자�
 
 ### 3단계: 맥락 증류 및 문서 작성
 
-현재 대화에서 다음을 추출하여 `templates/context-note-template.md`에 따라 작성한다.
+현재 대화에서 다음을 추출하여 이 skill 디렉토리의 `templates/context-note-template.md`에 따라 작성한다.
 
 | 섹션 | 내용 |
 |------|------|
@@ -156,7 +156,7 @@ slug는 기본적으로 **대화 주제에서 자동 생성**합니다. 인자�
 
 ## 산출물 템플릿
 
-`templates/context-note-template.md`가 단일 출처이며, 본문에 템플릿 내용을 중복 기재하지 않는다.
+이 skill 디렉토리의 `templates/context-note-template.md`가 단일 출처이며, 본문에 템플릿 내용을 중복 기재하지 않는다.
 섹션 구성과 작성 지침은 3단계의 섹션 표와 템플릿 내 주석을 따른다.
 
 ---

@@ -106,7 +106,7 @@ README에 "개인 저작물 고지" 라인을 포함할까요?
 
 ### init-3단계: 템플릿 적용
 
-`templates/README-template.md`를 읽어 다음 순서로 처리합니다.
+이 skill 디렉토리의 `templates/README-template.md`를 읽어 다음 순서로 처리합니다.
 
 1. **필수 섹션 채우기**: Header / 개요 / Quick Start의 `<자리표시자>`를 프로젝트 분석 결과로 치환합니다.
 2. **옵션 섹션 결정**: 프로젝트에 필요한 `<!-- optional:NAME -->` 블록만 남기고 나머지는 통째로 삭제합니다.

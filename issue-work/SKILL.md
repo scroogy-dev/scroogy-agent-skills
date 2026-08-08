@@ -46,7 +46,7 @@ description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하�
 ## 새 이슈 시작 시
 
 1. `active/` 안에 있는 기존 이슈 디렉토리를 모두 `archive/`로 이동한다.
-2. `active/issue-workflow.md`가 없으면 `templates/issue-workflow-template.md`를 참조하여 생성한다. 이미 있으면 템플릿과 내용을 비교해, 다르면 최신 템플릿으로 갱신(덮어쓰기)하고 동일하면 그대로 둔다. (템플릿이 SSoT이며 이 파일은 그 사본이므로, 템플릿 개선이 자동 반영된다.)
+2. `active/issue-workflow.md`가 없으면 이 skill 디렉토리의 `templates/issue-workflow-template.md`를 참조하여 생성한다. 이미 있으면 템플릿과 내용을 비교해, 다르면 최신 템플릿으로 갱신(덮어쓰기)하고 동일하면 그대로 둔다. (템플릿이 SSoT이며 이 파일은 그 사본이므로, 템플릿 개선이 자동 반영된다.)
 3. `active/issue-<번호>/` 디렉토리를 생성하고 이 skill 디렉토리의 `templates/`를 참조하여 3개 파일을 생성한다.
    - `.ai/30_contract/index.md`, `.ai/40_domain/index.md`, `.ai/50_adr/index.md`를 훑어 spec의 "연관 문서" 섹션 후보를 제안한다.
 4. plan 작성을 끝내기 직전에 plan 템플릿의 **설계 종료 게이트**(`## Tasks` 앞 고정 블록)를 수행한다 — spec/plan만 보고 작성에 참여하지 않은 쪽이 구현할 수 있는지 자기점검하고, 문서에 없는 전제를 spec `## 전제 (Assumptions)`에 남긴다. 발견이 없으면 그 섹션에 "없음" 한 줄을 남긴다.
@@ -107,7 +107,7 @@ spec `완료의 정의`와 plan Task `완료 기준`의 항목은 본문과 접�
 
 접기 안의 명령은 코드 블록으로 감싸 복사·재실행이 쉽게 유지합니다.
 문서 구조를 앵커로 판정하는 검증 명령(`^### Task `, `^- \*\*…\*\*:`)이 있으므로, 접기는 앵커 행 아래에 들여쓰기로 붙여 앵커 자체를 깨지 않게 배치합니다.
-구체 형태는 `templates/issue-spec-template.md`·`templates/issue-plan-template.md`의 예시를 따릅니다.
+구체 형태는 이 skill 디렉토리의 `templates/issue-spec-template.md`·`templates/issue-plan-template.md`의 예시를 따릅니다.
 
 ---
 
