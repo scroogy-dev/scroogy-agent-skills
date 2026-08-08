@@ -114,29 +114,7 @@ OrderController#createOrder
 
 ## 결과 기록
 
-분석이 완료되면 `.ai/99_workspace/temp_review_context.md`에 아래 구조로 기록합니다.
-
-```markdown
-# 리뷰 컨텍스트
-
-## 변경 요약
-<!-- 파일 그룹별 변경 내용과 변경 의도 -->
-
-## 기능별 엔트리 포인트
-<!-- 기능명과 해당 엔트리 포인트(파일 경로 + 함수/메서드명) -->
-
-## 호출 흐름
-
-<details>
-<summary>엔트리 포인트별 호출 흐름 펼치기</summary>
-
-<!-- 엔트리 포인트별 호출 흐름 -->
-
-</details>
-
-## 리뷰 포인트
-<!-- 분류별 리뷰 집중 항목 -->
-```
+분석이 완료되면 이 skill 디렉토리의 `templates/review-context-template.md`를 참조하여 `.ai/99_workspace/temp_review_context.md`를 작성합니다.
 
 호출 흐름 상세는 접고, 변경 요약·리뷰 포인트는 본문에 유지합니다 ("산출물 접기 기준" 참조).
 

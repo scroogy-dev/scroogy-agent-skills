@@ -71,11 +71,14 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   └── templates/              # 노트 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
 ├── git-pr/                     # PR 제목/메시지 작성·제출 스킬
+│   └── templates/              # PR 본문 템플릿
 ├── git-pr-feedback/            # PR 리뷰 코멘트 검토·대응 스킬
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
+│   └── templates/              # QA 체크리스트 템플릿
 ├── git-review/                 # 리뷰 수행 스킬
 │   └── templates/              # 리뷰 결과 템플릿
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
+│   └── templates/              # 리뷰 컨텍스트 템플릿
 ├── install-skills/             # skill 선택 설치 스킬 (self-install형)
 │   ├── references/             # Antigravity 레거시 판정 상세
 │   ├── scripts/                # 결정적 설치 검증 헬퍼 (verify-install.sh)
