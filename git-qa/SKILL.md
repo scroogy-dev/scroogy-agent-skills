@@ -99,7 +99,7 @@ QA repo 링크가 제공된 경우, `gh issue create` 명령으로 QA 이슈를 
 
 ### 우선순위 2: 기존 QA 이슈에 내용 작성
 
-QA 이슈 링크가 제공된 경우, 해당 이슈의 body를 `templates/qa-checklist-template.md` 구조로 업데이트합니다.
+QA 이슈 링크가 제공된 경우, 해당 이슈의 body를 이 skill 디렉토리의 `templates/qa-checklist-template.md` 구조로 업데이트합니다.
 
 ### 우선순위 3: 로컬 파일 생성 (기본값)
 
