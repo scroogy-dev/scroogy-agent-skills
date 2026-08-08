@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -12,7 +12,7 @@
 |------|------|
 | 설계 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
 | 구현 모델 | Anthropic, Claude Fable 5 (claude-fable-5) |
-| audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명. 마지막 교차모델 audit Task에서 사용자가 기록 --> |
+| audit 모델 | OpenAI, GPT-5 |
 
 ---
 
@@ -70,16 +70,16 @@
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Fable 5 (claude-fable-5)
-- **audit 발견**: 0건
-- **보정 반영**: 0건
+- **audit 발견**: 1건
+- **보정 반영**: 1건
 - **재시도**: 0회
-- **수행 내용 요약**: 디렉토리 구조 트리의 git-pr·git-qa·git-review-context 아래에 `templates/` 3행 추가 (git-review 행 표기 형식 준수). README.md는 구조 표기가 없어 비대상(spec 전제). [D] 검증 통과.
-- **특이 사항**:
+- **수행 내용 요약**: 디렉토리 구조 트리의 git-pr·git-qa·git-review-context 아래에 `templates/` 3행 추가 (git-review 행 표기 형식 준수). README.md는 구조 표기가 없어 비대상(spec 전제). audit F-1 보정으로 `last updated`를 실제 변경일인 2026-08-08로 갱신. [D] 검증 통과.
+- **특이 사항**: `--response` 검토(2026-08-08): 낮음(LOW) F-1을 사용자 명시 승인에 따라 직접 반영. 날짜 대조와 `git diff --check`로 완료 기준을 재검증했다.
 
 ---
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-5로 audit 수행 (리포트: [issue-0080-audit-report.md](./issue-0080-audit-report.md)). 1단계 적합성 충족(PASS) 9건·판정 불가(N/A) 1건으로 미충족(FAIL)·부분 충족(PARTIAL) 0건, 2단계 발견 1건(F-1, 낮음(LOW) — AI-CONTEXT.md `last updated` 미갱신). `--response` 검토에서 사용자 명시 승인에 따라 F-1을 원장 이관이 아닌 직접 반영으로 처리해 잔여 발견 0건. 발견·보정 지표는 대상 Task 4 블록에 귀속.
+- **특이 사항**: DoD `[ND]` 가독성 항목은 audit이 판정 불가(N/A)로 남겨 사용자가 직접 통과 판정 (2026-08-08).
