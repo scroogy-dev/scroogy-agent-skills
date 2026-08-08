@@ -82,6 +82,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── install-skills/             # skill 선택 설치 스킬 (self-install형)
 │   ├── references/             # Antigravity 레거시 판정 상세
 │   ├── scripts/                # 결정적 설치 검증 헬퍼 (verify-install.sh)
+│   ├── templates/              # 설치 결과 보고 형식
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
 │   └── templates/              # 감사 리포트 템플릿
