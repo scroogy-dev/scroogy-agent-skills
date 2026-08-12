@@ -108,7 +108,7 @@ OrderController#createOrder
 - **접기 가능**: 근거·대안 비교·상세 절차·코드 예시·참고자료
 - **접기 금지**: 결정사항·리스크·액션 아이템
 
-`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다 — 이 블록은 파일이 없을 때의 기본값입니다.
+`.ai/10_rules/writing-principles.md`가 있으면 그 원칙을 따르고, repo 고유 확장 `writing-principles-local.md`와 충돌하면 local이 우선합니다. 이 블록은 파일이 없을 때의 기본값입니다.
 
 ---
 

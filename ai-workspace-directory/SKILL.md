@@ -116,7 +116,7 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 
 `floor 목록`은 사용자가 한 번에 모두 제공하지 않을 수 있습니다. 누락 시 항목별로 대화형 질의로 수집합니다.
 
-#### init-2단계: 디스크 스캔 — floor `status` 결정
+#### init-2단계: 디스크 스캔 (floor `status` 결정)
 
 입력된 각 floor에 대해 다음 규칙으로 `status`를 결정합니다.
 
@@ -215,9 +215,9 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 | 로비 `Repos.<path>` 행의 `domain` 과 repo 자기 선언 `domain` 일치 | 다르면 drift | update-3단계 `meta-mismatch` 카테고리로 정렬 권고 (어느 쪽이 SSoT에 가까운지 사용자 확인 — 통상 repo 자기 선언이 더 가깝다고 권고) |
 | 로비 `Repos.<path>` 행의 `keywords` ⊇ repo 자기 선언 `keywords` 핵심 셋 | 빠진 키워드가 있으면 drift | 로비 keywords에 누락 키워드 추가 권고 |
 
-**스킵 fallback**: repo 측 메타 블록이 없으면 다음 안내만 출력합니다 — *"해당 repo 안내도(`<path>/.ai/AI-CONTEXT.md`)에 `## 프로젝트 도메인` 메타 블록이 없습니다. `ai-workspace update`로 보강을 권장합니다."*
+**스킵 fallback**: repo 측 메타 블록이 없으면 다음 안내만 출력합니다. *"해당 repo 안내도(`<path>/.ai/AI-CONTEXT.md`)에 `## 프로젝트 도메인` 메타 블록이 없습니다. `ai-workspace update`로 보강을 권장합니다."*
 
-> 역참조(repo → 상위 워크스페이스) 일치 검사는 CoC 도입으로 **수행하지 않습니다** — 메타 필드 자체가 없으므로 검사 대상이 아닙니다 (`../.ai/AI-CONTEXT.md` 존재로 자동 판정).
+> 역참조(repo → 상위 워크스페이스) 일치 검사는 CoC 도입으로 **수행하지 않습니다**. 메타 필드 자체가 없으므로 검사 대상이 아닙니다 (`../.ai/AI-CONTEXT.md` 존재로 자동 판정).
 
 ##### (4) 형식 위배
 

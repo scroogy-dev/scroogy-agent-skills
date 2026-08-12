@@ -1,4 +1,4 @@
-# Antigravity 레거시 경로 점검 — 판정 기준과 배경
+# Antigravity 레거시 경로 점검 (판정 기준과 배경)
 
 `install-skills` 설치 검증 6~7단계에서 `--antigravity-legacy` 플래그가 수행하는 구 Antigravity skills 경로 점검의 상세입니다.
 판정 로직 자체는 `scripts/verify-install.sh`가 보유하며, 이 문서는 그 판정을 해석·처리하는 기준을 설명합니다.
@@ -6,7 +6,7 @@
 ## 적용 조건
 
 - Antigravity 경로가 설치 대상일 때만(`--antigravity` 또는 `--all`) 점검합니다.
-- Antigravity 경로를 설치하지 않는 대상(`--claude` 등 단독)에 `--antigravity-legacy`를 붙이지 않습니다 — 붙이면 무관한 구 경로 상태로 거짓 FAIL이 날 수 있습니다.
+- Antigravity 경로를 설치하지 않는 대상(`--claude` 등 단독)에 `--antigravity-legacy`를 붙이지 않습니다. 붙이면 무관한 구 경로 상태로 거짓 FAIL이 날 수 있습니다.
 
 ## 판정 기준 (verify-install.sh)
 

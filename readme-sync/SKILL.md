@@ -91,7 +91,7 @@ LICENSE 파일을 생성할까요? (README의 ./LICENSE 링크가 깨지지 않�
   (생성 / 생성하지 않음)
 ```
 
-- 기존 `LICENSE` 파일이 있으면 기본은 **스킵**입니다 — 이 질문 자체를 묻지 않습니다. 덮어쓰려면 `--force-license` 플래그를 명시합니다.
+- 기존 `LICENSE` 파일이 있으면 기본은 **스킵**입니다. 이 질문 자체를 묻지 않습니다. 덮어쓰려면 `--force-license` 플래그를 명시합니다.
 - 동작 세부 사항은 [references/license.md](references/license.md)의 "LICENSE 파일 생성 규칙"·"`--force-license` 플래그" 절을 따릅니다.
 
 **Q2. 개인 저작물 고지**

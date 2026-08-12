@@ -7,7 +7,7 @@ description: 현재 스킬 repo의 skill을 선택하여 Claude Code·Agents·An
 
 이 저장소의 skill을 선택하여 설치합니다.
 클린 설치(기존 설치본 삭제 후 복사)와 개발 전용 경로(`tests/` 등) 배포 제외의 단일 출처는 [설치 절차](#설치-절차) 5단계입니다.
-규칙 배경(결정적 헬퍼의 테스트는 스킬 디렉토리에 함께 두되 배포에서 제외)은 이 repo의 ADR 0001에 있습니다 — repo 전용 문서라 설치본에서는 열람할 수 없어 링크하지 않습니다.
+규칙 배경(결정적 헬퍼의 테스트는 스킬 디렉토리에 함께 두되 배포에서 제외)은 이 repo의 ADR 0001에 있습니다. repo 전용 문서라 설치본에서는 열람할 수 없어 링크하지 않습니다.
 
 ### 설치 경로 옵션
 
@@ -45,7 +45,7 @@ self-install에도 일반 설치와 동일한 절차(클린 설치, 배포 제�
 
 설치 대상 목록은 본문에 고정하지 않고, 실행 시점에 저장소를 스캔하여 동적으로 구성합니다.
 
-**스킬 repo 판별 가드** — 스캔 전에 cwd가 스킬 repo인지 먼저 확인합니다. `*/SKILL.md`가 1건 이상 매칭되면 통과, 하나도 매칭되지 않으면 스킬 repo가 아닌 것으로 판정하고 경고 후 안전하게 중단합니다. 단일 스킬 repo도 지원 대상이므로 1건 통과는 설계 의도이며, 다만 **1건만 매칭되면** 해당 디렉토리가 스킬 repo가 맞는지 사용자에게 확인한 뒤 진행합니다 (이 확인은 아래 스니펫이 아니라 지침을 실행하는 AI가 대화로 수행합니다 — 스니펫은 0건 차단만 담당합니다). 임의의 cwd에서 실수로 실행해 엉뚱한 디렉토리를 소스로 삼는 오설치를 막기 위한 가드입니다.
+**스킬 repo 판별 가드** — 스캔 전에 cwd가 스킬 repo인지 먼저 확인합니다. `*/SKILL.md`가 1건 이상 매칭되면 통과, 하나도 매칭되지 않으면 스킬 repo가 아닌 것으로 판정하고 경고 후 안전하게 중단합니다. 단일 스킬 repo도 지원 대상이므로 1건 통과는 설계 의도이며, 다만 **1건만 매칭되면** 해당 디렉토리가 스킬 repo가 맞는지 사용자에게 확인한 뒤 진행합니다 (이 확인은 아래 스니펫이 아니라 지침을 실행하는 AI가 대화로 수행하며, 스니펫은 0건 차단만 담당합니다). 임의의 cwd에서 실수로 실행해 엉뚱한 디렉토리를 소스로 삼는 오설치를 막기 위한 가드입니다.
 
 ```bash
 # 스킬 repo 판별 가드 — */SKILL.md 가 0개면 중단 (셸 내장만 사용 — bash nullglob·zsh 모두 안전)
@@ -83,7 +83,7 @@ done
 3. 위 스캔으로 구성한 목록에서 번호 또는 skill명으로 설치할 skill을 선택받습니다.
 4. 대상 디렉토리가 없으면 생성합니다.
 5. 선택한 skill이 이미 설치되어 있으면 기존 디렉토리를 삭제한 뒤, 개발 전용 경로를 제외하고 복사합니다.
-   아래 `--exclude` 플래그가 제외 패턴(`tests/`, `*.test.*`)의 **단일 출처**입니다 — ADR·AI-CONTEXT는 이 목록을 복제하지 않고 이 절차를 참조만 합니다.
+   아래 `--exclude` 플래그가 제외 패턴(`tests/`, `*.test.*`)의 **단일 출처**입니다. ADR·AI-CONTEXT는 이 목록을 복제하지 않고 이 절차를 참조만 합니다.
    선택 목록은 **배열**로 다뤄 zsh/bash 모두에서 단어 분리에 깨지지 않게 합니다.
    ```bash
    # 선택한 skill 목록과 대상 경로 (배열 — zsh word-splitting 회피)
@@ -96,7 +96,7 @@ done
      #   cp -r "$s" "$target/" && rm -rf "$target/$s/tests" && find "$target/$s" -name '*.test.*' -delete
    done
    ```
-6. **설치 검증 (결정적 확인 우선 + AI 크로스체크)**: 복사 후 `verify-install.sh` 헬퍼로 설치 결과를 **결정적으로** 먼저 확인합니다(합/불은 exit code). 헬퍼는 **홈 설치본 우선, 없으면 cwd 폴백** 순으로 탐색합니다 — 홈 설치본(`~/.claude/skills/install-skills/scripts/verify-install.sh`)이 있으면 그것을 사용하고, 없으면 cwd(스킬 repo) 상대 경로 `install-skills/scripts/verify-install.sh`로 폴백합니다. 다른 스킬 repo에는 헬퍼 복제본이 없으므로 홈 설치본 탐색이 먼저입니다. AI는 그 PASS/FAIL 출력을 읽어 누락·경로 불일치를 **준결정적으로 크로스체크**합니다 — 결정적 결과가 우선이고 AI 판단은 보완입니다.
+6. **설치 검증 (결정적 확인 우선 + AI 크로스체크)**: 복사 후 `verify-install.sh` 헬퍼로 설치 결과를 **결정적으로** 먼저 확인합니다(합/불은 exit code). 헬퍼는 **홈 설치본 우선, 없으면 cwd 폴백** 순으로 탐색합니다. 홈 설치본(`~/.claude/skills/install-skills/scripts/verify-install.sh`)이 있으면 그것을 사용하고, 없으면 cwd(스킬 repo) 상대 경로 `install-skills/scripts/verify-install.sh`로 폴백합니다. 다른 스킬 repo에는 헬퍼 복제본이 없으므로 홈 설치본 탐색이 먼저입니다. AI는 그 PASS/FAIL 출력을 읽어 누락·경로 불일치를 **준결정적으로 크로스체크**합니다. 결정적 결과가 우선이고 AI 판단은 보완입니다.
    ```bash
    # 헬퍼 탐색: 홈 설치본 우선, 없으면 cwd(스킬 repo) 폴백
    verify="$HOME/.claude/skills/install-skills/scripts/verify-install.sh"
@@ -110,7 +110,7 @@ done
    # Antigravity 대상 경로에 대해서만 추가 실행. $verify 는 위 헬퍼 탐색 결과를 재사용.
    "$verify" --target "$antigravity_target" --antigravity-legacy "${skills[@]}"
    ```
-7. **레거시 경로 마이그레이션 (Antigravity 경로 한정)**: 6단계 레거시 점검이 FAIL(비어있지 않은 실제 디렉토리 잔존)이면 사용자에게 경고하고 정리를 제안하며, **승인 시에만 제거**합니다. INFO(심링크·부재·빈 디렉토리)는 보존하고 조치하지 않습니다 — 판정 기준·배경은 [references/antigravity-legacy.md](references/antigravity-legacy.md)에 있습니다.
+7. **레거시 경로 마이그레이션 (Antigravity 경로 한정)**: 6단계 레거시 점검이 FAIL(비어있지 않은 실제 디렉토리 잔존)이면 사용자에게 경고하고 정리를 제안하며, **승인 시에만 제거**합니다. INFO(심링크·부재·빈 디렉토리)는 보존하고 조치하지 않습니다. 판정 기준·배경은 [references/antigravity-legacy.md](references/antigravity-legacy.md)에 있습니다.
 8. 복사 완료 후 설치 결과를 이 skill 디렉토리의 `templates/install-result-template.md` 형식으로 보고합니다.
 
 ## 참고
