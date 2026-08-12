@@ -35,9 +35,9 @@
 > 고치지 않고 `issue-0087-exceptions.md` 표에 등재한다. 의미·구조·산출물 형식은 바꾸지 않는다.
 > 그룹 검증은 spec DoD 스니펫의 대상을 그룹 파일로 좁혀 실행한다.
 
-### Task 0 (고정): 구현 시작 게이트 — 전제·모호점 확인
+### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 구현에 필요하지만 문서만으로는 알 수 없는 전제·모호점을 코드 작성 전에 걷어낸다.
 - **작업 내용**:
   1. spec/plan을 읽고, 구현에 필요하지만 문서만으로는 알 수 없는 전제·모호점을 나열한다.
@@ -50,10 +50,10 @@
 
 ### Task 1: 검사 기준·예외 분류 확정
 
-- [ ] 완료
+- [x] 완료
 - **목표**: #86 패턴 6종을 검사식·심사 지침으로 고정하고, 이후 Task가 공유할 예외 목록 골격을 만든다.
 - **작업 내용**:
-  1. `.ai/90_issues/active/issue-0087/issue-0087-exceptions.md`를 생성한다. 구성은 3개 섹션이다.
+  1. `.ai/90_issues/archive/issue-0087/issue-0087-exceptions.md`를 생성한다. 구성은 3개 섹션이다.
      - `## 검사식`: grep 가능한 패턴 2종(em dash, "가 아니라")의 스캔 명령과 건수 산정 기준(패턴 포함 행 수), 스캔 스코프 find 명령
      - `## 심사 지침`: grep으로 못 거르는 패턴 4종(수사적 콜론·3항 병렬·하이픈 합성·은유 직역)의 판별 기준과 수정 지침
      - `## 예외 목록`: `| 파일 | 패턴 | 허용 건수 | 분류 | 근거 |` 표 (분류 값은 메타 사용 / 형식 고정 / 구분자 용법 / 코드 블록 리터럴 / 정당한 대조 / 수용)
@@ -64,7 +64,7 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    EX=.ai/90_issues/active/issue-0087/issue-0087-exceptions.md
+    EX=.ai/90_issues/archive/issue-0087/issue-0087-exceptions.md
     for a in '^## 검사식$' '^## 심사 지침$' '^## 예외 목록$' '^\| 파일 \| 패턴 \| 허용 건수 \| 분류 \| 근거 \|$'; do
       grep -qE "$a" "$EX" || echo "위반: 앵커 없음 $a"
     done
@@ -77,9 +77,9 @@
 
 ### Task 2: git 계열 스킬 문서 정비
 
-- [ ] 완료
+- [x] 완료
 - **목표**: git 계열 스킬 6종의 문서에서 금지 패턴을 걷어낸다.
-- **대상 파일** (9개): `git-commit/SKILL.md`, `git-pr/SKILL.md`, `git-pr/templates/pr-body-template.md`, `git-pr-feedback/SKILL.md`, `git-qa/SKILL.md`, `git-qa/templates/qa-checklist-template.md`, `git-review/SKILL.md`, `git-review/templates/review-result-template.md`, `git-review-context/SKILL.md`, `git-review-context/templates/review-context-template.md`
+- **대상 파일** (10개): `git-commit/SKILL.md`, `git-pr/SKILL.md`, `git-pr/templates/pr-body-template.md`, `git-pr-feedback/SKILL.md`, `git-qa/SKILL.md`, `git-qa/templates/qa-checklist-template.md`, `git-review/SKILL.md`, `git-review/templates/review-result-template.md`, `git-review-context/SKILL.md`, `git-review-context/templates/review-context-template.md`
 - **작업 내용**:
   1. Tasks 서두의 공통 절차를 대상 파일에 적용한다. 기준 시점 잔존 최다 파일은 `git-pr-feedback/SKILL.md`(em dash 78행)다.
   2. 예외로 남긴 행을 `issue-0087-exceptions.md` 표에 등재한다.
@@ -89,7 +89,7 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    EX=.ai/90_issues/active/issue-0087/issue-0087-exceptions.md
+    EX=.ai/90_issues/archive/issue-0087/issue-0087-exceptions.md
     for p in git-commit/SKILL.md git-pr/SKILL.md git-pr/templates/pr-body-template.md \
              git-pr-feedback/SKILL.md git-qa/SKILL.md git-qa/templates/qa-checklist-template.md \
              git-review/SKILL.md git-review/templates/review-result-template.md \
@@ -127,20 +127,21 @@
 
 ### Task 3: issue 계열 스킬 문서 정비
 
-- [ ] 완료
+- [x] 완료
 - **목표**: issue 계열 스킬 2종의 문서에서 금지 패턴을 걷어내고 workflow 사본을 동기화한다.
 - **대상 파일** (7개): `issue-work/SKILL.md`, `issue-work/templates/issue-spec-template.md`, `issue-work/templates/issue-plan-template.md`, `issue-work/templates/issue-summary-template.md`, `issue-work/templates/issue-workflow-template.md`, `issue-audit/SKILL.md`, `issue-audit/templates/issue-audit-report-template.md`
 - **작업 내용**:
   1. Tasks 서두의 공통 절차를 대상 파일에 적용한다. 이 그룹은 검증 스니펫·접기 제목 기본형·게이트 고정 블록 등 형식 고정 문구의 비중이 가장 높으므로, 수정보다 예외 등재가 많을 수 있다.
   2. `issue-work/templates/issue-workflow-template.md` 수정 시 `.ai/90_issues/active/issue-workflow.md` 사본에 그대로 복사한다.
-  3. 예외로 남긴 행을 `issue-0087-exceptions.md` 표에 등재한다.
+  3. plan·summary 템플릿의 Task 0·N 헤더 구분자를 수정하면 이 이슈 디렉토리의 [plan](./issue-0087-plan.md)·[summary](./issue-0087-summary.md) 헤더 4행도 같은 문구로 갱신한다 (spec 전제의 Task 헤더 항목 참조).
+  4. 예외로 남긴 행을 `issue-0087-exceptions.md` 표에 등재한다.
 - **완료 기준**:
   - [D] 대상 파일의 greppable 잔존이 예외 목록 등재 건수와 일치한다
     <details>
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과 (Task 2 스니펫의 대상 목록만 교체)</summary>
 
     ```bash
-    EX=.ai/90_issues/active/issue-0087/issue-0087-exceptions.md
+    EX=.ai/90_issues/archive/issue-0087/issue-0087-exceptions.md
     for p in issue-work/SKILL.md issue-work/templates/issue-spec-template.md \
              issue-work/templates/issue-plan-template.md issue-work/templates/issue-summary-template.md \
              issue-work/templates/issue-workflow-template.md \
@@ -188,7 +189,7 @@
 
 ### Task 4: ai-workspace 계열 정비·동기화 사본 정합
 
-- [ ] 완료
+- [x] 완료
 - **목표**: ai-workspace 계열 스킬 2종과 `.ai/` 동기화 사본에서 금지 패턴을 걷어낸다. 템플릿을 먼저 고치고 사본을 맞춘다.
 - **대상 파일**: `ai-workspace/SKILL.md`, `ai-workspace/references/legacy-migration.md`, `ai-workspace/templates/` 하위 md 15개, `ai-workspace-directory/SKILL.md`, `ai-workspace-directory/references/` md 3개, `.ai/` 동기화 사본(동일 쌍 9종 + 상이 쌍 3종의 공통 서술부)
 - **작업 내용**:
@@ -202,7 +203,7 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    EX=.ai/90_issues/active/issue-0087/issue-0087-exceptions.md
+    EX=.ai/90_issues/archive/issue-0087/issue-0087-exceptions.md
     { find ai-workspace ai-workspace-directory -name '*.md' -not -path '*/tests/*'; \
       find .ai/10_rules .ai/30_contract .ai/40_domain .ai/50_adr/index.md .ai/60_codebase .ai/70_ledger/index.md .ai/70_ledger/ledger-entry-template.md -name '*.md' 2>/dev/null; } \
       | sort -u | while read -r p; do
@@ -255,7 +256,7 @@
 
 ### Task 5: 나머지 스킬·repo 공통 문서 정비
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 나머지 스킬 5종과 repo 공통 문서에서 금지 패턴을 걷어낸다.
 - **대상 파일**: `code-map/`, `context-harvest/`, `context-save/`, `install-skills/`, `readme-sync/`의 SKILL.md·templates·references (tests 제외), `.ai/AI-CONTEXT.md`, `.ai/50_adr/active/0001-skill-deterministic-helper-test-convention.md`, `.ai/70_ledger/active/K-0001`~`K-0005`, `README.md`, `.claude/CLAUDE.md`
 - **작업 내용**:
@@ -267,7 +268,7 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    EX=.ai/90_issues/active/issue-0087/issue-0087-exceptions.md
+    EX=.ai/90_issues/archive/issue-0087/issue-0087-exceptions.md
     { find code-map context-harvest context-save install-skills readme-sync -name '*.md' -not -path '*/tests/*'; \
       find .ai/50_adr/active .ai/70_ledger/active -name '*.md'; \
       echo .ai/AI-CONTEXT.md; echo README.md; echo .claude/CLAUDE.md; } \
@@ -305,7 +306,7 @@
 
 ### Task 6: 전수 재검증·원장 등재
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 그룹 단위 검증을 전수로 재확인하고, 수용으로 남긴 파일을 원장에 등재해 DoD를 닫는다.
 - **작업 내용**:
   1. spec DoD의 [D] 스니펫 4종을 전부 재실행해 통과를 확인한다.
@@ -318,9 +319,9 @@
 
 ---
 
-### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
+### Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행)
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 스펙 위반·누락·소스코드와의 모순을 구현 모델과 다른 시각으로 잡는다.
 - **실행 주체**: **사용자가 직접** 수행한다. 구현 AI는 이 Task를 **자동으로 닫지 않으며**, `issue-audit`를 자동 실행하지도 않는다.
 - **작업 내용**:
@@ -335,8 +336,8 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    P=.ai/90_issues/active/issue-0087/issue-0087-plan.md
-    S=.ai/90_issues/active/issue-0087/issue-0087-summary.md
+    P=.ai/90_issues/archive/issue-0087/issue-0087-plan.md
+    S=.ai/90_issues/archive/issue-0087/issue-0087-summary.md
     { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
       && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
       || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
@@ -350,7 +351,7 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0087/issue-0087-summary.md
+    S=.ai/90_issues/archive/issue-0087/issue-0087-summary.md
     awk '
       /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*:/ {
@@ -369,7 +370,7 @@
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0087/issue-0087-summary.md
+    S=.ai/90_issues/archive/issue-0087/issue-0087-summary.md
     awk '
       /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }
