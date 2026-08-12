@@ -11,7 +11,7 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 ### 설계 원칙
 
 - **SSoT는 소스 코드.** repo 안내도(`.ai/AI-CONTEXT.md`)는 라우터일 뿐 진실의 원천이 아닙니다.
-- **컨벤션 우선 (CoC).** 멀티 repo는 `<상위 워크스페이스>/<repo>` 컨벤션으로만 지원합니다. 이 repo가 멀티 워크스페이스의 일부인지 단독 repo인지는 `<repo>/../.ai/AI-CONTEXT.md` 존재 여부로 **자동 판정**합니다 — 별도 메타 필드(`building`/`lobby` 등)는 두지 않습니다 (YAGNI). 컨벤션을 벗어난 구조는 지원하지 않습니다.
+- **컨벤션 우선 (CoC).** 멀티 repo는 `<상위 워크스페이스>/<repo>` 컨벤션으로만 지원합니다. 이 repo가 멀티 워크스페이스의 일부인지 단독 repo인지는 `<repo>/../.ai/AI-CONTEXT.md` 존재 여부로 **자동 판정**합니다. 별도 메타 필드(`building`/`lobby` 등)는 두지 않습니다 (YAGNI). 컨벤션을 벗어난 구조는 지원하지 않습니다.
 - **상위 워크스페이스와의 도메인 동기화.** 멀티 워크스페이스의 일부인 경우 repo 안내도의 `## 프로젝트 도메인` 표(`domain`/`keywords`)는 상위 워크스페이스 안내도 `Repos` 표의 동일 path 행과 **1:1 동기화**됩니다 (`ai-workspace-directory`의 drift 메타 일치 검사 대상).
 
 ## 이 구조와 함께 사용 가능한 skill
@@ -25,7 +25,7 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 - **git-review**: 비즈니스/테크 리뷰 수행 (`.ai/30_contract/`, `.ai/40_domain/` 활용)
 - **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
 - **issue-audit**: 이슈 스펙 대비 구현 독립 감사 (`.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 활용). `.ai/70_ledger/`의 기등재 항목을 대조해 이미 수용한 발견을 신규로 재보고하지 않습니다.
-- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때 `.ai/70_ledger/`에 등재합니다 — 원장 `index.md` 골격과 항목 템플릿(`ledger-entry-template.md`)은 둘 다 본 스킬이 배포합니다. 등재 주체가 issue-work·git-pr-feedback 둘이라 어느 한쪽 스킬에 두지 않습니다.
+- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때 `.ai/70_ledger/`에 등재합니다. 원장 `index.md` 골격과 항목 템플릿(`ledger-entry-template.md`)은 둘 다 본 스킬이 배포합니다. 등재 주체가 issue-work·git-pr-feedback 둘이라 어느 한쪽 스킬에 두지 않습니다.
 
 ## 사용법
 
@@ -100,7 +100,7 @@ cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 - `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
 - `doc` 전용: (없음)
 
-산출물 작성 원칙 두 파일도 위 일괄 복사에 포함됩니다. 아래 구분은 update 모드의 복사 정책입니다 — init은 기존 `.ai/`가 있어도 사용자 관리 파일까지 전체를 덮어씁니다 (2단계 모드 선택의 경고 참조):
+산출물 작성 원칙 두 파일도 위 일괄 복사에 포함됩니다. 아래 구분은 update 모드의 복사 정책이며, init은 기존 `.ai/`가 있어도 사용자 관리 파일까지 전체를 덮어씁니다 (2단계 모드 선택의 경고 참조):
 - `writing-principles.md`: 버전 고정 — `context-loading.md`와 동일하게 항상 최신본 덮어쓰기
 - `writing-principles-local.md`: 사용자 관리 — `coding-convention.md`와 동일하게 update에서 없을 때만 복사
 
@@ -183,9 +183,9 @@ rm -rf .ai/20_templates/*
 정의된 하위 디렉토리가 없으면 생성합니다. 새로 생성한 빈 디렉토리에는 `.gitkeep` 파일을 함께 생성합니다.
 
 대상 디렉토리 자체가 없으면 함께 생성하고, 템플릿의 디렉토리 루트에 있는 골격 파일(`index.md`와 `70_ledger/ledger-entry-template.md`)이
-설치본에 없으면 템플릿본을 복사합니다 (설치본에 이미 있으면 사용자 작성분이므로 덮어쓰지 않습니다) —
+설치본에 없으면 템플릿본을 복사합니다 (설치본에 이미 있으면 사용자 작성분이므로 덮어쓰지 않습니다).
 `70_ledger/`처럼 나중에 추가된 디렉토리가 기존 설치본에도 전파되는 경로입니다.
-원장 항목 템플릿을 여기서 배포하는 이유는 등재 주체가 issue-work·git-pr-feedback 둘이기 때문입니다 —
+원장 항목 템플릿을 여기서 배포하는 이유는 등재 주체가 issue-work·git-pr-feedback 둘이기 때문입니다.
 한쪽 스킬에 두면 다른 쪽이 그 스킬 설치를 전제하게 되고, 양쪽에 두면 형식이 이중화됩니다.
 
 | 디렉토리 | 생성할 하위 구조 |

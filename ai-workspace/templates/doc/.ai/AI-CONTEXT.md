@@ -88,8 +88,8 @@
 1. **진입 경로 식별**
    - **상위 워크스페이스에서 진입한 경우** (상위 안내도를 먼저 읽고 이 repo로 들어옴): `## 프로젝트 도메인`의 `domain` / `keywords`가 상위 안내도 `Repos` 행과 일치하는지 확인한다.
    - **이 repo를 직접 열고 진입한 경우** (IDE가 이 repo 폴더만 연 상태):
-     - `../.ai/AI-CONTEXT.md`가 존재하면 상위 워크스페이스의 일부 — 인접 repo가 필요한 질의면 그 경로로 거슬러 올라가 다른 repo를 참조한다.
-     - `../.ai/AI-CONTEXT.md`가 없으면 단독 repo — 이 안내도만으로 답변을 시작한다.
+     - `../.ai/AI-CONTEXT.md`가 존재하면 상위 워크스페이스의 일부다. 인접 repo가 필요한 질의면 그 경로로 거슬러 올라가 다른 repo를 참조한다.
+     - `../.ai/AI-CONTEXT.md`가 없으면 단독 repo다. 이 안내도만으로 답변을 시작한다.
 2. `.ai/10_rules/context-loading.md`를 먼저 적재하고, 질의 유형에 따라 `30_contract/index.md`(계약) → `40_domain/index.md`(도메인 본문/정책) → `50_adr/index.md`(결정 이력) → `60_codebase/index.md`(코드 진입점) → `70_ledger/index.md`(수용한 기술부채·known issue) 중 필요한 항목만 **선택 적재**한다.
 3. 답변 직전 정보 충돌 시 우선순위: **소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**.
 
