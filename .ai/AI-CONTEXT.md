@@ -59,10 +59,13 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
 │   ├── references/             # 구버전 마이그레이션 참조 문서
+│   ├── scripts/                # update-4 멱등 보강 검사 헬퍼 (check-context.sh)
 │   ├── templates/              # 프로파일별 템플릿 (원장 index 골격·항목 템플릿 포함)
-│   └── tests/                  # update-4 멱등 보강 fixture (배포 제외)
+│   └── tests/                  # 검사 헬퍼 테스트 + update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
-│   └── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
+│   ├── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
+│   ├── scripts/                # 로비 형식·분량 검사 헬퍼 (check-lobby.sh)
+│   └── tests/                  # 검사 헬퍼 테스트 + 정상 로비 fixture (배포 제외)
 ├── code-map/                   # 코드베이스 색인 스킬
 │   └── references/             # 모드별(local/global) 실행 절차
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
@@ -70,13 +73,21 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── context-save/               # 대화 맥락 임시 저장 스킬
 │   └── templates/              # 노트 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
+│   ├── scripts/                # 커밋 메시지 규격 검증 헬퍼 (validate-message.sh)
+│   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── git-pr/                     # PR 제목/메시지 작성·제출 스킬
-│   └── templates/              # PR 본문 템플릿
+│   ├── scripts/                # 제목 규격·제출 가드 헬퍼 (validate-title.sh, verify-submit.sh)
+│   ├── templates/              # PR 본문 템플릿
+│   └── tests/                  # 헬퍼 테스트 (배포 제외)
 ├── git-pr-feedback/            # PR 리뷰 코멘트 검토·대응 스킬
+│   ├── scripts/                # push 직전 가드 헬퍼 (verify-push.sh)
+│   └── tests/                  # 가드 헬퍼 테스트 (배포 제외)
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 │   └── templates/              # QA 체크리스트 템플릿
 ├── git-review/                 # 리뷰 수행 스킬
-│   └── templates/              # 리뷰 결과 템플릿
+│   ├── scripts/                # 위험도·상태 산출 헬퍼 (classify-risk.sh)
+│   ├── templates/              # 리뷰 결과 템플릿
+│   └── tests/                  # 산출 헬퍼 테스트 (배포 제외)
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
 │   └── templates/              # 리뷰 컨텍스트 템플릿
 ├── install-skills/             # skill 선택 설치 스킬 (self-install형)
@@ -85,10 +96,13 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── templates/              # 설치 결과 보고 형식
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
-│   └── templates/              # 감사 리포트 템플릿
+│   ├── scripts/                # 위험도 산출·발견 번호 계승 헬퍼 (classify-risk.sh, next-finding-number.sh)
+│   ├── templates/              # 감사 리포트 템플릿
+│   └── tests/                  # 헬퍼 테스트 (배포 제외)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
+│   ├── scripts/                # --clear 완료·경로 검사와 지표 집계 헬퍼 (check-clear.sh, summarize-metrics.sh)
 │   ├── templates/              # 이슈 템플릿
-│   └── tests/                  # plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
+│   └── tests/                  # 헬퍼 테스트 + plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
 ├── readme-sync/                # README.md 생성/갱신 스킬
 │   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)
 │   └── templates/              # README 템플릿
@@ -148,6 +162,10 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 공통 규칙(`context-loading.md`)은 스킬 본문에서도 명시적으로 참조하되,
 이미 컨텍스트에 적재되어 있으면 재로딩하지 않습니다.
 스킬 본문에는 해당 스킬의 고유 참조·단계만 기재합니다.
+
+### 결정화 판단
+
+로직을 `scripts/`로 분리할지는 [`10_rules/architecture.md`의 `## 디자인 원칙`](10_rules/architecture.md)이 정합니다 (판단 체크리스트, 위치별 역할 분담, 예외, ADR 0001·검증 레벨과의 관계).
 
 ### 테스트 위치
 

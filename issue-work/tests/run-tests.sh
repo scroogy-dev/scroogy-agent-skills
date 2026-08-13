@@ -254,6 +254,184 @@ assert_response "$sandbox/r-no-order.md"     fail "response 스모크: 상단 �
 assert_response "$sandbox/r-no-approval.md"  fail "response 스모크: 항목별 승인 원칙 소실 격추"
 assert_response "$sandbox/r-no-section.md"   fail "response 스모크: 절 헤더 소실 격추"
 
+# --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
+
+CLEAR="$HERE/../scripts/check-clear.sh"
+METRICS="$HERE/../scripts/summarize-metrics.sh"
+
+for s in "$CLEAR" "$METRICS"; do
+  [ -x "$s" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $s"; fail=$((fail + 1)); }
+done
+
+# assert_clear <기대: pass|fail> <설명> <인자...>
+assert_clear() {
+  local want="$1" desc="$2"; shift 2
+  local out rc
+  out="$("$CLEAR" "$@" 2>&1)"; rc=$?
+  case "$want" in
+    pass) [ "$rc" -eq 0 ] && ok "$desc" || ng "$desc (기대 통과, 실제 exit $rc — $(printf '%s' "$out" | tr '\n' ' '))" ;;
+    fail) [ "$rc" -eq 1 ] && ok "$desc" || ng "$desc (기대 exit 1, 실제 $rc)" ;;
+    usage) [ "$rc" -eq 2 ] && ok "$desc" || ng "$desc (기대 exit 2, 실제 $rc)" ;;
+  esac
+}
+
+# 완료 plan fixture: 게이트 체크 + Task 3개 전부 체크.
+plan_done="$sandbox/plan-done.md"
+cat > "$plan_done" <<'EOF'
+# Issue #99 실행계획 — clear 게이트 fixture
+
+## 설계 종료 게이트 (고정)
+
+- [x] 점검 완료
+
+## Tasks
+
+### Task 0 (고정): 구현 시작 게이트
+
+- [x] 완료
+
+### Task 1: 본작업
+
+- [x] 완료
+
+### Task N (고정): 교차모델 issue-audit 검증
+
+- [x] 완료
+EOF
+
+assert_clear pass "clear 완료 확인: 전부 체크된 plan 통과" --completion "$plan_done"
+
+# 게이트만 미체크 — `## Tasks` 밖이라 Task 체크박스만 세면 놓치는 자리다.
+awk '{gsub(/^- \[x\] 점검 완료$/, "- [ ] 점검 완료"); print}' "$plan_done" > "$sandbox/plan-gate-open.md"
+assert_clear fail "clear 완료 확인: 설계 종료 게이트 미체크 격추" --completion "$sandbox/plan-gate-open.md"
+# `set -o pipefail` 아래에서는 헬퍼의 exit 1 이 파이프라인 전체로 전파되므로 출력을 변수에 담아 본다.
+gate_out="$("$CLEAR" --completion "$sandbox/plan-gate-open.md" 2>&1)"
+printf '%s\n' "$gate_out" | grep -q '설계 종료 게이트 점검 완료' \
+  && ok "clear 완료 확인: 게이트 미완료 사유 출력" \
+  || ng "clear 완료 확인: 게이트 미완료 사유가 출력되지 않음 — [$gate_out]"
+
+# Task N 미체크 — 사용자 수동 수행 Task 라 구현 AI 가 대신 닫지 않는다.
+awk 'BEGIN{n=0} /^### Task N/{n=1} n && /^- \[x\] 완료$/{print "- [ ] 완료"; n=0; next} {print}' \
+  "$plan_done" > "$sandbox/plan-taskn-open.md"
+assert_clear fail "clear 완료 확인: Task N 미체크 격추" --completion "$sandbox/plan-taskn-open.md"
+
+# 게이트 항목 자체가 사라진 경우 — 체크박스가 없으면 "미완료 0건"으로 통과해선 안 된다.
+awk '!/점검 완료/' "$plan_done" > "$sandbox/plan-no-gate.md"
+assert_clear fail "clear 완료 확인: 게이트 항목 소실 격추" --completion "$sandbox/plan-no-gate.md"
+
+# Task 블록이 없는 파일(경로 오기) — 검사 대상 공집합을 통과로 보지 않는다.
+printf '# 빈 문서\n' > "$sandbox/plan-empty.md"
+assert_clear fail "clear 완료 확인: Task 블록 없음 격추" --completion "$sandbox/plan-empty.md"
+
+assert_clear usage "clear 완료 확인: 읽을 수 없는 파일 (exit 2)" --completion "$sandbox/absent.md"
+assert_clear usage "clear: 모드 미지정 (exit 2)"
+
+# --- `--clear` 경로 참조 검증 (check-clear.sh --refs) ------------------------------
+
+arch="$sandbox/archive/issue-0099"
+mkdir -p "$arch"
+cat > "$arch/issue-0099-summary.md" <<'EOF'
+# Issue #99 실행요약
+
+> 스펙: [issue-0099-spec.md](./issue-0099-spec.md)
+
+- 작업 절차는 `.ai/90_issues/active/issue-workflow.md`를 따른다.
+- 감사 리포트는 이 디렉토리의 `./issue-0099-audit-report.md`에 있다 (작성 시점 경로는 `.ai/99_workspace/issue-0099-audit-report.md`, --clear로 이관).
+EOF
+
+assert_clear pass "clear 경로 검증: 제외 2건만 남은 디렉토리 통과" --refs "$arch"
+
+printf '자세한 내용은 `.ai/90_issues/active/issue-0099/issue-0099-plan.md` 참조.\n' >> "$arch/issue-0099-summary.md"
+assert_clear fail "clear 경로 검증: active 경로 잔존 격추" --refs "$arch"
+
+printf '초안은 `.ai/99_workspace/issue-0099-comment.md`에 있다.\n' > "$arch/note.md"
+assert_clear fail "clear 경로 검증: 99_workspace 참조 잔존 격추" --refs "$arch"
+
+assert_clear usage "clear 경로 검증: 디렉토리 아님 (exit 2)" --refs "$arch/note.md"
+
+# --- 보정률 집계 (summarize-metrics.sh) --------------------------------------------
+
+metrics_ok="$sandbox/summary-metrics.md"
+cat > "$metrics_ok" <<'EOF'
+# Issue #99 실행요약
+
+## Task별 수행 결과
+
+<!--
+- audit 발견: 이 Task와 관련된 발견 건수 — 없으면 `0건`
+- 보정 반영: 승인을 통과해 실제로 보정한 건수 — 없으면 `0건`
+- 재시도: 재수정·재시도 횟수 — 없으면 `0회`
+예시 주석 안의 숫자 99건 은 집계에 섞이지 않아야 한다.
+-->
+
+### Task 0 (고정): 구현 시작 게이트
+
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **audit 발견**: 1건
+- **보정 반영**: 1건
+- **재시도**: 0회
+
+### Task 1: 본작업
+
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **audit 발견**: 2건
+- **보정 반영**: 1건
+- **재시도**: 1회
+
+### Task N (고정): 교차모델 issue-audit 검증
+
+- **결과**: 완료
+- **수행 내용 요약**: 감사 리포트 1건
+EOF
+
+out="$("$METRICS" "$metrics_ok" 2>&1)"
+if printf '%s\n' "$out" | grep -qx '보정률: 2/3'; then
+  ok "보정률 집계: 3건 중 2건 → 2/3"
+else
+  ng "보정률 집계: 기대 [보정률: 2/3], 실제 [$(printf '%s' "$out" | tr '\n' ' ')]"
+fi
+printf '%s\n' "$out" | grep -qx '재시도: 1회' \
+  && ok "보정률 집계: 재시도 합산" \
+  || ng "보정률 집계: 재시도 합산 실패 — $(printf '%s' "$out" | tr '\n' ' ')"
+
+# 주석 안 예시 숫자가 집계에 섞이면 합계가 커진다 — 위 2/3 판정이 그 회귀도 함께 막는다.
+printf '%s\n' "$out" | grep -qx 'audit 발견: 3건' \
+  && ok "보정률 집계: 주석 안 예시 숫자를 제외" \
+  || ng "보정률 집계: 주석 제거 실패 — $(printf '%s' "$out" | tr '\n' ' ')"
+
+# assert_metrics_fail <설명> <변형 명령...>
+assert_metrics_fail() {
+  local desc="$1" want="$2"; shift 2
+  local f="$sandbox/metrics-case.md" out rc
+  cp "$metrics_ok" "$f"
+  "$@" "$f" || { ng "$desc — 변형 실패"; return; }
+  out="$("$METRICS" "$f" 2>&1)"; rc=$?
+  if [ "$rc" -ne 1 ]; then
+    ng "$desc — exit 1 기대, 실제 $rc"
+  elif printf '%s\n' "$out" | grep -qF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 사유에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+m_dash()    { awk '{gsub(/^- \*\*audit 발견\*\*: 1건$/, "- **audit 발견**: -"); print}' "$1" > "$1.t" && mv "$1.t" "$1"; }
+m_nofield() { awk '!/^- \*\*보정 반영\*\*:/' "$1" > "$1.t" && mv "$1.t" "$1"; }
+m_taskn()   { printf -- '- **audit 발견**: 5건\n' >> "$1"; }
+m_word()    { awk '{gsub(/^- \*\*재시도\*\*: 1회$/, "- **재시도**: 미기록"); print}' "$1" > "$1.t" && mv "$1.t" "$1"; }
+
+assert_metrics_fail '보정률 집계: `-` 표기 격추'        "'audit 발견' 표기가"    m_dash
+assert_metrics_fail '보정률 집계: 필드 누락 격추'        "'보정 반영' 필드를"     m_nofield
+assert_metrics_fail '보정률 집계: Task N 지표 격추'      'Task N 블록에'          m_taskn
+assert_metrics_fail '보정률 집계: 비수치 값 격추'        "'재시도' 표기가"        m_word
+
+"$METRICS" >/dev/null 2>&1
+[ $? -eq 2 ] && ok "사용오류: 인자 없음 (exit 2)" || ng "사용오류: 인자 없음 — exit 2 기대"
+"$METRICS" "$sandbox/absent.md" >/dev/null 2>&1
+[ $? -eq 2 ] && ok "사용오류: 읽을 수 없는 파일 (exit 2)" || ng "사용오류: 읽을 수 없는 파일 — exit 2 기대"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
