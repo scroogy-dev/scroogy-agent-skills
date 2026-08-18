@@ -50,19 +50,27 @@ if [ "$mode" = 'completion' ]; then
     open=$((open + 1))
   fi
 
-  # Task 체크박스 — 각 `### Task ` 블록의 첫 완료 체크박스가 대상이다.
+  # Task 체크박스 — 각 `### Task ` 블록에 완료 체크박스가 정확히 1개 있고 체크되어야 한다.
+  # 미체크만 세면 체크박스가 아예 없는 블록이 "미체크 아님"으로 통과하므로 실재·유일성을 함께 센다.
   tasks="$(awk '
-    /^### Task / { title = $0; sub(/^### /, "", title); seen = 0; next }
-    title != "" && !seen && /^- \[[ xX]\] 완료[[:space:]]*$/ {
-      seen = 1
-      if ($0 ~ /^- \[ \] 완료/) print title
+    function flush() {
+      if (title == "") return
+      if (n == 0)     print "미완료: " title " (완료 체크박스가 없습니다)"
+      else if (n > 1) print "미완료: " title " (완료 체크박스가 " n "개입니다 — 블록마다 1개)"
+      else if (unchecked) print "미완료: " title
     }
+    /^### Task / { flush(); title = $0; sub(/^### /, "", title); n = 0; unchecked = 0; next }
+    title != "" && /^- \[[ xX]\] 완료[[:space:]]*$/ {
+      n++
+      if ($0 ~ /^- \[ \] 완료/) unchecked = 1
+    }
+    END { flush() }
   ' "$target")"
 
   if [ -n "$tasks" ]; then
     while IFS= read -r t; do
       [ -n "$t" ] || continue
-      echo "미완료: $t"
+      echo "$t"
       open=$((open + 1))
     done <<EOF
 $tasks

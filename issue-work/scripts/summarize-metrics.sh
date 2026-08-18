@@ -54,17 +54,29 @@ ng() { echo "위반: $1"; violations=$((violations + 1)); }
 grep -qE '^### Task ' "$file" || ng "'### Task ' 블록을 찾을 수 없습니다 — 경로를 확인하세요"
 
 # 필드별 표기 검사 — 값이 `<숫자><단위>` 형태이고 Task N 블록 밖에 있어야 한다.
+#
+# 판정 단위는 파일 전체가 아니라 Task 블록이다. 파일 전체에서 필드가 1개 이상인지만 보면
+# 한 Task 의 누락을 다른 Task 의 중복 필드가 상쇄해, "값이 없어도 필드를 남긴다"는 계약이
+# 깨진 summary 가 그대로 집계된다.
 check_field() {
   local label="$1" unit="$2"
   printf '%s\n' "$body" | awk -v label="$label" -v unit="$unit" '
-    /^### Task / { n = ($0 ~ /^### Task N/) }
+    function flush() {
+      if (title == "" || taskn) return
+      if (c == 0)     print "MISS " title
+      else if (c > 1) print "DUP " c " " title
+    }
+    /^### Task / { flush(); title = $0; sub(/^### /, "", title); taskn = ($0 ~ /^### Task N/); c = 0; next }
     index($0, "- **" label "**:") == 1 {
-      if (n) { print "TASKN"; next }
       v = $0
       sub(/^- \*\*[^*]+\*\*:[[:space:]]*/, "", v)
+      if (title == "") { print "OUT " v; next }
+      if (taskn) { print "TASKN"; next }
+      c++
       if (v ~ ("^[0-9]+" unit "[[:space:]]*$")) { sub(unit "[[:space:]]*$", "", v); print "OK " v + 0 }
       else print "BAD " v
     }
+    END { flush() }
   '
 }
 
@@ -73,23 +85,24 @@ check_field() {
 FIELD_TOTAL=0
 
 sum_field() {
-  local label="$1" unit="$2" count=0 line kind value
+  local label="$1" unit="$2" line kind value dup_n dup_title
   FIELD_TOTAL=0
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     kind="${line%% *}"
     value="${line#* }"
     case "$kind" in
-      OK)    FIELD_TOTAL=$((FIELD_TOTAL + value)); count=$((count + 1)) ;;
+      OK)    FIELD_TOTAL=$((FIELD_TOTAL + value)) ;;
       BAD)   ng "'$label' 표기가 '<숫자>$unit' 형식이 아닙니다 — [$value]" ;;
+      MISS)  ng "'$label' 필드를 찾을 수 없습니다 — $value (값이 없어도 필드는 남깁니다)" ;;
+      DUP)   dup_n="${value%% *}"; dup_title="${value#* }"
+             ng "'$label' 필드가 ${dup_n}개입니다 — $dup_title (Task 블록마다 1개)" ;;
+      OUT)   ng "'$label' 필드가 Task 블록 밖에 있습니다 — [$value]" ;;
       TASKN) ng "Task N 블록에 '$label' 지표가 있습니다 — Task N 에는 지표를 두지 않습니다" ;;
     esac
   done <<EOF
 $(check_field "$label" "$unit")
 EOF
-  if [ "$count" -eq 0 ]; then
-    ng "'$label' 필드를 찾을 수 없습니다 — 값이 없어도 필드는 남깁니다"
-  fi
 }
 
 sum_field 'audit 발견' '건'; found="$FIELD_TOTAL"

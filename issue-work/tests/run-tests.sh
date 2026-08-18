@@ -319,6 +319,22 @@ assert_clear fail "clear 완료 확인: Task N 미체크 격추" --completion "$
 awk '!/점검 완료/' "$plan_done" > "$sandbox/plan-no-gate.md"
 assert_clear fail "clear 완료 확인: 게이트 항목 소실 격추" --completion "$sandbox/plan-no-gate.md"
 
+# 5차 audit F-2 반례: Task 블록은 있는데 완료 체크박스가 없는 경우.
+# 미체크만 세면 이 입력이 "미완료 0건"으로 통과한다.
+awk 'BEGIN{n=0} /^### Task 0/{n=1} n && /^- \[x\] 완료$/{n=0; next} {print}' \
+  "$plan_done" > "$sandbox/plan-task-no-box.md"
+assert_clear fail "clear 완료 확인: Task 완료 체크박스 소실(5차 audit F-2 반례) 격추" \
+  --completion "$sandbox/plan-task-no-box.md"
+box_out="$("$CLEAR" --completion "$sandbox/plan-task-no-box.md" 2>&1)"
+printf '%s\n' "$box_out" | grep -q '완료 체크박스가 없습니다' \
+  && ok "clear 완료 확인: 체크박스 소실 사유 출력" \
+  || ng "clear 완료 확인: 체크박스 소실 사유가 출력되지 않음 — [$box_out]"
+
+# 이웃 반례: 한 블록에 완료 체크박스가 2개 — 어느 쪽이 판정 대상인지 정해지지 않는다.
+awk '{print} /^### Task 1:/{d=1} d && /^- \[x\] 완료$/{print "- [ ] 완료"; d=0}' \
+  "$plan_done" > "$sandbox/plan-task-dup-box.md"
+assert_clear fail "clear 완료 확인: Task 완료 체크박스 중복 격추" --completion "$sandbox/plan-task-dup-box.md"
+
 # Task 블록이 없는 파일(경로 오기) — 검사 대상 공집합을 통과로 보지 않는다.
 printf '# 빈 문서\n' > "$sandbox/plan-empty.md"
 assert_clear fail "clear 완료 확인: Task 블록 없음 격추" --completion "$sandbox/plan-empty.md"
@@ -422,10 +438,33 @@ m_nofield() { awk '!/^- \*\*보정 반영\*\*:/' "$1" > "$1.t" && mv "$1.t" "$1"
 m_taskn()   { printf -- '- **audit 발견**: 5건\n' >> "$1"; }
 m_word()    { awk '{gsub(/^- \*\*재시도\*\*: 1회$/, "- **재시도**: 미기록"); print}' "$1" > "$1.t" && mv "$1.t" "$1"; }
 
+# 5차 audit F-3 반례: Task 1 의 지표 3종을 지우고 Task 0 에 같은 수만큼 중복시킨다.
+# 파일 전체 개수만 세면 누락과 중복이 상쇄돼 계약 위반 summary 가 그대로 집계된다.
+m_offset() {
+  awk '
+    /^### Task 1:/ { s = 1 }
+    s && /^- \*\*(audit 발견|보정 반영|재시도)\*\*:/ { next }
+    { print }
+    /^- \*\*재시도\*\*: 0회$/ && !d { print "- **audit 발견**: 2건"; print "- **보정 반영**: 1건"; print "- **재시도**: 1회"; d = 1 }
+  ' "$1" > "$1.t" && mv "$1.t" "$1"
+}
+# 이웃 반례: 한 Task 만 필드가 빠진 경우 (다른 Task 에는 그대로 있어 전역 개수는 0이 아니다).
+m_onemiss() {
+  awk '
+    /^### Task 1:/ { s = 1 }
+    s && /^- \*\*보정 반영\*\*:/ { next }
+    { print }
+  ' "$1" > "$1.t" && mv "$1.t" "$1"
+}
+
 assert_metrics_fail '보정률 집계: `-` 표기 격추'        "'audit 발견' 표기가"    m_dash
 assert_metrics_fail '보정률 집계: 필드 누락 격추'        "'보정 반영' 필드를"     m_nofield
 assert_metrics_fail '보정률 집계: Task N 지표 격추'      'Task N 블록에'          m_taskn
 assert_metrics_fail '보정률 집계: 비수치 값 격추'        "'재시도' 표기가"        m_word
+assert_metrics_fail '보정률 집계: Task별 누락+중복 상쇄(5차 audit F-3 반례) 격추' \
+  "'audit 발견' 필드가 2개입니다"  m_offset
+assert_metrics_fail '보정률 집계: 한 Task 만 필드 누락 격추' \
+  "'보정 반영' 필드를"             m_onemiss
 
 "$METRICS" >/dev/null 2>&1
 [ $? -eq 2 ] && ok "사용오류: 인자 없음 (exit 2)" || ng "사용오류: 인자 없음 — exit 2 기대"

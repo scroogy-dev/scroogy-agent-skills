@@ -113,6 +113,9 @@ m_no_agent()  { sed -i.bak 's/^## 에이전트 운영 지침$/## 운영/' "$1" &
 m_ctxrow()    { sed -i.bak '/`\.ai\/10_rules\/context-loading\.md`/d' "$1" && rm -f "$1.bak"; }
 m_wrrow()     { sed -i.bak '/`\.ai\/10_rules\/writing-principles\.md`/d' "$1" && rm -f "$1.bak"; }
 m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|------|----|\n| building | ws |\n' >> "$1"; }
+# 5차 audit F-5 반례: 열 수는 3이지만 헤더 이름이 표준과 다른 표.
+m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
+m_rules_ord() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| 설명 | 파일 | 사용 시점 |/' "$1" && rm -f "$1.bak"; }
 
 assert_missing '본문 첫 줄 last updated'     "본문 첫 줄"                        m_date
 assert_missing '본문 두 번째 줄 SSoT'         "본문 두 번째 줄 SSoT"              m_ssot
@@ -124,6 +127,8 @@ assert_missing 'writing-principles.md 행'     'writing-principles.md` 행'     
 assert_missing '에이전트 운영 지침 섹션'        "'## 에이전트 운영 지침' 섹션"       m_no_agent
 assert_missing '전제 컨벤션 한 줄'             '전제 컨벤션 한 줄'                  m_no_premise
 assert_missing '구버전 워크스페이스 위치 섹션'   "'## 워크스페이스 위치' 섹션"        m_legacy
+assert_missing '프로젝트 규칙 표 헤더 이름(5차 audit F-5 반례)' '헤더 이름'          m_rules_hdr
+assert_missing '프로젝트 규칙 표 헤더 순서'      '헤더 이름'                          m_rules_ord
 
 # --- 프로젝트 규칙 표 상태 3분기 --------------------------------------------------
 #

@@ -21,6 +21,7 @@ usage() { sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'; }
 
 SSOT_LINE='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
 PREMISE='전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면'
+RULES_HEADER='파일/설명/사용 시점'
 
 file=''
 while [ $# -gt 0 ]; do
@@ -102,7 +103,23 @@ else
     if [ "$cols" -lt 3 ]; then
       ng "'## 프로젝트 규칙' 표의 '사용 시점' 열 (${cols}열 구버전 표 — 열 확장 대상)"
     else
-      rules_ok=true
+      # SKILL.md 표가 3열의 이름까지 `파일`·`설명`·`사용 시점` 으로 고정하므로 열 수만 세지 않는다.
+      # 개수만 보면 이름이 다른 3열 표가 통과해 이후 행 검사가 엉뚱한 표에 붙는다.
+      # 앞 3열의 이름·순서만 판정하고 뒤에 붙은 사용자 열은 허용한다 (`-lt 3` 관용과 같은 정책).
+      names="$(printf '%s\n' "$rules_header" | awk -F'|' '{
+        out = ""
+        for (i = 2; i <= NF - 1 && i <= 4; i++) {
+          v = $i
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+          out = (out == "" ? v : out "/" v)
+        }
+        print out
+      }')"
+      if [ "$names" != "$RULES_HEADER" ]; then
+        ng "'## 프로젝트 규칙' 표의 헤더 이름 ($RULES_HEADER 순서 — 실제 [$names], 헤더 정정 대상)"
+      else
+        rules_ok=true
+      fi
     fi
   fi
 fi

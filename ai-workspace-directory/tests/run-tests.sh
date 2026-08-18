@@ -104,6 +104,15 @@ mutate_cols()       { sed -i.bak 's/^| path | domain | keywords | status |$/| pa
 mutate_status()     { sed -i.bak 's/| 결제, 승인, PG 연동 | active |/| 결제, 승인, PG 연동 | 운영중 |/' "$1" && rm -f "$1.bak"; }
 mutate_steps()      { sed -i.bak '/^4\. 답변 직전 정보 충돌 시/d' "$1" && rm -f "$1.bak"; }
 mutate_no_entry()   { sed -i.bak 's/^### 진입 절차 (질의 → 답변)$/### 들어가기/' "$1" && rm -f "$1.bak"; }
+# 5차 audit F-6 반례: 운영 지침의 소절 이름을 바꾸고 다른 H2 아래에 같은 이름 4단계를 심는다.
+# 탐색 범위가 파일 전체면 이 가짜 소절이 위치 위반을 가려 준다.
+mutate_entry_parent() {
+  sed -i.bak 's/^### 진입 절차 (질의 → 답변)$/### 응답 절차 (질의 → 답변)/' "$1" && rm -f "$1.bak"
+  awk '
+    /^## Repos$/ { print "### 진입 절차 (가짜 위치)"; print "1. 하나"; print "2. 둘"; print "3. 셋"; print "4. 넷"; print "" }
+    { print }
+  ' "$1" > "$1.new" && mv "$1.new" "$1"
+}
 
 assert_violation '(1) 첫 줄 last updated 형식'  '본문 첫 줄이'          mutate_first_line
 assert_violation '(2) SSoT 고정 문구'           '표준 SSoT 문구가 아닙니다' mutate_ssot
@@ -114,6 +123,8 @@ assert_violation '(6) Repos 표 열 수'           'Repos 표가 4열'         m
 assert_violation '(8) status 열거값'            'status 값이 열거값'      mutate_status
 assert_violation '(7) 진입 절차 단계 수'         '번호 4단계가 아닙니다'    mutate_steps
 assert_violation '(7) 진입 절차 서브헤딩 부재'    "'### 진입 절차' 서브헤딩이 없습니다" mutate_no_entry
+assert_violation '(7) 진입 절차 부모 섹션(5차 audit F-6 반례)' \
+  "'### 진입 절차' 서브헤딩이 없습니다" mutate_entry_parent
 
 # H2 순서 검사: 섹션 하나를 통째로 뒤로 옮긴다 (누락 없이 순서만 어긋난 상태).
 {

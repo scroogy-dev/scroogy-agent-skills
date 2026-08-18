@@ -90,6 +90,23 @@ assert_title_ng '빈 제목'                 --title ''
 printf '%s\n' 'feat(order): 주문 생성 API 성능 개선 (#123)' > "$TMP/title.md"
 assert_title_ok '파일 모드'               "$TMP/title.md"
 
+# 말미 개행이 없는 파일도 같은 한 줄이다.
+printf '%s' 'feat: 개행 없는 제목 (#123)' > "$TMP/title-nonl.md"
+assert_title_ok '파일 모드: 말미 개행 없음' "$TMP/title-nonl.md"
+
+# 5차 audit F-4 반례: 검증은 첫 줄, 제출은 `cat` 전체라 둘째 줄이 검증을 건너뛴다.
+printf '%s\n%s\n' 'feat: 정상 제목 (#123)' '승인되지 않은 둘째 줄' > "$TMP/title-multi.md"
+assert_title_ng '파일 모드: 여러 줄 제목(5차 audit F-4 반례)' "$TMP/title-multi.md"
+assert_title_ng '인자 모드: 여러 줄 제목(5차 audit F-4 반례)' \
+  --title "$(printf '%s\n%s' 'feat: 정상 제목 (#123)' '승인되지 않은 둘째 줄')"
+multi_out="$("$TITLE" "$TMP/title-multi.md" 2>&1)"
+printf '%s\n' "$multi_out" | grep -q '여러 줄입니다' \
+  && ok '여러 줄 제목: 사유 출력' \
+  || ng "여러 줄 제목: 사유가 출력되지 않음 — [$multi_out]"
+
+# CR 이 섞인 제목 — 화면에는 한 줄로 보이나 제출 문자열에는 그대로 실린다.
+assert_title_ng '인자 모드: CR 포함' --title "$(printf 'feat: 제목\r 뒷부분 (#123)')"
+
 assert_title_usage() {
   local desc="$1"; shift
   "$TITLE" "$@" >/dev/null 2>&1
