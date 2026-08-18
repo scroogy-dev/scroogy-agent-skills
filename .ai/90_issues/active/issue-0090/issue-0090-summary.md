@@ -100,11 +100,12 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
-- **audit 발견**: 0건
-- **보정 반영**: 0건
+- **audit 발견**: 1건
+- **보정 반영**: 1건
 - **재시도**: 0회
-- **수행 내용 요약**: 15개 SKILL.md 전부와 기존 결정적 자산 2건(`verify-install.sh`, `issue-work/tests/run-tests.sh`)을 읽고 Task 1의 판단 체크리스트를 적용했다. 판정은 결정화 대상 8건, 준결정적 유지 5건, 결정화 불가 2건이다. 결정화 대상 8건에 실익 1~8위를 매겨 근거에 남겼고, 잔여 7건의 처리는 `표 기록 종결` 6건과 `원장 K-0005` 1건(install-skills 기등재)으로 확정했다.
-- **특이 사항**: 체크리스트 2번(반복 호출)의 판정 기준을 "SKILL.md에 명시적 판정 절차가 있는가"로 잡았다. 산출물 형식만 결정적인 스킬(code-map·readme-sync 등)까지 대상으로 올리면 없는 검증 단계를 신설하게 되어 이슈 범위("결정화 여지를 옮긴다")를 넘기 때문이다. 결정화 대상 8건 중 두 쌍(git-review와 issue-audit의 위험도 매트릭스, git-commit과 git-pr의 제목 규격)이 같은 로직을 공유하나, 스킬 독립성 원칙상 헬퍼를 공유하지 못해 각 스킬이 따로 갖는다.
+- **수행 내용 요약**: 15개 SKILL.md 전부와 기존 결정적 자산 2건(`verify-install.sh`, `issue-work/tests/run-tests.sh`)을 읽고 Task 1의 판단 체크리스트를 적용했다. 판정은 결정화 대상 9건, 준결정적 유지 4건, 결정화 불가 2건이다. 결정화 대상 9건에 실익 1~9위를 매겨 근거에 남겼고, 잔여 6건의 처리는 `표 기록 종결` 5건과 `원장 K-0005` 1건(install-skills 기등재)으로 확정했다.
+- **특이 사항**: 체크리스트 2번(반복 호출)의 판정 기준을 "SKILL.md에 명시적 판정 절차가 있는가"로 잡았다. 산출물 형식만 결정적인 스킬(readme-sync 등)까지 대상으로 올리면 없는 검증 단계를 신설하게 되어 이슈 범위("결정화 여지를 옮긴다")를 넘기 때문이다. 결정화 대상 중 두 쌍(git-review와 issue-audit의 위험도 매트릭스, git-commit과 git-pr의 제목 규격)이 같은 로직을 공유하나, 스킬 독립성 원칙상 헬퍼를 공유하지 못해 각 스킬이 따로 갖는다.
+  audit F-1 보정: `code-map`을 SKILL.md만 보고 "검증 단계가 없다"고 판정했으나 `references/local.md` 3단계·`global.md` 4단계에 `check` 전용 정합성 점검이 있었다. 참조 문서까지 훑지 않은 것이 원인이다. 근거를 사실에 맞게 고치고 판정을 `결정화 대상`으로 바꾼 뒤, 구현은 원장 K-0006으로 이관했다(수용 사유: 이 repo에 `.ai/60_codebase/` 색인이 없어 헬퍼가 검사할 산출물이 아직 없다).
 
 ---
 
@@ -112,12 +113,13 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
-- **audit 발견**: 0건
-- **보정 반영**: 0건
+- **audit 발견**: 5건
+- **보정 반영**: 5건
 - **재시도**: 0회
-- **수행 내용 요약**: 사용자가 결정화 대상 8건 전부를 이번 이슈에서 구현하기로 확정해 조사 표 처리 열을 모두 `이번 이슈 반영`으로 채웠다. 헬퍼 11개와 러너 8개를 신설·확장했다. git-review(`classify-risk.sh`), issue-audit(`classify-risk.sh`·`next-finding-number.sh`), git-commit(`validate-message.sh`), git-pr(`validate-title.sh`·`verify-submit.sh`), ai-workspace-directory(`check-lobby.sh`), ai-workspace(`check-context.sh`), git-pr-feedback(`verify-push.sh`), issue-work(`check-clear.sh`·`summarize-metrics.sh`)이며 스킬마다 SKILL.md에 호출 지점을 넣었다. 9개 러너 전부 통과한다(신규 7개 + 기존 issue-work 확장 + install-skills). 잔여 7건은 조사 표에 `표 기록 종결` 6건·`원장 K-0005` 1건으로 이미 닫혀 있어 추가 등재가 없다.
+- **수행 내용 요약**: 사용자가 결정화 대상 8건 전부를 이번 이슈에서 구현하기로 확정해 조사 표 처리 열을 모두 `이번 이슈 반영`으로 채웠다. 헬퍼 11개와 러너 8개를 신설·확장했다. git-review(`classify-risk.sh`), issue-audit(`classify-risk.sh`·`next-finding-number.sh`), git-commit(`validate-message.sh`), git-pr(`validate-title.sh`·`verify-submit.sh`), ai-workspace-directory(`check-lobby.sh`), ai-workspace(`check-context.sh`), git-pr-feedback(`verify-push.sh`), issue-work(`check-clear.sh`·`summarize-metrics.sh`)이며 스킬마다 SKILL.md에 호출 지점을 넣었다. 9개 러너 전부 통과한다(신규 7개 + 기존 issue-work 확장 + install-skills). 잔여 6건은 조사 표에 `표 기록 종결` 5건·`원장 K-0005` 1건으로 이미 닫혀 있어 추가 등재가 없다.
 - **특이 사항**: 이전 세션이 git-review·issue-audit 헬퍼를 만든 뒤 실행 권한 없이 중단해 issue-audit 러너가 실패 상태였고, 두 스킬 SKILL.md에 호출 지점도 없었다. 권한을 부여하고 호출 지점을 연결해 닫았다. 테스트 설계에서 기대값을 테스트에 적지 않고 SSoT 문서에서 뽑는 방식을 전 스킬에 적용했다(git-commit·git-pr은 SKILL.md 예시 블록, ai-workspace-directory는 `standard-structure.md` 골격, ai-workspace는 템플릿 자체). 헬퍼가 SKILL.md 표의 사본이라 한쪽만 바뀌면 러너가 드리프트를 잡는다. ai-workspace는 검사 표 10종 중 8종만 옮겼다. `## 디렉토리 구조`의 `.ai/` 한 줄 압축과 트리 정렬 순서는 앵커 판정이 아니라 트리 구조 해석이라 architecture.md의 "조건 분기가 과하게 늘어나는 경우" 예외로 두고, 러너가 표 행 수를 세어 항목이 늘면 제외 범위를 다시 판단하게 했다. git-pr-feedback 테스트는 정규화 대조와 실제 git 조회를 동시에 만족하는 원격을 만들 수 없어(호스트 있는 URL은 네트워크를 탄다) `GIT_ALLOW_PROTOCOL=file`로 https 조회를 차단해 URL 검사만 남기고, ref·조상 검사는 로컬 경로 원격으로 나눠 검증했다.
   헬퍼 호출 경로를 처음에 `$HOME/.claude/skills/<skill>/scripts/` 우선 + cwd 폴백으로 썼다가 사용자 지적으로 13군데를 `'<skill 디렉토리>/scripts/<헬퍼>'`로 바꿨다. install-skills의 self-install 탐색 패턴을 복사한 것인데, 그 스킬은 스킬 repo를 cwd로 실행해 폴백이 통하고 나머지 스킬은 임의 프로젝트에서 실행돼 두 경로가 모두 빗나간다. `--agents`·`--antigravity`·`--codex`·`--junie`로 설치한 사용자에게는 헬퍼가 아예 없는 셈이었다. 바꾼 형태는 `templates/` 참조가 13개 스킬에서 이미 쓰던 "이 skill 디렉토리의" 관례와 같아 설치 도구와 무관하다. install-skills는 자기 디렉토리와 작업 대상 repo가 다른 유일한 스킬이라 홈 경로 탐색이 기능이므로 그대로 뒀다. 그 탐색이 `.claude`만 보는 것은 결함이 아니라 기본 설치 경로(`--claude`가 기본값)를 전제한 의도된 설계라는 사용자 확인을 받아, 근거를 install-skills SKILL.md 6단계에 명시했다. 이후 감사가 같은 지점을 결함으로 다시 올리지 않게 하기 위함이다.
+  audit F-2~F-6 보정: 신설 헬퍼 5곳이 잘못된 입력을 종료 코드 0으로 통과시켰다. 다섯 건 모두 판정 단위를 파일 전체에 두었거나 위치 조건을 빼먹은 것이 원인이다. `check-clear.sh`는 미체크만 세어 완료 체크박스가 없는 Task 블록을 놓쳤고, `summarize-metrics.sh`는 전역 필드 개수만 세어 한 Task의 누락을 다른 Task의 중복으로 상쇄시켰다. `validate-title.sh`는 파일 첫 줄만 검증하는데 제출은 `cat` 전체라 둘째 줄이 검증을 건너뛰었고, `check-context.sh`는 규칙 표의 열 수만 보고 헤더 이름을 확인하지 않았으며, `check-lobby.sh`는 `### 진입 절차`를 파일 전체에서 찾아 부모 섹션 위반을 가렸다. 각각 블록·범위 단위 판정으로 바꾸고 반례 회귀 테스트를 추가했다.
 
 ---
 
