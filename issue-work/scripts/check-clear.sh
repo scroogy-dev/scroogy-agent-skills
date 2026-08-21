@@ -41,9 +41,13 @@ if [ "$mode" = 'completion' ]; then
   open=0
 
   # 설계 종료 게이트 — `## Tasks` 앞 고정 블록이라 Task 체크박스 계수와 분리해서 센다.
+  # 미체크만 세면 게이트 블록이 중복된 입력이 통과하므로 Task 쪽과 같이 실재·유일성을 함께 센다.
   gate="$(grep -cE '^- \[[ xX]\] 점검 완료[[:space:]]*$' "$target")"
   if [ "$gate" -eq 0 ]; then
     echo "미완료: 설계 종료 게이트 '점검 완료' 항목을 찾을 수 없습니다"
+    open=$((open + 1))
+  elif [ "$gate" -gt 1 ]; then
+    echo "미완료: 설계 종료 게이트 '점검 완료' 항목이 ${gate}개입니다 — 1개여야 합니다"
     open=$((open + 1))
   elif grep -qE '^- \[ \] 점검 완료[[:space:]]*$' "$target"; then
     echo "미완료: 설계 종료 게이트 점검 완료"

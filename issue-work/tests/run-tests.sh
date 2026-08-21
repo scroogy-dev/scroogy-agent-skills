@@ -319,6 +319,15 @@ assert_clear fail "clear 완료 확인: Task N 미체크 격추" --completion "$
 awk '!/점검 완료/' "$plan_done" > "$sandbox/plan-no-gate.md"
 assert_clear fail "clear 완료 확인: 게이트 항목 소실 격추" --completion "$sandbox/plan-no-gate.md"
 
+# 이웃 반례: 게이트 체크박스가 2개이고 둘 다 체크된 경우.
+# 미체크만 세면 이 입력이 통과하므로 Task 쪽과 같이 유일성도 함께 센다.
+awk '{print} /^- \[x\] 점검 완료$/{print "- [x] 점검 완료"}' "$plan_done" > "$sandbox/plan-gate-dup.md"
+assert_clear fail "clear 완료 확인: 설계 종료 게이트 중복 격추" --completion "$sandbox/plan-gate-dup.md"
+dup_gate_out="$("$CLEAR" --completion "$sandbox/plan-gate-dup.md" 2>&1)"
+printf '%s\n' "$dup_gate_out" | grep -q '항목이 2개입니다' \
+  && ok "clear 완료 확인: 게이트 중복 사유 출력" \
+  || ng "clear 완료 확인: 게이트 중복 사유가 출력되지 않음 — [$dup_gate_out]"
+
 # 5차 audit F-2 반례: Task 블록은 있는데 완료 체크박스가 없는 경우.
 # 미체크만 세면 이 입력이 "미완료 0건"으로 통과한다.
 awk 'BEGIN{n=0} /^### Task 0/{n=1} n && /^- \[x\] 완료$/{n=0; next} {print}' \
