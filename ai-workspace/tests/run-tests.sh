@@ -117,6 +117,86 @@ m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|---
 m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
 m_rules_ord() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| 설명 | 파일 | 사용 시점 |/' "$1" && rm -f "$1.bak"; }
 
+# SKILL.md 검사 표가 허용하는 뒤 확장 열(앞 3열의 이름·순서는 그대로).
+m_rules_4col() {
+  awk '
+    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; print; next }
+    f && /^## / { f = 0 }
+    f && /^\|/ {
+      if ($0 ~ /^\|[-:| ]+\|$/) { print $0 "------|" }
+      else if ($0 ~ /^\| 파일 \|/) { print $0 " 비고 |" }
+      else { print $0 " <비고> |" }
+      next
+    }
+    { print }
+  ' "$1" > "$1.4col" && mv "$1.4col" "$1"
+}
+
+# 3차 audit F-8 반례: 앞 3열이 정상인 4열 표에서 필수 경로를 `파일` 셀 밖 확장 열로 옮긴다.
+# 행 전체를 부분 문자열로 찾는 검사는 이 입력을 통과시키므로, `파일` 셀 정확 대조만 잡아낸다.
+m_row_in_ext() {
+  local path="$1" f="$2"
+  m_rules_4col "$f" || return 1
+  awk -v path="$path" '
+    /^\|/ && index($0, "`" path "`") {
+      n = split($0, c, "|")
+      c[2] = " `.ai/10_rules/custom.md` "
+      c[n-1] = " `" path "` "
+      out = c[1]
+      for (i = 2; i <= n; i++) out = out "|" c[i]
+      print out
+      next
+    }
+    { print }
+  ' "$f" > "$f.ext" && mv "$f.ext" "$f"
+}
+m_ctx_in_ext() { m_row_in_ext '.ai/10_rules/context-loading.md' "$1"; }
+m_wr_in_ext()  { m_row_in_ext '.ai/10_rules/writing-principles.md' "$1"; }
+
+# 4차 audit F-9 반례: 두 필수 행을 첫 번째 표에서 빼 같은 H2의 두 번째 표로 옮긴다.
+# 탐색이 첫 번째 표 블록에서 멈추지 않으면 이 입력이 통과한다.
+m_rows_in_2nd() {
+  awk '
+    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; print; next }
+    f && /^## / { f = 0 }
+    f && /^\|/ {
+      t = 1
+      if (index($0, "`.ai/10_rules/context-loading.md`") || index($0, "`.ai/10_rules/writing-principles.md`")) {
+        moved = moved $0 "\n"
+        next
+      }
+      print; next
+    }
+    f && t {
+      print ""
+      print "추가 규칙 표:"
+      print ""
+      print "| 파일 | 설명 | 사용 시점 |"
+      print "|------|------|----------|"
+      printf "%s", moved
+      f = 0; t = 0
+    }
+    { print }
+  ' "$1" > "$1.2nd" && mv "$1.2nd" "$1"
+}
+
+# assert_pass <설명> <변형 명령...>
+#
+# 통과를 기대하는 변형이다. assert_missing 과 짝을 이뤄 "허용하기로 한 입력"이 실제로
+# 종료 코드 0인지 고정한다. 허용 범위를 문서에만 적어 두면 이후 보정이 조용히 좁힌다.
+assert_pass() {
+  local desc="$1"; shift
+  local f="$TMP/case.md" out rc
+  cp "$BASE" "$f"
+  "$@" "$f" || { ng "$desc — 변형 실패"; return; }
+  out="$("$CHECK" "$f" 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "$desc"
+  else
+    ng "$desc — exit 0 기대, 실제 $rc ($(printf '%s' "$out" | tr '\n' ' '))"
+  fi
+}
+
 assert_missing '본문 첫 줄 last updated'     "본문 첫 줄"                        m_date
 assert_missing '본문 두 번째 줄 SSoT'         "본문 두 번째 줄 SSoT"              m_ssot
 assert_missing '프로젝트 도메인 섹션'          "'## 프로젝트 도메인' 섹션"          m_no_domain
@@ -129,6 +209,11 @@ assert_missing '전제 컨벤션 한 줄'             '전제 컨벤션 한 줄'
 assert_missing '구버전 워크스페이스 위치 섹션'   "'## 워크스페이스 위치' 섹션"        m_legacy
 assert_missing '프로젝트 규칙 표 헤더 이름(5차 audit F-5 반례)' '헤더 이름'          m_rules_hdr
 assert_missing '프로젝트 규칙 표 헤더 순서'      '헤더 이름'                          m_rules_ord
+assert_pass    '프로젝트 규칙 표 사용자 확장 열 허용'                                m_rules_4col
+assert_missing 'context-loading.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'context-loading.md` 행' m_ctx_in_ext
+assert_missing 'writing-principles.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'writing-principles.md` 행' m_wr_in_ext
+assert_missing 'context-loading.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'context-loading.md` 행' m_rows_in_2nd
+assert_missing 'writing-principles.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'writing-principles.md` 행' m_rows_in_2nd
 
 # --- 프로젝트 규칙 표 상태 3분기 --------------------------------------------------
 #
