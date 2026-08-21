@@ -77,7 +77,7 @@
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
   ```bash
-  S=.ai/90_issues/active/issue-0090/issue-0090-spec.md
+  S=.ai/90_issues/archive/issue-0090/issue-0090-spec.md
   n=$(awk '/^## 조사 결과$/{f=1;next} /^## /{f=0} f' "$S" \
     | grep -cE '^\|[^|]+\| *(결정화 대상|준결정적 유지|결정화 불가) *\|[^|]*\| *[^| ]')
   [ "$n" -eq 15 ] || echo "위반: 판정 행 ${n}건 (기대 15)"
@@ -90,7 +90,7 @@
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
   ```bash
-  S=.ai/90_issues/active/issue-0090/issue-0090-spec.md
+  S=.ai/90_issues/archive/issue-0090/issue-0090-spec.md
   awk '/^## 조사 결과$/{f=1;next} /^## /{f=0} f' "$S" \
     | grep -E '^\|[^|]+\| *결정화 대상 *\|' \
     | grep -vE '^\|[^|]+\|[^|]+\| *(이번 이슈 반영|후속 이슈 #[0-9]+|원장 K-[0-9]+) *\|'
@@ -117,7 +117,7 @@
   <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
   ```bash
-  S=.ai/90_issues/active/issue-0090/issue-0090-spec.md
+  S=.ai/90_issues/archive/issue-0090/issue-0090-spec.md
   awk '/^## 조사 결과$/{f=1;next} /^## /{f=0} f' "$S" \
     | grep -E '^\|[^|]+\| *(준결정적 유지|결정화 불가) *\|' \
     | grep -vE '^\|[^|]+\|[^|]+\| *(원장 K-[0-9]+|표 기록 종결) *\|'
