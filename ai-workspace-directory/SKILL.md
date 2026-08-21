@@ -142,7 +142,14 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 
 #### init-5단계: 분량 가드레일 검증
 
-생성된 파일의 줄 수를 측정해 가드레일을 검증합니다.
+생성된 파일의 줄 수를 측정해 가드레일을 검증합니다. 측정과 판정은 헬퍼가 수행합니다.
+
+```bash
+# <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 씁니다.
+check='<skill 디렉토리>/scripts/check-lobby.sh'
+
+"$check" --lines '<루트>/.ai/AI-CONTEXT.md'   # → 정상 (187줄) / 비대 (312줄) / 짧음 (94줄)
+```
 
 | 범위 | 판정 | 조치 |
 |------|------|------|
@@ -222,6 +229,16 @@ description: 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md`
 ##### (4) 형식 위배
 
 형식 기준은 [standard-structure.md](references/standard-structure.md)를 따릅니다.
+아래 8종의 **판정**은 헬퍼가 수행하고, 위배 시 **조치**(자동 갱신·삽입·정규화)는 update-2단계가 맡습니다.
+
+```bash
+# <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 씁니다.
+check='<skill 디렉토리>/scripts/check-lobby.sh'
+
+"$check" '<루트>/.ai/AI-CONTEXT.md'   # 통과하면 무출력, 위배는 사유를 1행씩 출력하고 종료 코드 1
+```
+
+출력된 사유를 진단 리포트의 형식 위배 항목으로 옮겨 적습니다. 헬퍼가 형식만 판정하므로 (1)~(3) 카테고리의 의미 판단은 그대로 수행합니다.
 
 | 검사 | 위배 시 조치 |
 |------|-------------|

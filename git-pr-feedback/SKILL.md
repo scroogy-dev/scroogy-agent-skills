@@ -275,6 +275,7 @@ git ref 이름에는 작은따옴표가 허용되어, 이 치환 없이 보간�
   예외 진행을 명시적으로 승인한 경우에만 그 승인값으로 진행합니다.
 - push 승인에 들어가기 전에 후보 원격의 정규화한 URL이 보관한 head 저장소(호스트/소유자/저장소)와 일치하는지,
   승인 대상 SHA가 보관한 `headRefOid`를 조상으로 포함하는지(`git merge-base --is-ancestor`) 확인합니다.
+  이 확인과 아래 실행 직전 재대조는 모두 `verify-push.sh` 헬퍼로 수행합니다 (탐색·사용법은 이 절 끝의 명령 블록 참조).
   원격 URL은 fetch URL(`git remote get-url`)과 push URL 전체(`git remote get-url --push --all`)를 모두 조회해,
   push URL이 정확히 1개이고 두 URL의 정규화 결과가 모두 head 저장소와 일치할 때만 통과로 봅니다.
   `remote.<이름>.pushurl`은 fetch URL과 다르게 복수로도 설정될 수 있고 `git push`는 push URL 전부에 게시하므로,
@@ -298,13 +299,16 @@ git ref 이름에는 작은따옴표가 허용되어, 이 치환 없이 보간�
 - push 뒤 대상 PR의 `headRefOid`를 재조회해 승인 SHA와 일치할 때만 반영 완료로 보고합니다.
   일치하지 않으면 대상 PR이 갱신되지 않았거나 다른 경로로 갱신된 것이므로, 결과 요약에 미반영과 사유를 남깁니다.
 
-```bash
-# push 직전 원격 URL 재대조 — fetch·push URL의 정규화 결과가 모두 보관한 head 저장소와 일치하고 push URL이 1개인지 확인
-git remote get-url '<원격 이름>'
-git remote get-url --push --all '<원격 이름>'
+push 직전 대조 네 가지(fetch URL·push URL·원격 ref·조상 관계)는 `verify-push.sh` 헬퍼가 한 번에 판정합니다.
+통과하면 아무것도 출력하지 않고 종료 코드 0을 내며, 위반은 종료 코드 1과 함께 사유를 1행씩 출력합니다. 하나라도 걸리면 push하지 않고 중단합니다.
 
-# push 직전 원격 ref 대조 — 출력 SHA가 보관한 headRefOid와 다르거나 출력이 비면(삭제됨) 중단
-git ls-remote '<원격 이름>' 'refs/heads/<승인 대상 브랜치>'
+```bash
+# <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 씁니다.
+verify='<skill 디렉토리>/scripts/verify-push.sh'
+
+# push 직전 대조 — fetch·push URL 정규화 일치, push URL 1개, 원격 ref == headRefOid, 승인 SHA 가 headRefOid 를 조상으로 포함
+"$verify" --remote '<원격 이름>' --repo '<호스트>/<소유자>/<저장소>' \
+  --branch '<승인 대상 브랜치>' --head-oid '<보관한 headRefOid>' --approved-sha '<승인 SHA>'
 
 git push '<원격 이름>' '<승인 SHA>:refs/heads/<승인 대상 브랜치>' \
   --force-with-lease='refs/heads/<승인 대상 브랜치>:<보관한 headRefOid>'

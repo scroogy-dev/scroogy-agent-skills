@@ -55,6 +55,23 @@ docs: API 명세 업데이트
 chore: 의존성 버전 업그레이드
 ```
 
+## 메시지 검증
+
+메시지를 작성한 뒤 커밋 전에 헬퍼로 규격을 확인합니다. 위 타입 표와 포맷을 눈으로 대조하지 않습니다.
+
+```bash
+# <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 씁니다.
+validate='<skill 디렉토리>/scripts/validate-message.sh'
+
+"$validate" --subject 'fix(auth): 토큰 만료 처리 오류 수정'   # 제목 초안만 확인
+"$validate" /tmp/commit-message.txt                          # 본문·꼬리말까지 확인
+```
+
+통과하면 아무것도 출력하지 않고 종료 코드 0을 냅니다. 규격 위반은 종료 코드 1과 함께 사유를 1행씩 출력하며, 인자 오류는 종료 코드 2입니다.
+`Co-Authored-By:` 꼬리말을 사용자가 명시적으로 요청했으면 `--allow-coauthor`를 붙입니다.
+
+위 타입 표와 포맷이 SSoT이며, 표를 고치면 헬퍼와 `tests/`의 기대값을 함께 갱신합니다.
+
 ## 주의사항
 
 - `Co-Authored-By:` 꼬리말은 사용자가 명시적으로 요청한 경우에만 작성합니다.

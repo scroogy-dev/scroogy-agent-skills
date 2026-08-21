@@ -97,6 +97,9 @@ done
    done
    ```
 6. **설치 검증 (결정적 확인 우선 + AI 크로스체크)**: 복사 후 `verify-install.sh` 헬퍼로 설치 결과를 **결정적으로** 먼저 확인합니다(합/불은 exit code). 헬퍼는 **홈 설치본 우선, 없으면 cwd 폴백** 순으로 탐색합니다. 홈 설치본(`~/.claude/skills/install-skills/scripts/verify-install.sh`)이 있으면 그것을 사용하고, 없으면 cwd(스킬 repo) 상대 경로 `install-skills/scripts/verify-install.sh`로 폴백합니다. 다른 스킬 repo에는 헬퍼 복제본이 없으므로 홈 설치본 탐색이 먼저입니다. AI는 그 PASS/FAIL 출력을 읽어 누락·경로 불일치를 **준결정적으로 크로스체크**합니다. 결정적 결과가 우선이고 AI 판단은 보완입니다.
+
+   홈 경로를 기본 설치 경로(`~/.claude/skills/`)로 고정하는 것은 의도된 설계입니다. `--self` 부트스트랩이 기본값(`--claude`)으로 설치하는 것을 전제하며, 다른 경로 옵션으로만 설치한 환경은 cwd 폴백을 씁니다. 자기 디렉토리와 작업 대상 repo가 다른 스킬은 이것뿐이라 홈 탐색을 둡니다. 나머지 스킬의 헬퍼는 설치 경로에 종속되지 않도록 `<skill 디렉토리>` 상대 참조를 씁니다.
+
    ```bash
    # 헬퍼 탐색: 홈 설치본 우선, 없으면 cwd(스킬 repo) 폴백
    verify="$HOME/.claude/skills/install-skills/scripts/verify-install.sh"

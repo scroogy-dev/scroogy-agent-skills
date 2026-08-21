@@ -67,6 +67,14 @@ description: 이슈 단위로 스펙, 실행 계획, 수행 요약을 관리하�
 - 구현 착수 전 **Task 0(구현 시작 게이트)**을 먼저 수행한다. spec/plan만으로는 알 수 없는 전제·모호점을 나열하고, 항목이 있으면 **코드를 쓰기 전에 사용자에게 질의**해 답변을 spec `## 전제 (Assumptions)`에 반영한 뒤 구현을 시작한다(`--resume`의 "요약 보고 → 승인 시 진행"과 같은 방식). 항목이 없으면 summary Task 0에 `전제 누락 없음` 한 줄을 기록하고 진행한다.
 - Task 완료 시 `issue-<번호>-plan.md`의 해당 Task 체크박스를 체크한다.
 - Task 완료 시 `issue-<번호>-summary.md`의 수행 결과를 갱신하고 다음 작업을 업데이트한다. Task 0 및 일반 실행 Task(Task N 제외) 블록의 지표 4종(`수행 모델`·`audit 발견`·`보정 반영`·`재시도`)은 값이 없어도 필드를 남긴다. 사후 집계(보정률 = `보정 반영` / `audit 발견`)가 표기 고정에 의존하기 때문이다. Task N 블록에는 지표를 두지 않는다. audit이 만들어낸 발견·보정 수치는 각 대상 Task 블록으로 귀속된다(근거는 summary 템플릿의 Task N 블록 주석).
+  집계와 표기 검사는 헬퍼로 한다. 표기가 깨진 필드(`-`·비수치·필드 누락·Task N 블록의 지표)는 종료 코드 1과 함께 사유가 나온다.
+
+  ```bash
+  # <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 쓴다.
+  metrics='<skill 디렉토리>/scripts/summarize-metrics.sh'
+
+  "$metrics" '.ai/90_issues/active/issue-<번호>/issue-<번호>-summary.md'
+  ```
 - 완료 기준은 가능한 한 결정적 검증 단계(명령·테스트·스크립트)로 내린다. 검증 레벨(`[D]`/`[QD]`/`[ND]`)과 기록 형식은 spec·plan 템플릿을 따르고, 항목 안의 배치는 `## 산출물 접기 기준`의 "완료 기준 형식"을 따른다.
 - 계획의 마지막 Task는 구현 모델과 **다른 벤더 모델**로 `issue-audit`를 수행하는 교차모델 검증으로 고정한다. 이 Task는 **사용자가 직접 수동 수행**하며 **구현 AI는 자동 실행·종료하지 않는다.** 사용자가 audit 결과를 summary `모델 기록` 표의 `audit 모델` 행("벤더, 모델명" 형식)에 반영·기록한다(상세는 plan 템플릿의 고정 블록, 연계는 `## 관련 skill`의 `issue-audit` 참조).
 - audit 리포트(`.ai/99_workspace/issue-<번호>-audit-report.md`)를 받으면 `--response` 옵션으로 검토한다. 발견사항에 **피드백 먼저, 항목별 승인 후에만 보정**하며, 구현 AI가 리포트를 받자마자 자동 보정하지 않는다(상세는 `## 옵션`의 `--response`).
@@ -173,6 +181,16 @@ spec `완료의 정의`와 plan Task `완료 기준`의 항목은 본문과 접�
 - **동작**: 이슈 디렉토리는 삭제가 아니라 `archive/`로 이관하며 비운다.
   1. **완료 확인**: `issue-<번호>-plan.md`의 설계 종료 게이트 `점검 완료` 체크박스와 Task 체크박스를 확인한다.
      미완료 항목이 있으면 목록을 보여주고 계속 진행할지 질의한다 (중단·종료 케이스).
+     두 축을 함께 세는 헬퍼로 확인한다. 게이트 체크박스가 `## Tasks` 밖에 있어 Task 체크박스만 세면 누락된다.
+
+     ```bash
+     # <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 쓴다.
+     clear_check='<skill 디렉토리>/scripts/check-clear.sh'
+
+     "$clear_check" --completion '.ai/90_issues/active/issue-<번호>/issue-<번호>-plan.md'
+     ```
+
+     통과하면 무출력, 미완료는 항목을 1행씩 출력하고 종료 코드 1이다. 그 목록을 그대로 사용자에게 보여준다.
   2. **summary 갱신**: `issue-<번호>-summary.md` 상단의 다음 작업을 갱신한다.
      완료 시 `✅ 모든 작업이 완료되었습니다.`, 중단·종료 시 종료 사유를 한 줄로 기재한다.
   3. **이슈 댓글 질의**: summary의 Task별 수행 결과를 기반으로 댓글 초안을 작성하고,
@@ -224,13 +242,14 @@ spec `완료의 정의`와 plan Task `완료 기준`의 항목은 본문과 접�
      - archive 파일 본문에 `99_workspace/` 참조를 남기지 않는다 (99_workspace는 언제든 비워질 수 있음).
        내용이 중요하면 파일 자체를 archive로 이관해 `./` 참조로, 이력 서술이면 병기 문구로 전환한다.
 
-     갱신 후 아래 스니펫 결과가 **0건이면 통과**한다. 1건 이상이면 AI가 건별로 판정한다.
+     갱신 후 아래 헬퍼 결과가 **0건이면 통과**한다(무출력, 종료 코드 0). 1건 이상이면 잔존 행을 출력하고 종료 코드 1이며, AI가 건별로 판정한다.
      갱신 누락(진탐)은 위 규칙으로 보정하고, 옵션 동작을 설명하는 일반 서술 등 정당한 표기(오탐)는 유지한다.
 
      ```bash
-     grep -rnE '90_issues/active/|active/issue-[0-9]+|99_workspace/[A-Za-z0-9_.-]' .ai/90_issues/archive/issue-<번호>/ \
-       | grep -v 'active/issue-workflow\.md' \
-       | grep -v '작성 시점 경로는'
+     # <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 쓴다.
+     clear_check='<skill 디렉토리>/scripts/check-clear.sh'
+
+     "$clear_check" --refs '.ai/90_issues/archive/issue-<번호>/'
      ```
 
      제외 2건의 근거를 보면 `active/issue-workflow.md`는 이동하지 않는 상주 파일이라 참조가 항상 유효하고,

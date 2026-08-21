@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+#
+# check-context.sh — repo 안내도 `.ai/AI-CONTEXT.md` 의 update-4 멱등 보강 검사를 결정적으로 판정한다.
+#
+# SKILL.md update-4단계 "멱등 보강 검사" 표가 규격의 SSoT 이며 이 스크립트는 그 **검사** 열의 사본이다.
+# 표가 바뀌면 이 스크립트와 tests/ 의 기대값을 함께 갱신한다.
+#
+# 이 스크립트는 판정만 한다. 표의 **누락 시 조치**(삽입·정정·교체)는 내용 생성이 섞여 있어 SKILL.md 절차가 맡는다.
+# 검사 표 10행 중 8행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
+# 앵커 존재 판정이 아니라 트리 구조 해석이라 제외했다 (조건 분기가 과하게 늘어나는 경우 —
+# `.ai/10_rules/architecture.md` "디자인 원칙"의 예외).
+#
+# 사용법:
+#   check-context.sh <AI-CONTEXT.md 경로>
+#
+# 종료 코드: 0 누락 없음(무출력) / 1 누락 있음(항목을 1행씩 출력) / 2 사용오류
+
+set -o pipefail
+
+usage() { sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'; }
+
+SSOT_LINE='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+PREMISE='전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면'
+RULES_HEADER='파일/설명/사용 시점'
+
+file=''
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    -*) echo "error: 알 수 없는 옵션 — $1" >&2; exit 2 ;;
+    *)
+      [ -z "$file" ] || { echo "error: 파일은 하나만 지정합니다" >&2; exit 2; }
+      file="$1"; shift ;;
+  esac
+done
+
+[ -n "$file" ] || { echo "error: AI-CONTEXT.md 경로가 필요합니다" >&2; usage >&2; exit 2; }
+[ -r "$file" ] || { echo "error: 읽을 수 없는 파일 — $file" >&2; exit 2; }
+
+missing=0
+ng() { echo "누락: $1"; missing=$((missing + 1)); }
+
+# 본문 시작 위치 — H1 제목과 그 뒤 빈 줄은 본문으로 세지 않는다.
+# 템플릿이 `# AI-CONTEXT.md` 로 시작하므로 "본문 첫 줄"은 그다음 비어 있지 않은 줄이다.
+body_start="$(awk '
+  NR == 1 && /^# / { next }
+  NF { print NR; exit }
+' "$file")"
+[ -n "$body_start" ] || body_start=1
+
+line1="$(sed -n "${body_start}p" "$file")"
+line2="$(sed -n "$((body_start + 1))p" "$file")"
+
+# --- 본문 첫 줄 last updated ----------------------------------------------------
+
+printf '%s\n' "$line1" | grep -qE '^> last updated: [0-9]{4}-[0-9]{2}-[0-9]{2}$' \
+  || ng "본문 첫 줄 '> last updated: YYYY-MM-DD' — 실제 [$line1]"
+
+# --- 본문 두 번째 줄 SSoT 선언 ---------------------------------------------------
+
+[ "$line2" = "$SSOT_LINE" ] \
+  || ng "본문 두 번째 줄 SSoT 선언 — 실제 [$line2]"
+
+# --- 프로젝트 도메인 섹션 + 2행 표 -------------------------------------------------
+
+if ! grep -qE '^## 프로젝트 도메인[[:space:]]*$' "$file"; then
+  ng "'## 프로젝트 도메인' 섹션"
+else
+  for k in domain keywords; do
+    awk -v key="$k" '
+      /^## 프로젝트 도메인[[:space:]]*$/ { f = 1; next }
+      f && /^## / { exit }
+      f && /^\|/ {
+        v = $0
+        sub(/^\|[[:space:]]*/, "", v)
+        sub(/[[:space:]]*\|.*$/, "", v)
+        if (v == key) { found = 1; exit }
+      }
+      END { exit !found }
+    ' "$file" || ng "'## 프로젝트 도메인' 표의 \`$k\` 행"
+  done
+fi
+
+# --- 프로젝트 규칙 섹션 + 3열 표 ---------------------------------------------------
+#
+# 조치가 상태별로 갈리므로(섹션 부재 / 표 부재 / 2열 구버전) 세 상태를 구분해 보고한다.
+# "규칙 표 없음" 한 줄로 뭉치면 어느 조치를 골라야 하는지가 출력에서 사라진다.
+
+rules_ok=false
+if ! grep -qE '^## 프로젝트 규칙[[:space:]]*$' "$file"; then
+  ng "'## 프로젝트 규칙' 섹션 (섹션 부재 — 템플릿 골격 삽입 대상)"
+else
+  rules_header="$(awk '
+    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
+    f && /^## / { exit }
+    f && /^\|/ { print; exit }
+  ' "$file")"
+
+  if [ -z "$rules_header" ]; then
+    ng "'## 프로젝트 규칙' 표 (섹션은 있고 표 부재 — 섹션 끝에 3열 표 삽입 대상)"
+  else
+    cols="$(printf '%s\n' "$rules_header" | awk -F'|' '{ print NF - 2 }')"
+    if [ "$cols" -lt 3 ]; then
+      ng "'## 프로젝트 규칙' 표의 '사용 시점' 열 (${cols}열 구버전 표 — 열 확장 대상)"
+    else
+      # SKILL.md 표가 3열의 이름까지 `파일`·`설명`·`사용 시점` 으로 고정하므로 열 수만 세지 않는다.
+      # 개수만 보면 이름이 다른 3열 표가 통과해 이후 행 검사가 엉뚱한 표에 붙는다.
+      # 앞 3열의 이름·순서만 판정하고 뒤에 붙은 사용자 확장 열은 허용한다
+      # (SKILL.md 검사 표에 명시한 관용 범위이며 `-lt 3` 관용과 같은 정책이다).
+      names="$(printf '%s\n' "$rules_header" | awk -F'|' '{
+        out = ""
+        for (i = 2; i <= NF - 1 && i <= 4; i++) {
+          v = $i
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+          out = (out == "" ? v : out "/" v)
+        }
+        print out
+      }')"
+      if [ "$names" != "$RULES_HEADER" ]; then
+        ng "'## 프로젝트 규칙' 표의 헤더 이름 ($RULES_HEADER 순서 — 실제 [$names], 헤더 정정 대상)"
+      else
+        rules_ok=true
+      fi
+    fi
+  fi
+fi
+
+# --- 표준 2행 -------------------------------------------------------------------
+#
+# 섹션·표 존재가 보장된 뒤에만 수행한다 (SKILL.md 표의 "아래 두 행 검사는 이 검사로 …" 조건).
+# 표가 없는 상태에서 행을 찾으면 조치가 겹쳐 같은 결함이 세 번 보고된다.
+# 행 인정 기준은 첫 번째 `파일` 셀의 정확 대조다(백틱·양끝 공백 무시 — SKILL.md 검사 표의 계약).
+# 행 전체를 부분 문자열로 찾으면 경로가 설명·확장 열에만 있어도 표준 행으로 오인한다.
+# 탐색 범위는 섹션의 첫 번째 표 블록(헤더를 검증한 그 표)이며, 표가 끝난 첫 비표 행에서 멈춘다.
+# 섹션 전체를 훑으면 같은 H2의 두 번째 표에만 있는 동명 행까지 표준 행으로 오인하는데,
+# 누락 시 조치가 "그 표 끝에 삽입"이라 다른 표의 행은 조치 결과 상태가 아니다.
+
+if [ "$rules_ok" = true ]; then
+  for row in '.ai/10_rules/context-loading.md' '.ai/10_rules/writing-principles.md'; do
+    awk -F'|' -v needle="$row" '
+      /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
+      f && /^## / { exit }
+      f && /^\|/ {
+        t = 1
+        v = $2
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+        gsub(/`/, "", v)
+        if (v == needle) { found = 1; exit }
+        next
+      }
+      f && t { exit }
+      END { exit !found }
+    ' "$file" || ng "'## 프로젝트 규칙' 표의 \`$row\` 행"
+  done
+fi
+
+# --- 에이전트 운영 지침 섹션 + 전제 한 줄 -------------------------------------------
+
+if ! grep -qE '^## 에이전트 운영 지침[[:space:]]*$' "$file"; then
+  ng "'## 에이전트 운영 지침' 섹션"
+else
+  awk -v needle="$PREMISE" '
+    /^## 에이전트 운영 지침[[:space:]]*$/ { f = 1; next }
+    f && /^## / { exit }
+    f && index($0, needle) { found = 1; exit }
+    END { exit !found }
+  ' "$file" || ng "'## 에이전트 운영 지침' 의 전제 컨벤션 한 줄"
+fi
+
+# --- 구버전 워크스페이스 위치 섹션 --------------------------------------------------
+#
+# 이 항목만 "있으면 위반"이다. 나머지 검사와 방향이 반대라 메시지를 구분한다.
+
+grep -qE '^## 워크스페이스 위치[[:space:]]*$' "$file" \
+  && echo "구버전: '## 워크스페이스 위치' 섹션 — '## 프로젝트 도메인' 2행 표로 마이그레이션 대상" \
+  && missing=$((missing + 1))
+
+[ "$missing" -eq 0 ]
