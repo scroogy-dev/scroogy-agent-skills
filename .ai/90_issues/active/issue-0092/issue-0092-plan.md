@@ -239,7 +239,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 4: AI-CONTEXT.md와 README.md에 새 스킬 반영
 
-- [ ] 완료
+- [x] 완료
 - **목표**: repo 안내도와 README에 `git-review-quiz`를 등록한다.
 - **작업 내용**:
   1. `.ai/AI-CONTEXT.md` 디렉토리 구조 트리: `git-review-context/` 블록 뒤에 `git-review-quiz/` 블록을 넣는다. 하위 행은 `scripts/`(형식 검사 헬퍼 (check-quiz.sh)), `templates/`(퀴즈 산출 템플릿), `tests/`(헬퍼 테스트 + fixture (배포 제외)). 기존 행의 `#` 정렬 열에 맞춘다.

@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — AI-CONTEXT.md와 README.md에 새 스킬 반영
+> ▶️ 다음 작업: Task 5 — 실제 PR로 시험 실행
 
 ## 모델 기록
 
@@ -122,13 +122,13 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 4: AI-CONTEXT.md와 README.md에 새 스킬 반영
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5[1m])
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 다섯 위치에 `git-review-quiz` 행을 넣었다. `.ai/AI-CONTEXT.md`는 디렉토리 구조 트리(`git-review-context/` 블록 뒤, 하위 행 `scripts/`·`templates/`·`tests/` 3개), 스킬 목록 표, Git 정책 표 세 곳이고, `README.md`는 Skill 목록 표와 Skill 간 관계도 두 곳이다. 안내도 상단 `last updated`를 2026-08-30으로 갱신했다. 완료 기준 2건([D])이 모두 출력 0건으로 통과했다.
+- **특이 사항**: 트리와 관계도의 주석 열을 기존 행과 맞췄다. 안내도 트리는 `#`가 33번째 글자, README 관계도는 `←`가 25번째 글자에 오도록 공백을 계산했다. 박스 문자가 3바이트라 바이트 열로 맞추면 어긋난다. `README.md`는 `readme-sync`를 돌리지 않고 두 행만 손으로 넣었다(spec 전제, 최소 변경). README 본문의 "`git-review`와 `git-review-context`는 함께 쓸 수 있지만" 문장은 새 스킬을 언급하지 않지만, 완료 기준과 spec 범위 밖이라 그대로 뒀다.
 
 ---
 
