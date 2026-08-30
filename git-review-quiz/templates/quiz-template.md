@@ -5,6 +5,10 @@
 
 아래 예시 문항 두 개는 형식 견본이다. 실제 산출에서는 지우고 생성한 문항으로 바꾼다.
 견본을 형식대로 유지해야 템플릿 자체가 check-quiz.sh 검사를 통과한다.
+
+`--comment` 게시 본문은 이 템플릿에서 `## 응답 기록`을 빼고 **모든** 위치 행에 permalink 를 병기한 형태다.
+그 본문은 `check-quiz.sh --comment --head <headRefOid> --base <baseRefOid>` 로 검사한다.
+아래 견본은 Q1 에 permalink 가 없어 대화형 산출 형태이며, 일반 모드로만 검사한다.
 -->
 
 # 리뷰 퀴즈 PR #<번호> <제목>
