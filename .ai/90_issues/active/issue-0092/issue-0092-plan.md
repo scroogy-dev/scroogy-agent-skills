@@ -178,7 +178,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 3: SKILL.md 작성
 
-- [ ] 완료
+- [x] 완료
 - **목표**: `git-review-quiz/SKILL.md`를 작성해 스킬이 단독으로 실행되게 한다.
 - **작업 내용**:
   1. 프론트매터: `name: git-review-quiz`, `description`은 한 줄로 기능·트리거어("리뷰 퀴즈, review quiz, PR 퀴즈, 스터디 모드, 변경 이해도 점검")를 담는다.
