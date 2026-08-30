@@ -140,7 +140,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     ```
 
     </details>
-  - [D] 헬퍼 출력 규약이 지켜진다: 정상 fixture는 무출력·종료 0, 반례 fixture는 `위반 R<n>` 행만 출력·종료 1, 사용오류는 종료 2
+  - [D] 헬퍼 출력 규약이 지켜진다: 정상 fixture는 무출력·종료 0, 반례 fixture는 `위반 R<n>` 행만 출력·종료 1 (댓글 전용 반례 `invalid-comment-*`는 일반 모드 통과·`--comment` 모드 위반), 사용오류는 종료 2
     <details>
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
@@ -150,7 +150,16 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
       out="$("$h" "$f" 2>&1)"; rc=$?
       { [ "$rc" -eq 0 ] && [ -z "$out" ]; } || echo "위반: 정상 fixture $f → rc=$rc, out=[$out]"
     done
+    # 댓글 전용 반례는 일반 모드에서 통과하고 --comment 모드에서만 걸려야 한다
+    for f in git-review-quiz/tests/fixtures/invalid-comment-*.md; do
+      out="$("$h" "$f" 2>&1)"; rc=$?
+      { [ "$rc" -eq 0 ] && [ -z "$out" ]; } || echo "위반: 댓글 반례 $f 가 일반 모드에서 걸림 → rc=$rc"
+      out="$("$h" --comment "$f" 2>&1)"; rc=$?
+      { [ "$rc" -eq 1 ] && [ -n "$out" ] && ! printf '%s\n' "$out" | grep -vqE '^위반 R[1-7]( Q[0-9]+)?: '; } \
+        || echo "위반: 댓글 반례 $f → rc=$rc"
+    done
     for f in git-review-quiz/tests/fixtures/invalid-*.md; do
+      case "$f" in */invalid-comment-*) continue ;; esac
       out="$("$h" "$f" 2>&1)"; rc=$?
       { [ "$rc" -eq 1 ] && [ -n "$out" ] && ! printf '%s\n' "$out" | grep -vqE '^위반 R[1-7]( Q[0-9]+)?: '; } \
         || echo "위반: 반례 fixture $f → rc=$rc"
@@ -160,6 +169,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     ```
 
     - 설계 주의: fixture 파일명을 `valid-*.md`·`invalid-*.md`로 고정해 이 명령이 fixture 집합을 전수로 돈다. 다른 접두어를 쓰면 검사에서 빠진다.
+    - 설계 주의: 댓글 전용 반례는 `invalid-comment-*` 접두어로 고정해 모드별 기대 종료 코드를 나눈다. 한 모드로만 돌리면 다른 모드의 분기가 죽어도 통과하고, 반대로 댓글 반례를 일반 모드로 돌리면 정상 통과가 실패로 읽힌다 (2차 audit F-5).
     </details>
   - [D] 테스트 파일이 `tests/` 밖에 없고 러너·헬퍼에 실행 권한이 있다  (spec DoD 4 명령과 동일)
     <details>
@@ -279,7 +289,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 5: 실제 PR로 시험 실행
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 이 repo의 머지된 PR #91을 대상으로 두 방식을 실제로 실행해 산출물이 형식·근거 규칙을 지키는지 확인한다.
 - **작업 내용**:
   1. `--comment` 먼저: `git-review-quiz #91 --comment --mcq`로 실행한다. `.ai/40_domain/`·`.ai/30_contract/`가 비어 있어 "비즈니스 문항 없음, 테크 문항만" 알림이 나와야 한다. 승인 게이트에서 파일 경로·문항 수·관점별 건수·위치 목록이 제시되면 **게시하지 않고 중단**한다. `.ai/99_workspace/temp_review_quiz_comment.md`가 남는다.

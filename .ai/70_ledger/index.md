@@ -24,6 +24,8 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0004](active/K-0004-clear-preserve-destination-mismatch.md) | --clear 5단계 보존 목적지가 파일명의 이슈 번호를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | issue-work --clear 5단계 보존 목적지를 정하는 문장 실질 변경 시, 또는 이전 이슈 PR 파일이 다른 이슈 archive로 이관된 사례 관측 시 |
 | [K-0005](active/K-0005-install-template-exclude-pattern-literal.md) | install-skills 설치 결과 템플릿이 배포 제외 패턴 리터럴을 복제한다 | 기술부채 | 낮음(LOW) | 수용 | install-skills SKILL.md 5단계 배포 제외 패턴 값 추가·변경·삭제 시, 또는 보고의 패턴 표기가 실제 배포와 다른 사례 관측 시 |
 | [K-0006](active/K-0006-code-map-check-not-deterministic.md) | code-map `check` 모드의 정합성 점검이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 중간(MEDIUM) | 수용 | code-map local/global 참조 문서의 정합성 점검 표 항목 추가·변경·삭제 시, 또는 `.ai/60_codebase/` 색인이 생겨 `check` 모드를 실제로 운용하게 될 때 |
+| [K-0007](active/K-0007-quiz-permalink-target-unverified.md) | git-review-quiz 댓글 permalink 검사가 확정 저장소·위치 행의 경로·줄 범위를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | `check-quiz.sh` `--comment` 모드의 인자·permalink 판정 규칙 실질 변경 시, 또는 게시된 퀴즈 댓글의 permalink가 다른 저장소·경로·줄 범위를 가리킨 사례 관측 시 |
+| [K-0008](active/K-0008-quiz-format-vocab-fixture-absent.md) | git-review-quiz 형식 검사에 지원하지 않는 형식 어휘 반례 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | `check-quiz.sh` R1 헤더 정규식(관점·형식 어휘 집합) 변경 시, 또는 형식 어휘 추가 기능 착수 시 |
 
 ## 수명 주기
 
