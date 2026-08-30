@@ -116,7 +116,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 2: 형식 검사 헬퍼 check-quiz.sh와 회귀 테스트 작성
 
-- [ ] 완료
+- [x] 완료
 - **목표**: spec R1~R7을 결정적으로 판정하는 `git-review-quiz/scripts/check-quiz.sh`와 `git-review-quiz/tests/`(러너·fixture)를 만든다. ADR 0001 배치를 따른다.
 - **작업 내용**:
   1. `scripts/check-quiz.sh <파일>`: bash, 외부 의존성 없음. 파일 첫머리 주석에 사용법·종료 코드·"SKILL.md와 템플릿이 SSoT, 이 스크립트는 사본" 문구를 둔다 (`issue-work/scripts/check-clear.sh` 첫머리 형식). 통과 무출력·종료 코드 0, 위반 `위반 R<n> Q<n>: <사유>` 1행씩·종료 코드 1 (R7처럼 문항에 귀속되지 않는 위반은 `위반 R7: <사유>`), 인자 오류·읽을 수 없는 파일은 종료 코드 2.
