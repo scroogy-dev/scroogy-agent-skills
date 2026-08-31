@@ -74,7 +74,6 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
 
   function qerr(rule, msg) { qn++; qmsg[qn] = "위반 " rule " Q" qid ": " msg }
   function derr(msg)       { dn++; dmsg[dn] = "위반 R7: " msg }
-  function derr1(msg)      { dn++; dmsg[dn] = "위반 R1: " msg }
 
   # permalink URL 이 `https://<호스트>/<소유자>/<저장소>/blob/<40자 SHA>/<경로>#L<n>[-L<m>]` 인지 본다.
   # 어긋난 첫 축의 이름을 돌려주고, 규격을 지키면 빈 문자열을 돌려준다.
