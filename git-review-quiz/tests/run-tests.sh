@@ -170,6 +170,18 @@ assert_violation 'R5: 주관식 힌트 접기 뒤 선택지'   '주관식에 선
 assert_violation 'R5: 주관식 정답 접기 뒤 선택지'   '주관식에 선택지가'              invalid-r5-open-options-after-answer.md
 assert_violation 'R5: 객관식 첫 접기 뒤 선택지'    '첫 접기 뒤에'                  invalid-r5-mcq-option-after-details.md
 
+# 정답 블록의 내용. 블록의 존재·위치만 보면 빈 정답과 근거 누락이 통과해
+# 6 단계 형식 검사가 잘못된 정답을 실은 산출물을 게시로 넘긴다.
+# 접두어 뒤 공백만·주석뿐인 두 변형은 형식은 갖췄으나 읽는 사람에게 보이는 내용이 없는 인접 반례다.
+assert_violation 'R4: 정답 블록에 내용 없음'      '정답 블록에 내용이 없습니다'     invalid-r4-answer-empty.md
+assert_violation 'R4: 객관식 정답 첫 행 형식 이탈' '`(<문자>). <해설>` 형식이'      invalid-r4-answer-format.md
+assert_violation 'R4: 객관식 정답 문자 뒤 해설 공백' '`(<문자>). <해설>` 형식이'    invalid-r4-answer-blank-explanation.md
+assert_violation 'R4: 근거 행 없음'              '`근거: <내용>` 행이 없습니다'    invalid-r4-answer-no-basis.md
+assert_violation 'R4: 주관식 모범 답안 없음'      '모범 답안이 없습니다'            invalid-r4-open-answer-no-model.md
+assert_violation 'R4: 주관식 모범 답안이 주석뿐'   '모범 답안이 없습니다'            invalid-r4-open-answer-comment-only.md
+assert_violation 'R4: 비즈니스 정책 근거 행 없음'  '`정책 근거: <내용>` 행이 없습니다' invalid-r4-answer-no-policy-basis.md
+assert_violation 'R5: 정답 문자가 선택지에 없음'   '선택지 라벨에 없습니다'          invalid-r5-answer-letter-unknown.md
+
 # 댓글 모드 전용. 게시 본문의 permalink 계약을 문항 전수로 본다.
 assert_comment_violation 'R2: 댓글 본문에 permalink 누락'  'permalink 병기가 없습니다'      invalid-comment-permalink-missing.md
 assert_comment_violation 'R2: permalink 가 브랜치명 참조'  '40자 커밋 SHA'                 invalid-comment-permalink-branch.md

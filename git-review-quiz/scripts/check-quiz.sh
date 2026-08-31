@@ -15,8 +15,11 @@
 #      (뒤에 ` (base)`, ` ([permalink](<URL>))` 병기를 허용한다.
 #       `--comment` 모드에서는 모든 위치 행에 규격에 맞는 permalink 를 필수로 요구한다)
 #   R3 힌트 접기 블록이 문항마다 정확히 1 개이고, 문항 종료 시 접기 깊이가 0 이다
-#   R4 정답 접기 블록이 문항마다 정확히 1 개이고 힌트 블록 뒤의 다른 접기 블록에 온다
-#   R5 접기 밖 선택지는 첫 접기 앞에만 둔다. 객관식은 그것이 2 개 이상·라벨 `(a)` 부터 연속이고, 주관식은 0 개다
+#   R4 정답 접기 블록이 문항마다 정확히 1 개이고 힌트 블록 뒤의 다른 접기 블록에 온다.
+#      블록 안 첫 내용 행이 객관식은 `(<문자>). <해설>`, 주관식은 모범 답안이고 `근거: <내용>` 행이 있다
+#      (비즈니스 문항은 `정책 근거: <내용>` 행도 둔다)
+#   R5 접기 밖 선택지는 첫 접기 앞에만 둔다. 객관식은 그것이 2 개 이상·라벨 `(a)` 부터 연속이고,
+#      정답 문자가 그 라벨 중 하나다. 주관식은 0 개다
 #   R6 문항 블록의 접기 밖에 `정답` 으로 시작하는 행이 없다
 #   R7 문서 골격을 지킨다 (`## 대상`·`## 문항` 각 1 개, 문항은 `## 문항` 아래에만 1 개 이상,
 #      `## 응답 기록` 은 선택이며 마지막 문항 뒤. `--comment` 모드에서는 `## 응답 기록` 을 두지 않는다)
@@ -28,7 +31,7 @@
 
 set -o pipefail
 
-usage() { sed -n '3,26p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,29p' "$0" | sed 's/^# \{0,1\}//'; }
 
 target=''
 mode='plain'
@@ -125,6 +128,30 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
     else if (hint_n >= 1 && ans_blk == hint_blk)
       qerr("R4", "정답 블록이 힌트 블록과 같은 접기 안에 있습니다")
 
+    # 정답 블록의 내용 계약. 블록의 존재·위치만 보면 빈 정답·형식 이탈·근거 누락이 통과하고,
+    # 6 단계 형식 검사가 잘못된 정답을 실은 산출물을 그대로 게시로 넘긴다.
+    if (ans_n == 1) {
+      if (ans_first == "")
+        qerr("R4", "정답 블록에 내용이 없습니다 (" ans_line "행)")
+      else if (qfmt == "객관식" && ans_first !~ /^\([a-z]\)\. [[:space:]]*[^[:space:]]/)
+        qerr("R4", "객관식 정답 블록 첫 행이 `(<문자>). <해설>` 형식이 아닙니다 (" ans_first_line "행)")
+      else if (qfmt == "주관식" && (ans_first ~ /^근거: / || ans_first ~ /^정책 근거: /))
+        qerr("R4", "주관식 정답 블록에 모범 답안이 없습니다 (" ans_first_line "행)")
+
+      if (ans_first != "" && basis_n == 0)
+        qerr("R4", "정답 블록에 `근거: <내용>` 행이 없습니다")
+      if (ans_first != "" && qpersp == "비즈니스" && pbasis_n == 0)
+        qerr("R4", "비즈니스 문항 정답 블록에 `정책 근거: <내용>` 행이 없습니다")
+
+      # 라벨이 연속일 때만 정답 문자를 대조한다. 연속이 아니면 R5 가 이미 그 사실을 보고하며,
+      # 어긋난 라벨 집합을 기준으로 삼으면 사유가 뒤바뀐다.
+      if (qfmt == "객관식" && opt_bad == "" && opt_n > 0 && ans_first ~ /^\([a-z]\)\. [[:space:]]*[^[:space:]]/) {
+        alab = substr(ans_first, 2, 1)
+        if (index(substr(alpha, 1, opt_n), alab) == 0)
+          qerr("R5", "정답 문자 `(" alab ")` 가 선택지 라벨에 없습니다 (" ans_first_line "행)")
+      }
+    }
+
     # 헤더 형식이 깨진 문항은 관점·형식을 확정할 수 없어 R5 를 건너뛴다 (R1 이 이미 보고한다).
     if (qfmt == "객관식" && opt_n < 2)
       qerr("R5", "객관식 선택지가 " opt_n "개입니다 (2개 이상이어야 합니다)")
@@ -177,8 +204,11 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
         expect++
       }
 
-      qfmt = ""
-      if (hdr_ok) qfmt = ($0 ~ /객관식/) ? "객관식" : "주관식"
+      qfmt = ""; qpersp = ""
+      if (hdr_ok) {
+        qfmt = ($0 ~ /객관식/) ? "객관식" : "주관식"
+        qpersp = ($0 ~ /비즈니스/) ? "비즈니스" : "테크"
+      }
 
       if (cur != "문항")
         outside = (outside == "" ? "" : outside ", ") "Q" qid "(" NR "행)"
@@ -192,6 +222,7 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       unbalanced = 0; unbalanced_line = 0
       hint_n = 0; hint_line = 0; hint_blk = 0
       ans_n = 0; ans_line = 0; ans_blk = -1
+      in_ans = 0; ans_first = ""; ans_first_line = 0; basis_n = 0; pbasis_n = 0
       opt_n = 0; opt_bad = ""; opt_late = 0; opt_late_line = 0; r6_list = ""
     }
     next
@@ -246,6 +277,16 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       }
     }
 
+    # 정답 블록 안의 내용 행을 모은다. 태그 처리 전이라 `in_ans` 는 이전 행까지의 상태이며,
+    # 여닫는 태그 행과 빈 행은 내용으로 세지 않는다. 한 행짜리 HTML 주석도 제외한다.
+    # 렌더링되지 않아 읽는 사람에게 해설·모범 답안으로 보이지 않기 때문이다.
+    if (in_ans && $0 !~ /<\/?details>/ && $0 !~ /^[[:space:]]*$/ \
+        && $0 !~ /^[[:space:]]*<!--.*-->[[:space:]]*$/) {
+      if (ans_first == "") { ans_first = $0; ans_first_line = NR }
+      if ($0 ~ /^근거: [^[:space:]]/) basis_n++
+      if ($0 ~ /^정책 근거: [^[:space:]]/) pbasis_n++
+    }
+
     # 태그는 같은 행 안에서도 등장 순서대로 처리한다. 행 단위로 개수만 합산하면
     # `</details><details><details>` 처럼 선행 닫기가 후행 열기에 상쇄되어 짝 없는 닫기를 놓친다.
     s = $0; o = 0
@@ -263,10 +304,13 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       }
     }
 
+    # 정답 블록은 최상위 접기이므로 깊이가 0 으로 돌아오면 닫힌 것으로 본다.
+    if (in_ans && depth == 0) in_ans = 0
+
     # 여는 행과 summary 가 한 행에 있어도 접기 안으로 세도록 갱신 뒤에 판정한다.
     if (depth > 0 || o > 0) {
       if ($0 ~ /^[[:space:]]*<summary>힌트<\/summary>[[:space:]]*$/) { hint_n++; if (hint_line == 0) { hint_line = NR; hint_blk = blk } }
-      if ($0 ~ /^[[:space:]]*<summary>정답·해설<\/summary>[[:space:]]*$/) { ans_n++; if (ans_line == 0) { ans_line = NR; ans_blk = blk } }
+      if ($0 ~ /^[[:space:]]*<summary>정답·해설<\/summary>[[:space:]]*$/) { ans_n++; if (ans_line == 0) { ans_line = NR; ans_blk = blk; in_ans = 1 } }
     }
   }
 
