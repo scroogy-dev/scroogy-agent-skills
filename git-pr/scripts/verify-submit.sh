@@ -7,8 +7,8 @@
 #   - 로컬 브랜치 head 가 승인한 SHA 와 같은지
 #   - 원격 브랜치 head 가 승인한 SHA 와 같은지, 그리고 `ls-remote` 출력이 정확히 1행인지
 #
-# `ls-remote` 의 ref 인자는 tail 패턴이라 `main` 으로 조회하면 `refs/heads/feature/main` 까지
-# 함께 반환된다. 첫 행을 택하면 낡은 브랜치가 다른 ref 의 SHA 로 검증을 통과하므로 행 수를 함께 센다.
+# `ls-remote` 의 ref 인자는 tail 패턴이라 짧은 `main` 은 `refs/heads/feature/main` 까지 함께 받는다.
+# 그래서 조회를 완전한 `refs/heads/<브랜치>` 로 해 다중 매칭을 막고, 행 수 검사로 그래도 남는 경우를 걸러낸다.
 #
 # 사용법:
 #   verify-submit.sh --normalize <원격 URL>
