@@ -11,7 +11,7 @@
 ├── active/
 │   ├── issue-workflow.md          ← 이 파일
 │   └── issue-<번호>/
-│       ├── issue-<번호>-spec.md      ← 목표, 범위, 완료의 정의, 연관 문서
+│       ├── issue-<번호>-spec.md      ← 목표, 요구사항, 완료의 정의, 전제, 연관 문서
 │       ├── issue-<번호>-plan.md      ← 실행 Task 목록 + 완료 체크박스
 │       └── issue-<번호>-summary.md   ← 다음 작업, Task별 수행 결과
 └── archive/    ← 완료 또는 종료된 이슈 디렉토리 (명시적 요청 시에만 읽음)
