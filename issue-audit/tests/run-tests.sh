@@ -219,6 +219,68 @@ assert_next 1 '번호 계승: 템플릿 자리표시자(F-n) 무시' "$HERE/../t
 assert_usage_error '읽을 수 없는 경로' "$NEXTNUM" "$sandbox/does-not-exist.md"
 assert_usage_error '알 수 없는 옵션'   "$NEXTNUM" --all
 
+# --- 리포트 템플릿 구조 계약 스모크 (issue #94 audit F-1·F-2) ------------------
+#
+# 3단계 명칭 개편(범위 검증 → 경계 검증)과 제외 목록 대조 필드는 issue-0094 spec 의
+# 일회성 [D] 명령으로만 검증되었다 — 이후 템플릿 개정이 구조를 깨도 정규 러너가
+# 감지하지 못하므로 여기에 편입한다.
+# F-2 보강: 존재 검사만으로는 헤더·필드 중복과 옛 비포함(Out) 필드의 공존이
+# 통과한다 — 정확한 개수를 판정하고 옛 표기 재유입을 명칭과 함께 거부한다.
+
+REPORT_TPL="$HERE/../templates/issue-audit-report-template.md"
+
+# check_report_structure <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 소속은 직전 헤더(`##`·`###` 모두)로 추적한다 — 필드가 다른 섹션 아래로 옮겨가면 위반이다.
+check_report_structure() {
+  awk '
+    /^##/                                            { sec = $0 }
+    /^### 경계 검증$/                                { h++ }
+    /^- \*\*스펙 요구사항의 제외 목록 침범 여부\*\*:/ { f1++; if (sec != "### 경계 검증") mis++ }
+    /^- \*\*스펙에 없는 추가 구현 여부\*\*:/          { f2++; if (sec != "### 경계 검증") mis++ }
+    /범위 검증/                                      { old1++ }
+    /비포함 ?\(Out\)/                                { old2++ }
+    END {
+      if (h != 1)  print "경계 검증 헤더 " h + 0 "개 (기대 1개)"
+      if (f1 != 1) print "제외 목록 침범 여부 필드 " f1 + 0 "개 (기대 1개)"
+      if (f2 != 1) print "무단 확장 확인 필드 " f2 + 0 "개 (기대 1개)"
+      if (mis)     print "경계 검증 필드가 섹션 밖: " mis "개"
+      if (old1)    print "옛 명칭(범위 검증) 잔존"
+      if (old2)    print "옛 표기(비포함(Out)) 잔존"
+    }
+  ' "$1"
+}
+
+# assert_report_structure <파일> <기대: pass|fail> <설명>
+assert_report_structure() {
+  local out
+  out="$(check_report_structure "$1")"
+  case "$2" in
+    pass) if [ -z "$out" ]; then ok "$3 (위반 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$3 (위반 검출)"; else ng "$3 (기대 >0건, 실제 0건)"; fi ;;
+  esac
+}
+
+# 반례 fixture 는 실제 템플릿의 awk 변형으로 만든다 (구조 드리프트를 그대로 재현).
+awk '{gsub(/경계 검증/, "범위 검증"); print}' "$REPORT_TPL" > "$sandbox/t-old-name.md"
+awk '!/^- \*\*스펙 요구사항의 제외 목록 침범 여부\*\*:/' "$REPORT_TPL" > "$sandbox/t-no-excl.md"
+awk '!/^- \*\*스펙에 없는 추가 구현 여부\*\*:/' "$REPORT_TPL" > "$sandbox/t-no-extra.md"
+# F-2 반례(2차 audit 재현·이웃 변형): 옛 비포함(Out) 필드를 새 필드와 공존시킴 / 경계 헤더 중복.
+awk '{print} /^- \*\*스펙 요구사항의 제외 목록 침범 여부\*\*:/{print "- **스펙 비포함(Out) 침범 여부**:"}' \
+  "$REPORT_TPL" > "$sandbox/t-old-coexist.md"
+awk '{print} /^### 경계 검증$/{print ""; print "### 경계 검증"}' "$REPORT_TPL" > "$sandbox/t-dup-header.md"
+# PR #95 리뷰 반례: 필드를 경계 검증 밖으로 이동 — 전체 개수만 세면 통과한다.
+awk '!/^- \*\*스펙 요구사항의 제외 목록 침범 여부\*\*:/{print}
+     END{print ""; print "- **스펙 요구사항의 제외 목록 침범 여부**:"}' \
+  "$REPORT_TPL" > "$sandbox/t-field-outside.md"
+
+assert_report_structure "$REPORT_TPL"               pass "리포트 구조: 실제 템플릿 통과"
+assert_report_structure "$sandbox/t-old-name.md"    fail "리포트 구조: 옛 명칭(범위 검증) 회귀 격추"
+assert_report_structure "$sandbox/t-no-excl.md"     fail "리포트 구조: 제외 목록 대조 필드 소실 격추"
+assert_report_structure "$sandbox/t-no-extra.md"    fail "리포트 구조: 무단 확장 확인 필드 소실 격추"
+assert_report_structure "$sandbox/t-old-coexist.md" fail "리포트 구조: 옛 비포함(Out) 필드 공존(2차 audit F-2 반례) 격추"
+assert_report_structure "$sandbox/t-dup-header.md"  fail "리포트 구조: 경계 검증 헤더 중복 격추"
+assert_report_structure "$sandbox/t-field-outside.md" fail "리포트 구조: 침범 여부 필드 섹션 밖 이동(PR #95 리뷰 반례) 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

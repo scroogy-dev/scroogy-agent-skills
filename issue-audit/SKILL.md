@@ -28,7 +28,7 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
 - **스킬 고유 추가 참조**:
   - `.ai/90_issues/active/` 하위 전체 또는 `.ai/90_issues/archive/issue-<번호>/` 전체
   - `.ai/30_contract/index.md`, `.ai/40_domain/index.md` — 도메인·계약 정합성 (index 먼저 → 관련 파일만 선택적으로)
-  - `.ai/50_adr/index.md` — 1단계 범위 검증 시 ADR과의 정합성 대조 (index 먼저 → 관련 ADR만 선택적으로)
+  - `.ai/50_adr/index.md` — 1단계 경계 검증 시 ADR과의 정합성 대조 (index 먼저 → 관련 ADR만 선택적으로)
   - `.ai/60_codebase/index.md` — 관련 기능의 호출 흐름
   - `.ai/70_ledger/index.md` — 이미 수용된 known issue·기술부채 대조 (index 먼저 → 관련 항목만 선택적으로)
   - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
@@ -86,9 +86,9 @@ description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관�
 
 #### 검증 항목
 
-1. **요구사항 대조** — 스펙의 각 요구사항에 대해 구현 충족 여부를 판정한다.
+1. **요구사항 대조** — 스펙 `요구사항 (Requirements)` 포함 목록의 각 항목(R<n>)에 대해 구현 충족 여부를 판정한다.
 2. **완료의 정의(DoD) 대조** — 스펙에 정의된 DoD 체크리스트 항목별 충족 여부를 판정한다.
-3. **범위 검증** — 스펙의 "비포함(Out)" 범위를 침범하지 않았는지, 또는 스펙에 없는 기능이 추가되지 않았는지 확인한다.
+3. **경계 검증** — 스펙 요구사항의 제외 목록을 침범하지 않았는지, 또는 스펙에 없는 기능이 추가되지 않았는지 확인한다.
 4. **도메인/계약/ADR 정합성** — `.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 의 관련 문서가 있으면 구현이 이와 충돌하지 않는지 검증한다.
 
 #### 판정 기준
