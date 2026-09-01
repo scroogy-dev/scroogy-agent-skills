@@ -272,11 +272,12 @@ SPEC_TPL="$HERE/../templates/issue-spec-template.md"
 # R1 개수만 세면 R2 그룹 삭제가 통과해 포함 R2 가 DoD 연결 없이 남는다.
 # 섹션 순서(목표 → 요구사항 → DoD)는 헤더 위치로 판정한다 —
 # 소속만 보면 요구사항 블록 전체를 DoD 뒤로 옮겨도 통과한다.
+# 목표 헤더도 개수를 판정한다 — 위치 판정은 헤더가 있을 때만 걸려 삭제·중복이 통과한다.
 # R 번호 집합은 출현 횟수로 누적한다 — 불리언 대입은 같은 번호의 중복 그룹·항목을 잃는다.
 check_spec_structure() {
   awk '
     /^## /                           { sec = $0; list = "" }
-    /^## 목표 \(Goal\)$/             { goal_at = NR }
+    /^## 목표 \(Goal\)$/             { goal++; goal_at = NR }
     /^## 요구사항 \(Requirements\)$/ { req++; req_at = NR }
     /^## 완료의 정의 \(Definition of Done\)$/ { dod_at = NR }
     /^\*\*포함\*\*$/                 { inc++; if (sec != "## 요구사항 (Requirements)") mis++; inc_at = NR; list = "inc" }
@@ -292,6 +293,7 @@ check_spec_structure() {
     /^## 범위/                       { scope++ }
     /포함 \(In\)|비포함 ?\(Out\)/    { old++ }
     END {
+      if (goal != 1)      print "목표 헤더 " goal + 0 "개 (기대 1개)"
       if (req != 1)       print "요구사항 헤더 " req + 0 "개 (기대 1개)"
       if (inc != 1)       print "포함 표기 " inc + 0 "개 (기대 1개)"
       if (exc != 1)       print "제외 표기 " exc + 0 "개 (기대 1개)"
@@ -317,8 +319,9 @@ check_spec_structure() {
 
 # check_plan_structure <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 # 총개수 비교는 고정 Task 의 오기와 일반 Task 의 누락이 상쇄되어 통과하므로
-# 블록 단위로 센다. 고정 여부는 헤더의 `(고정)` 표기로 판별한다 (issue-0094 spec DoD R4 와 같은 논리).
-# 부분 문자열 `고정` 매칭은 일반 Task 제목에 든 단어까지 고정 Task 로 오분류하므로 정확 매칭한다.
+# 블록 단위로 센다. 고정 Task 는 spec R4 가 명명한 Task 0·Task N 뿐이므로 이 두 식별자에
+# `(고정)` 표기가 붙은 헤더만 고정으로 분류한다 — 표기만 믿으면 일반 Task 헤더에 표기를 붙여
+# 필드 계약을 우회하고, 부분 문자열 `고정` 매칭은 일반 Task 제목에 든 단어까지 오분류한다.
 # 개수만 세면 값 형식 위반과 `목표` 다음 행 이탈이 통과하므로 (F-2),
 # 값이 유효한 `R<n>[, R<m>]` 나열인지와 직전 행이 `목표` 필드인지도 함께 판정한다.
 # 첫 Task 앞의 필드는 블록 단위 집계가 보지 못하므로 별도 위반으로 센다 (일반 Task에만 필드를 두는 계약).
@@ -334,7 +337,7 @@ check_plan_structure() {
     function flush() { if (!o) return
       if (fixed && c > 0) print "고정 Task에 대상 요구사항 필드: " t
       if (!fixed && c != 1) print "일반 Task 필드 " c "개: " t }
-    /^### Task / { flush(); o = 1; t = $0; c = 0; fixed = ($0 ~ /^### Task [0-9N]+ \(고정\)/) }
+    /^### Task / { flush(); o = 1; t = $0; c = 0; fixed = ($0 ~ /^### Task (0|N) \(고정\)/) }
     !o && /^- \*\*대상 요구사항\*\*:/ { print "필드가 Task 블록 밖 (" NR "행)" }
     o && /^- \*\*대상 요구사항\*\*:/ {
       c++
@@ -400,6 +403,9 @@ awk '/^## 요구사항 \(Requirements\)$/{hold=1} /^## 완료의 정의/{hold=0}
      /^## 전제/ && buf{printf "%s", buf; buf=""} {print}' "$SPEC_TPL" > "$sandbox/s-req-after-dod.md"
 awk '{print} /^### R2: /{print ""; print "### R2: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-dup-rgroup.md"
 awk '{print} /^- R2: /{print $0}' "$SPEC_TPL" > "$sandbox/s-dup-ritem.md"
+# PR #95 5차 리뷰 반례: 목표 헤더 삭제·중복 — 위치 판정은 헤더가 있을 때만 걸려 개수 없이는 통과한다.
+awk '!/^## 목표 \(Goal\)$/' "$SPEC_TPL" > "$sandbox/s-no-goal.md"
+awk '{print} END{print ""; print "## 목표 (Goal)"}' "$SPEC_TPL" > "$sandbox/s-dup-goal.md"
 
 assert_structure check_spec_structure "$SPEC_TPL"                  pass "spec 구조: 실제 템플릿 통과"
 assert_structure check_spec_structure "$sandbox/s-no-req.md"       fail "spec 구조: 요구사항 헤더 소실 격추"
@@ -425,6 +431,8 @@ assert_structure check_spec_structure "$sandbox/s-no-r2group.md"     fail "spec 
 assert_structure check_spec_structure "$sandbox/s-req-after-dod.md"  fail "spec 구조: 요구사항 섹션 DoD 뒤 이동(PR #95 4차 리뷰 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-rgroup.md"     fail "spec 구조: DoD R2 그룹 중복 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-ritem.md"      fail "spec 구조: 포함 R2 항목 중복 격추"
+assert_structure check_spec_structure "$sandbox/s-no-goal.md"        fail "spec 구조: 목표 헤더 소실(PR #95 5차 리뷰 반례) 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-goal.md"       fail "spec 구조: 목표 헤더 중복 격추"
 
 # 일반 Task 필드 누락 / 고정 Task 오기 / 중복 / 누락+오기 상쇄(총개수 우회) 반례.
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*대상 요구사항\*\*:/)' \
@@ -456,6 +464,10 @@ awk 'NR == 1 { print; print ""; print "- **대상 요구사항**: R1"; next } { 
 # PR #95 3차 리뷰 반례: dangling 참조 — 형식은 유효하나 spec 포함 목록에 없는 번호는 연결이 끊긴다.
 awk '{gsub(/^- \*\*대상 요구사항\*\*: R1$/, "- **대상 요구사항**: R999"); print}' \
   "$TEMPLATE" > "$sandbox/p-field-dangling.md"
+# PR #95 5차 리뷰 반례: 일반 Task 를 `(고정)`으로 개서하고 필드 삭제 — 표기만 믿으면 필드 계약을 우회한다.
+awk '/^### Task 2/{s=1} /^### Task N/{s=0} s && /^- \*\*대상 요구사항\*\*:/{next}
+     {gsub(/^### Task 2: /, "### Task 2 (고정): "); print}' \
+  "$TEMPLATE" > "$sandbox/p-general-as-fixed.md"
 
 assert_structure check_plan_structure "$TEMPLATE"                   pass "plan 구조: 실제 템플릿 통과"
 assert_structure check_plan_structure "$sandbox/p-field-missing.md" fail "plan 구조: 일반 Task 필드 누락 격추"
@@ -468,6 +480,7 @@ assert_structure check_plan_structure "$sandbox/p-field-invalid.md" fail "plan �
 assert_structure check_plan_structure "$sandbox/p-fixed-in-title.md" pass "plan 구조: 일반 Task 제목의 고정 단어 오분류 없음(PR #95 리뷰 반례)"
 assert_structure check_plan_structure "$sandbox/p-field-outside.md"  fail "plan 구조: Task 밖 최상위 필드(PR #95 2차 리뷰 반례) 격추"
 assert_structure check_plan_structure "$sandbox/p-field-dangling.md" fail "plan 구조: spec 포함 목록에 없는 dangling 참조(PR #95 3차 리뷰 반례) 격추"
+assert_structure check_plan_structure "$sandbox/p-general-as-fixed.md" fail "plan 구조: 일반 Task의 (고정) 개서 우회(PR #95 5차 리뷰 반례) 격추"
 
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
