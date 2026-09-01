@@ -254,6 +254,133 @@ assert_response "$sandbox/r-no-order.md"     fail "response 스모크: 상단 �
 assert_response "$sandbox/r-no-approval.md"  fail "response 스모크: 항목별 승인 원칙 소실 격추"
 assert_response "$sandbox/r-no-section.md"   fail "response 스모크: 절 헤더 소실 격추"
 
+# --- 템플릿 구조 계약 스모크 (issue #94 audit F-1·F-2) --------------------------
+#
+# 요구사항 섹션·DoD 그룹·대상 요구사항 필드 구조는 issue-0094 spec 의 일회성 [D]
+# 명령으로만 검증되었다 — 이후 템플릿 개정이 구조를 깨도 정규 러너가 감지하지
+# 못하므로, `--response` 스모크와 같은 방식으로 여기에 편입한다.
+# F-2 보강: 존재·개수만 세면 헤더 중복, 섹션 밖 배치, 필드 위치 이동·빈 값,
+# 옛 표기 공존이 위반 0건으로 통과한다 — 개수·소속·순서·값 형식까지 판정한다.
+
+SPEC_TPL="$HERE/../templates/issue-spec-template.md"
+
+# check_spec_structure <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 소속은 직전 `^## ` 헤더로 추적한다 — `###` 하위 헤더는 섹션을 바꾸지 않는다.
+check_spec_structure() {
+  awk '
+    /^## /                           { sec = $0 }
+    /^## 요구사항 \(Requirements\)$/ { req++ }
+    /^\*\*포함\*\*$/                 { inc++; if (sec !~ /^## 요구사항/) mis++; inc_at = NR }
+    /^\*\*제외\*\*$/                 { exc++; if (sec !~ /^## 요구사항/) mis++; exc_at = NR }
+    /^### R1: /                      { r1++ }
+    /^### 공통$/                     { com++ }
+    /^## 범위/                       { scope++ }
+    /포함 \(In\)|비포함 ?\(Out\)/    { old++ }
+    END {
+      if (req != 1)   print "요구사항 헤더 " req + 0 "개 (기대 1개)"
+      if (inc != 1)   print "포함 표기 " inc + 0 "개 (기대 1개)"
+      if (exc != 1)   print "제외 표기 " exc + 0 "개 (기대 1개)"
+      if (mis)        print "포함·제외 표기가 요구사항 섹션 밖: " mis "개"
+      if (inc == 1 && exc == 1 && inc_at > exc_at) print "포함·제외 순서 역전"
+      if (r1 != 1)    print "DoD R 그룹 예시 헤더 " r1 + 0 "개 (기대 1개)"
+      if (com != 1)   print "DoD 공통 그룹 헤더 " com + 0 "개 (기대 1개)"
+      if (scope)      print "범위 헤더 잔존 (경계는 제외 목록으로 일원화)"
+      if (old)        print "옛 포함(In)·비포함(Out) 표기 잔존"
+    }
+  ' "$1"
+}
+
+# check_plan_structure <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 총개수 비교는 고정 Task 의 오기와 일반 Task 의 누락이 상쇄되어 통과하므로
+# 블록 단위로 센다. 고정 여부는 헤더의 `고정` 표기로 판별한다 (issue-0094 spec DoD R4 와 같은 논리).
+# 개수만 세면 값 형식 위반과 `목표` 다음 행 이탈이 통과하므로 (F-2),
+# 값이 유효한 `R<n>[, R<m>]` 나열인지와 직전 행이 `목표` 필드인지도 함께 판정한다.
+check_plan_structure() {
+  awk '
+    function flush() { if (!o) return
+      if (fixed && c > 0) print "고정 Task에 대상 요구사항 필드: " t
+      if (!fixed && c != 1) print "일반 Task 필드 " c "개: " t }
+    /^### Task / { flush(); o = 1; t = $0; c = 0; fixed = ($0 ~ /고정/) }
+    o && /^- \*\*대상 요구사항\*\*:/ {
+      c++
+      if ($0 !~ /^- \*\*대상 요구사항\*\*: R[0-9]+(, R[0-9]+)*$/) print "필드 값이 R<n> 나열이 아님: " t
+      if (prev !~ /^- \*\*목표\*\*:/) print "필드가 목표 다음 행이 아님: " t
+    }
+    { prev = $0 }
+    END { flush() }
+  ' "$1"
+}
+
+# assert_structure <검사 함수> <파일> <기대: pass|fail> <설명>
+assert_structure() {
+  local out
+  out="$("$1" "$2")"
+  case "$3" in
+    pass) if [ -z "$out" ]; then ok "$4 (위반 0건)"; else ng "$4 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$4 (위반 검출)"; else ng "$4 (기대 >0건, 실제 0건)"; fi ;;
+  esac
+}
+
+# 반례 fixture 는 실제 템플릿의 awk 변형으로 만든다 (구조 드리프트를 그대로 재현).
+awk '!/^## 요구사항 \(Requirements\)$/' "$SPEC_TPL" > "$sandbox/s-no-req.md"
+awk '!/^\*\*포함\*\*$/' "$SPEC_TPL" > "$sandbox/s-no-incl.md"
+awk '!/^\*\*제외\*\*$/' "$SPEC_TPL" > "$sandbox/s-no-excl.md"
+awk '!/^### R1: /' "$SPEC_TPL" > "$sandbox/s-no-rgroup.md"
+awk '!/^### 공통$/' "$SPEC_TPL" > "$sandbox/s-no-common.md"
+awk '{print} END{print ""; print "## 범위 (Scope)"}' "$SPEC_TPL" > "$sandbox/s-scope-back.md"
+
+# F-2 반례(2차 audit 재현·이웃 변형): 존재 검사만으로는 통과하는 변형들.
+awk '{print} END{print ""; print "## 요구사항 (Requirements)"}' "$SPEC_TPL" > "$sandbox/s-dup-req.md"
+awk '{print} /^\*\*포함\*\*$/{print ""; print "**포함**"}' "$SPEC_TPL" > "$sandbox/s-dup-incl.md"
+awk '/^\*\*포함\*\*$/{next} {print} /^\*\*제외\*\*$/{print ""; print "**포함**"}' \
+  "$SPEC_TPL" > "$sandbox/s-swap-order.md"
+awk '!/^\*\*제외\*\*$/{print} END{print ""; print "**제외**"}' "$SPEC_TPL" > "$sandbox/s-excl-outside.md"
+awk '{print} /^\*\*제외\*\*$/{print ""; print "**비포함 (Out)**"}' "$SPEC_TPL" > "$sandbox/s-old-coexist.md"
+
+assert_structure check_spec_structure "$SPEC_TPL"                  pass "spec 구조: 실제 템플릿 통과"
+assert_structure check_spec_structure "$sandbox/s-no-req.md"       fail "spec 구조: 요구사항 헤더 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-no-incl.md"      fail "spec 구조: 포함 목록 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-no-excl.md"      fail "spec 구조: 제외 목록 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-no-rgroup.md"    fail "spec 구조: DoD R 그룹 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-no-common.md"    fail "spec 구조: DoD 공통 그룹 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-scope-back.md"   fail "spec 구조: 범위 섹션 재유입 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-req.md"      fail "spec 구조: 요구사항 헤더 중복(2차 audit F-2 반례) 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-incl.md"     fail "spec 구조: 포함 표기 중복 격추"
+assert_structure check_spec_structure "$sandbox/s-swap-order.md"   fail "spec 구조: 포함·제외 순서 역전 격추"
+assert_structure check_spec_structure "$sandbox/s-excl-outside.md" fail "spec 구조: 제외 표기 섹션 밖 배치 격추"
+assert_structure check_spec_structure "$sandbox/s-old-coexist.md"  fail "spec 구조: 옛 비포함(Out) 표기 공존 격추"
+
+# 일반 Task 필드 누락 / 고정 Task 오기 / 중복 / 누락+오기 상쇄(총개수 우회) 반례.
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*대상 요구사항\*\*:/)' \
+  "$TEMPLATE" > "$sandbox/p-field-missing.md"
+awk '/^### Task 0/{f=1} {print} f && /^- \*\*목표\*\*:/{print "- **대상 요구사항**: R1"; f=0}' \
+  "$TEMPLATE" > "$sandbox/p-field-fixed.md"
+awk '{print} /^- \*\*대상 요구사항\*\*: R1$/{print}' "$TEMPLATE" > "$sandbox/p-field-dup.md"
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} s && /^- \*\*대상 요구사항\*\*:/{next}
+     /^### Task 0/{f=1} {print} f && /^- \*\*목표\*\*:/{print "- **대상 요구사항**: R1"; f=0}' \
+  "$TEMPLATE" > "$sandbox/p-field-offset.md"
+
+# F-2 반례(2차 audit 재현·이웃 변형): 블록당 개수만 세면 통과하는 변형들 —
+# 필드를 목표 다음 행에서 작업 내용 아래로 이동 / 값 비움 / 쉼표 없는 나열.
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0}
+     s && /^- \*\*대상 요구사항\*\*:/ { held = $0; next }
+     { print }
+     s && held && /^- \*\*작업 내용\*\*:/ { print held; held = "" }' \
+  "$TEMPLATE" > "$sandbox/p-field-moved.md"
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R1$/, "- **대상 요구사항**:"); print}' \
+  "$TEMPLATE" > "$sandbox/p-field-empty.md"
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R1$/, "- **대상 요구사항**: R1 R2"); print}' \
+  "$TEMPLATE" > "$sandbox/p-field-invalid.md"
+
+assert_structure check_plan_structure "$TEMPLATE"                   pass "plan 구조: 실제 템플릿 통과"
+assert_structure check_plan_structure "$sandbox/p-field-missing.md" fail "plan 구조: 일반 Task 필드 누락 격추"
+assert_structure check_plan_structure "$sandbox/p-field-fixed.md"   fail "plan 구조: 고정 Task 필드 오기 격추"
+assert_structure check_plan_structure "$sandbox/p-field-dup.md"     fail "plan 구조: 필드 중복 격추"
+assert_structure check_plan_structure "$sandbox/p-field-offset.md"  fail "plan 구조: 누락+오기 상쇄(총개수 우회) 격추"
+assert_structure check_plan_structure "$sandbox/p-field-moved.md"   fail "plan 구조: 필드 위치 이동(2차 audit F-2 반례) 격추"
+assert_structure check_plan_structure "$sandbox/p-field-empty.md"   fail "plan 구조: 필드 빈 값 격추"
+assert_structure check_plan_structure "$sandbox/p-field-invalid.md" fail "plan 구조: 필드 값 형식 위반 격추"
+
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
 CLEAR="$HERE/../scripts/check-clear.sh"
