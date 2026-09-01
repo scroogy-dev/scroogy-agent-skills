@@ -274,7 +274,8 @@ check_spec_structure() {
     /^\*\*제외\*\*$/                 { exc++; if (sec !~ /^## 요구사항/) mis++; exc_at = NR; list = "exc" }
     list == "inc" && /^- /           { if ($0 ~ /^- R[0-9]+: /) inc_items++; else inc_bad++ }
     list == "exc" && /^- /           { exc_items++ }
-    /^### R1: /                      { r1++; if (sec !~ /^## 완료의 정의/) dod_mis++ }
+    /^### R[0-9]+: /                 { if (sec !~ /^## 완료의 정의/) dod_mis++ }
+    /^### R1: /                      { r1++ }
     /^### 공통$/                     { com++; if (sec !~ /^## 완료의 정의/) dod_mis++ }
     /^## 범위/                       { scope++ }
     /포함 \(In\)|비포함 ?\(Out\)/    { old++ }
@@ -302,12 +303,14 @@ check_spec_structure() {
 # 부분 문자열 `고정` 매칭은 일반 Task 제목에 든 단어까지 고정 Task 로 오분류하므로 정확 매칭한다.
 # 개수만 세면 값 형식 위반과 `목표` 다음 행 이탈이 통과하므로 (F-2),
 # 값이 유효한 `R<n>[, R<m>]` 나열인지와 직전 행이 `목표` 필드인지도 함께 판정한다.
+# 첫 Task 앞의 필드는 블록 단위 집계가 보지 못하므로 별도 위반으로 센다 (일반 Task에만 필드를 두는 계약).
 check_plan_structure() {
   awk '
     function flush() { if (!o) return
       if (fixed && c > 0) print "고정 Task에 대상 요구사항 필드: " t
       if (!fixed && c != 1) print "일반 Task 필드 " c "개: " t }
     /^### Task / { flush(); o = 1; t = $0; c = 0; fixed = ($0 ~ /^### Task [0-9N]+ \(고정\)/) }
+    !o && /^- \*\*대상 요구사항\*\*:/ { print "필드가 Task 블록 밖 (" NR "행)" }
     o && /^- \*\*대상 요구사항\*\*:/ {
       c++
       if ($0 !~ /^- \*\*대상 요구사항\*\*: R[0-9]+(, R[0-9]+)*$/) print "필드 값이 R<n> 나열이 아님: " t
@@ -349,6 +352,8 @@ awk '!/^### 공통$/{print} END{print ""; print "### 공통"}' "$SPEC_TPL" > "$s
 awk '!/^- R[0-9]+: /' "$SPEC_TPL" > "$sandbox/s-no-ritems.md"
 awk '{gsub(/^- R1: /, "- "); print}' "$SPEC_TPL" > "$sandbox/s-bad-ritem.md"
 awk '!/^- <검토했지만/' "$SPEC_TPL" > "$sandbox/s-no-excl-items.md"
+# PR #95 2차 리뷰 반례: R1 외 그룹의 소속 이탈 — 소속 검사가 R1 패턴에만 걸리면 R2 이동이 통과한다.
+awk '!/^### R2: /{print} END{print ""; print "### R2: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-r2-outside.md"
 
 assert_structure check_spec_structure "$SPEC_TPL"                  pass "spec 구조: 실제 템플릿 통과"
 assert_structure check_spec_structure "$sandbox/s-no-req.md"       fail "spec 구조: 요구사항 헤더 소실 격추"
@@ -367,6 +372,7 @@ assert_structure check_spec_structure "$sandbox/s-common-outside.md" fail "spec 
 assert_structure check_spec_structure "$sandbox/s-no-ritems.md"      fail "spec 구조: 포함 목록 R 항목 삭제 격추"
 assert_structure check_spec_structure "$sandbox/s-bad-ritem.md"      fail "spec 구조: 포함 항목 R 번호 소실 격추"
 assert_structure check_spec_structure "$sandbox/s-no-excl-items.md"  fail "spec 구조: 제외 목록 항목 삭제 격추"
+assert_structure check_spec_structure "$sandbox/s-r2-outside.md"     fail "spec 구조: DoD R2 그룹 헤더 섹션 밖 이동(PR #95 2차 리뷰 반례) 격추"
 
 # 일반 Task 필드 누락 / 고정 Task 오기 / 중복 / 누락+오기 상쇄(총개수 우회) 반례.
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*대상 요구사항\*\*:/)' \
@@ -392,6 +398,9 @@ awk '{gsub(/^- \*\*대상 요구사항\*\*: R1$/, "- **대상 요구사항**: R1
 # PR #95 리뷰 반례: 일반 Task 제목에 든 `고정` 단어 — 오분류하면 거짓 위반이 나와 pass 가 깨진다.
 awk '{gsub(/^### Task 1: <작업 이름>$/, "### Task 1: 고정 설정 갱신"); print}' \
   "$TEMPLATE" > "$sandbox/p-fixed-in-title.md"
+# PR #95 2차 리뷰 반례: 첫 Task 앞의 최상위 필드 — 블록 집계만으로는 정상 필드가 남아 있어 통과한다.
+awk 'NR == 1 { print; print ""; print "- **대상 요구사항**: R1"; next } { print }' \
+  "$TEMPLATE" > "$sandbox/p-field-outside.md"
 
 assert_structure check_plan_structure "$TEMPLATE"                   pass "plan 구조: 실제 템플릿 통과"
 assert_structure check_plan_structure "$sandbox/p-field-missing.md" fail "plan 구조: 일반 Task 필드 누락 격추"
@@ -402,6 +411,7 @@ assert_structure check_plan_structure "$sandbox/p-field-moved.md"   fail "plan �
 assert_structure check_plan_structure "$sandbox/p-field-empty.md"   fail "plan 구조: 필드 빈 값 격추"
 assert_structure check_plan_structure "$sandbox/p-field-invalid.md" fail "plan 구조: 필드 값 형식 위반 격추"
 assert_structure check_plan_structure "$sandbox/p-fixed-in-title.md" pass "plan 구조: 일반 Task 제목의 고정 단어 오분류 없음(PR #95 리뷰 반례)"
+assert_structure check_plan_structure "$sandbox/p-field-outside.md"  fail "plan 구조: Task 밖 최상위 필드(PR #95 2차 리뷰 반례) 격추"
 
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
