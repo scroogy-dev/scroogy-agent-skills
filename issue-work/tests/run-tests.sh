@@ -270,18 +270,23 @@ SPEC_TPL="$HERE/../templates/issue-spec-template.md"
 # 접두사 매칭은 `## 요구사항 참고` 같은 유사 헤더 아래 배치를 통과시킨다.
 # 포함 목록의 R 번호와 DoD `### R<n>` 그룹은 1:1 대응해야 한다 —
 # R1 개수만 세면 R2 그룹 삭제가 통과해 포함 R2 가 DoD 연결 없이 남는다.
+# 섹션 순서(목표 → 요구사항 → DoD)는 헤더 위치로 판정한다 —
+# 소속만 보면 요구사항 블록 전체를 DoD 뒤로 옮겨도 통과한다.
+# R 번호 집합은 출현 횟수로 누적한다 — 불리언 대입은 같은 번호의 중복 그룹·항목을 잃는다.
 check_spec_structure() {
   awk '
     /^## /                           { sec = $0; list = "" }
-    /^## 요구사항 \(Requirements\)$/ { req++ }
+    /^## 목표 \(Goal\)$/             { goal_at = NR }
+    /^## 요구사항 \(Requirements\)$/ { req++; req_at = NR }
+    /^## 완료의 정의 \(Definition of Done\)$/ { dod_at = NR }
     /^\*\*포함\*\*$/                 { inc++; if (sec != "## 요구사항 (Requirements)") mis++; inc_at = NR; list = "inc" }
     /^\*\*제외\*\*$/                 { exc++; if (sec != "## 요구사항 (Requirements)") mis++; exc_at = NR; list = "exc" }
     list == "inc" && /^- /           { if ($0 ~ /^- R[0-9]+: /) { inc_items++
-                                         n = $0; sub(/^- R/, "", n); sub(/:.*/, "", n); inc_rs[n] = 1
+                                         n = $0; sub(/^- R/, "", n); sub(/:.*/, "", n); inc_rs[n]++
                                        } else inc_bad++ }
     list == "exc" && /^- /           { exc_items++ }
     /^### R[0-9]+: /                 { if (sec != "## 완료의 정의 (Definition of Done)") dod_mis++
-                                       n = $0; sub(/^### R/, "", n); sub(/:.*/, "", n); dod_rs[n] = 1 }
+                                       n = $0; sub(/^### R/, "", n); sub(/:.*/, "", n); dod_rs[n]++ }
     /^### R1: /                      { r1++ }
     /^### 공통$/                     { com++; if (sec != "## 완료의 정의 (Definition of Done)") dod_mis++ }
     /^## 범위/                       { scope++ }
@@ -292,6 +297,8 @@ check_spec_structure() {
       if (exc != 1)       print "제외 표기 " exc + 0 "개 (기대 1개)"
       if (mis)            print "포함·제외 표기가 요구사항 섹션 밖: " mis "개"
       if (inc == 1 && exc == 1 && inc_at > exc_at) print "포함·제외 순서 역전"
+      if (goal_at && req_at && goal_at > req_at) print "목표·요구사항 섹션 순서 역전"
+      if (req_at && dod_at && req_at > dod_at)   print "요구사항·완료의 정의 섹션 순서 역전"
       if (inc_items < 1)  print "포함 목록에 R<n> 항목 없음"
       if (inc_bad)        print "포함 목록에 R<n> 형식 아닌 항목: " inc_bad "개"
       if (exc_items < 1)  print "제외 목록에 항목 없음"
@@ -300,6 +307,8 @@ check_spec_structure() {
       if (dod_mis)        print "DoD 그룹 헤더가 완료의 정의 섹션 밖: " dod_mis "개"
       for (n in inc_rs) if (!(n in dod_rs)) print "포함 R" n " 에 대응하는 DoD 그룹 없음"
       for (n in dod_rs) if (!(n in inc_rs)) print "포함 목록에 없는 DoD R" n " 그룹"
+      for (n in inc_rs) if (inc_rs[n] > 1) print "포함 R" n " 항목 중복: " inc_rs[n] "개"
+      for (n in dod_rs) if (dod_rs[n] > 1) print "DoD R" n " 그룹 중복: " dod_rs[n] "개"
       if (scope)          print "범위 헤더 잔존 (경계는 제외 목록으로 일원화)"
       if (old)            print "옛 포함(In)·비포함(Out) 표기 잔존"
     }
@@ -385,6 +394,12 @@ awk '/^### R1: /{hold=1} /^### 공통$/{hold=0} hold{buf = buf $0 "\n"; next} {p
   "$SPEC_TPL" > "$sandbox/s-dod-lookalike.md"
 # PR #95 3차 리뷰 반례: R2 그룹 통삭제 — R1 개수·소속 검사만으로는 포함 R2 의 DoD 연결 소실이 통과한다.
 awk '/^### R2: /{skip=1} skip && /^### 공통$/{skip=0} !skip' "$SPEC_TPL" > "$sandbox/s-no-r2group.md"
+# PR #95 4차 리뷰 반례: 소속·1:1 대응만으로는 통과하는 변형 —
+# 요구사항 블록 전체를 DoD 뒤로 이동 / 같은 번호의 DoD 그룹·포함 항목 중복.
+awk '/^## 요구사항 \(Requirements\)$/{hold=1} /^## 완료의 정의/{hold=0} hold{buf = buf $0 "\n"; next}
+     /^## 전제/ && buf{printf "%s", buf; buf=""} {print}' "$SPEC_TPL" > "$sandbox/s-req-after-dod.md"
+awk '{print} /^### R2: /{print ""; print "### R2: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-dup-rgroup.md"
+awk '{print} /^- R2: /{print $0}' "$SPEC_TPL" > "$sandbox/s-dup-ritem.md"
 
 assert_structure check_spec_structure "$SPEC_TPL"                  pass "spec 구조: 실제 템플릿 통과"
 assert_structure check_spec_structure "$sandbox/s-no-req.md"       fail "spec 구조: 요구사항 헤더 소실 격추"
@@ -407,6 +422,9 @@ assert_structure check_spec_structure "$sandbox/s-r2-outside.md"     fail "spec 
 assert_structure check_spec_structure "$sandbox/s-req-lookalike.md"  fail "spec 구조: 유사 헤더 아래 포함·제외 이동(PR #95 3차 리뷰 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-dod-lookalike.md"  fail "spec 구조: 유사 헤더 아래 DoD 그룹 이동 격추"
 assert_structure check_spec_structure "$sandbox/s-no-r2group.md"     fail "spec 구조: DoD R2 그룹 삭제(포함 목록과 1:1 대응) 격추"
+assert_structure check_spec_structure "$sandbox/s-req-after-dod.md"  fail "spec 구조: 요구사항 섹션 DoD 뒤 이동(PR #95 4차 리뷰 반례) 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-rgroup.md"     fail "spec 구조: DoD R2 그룹 중복 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-ritem.md"      fail "spec 구조: 포함 R2 항목 중복 격추"
 
 # 일반 Task 필드 누락 / 고정 Task 오기 / 중복 / 누락+오기 상쇄(총개수 우회) 반례.
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*대상 요구사항\*\*:/)' \
