@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — 러너·안내도 정합 (git-review 러너 기대값·issue-audit 사본 대조 정규화·AI-CONTEXT 행)
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자가 다른 벤더 모델로 직접 수행)
 
 ## 모델 기록
 
@@ -122,13 +122,13 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 4: 러너·안내도 정합 (git-review 러너·issue-audit 사본 대조·AI-CONTEXT)
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `git-review/tests/run-tests.sh`에 SKILL.md `**이모지 대응표**`에서 데이터 10행을 뽑는 `emoji_rows`·`emoji_of`·`labeled`를 두고, 매트릭스 6조합과 상태 7케이스의 기대값을 `<대응표 이모지> <값>`으로 합성하도록 바꿨다. 판정 표(`| 최고 상태 | 판정 |`) 5행 추출과 `assert_verdict` 4조합(순서 무관 동시 대조), `assert_input_compat` 4케이스(접두·혼합 입력), `--verdict` 사용오류 5케이스와 미지 접두 1케이스를 추가했다. `issue-audit/tests/run-tests.sh` 사본 대조는 비교 직전에 git-review 출력의 첫 공백까지 떼는 정규화 1행과 사유 주석을 넣었고, `.ai/AI-CONTEXT.md`의 git-review `scripts/` 행을 "위험도·상태·판정 산출 헬퍼"로 바꾸고 `last updated`를 2026-09-04로 갱신했다.
+- **특이 사항**: git-review 러너 43건, issue-audit 러너 38건 전부 통과했고 repo 전체 러너도 통과다. spec DoD R6 3건과 `### 공통` 2건, plan의 이모지 리터럴 0건 grep이 모두 판정 0건이다. 순서 무관 검사는 두 호출 출력끼리 비교하지 않고 양쪽 모두 표에서 합성한 기대값과 대조해, 둘 다 오류로 비면 통과하는 함정을 막았다. issue-audit 쪽 변경은 러너 1파일뿐이며 SKILL.md·헬퍼는 `git diff main` 기준 무변경이다.
 
 ---
 
