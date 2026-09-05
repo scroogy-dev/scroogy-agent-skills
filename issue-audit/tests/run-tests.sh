@@ -89,6 +89,9 @@ if [ -x "$PEER" ]; then
     for like in "$like1" "$like2"; do
       a="$("$CLASSIFY" --impact "$impact" --likelihood "$like" 2>&1)"
       b="$("$PEER" --impact "$impact" --likelihood "$like" 2>&1)"
+      # git-review 헬퍼는 등급 앞에 이모지를 붙여 낸다(issue-audit 헬퍼는 붙이지 않는다).
+      # 등급 문자열에는 공백이 없으므로 공백이 있으면 첫 공백까지 떼어 매트릭스 값만 비교한다.
+      case "$b" in *' '*) b="${b#* }" ;; esac
       [ "$a" = "$b" ] || { drift=1; ng "사본 대조: [$impact × $like] issue-audit [$a] vs git-review [$b]"; }
     done
   done

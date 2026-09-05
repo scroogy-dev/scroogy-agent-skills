@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-08-30
+> last updated: 2026-09-04
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -85,7 +85,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 │   └── templates/              # QA 체크리스트 템플릿
 ├── git-review/                 # 리뷰 수행 스킬
-│   ├── scripts/                # 위험도·상태 산출 헬퍼 (classify-risk.sh)
+│   ├── scripts/                # 위험도·상태·판정 산출 헬퍼 (classify-risk.sh)
 │   ├── templates/              # 리뷰 결과 템플릿
 │   └── tests/                  # 산출 헬퍼 테스트 (배포 제외)
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
