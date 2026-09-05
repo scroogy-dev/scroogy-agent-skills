@@ -246,13 +246,19 @@ assert_input_compat '--verdict 접두·비접두 혼합' '변경 요청(REQUEST 
 # --- 사용오류 ------------------------------------------------------------------
 
 # assert_usage_error <설명> <인자...>
+# 종료 코드와 함께 표준 출력이 비어 있는지도 본다 — 사용오류인데 산출값이 나오면
+# 호출자가 그 값을 읽어 쓰므로, 종료 코드만 보는 검사로는 그 경로를 잡지 못한다.
 assert_usage_error() {
   local desc="$1"; shift
-  "$CLASSIFY" "$@" >/dev/null 2>&1
-  case "$?" in
-    2) ok "사용오류: $desc (exit 2)" ;;
-    *) ng "사용오류: $desc — exit 2 기대, 실제 $?" ;;
-  esac
+  local out rc
+  out="$("$CLASSIFY" "$@" 2>/dev/null)"; rc=$?
+  if [ "$rc" -ne 2 ]; then
+    ng "사용오류: $desc — exit 2 기대, 실제 $rc"
+  elif [ -n "$out" ]; then
+    ng "사용오류: $desc — 표준 출력에 산출값이 남음 [$out]"
+  else
+    ok "사용오류: $desc (exit 2)"
+  fi
 }
 
 assert_usage_error '알 수 없는 영향 축'   --impact '심각' --likelihood '통상 사용'
@@ -271,6 +277,22 @@ assert_usage_error '--verdict 알 수 없는 상태' --verdict '통과(PASS)' '�
 assert_usage_error '--verdict 모드 혼용'    --impact '기능 저하' --verdict '통과(PASS)' '통과(PASS)'
 # 대응표 밖 접두는 걷어내지 않아 뒤의 값 검증에서 미지 값이 된다.
 assert_usage_error '알 수 없는 이모지 접두'  --status '🔵 높음(HIGH)'
+
+# 축 옵션의 존재 여부를 값으로 판정하면 빈 문자열이 "옵션 없음"과 같아져 모드 혼용 검사를
+# 통과한다. 축 옵션 2종 × 값 형태(빈 값·일반 값) × 배치 순서를 전수로 세워 그 경로를 막는다.
+assert_usage_error '--verdict 혼용: 영향 축 빈 값'        --impact '' --verdict '통과(PASS)' '통과(PASS)'
+assert_usage_error '--verdict 혼용: 발생확률 축 빈 값'     --likelihood '' --verdict '통과(PASS)' '통과(PASS)'
+assert_usage_error '--verdict 혼용: 두 축 모두 빈 값'      --impact '' --likelihood '' --verdict '주의(WARN)' '통과(PASS)'
+assert_usage_error '--verdict 혼용: 발생확률 축 일반 값'   --likelihood '통상 사용' --verdict '통과(PASS)' '통과(PASS)'
+# 축 옵션을 뒤에 두면 위치 인자로 흡수되어 개수 위반으로 걸린다. 배치가 달라도 거부는 같다.
+assert_usage_error '--verdict 혼용: 축 옵션 후치'          --verdict '통과(PASS)' '통과(PASS)' --impact ''
+assert_usage_error '--status 혼용: 영향 축 빈 값'          --impact '' --status '높음(HIGH)'
+assert_usage_error '--status 혼용: 발생확률 축 빈 값'      --likelihood '' --status '높음(HIGH)'
+assert_usage_error '--status 혼용: 발생확률 축 일반 값'    --likelihood '통상 사용' --status '높음(HIGH)'
+# 축 모드 자체도 빈 값을 축 값으로 받지 않는다.
+assert_usage_error '영향 축 빈 값'                         --impact '' --likelihood '통상 사용'
+assert_usage_error '발생확률 축 빈 값'                     --impact '기능 저하' --likelihood ''
+assert_usage_error '영향 축 빈 값 단독'                    --impact ''
 
 echo "-----"
 echo "passed: $pass, failed: $fail"

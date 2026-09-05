@@ -92,6 +92,10 @@ srank() {
 
 impact=''
 likelihood=''
+# 축 옵션은 값이 아니라 "등장했는지"로 추적한다. 빈 문자열을 넘긴 호출과 옵션을 쓰지 않은
+# 호출은 값만으로 구분되지 않아, 값 기준 검사는 `--impact '' --verdict …` 같은 혼용을 통과시킨다.
+impact_set=false
+likelihood_set=false
 status_mode=false
 levels=()
 verdict_mode=false
@@ -101,10 +105,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --impact)
       [ $# -ge 2 ] || { echo "error: --impact 에 값이 필요합니다" >&2; exit 2; }
-      impact="$2"; shift 2 ;;
+      impact="$2"; impact_set=true; shift 2 ;;
     --likelihood)
       [ $# -ge 2 ] || { echo "error: --likelihood 에 값이 필요합니다" >&2; exit 2; }
-      likelihood="$2"; shift 2 ;;
+      likelihood="$2"; likelihood_set=true; shift 2 ;;
     --status)
       status_mode=true; shift
       while [ $# -gt 0 ]; do levels+=("$1"); shift; done ;;
@@ -119,7 +123,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$verdict_mode" = true ]; then
-  if [ -n "$impact" ] || [ -n "$likelihood" ] || [ "$status_mode" = true ]; then
+  if [ "$impact_set" = true ] || [ "$likelihood_set" = true ] || [ "$status_mode" = true ]; then
     echo "error: --verdict 는 다른 모드와 함께 쓸 수 없습니다" >&2; exit 2
   fi
   # 판정의 입력은 비즈니스·테크 두 리뷰 상태로 고정이라 개수를 강제한다.
@@ -141,7 +145,7 @@ if [ "$verdict_mode" = true ]; then
 fi
 
 if [ "$status_mode" = true ]; then
-  if [ -n "$impact" ] || [ -n "$likelihood" ]; then
+  if [ "$impact_set" = true ] || [ "$likelihood_set" = true ]; then
     echo "error: --status 는 --impact·--likelihood 와 함께 쓸 수 없습니다" >&2; exit 2
   fi
   # 발견 없음도 통과(PASS)다 — SKILL.md 상태 산출 표의 "낮음(LOW) 이하 또는 발견 없음".
@@ -159,7 +163,7 @@ if [ "$status_mode" = true ]; then
   exit 0
 fi
 
-if [ -z "$impact" ] || [ -z "$likelihood" ]; then
+if [ "$impact_set" != true ] || [ "$likelihood_set" != true ]; then
   echo "error: --impact 와 --likelihood 가 모두 필요합니다" >&2
   usage >&2
   exit 2
