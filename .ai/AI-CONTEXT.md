@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-09-04
+> last updated: 2026-09-06
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -100,7 +100,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── templates/              # 설치 결과 보고 형식
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
-│   ├── scripts/                # 위험도 산출·발견 번호 계승 헬퍼 (classify-risk.sh, next-finding-number.sh)
+│   ├── scripts/                # 위험도·상태·판정 산출·발견 번호 계승 헬퍼 (classify-risk.sh, next-finding-number.sh)
 │   ├── templates/              # 감사 리포트 템플릿
 │   └── tests/                  # 헬퍼 테스트 (배포 제외)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
