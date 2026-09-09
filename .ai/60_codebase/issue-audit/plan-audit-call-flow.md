@@ -1,6 +1,6 @@
 ---
 last_synced: 2026-09-09
-source_hash: 5ab2b67
+source_hash: cf3fdca
 status: current
 ---
 
@@ -14,7 +14,7 @@ status: current
 
 ```
 issue-audit/SKILL.md `### --plan`
-├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger (구현 diff 제외, summary 미읽기)
+├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger, summary는 모델 기록 표의 계획 모델 행만 (Task 결과·구현 diff 제외)
 ├── 1단계: 적합성 검증            # 행 = 이슈 본문 요구 항목 ↔ spec 포함·제외 (PASS/FAIL/PARTIAL/N/A), DoD 표는 포함 R ↔ `### R<n>` 그룹
 ├── 2단계: 비판적 검증 5관점
 │   ├── 추적성 [D]                # scripts/check-plan.sh --trace <spec> <plan>
