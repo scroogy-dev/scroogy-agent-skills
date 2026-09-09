@@ -15,6 +15,9 @@
 #          고정 Task 는 `### Task 0 (고정)`·`### Task N (고정)` 두 헤더만이며 필드 검사·참조 집계에서 제외한다.
 #   두 파일 모두 코드 펜스(``` 또는 ~~~. 여는 펜스와 같은 문자를 같은 개수 이상 쓴 행에서 닫힌다)·HTML 블록 주석(<!-- … -->)
 #   안의 행은 앵커로 읽지 않는다. 주석 안의 펜스 행은 펜스를 열거나 닫지 않고, 펜스 안의 `<!--` 는 주석을 열지 않는다.
+#   행 중간에서 시작한 여러 줄 주석은 `<!--` 앞의 본문만 읽고, 주석을 닫은 행의 나머지에서 다시 연 주석은 이어진다.
+#   인라인 코드(`…`)와 주석은 먼저 시작한 쪽이 이긴다. 코드 안의 `<!--`·`-->` 는 글자이고, 주석 안의 백틱도 글자다.
+#   경계: 행 단위로 읽는다. 여러 행에 걸친 코드 스팬·들여쓰기 코드 블록 등 그 밖의 마크다운 구성은 구분하지 않는다 (원장 K-0010).
 #
 # 사용법:
 #   check-plan.sh --trace <spec 파일> <plan 파일>
@@ -30,7 +33,7 @@
 
 set -o pipefail
 
-usage() { sed -n '3,29p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,32p' "$0" | sed 's/^# \{0,1\}//'; }
 
 mode=''
 spec=''
@@ -60,22 +63,41 @@ done
 # 백틱 4개 예시 안의 백틱 3개 행을 닫힘으로 오인하지 않기 위해서다. 판정 순서는 주석 상태, 펜스 상태, 펜스 열기, 주석 열기다.
 # 주석 안의 펜스 행이 펜스 상태를 바꾸거나 펜스 안의 `<!--` 가 주석을 열지 않게 한다.
 # 한 행 안에서 닫힌 주석(<!-- … -->)은 행을 건너뛰지 않는다. 앵커 행 끝의 짧은 메모를 앵커 누락으로 만들지 않기 위해서다.
-# 대신 `대상 요구사항` 값을 읽을 때는 strip_closed 로 그 주석을 지워, 주석에만 있는 R<n> 이 연결로 세지지 않게 한다.
+# 행 안의 주석·인라인 코드는 scan 하나가 왼쪽부터 읽는다. 먼저 시작한 쪽이 이겨서, 코드 안의 `<!--` 는 주석을 열지 않고
+# 주석 안의 백틱은 코드를 열지 않는다. 코드를 먼저 가린 뒤 주석을 찾으면 두 주석에 하나씩 든 백틱이 짝지어져 사이의 본문이 사라진다.
+# scan 은 닫힌 주석을 지운 본문을 돌려주고, 행이 열린 주석으로 끝나면 left_open 을 켠다. 그 행은 `<!--` 앞의 본문만 읽는다.
+# `대상 요구사항` 값도 scan 으로 읽어, 주석에만 있는 R<n> 이 연결로 세지지 않게 한다.
+# 주석을 닫는 행은 after_close 로 나머지를 다시 보아, 같은 행에서 다시 연 주석(`--> <!--`)이 이어지게 한다.
+# 인라인 코드는 백틱 n개로 열어 같은 개수의 백틱에서 닫히며, 닫는 짝이 없는 백틱은 본문 글자다.
 skip='
-  function unclosed(s,  p, q) {
-    while ((p = index(s, "<!--")) > 0) { s = substr(s, p + 4); q = index(s, "-->"); if (q == 0) return 1; s = substr(s, q + 3) }
-    return 0
+  function scan(s,  out, bt, cs, run, r, pos, m, k, j, q) {
+    out = ""; left_open = 0
+    while (s != "") {
+      bt = index(s, "`"); cs = index(s, "<!--")
+      if (cs > 0 && (bt == 0 || cs < bt)) {
+        q = index(substr(s, cs + 4), "-->")
+        if (q == 0) { left_open = 1; return out substr(s, 1, cs - 1) }
+        out = out substr(s, 1, cs - 1); s = substr(s, cs + q + 6); continue
+      }
+      if (bt == 0) return out s
+      run = 0; while (substr(s, bt + run, 1) == "`") run++
+      r = substr(s, bt + run); pos = 1; j = 0
+      while ((m = index(substr(r, pos), "`")) > 0) {
+        k = 0; while (substr(r, pos + m - 1 + k, 1) == "`") k++
+        if (k == run) { j = pos + m - 1; break }
+        pos += m - 1 + k
+      }
+      if (j == 0) { out = out substr(s, 1, bt + run - 1); s = r; continue }
+      out = out substr(s, 1, bt + run - 1) substr(r, 1, j + run - 1); s = substr(r, j + run)
+    }
+    return out
   }
-  function strip_closed(s,  p, q, out) {
-    out = ""
-    while ((p = index(s, "<!--")) > 0) { q = index(substr(s, p + 4), "-->"); if (q == 0) break; out = out substr(s, 1, p - 1); s = substr(s, p + q + 6) }
-    return out s
-  }
+  function after_close(s,  p) { p = index(s, "-->"); if (p == 0) return 1; scan(substr(s, p + 3)); return left_open }
   function fence_run(s,  n) { sub(/^[[:space:]]*/, "", s); n = 0; while (substr(s, n + 1, 1) == fch) n++; frest = substr(s, n + 1); return n }
-  cm { if (index($0, "-->")) cm = 0; next }
+  cm { cm = after_close($0); next }
   fence { if (fence_run($0) >= flen && frest ~ /^[[:space:]]*$/) fence = 0; next }
   /^[[:space:]]*(```|~~~)/ { s = $0; sub(/^[[:space:]]*/, "", s); fch = substr(s, 1, 1); flen = fence_run($0); fence = 1; next }
-  unclosed($0) { cm = 1; next }
+  { body = scan($0); if (left_open) { cm = 1; $0 = body } }
 '
 
 # spec — 포함 목록은 `**포함**` 다음 행부터 다음 굵은 라벨(`**제외**`)·`## ` 헤더·구분선 앞까지다.
@@ -95,7 +117,7 @@ plan_out="$(awk "$skip"'
   function flush() { if (o && !fixed && c == 0) print "NOFIELD " t }
   /^### Task / { flush(); o = 1; t = $0; sub(/^### /, "", t); c = 0; fixed = ($0 ~ /^### Task (0|N) \(고정\)/) }
   o && !fixed && /^- \*\*대상 요구사항\*\*:/ {
-    v = strip_closed($0); sub(/^- \*\*대상 요구사항\*\*:/, "", v)
+    v = scan($0); sub(/^- \*\*대상 요구사항\*\*:/, "", v)
     while (match(v, /R[0-9]+/)) { c++; print "REF " substr(v, RSTART + 1, RLENGTH - 1) + 0; v = substr(v, RSTART + RLENGTH) }
   }
   END { flush(); if (!o) print "NOTASK" }
