@@ -26,6 +26,8 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0006](active/K-0006-code-map-check-not-deterministic.md) | code-map `check` 모드의 정합성 점검이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 중간(MEDIUM) | 수용 | code-map local/global 참조 문서의 정합성 점검 표 항목 추가·변경·삭제 시, 또는 `.ai/60_codebase/` 색인이 생겨 `check` 모드를 실제로 운용하게 될 때 |
 | [K-0007](active/K-0007-quiz-permalink-target-unverified.md) | git-review-quiz 댓글 permalink 검사가 확정 저장소·위치 행의 경로·줄 범위를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | `check-quiz.sh` `--comment` 모드의 인자·permalink 판정 규칙 실질 변경 시, 또는 게시된 퀴즈 댓글의 permalink가 다른 저장소·경로·줄 범위를 가리킨 사례 관측 시 |
 | [K-0008](active/K-0008-quiz-format-vocab-fixture-absent.md) | git-review-quiz 형식 검사에 지원하지 않는 형식 어휘 반례 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | `check-quiz.sh` R1 헤더 정규식(관점·형식 어휘 집합) 변경 시, 또는 형식 어휘 추가 기능 착수 시 |
+| [K-0009](active/K-0009-plan-audit-fake-d-check-manual.md) | issue-audit 계획 감사의 가짜 `[D]` 사전 판별이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 낮음(LOW) | 수용 | 계획 감사 2회 이상에서 가짜 `[D]` 판별 결과가 감사 모델 간에 갈린 사례 관측 시, 또는 spec·plan 템플릿에 회귀 방지 예외 표기가 도입될 때 |
+| [K-0010](active/K-0010-check-plan-line-based-markdown-boundary.md) | issue-audit 추적성 헬퍼가 행 단위 파서라 여러 행 코드 스팬 등 그 밖의 마크다운 구성을 구분하지 않는다 | known issue | 낮음(LOW) | 수용 | 실제 spec·plan이 이 경계 때문에 오판정된 사례 관측 시, 또는 issue-work spec·plan 템플릿에 여러 행 코드 스팬·들여쓰기 코드 블록을 쓰는 구조가 도입될 때 |
 
 ## 수명 주기
 

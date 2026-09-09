@@ -7,6 +7,8 @@
 # 한쪽만 바뀌면 드리프트가 잡힌다. 이모지도 대응표에서만 합성하고 러너 본문에 리터럴로 적지 않는다.
 # next-finding-number.sh 는 SKILL.md 가 서술한 함정(번호 건너뜀·재사용·발견 0건 회차)을
 # 반례 fixture 로 재현해 격추 여부를 확인한다.
+# check-plan.sh 는 계획 감사(--plan)의 추적성 판정 4종을 spec·plan 정상 fixture 의 awk 변형으로
+# 재현해 격추 여부와 고정 Task 판정·공집합·사용오류를 확인한다.
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -16,6 +18,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 CLASSIFY="$HERE/../scripts/classify-risk.sh"
 NEXTNUM="$HERE/../scripts/next-finding-number.sh"
+CHECKPLAN="$HERE/../scripts/check-plan.sh"
 
 pass=0
 fail=0
@@ -23,7 +26,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for s in "$CLASSIFY" "$NEXTNUM"; do
+for s in "$CLASSIFY" "$NEXTNUM" "$CHECKPLAN"; do
   [ -x "$s" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $s"; exit 1; }
 done
 
@@ -585,6 +588,219 @@ assert_report_structure "$sandbox/t-no-fold.md"        fail "리포트 구조: �
 assert_report_structure "$sandbox/t-verdict-inside.md" fail "리포트 구조: 판정 행 접기 안 이동 격추"
 assert_report_structure "$sandbox/t-dup-verdict.md"    fail "리포트 구조: 판정 자리표시자 중복 격추"
 assert_report_structure "$sandbox/t-old-summary.md"    fail "리포트 구조: 요약 줄 옛 형식 격추"
+
+# --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
+#
+# spec 포함 R · DoD `### R<n>` 그룹 · plan 일반 Task `대상 요구사항` 필드의 삼자 대응 위반 4종을
+# 정상 fixture 의 awk 변형으로 재현해 격추 여부를 확인한다. 고정 Task 판정은 헤더 두 가지만이라
+# 일반 Task 제목의 `고정` 단어를 오분류하지 않아야 하고, 일반 Task 에 `(고정)` 을 붙인 우회는 격추해야 한다.
+# 포함 목록 공집합·Task 블록 없음은 위반 0건이 아니라 추적 불가다 — 경로 오기가 통과로 보이지 않게 한다.
+
+tspec="$sandbox/trace-spec.md"
+cat > "$tspec" <<'EOF'
+# Issue #99 스펙 — 추적성 fixture
+
+## 요구사항 (Requirements)
+
+**포함**
+
+- R1: 첫 요구
+- R2: 둘째 요구
+
+**제외**
+
+- 셋째: 불필요
+
+## 완료의 정의 (Definition of Done)
+
+### R1: 첫 그룹
+
+- [ ] [D] 조건
+
+### R2: 둘째 그룹
+
+- [ ] [D] 조건
+
+### 공통
+
+- [ ] [D] 전체 테스트
+EOF
+
+tplan="$sandbox/trace-plan.md"
+cat > "$tplan" <<'EOF'
+# Issue #99 실행계획 — 추적성 fixture
+
+## Tasks
+
+### Task 0 (고정): 구현 시작 게이트
+
+- [ ] 완료
+- **목표**: 전제 확인
+
+### Task 1: 본작업
+
+- [ ] 완료
+- **목표**: 첫 요구 구현
+- **대상 요구사항**: R1
+
+### Task 2: 후속 작업
+
+- [ ] 완료
+- **목표**: 둘째 요구 구현
+- **대상 요구사항**: R2
+
+### Task N (고정): 교차모델 issue-audit 검증
+
+- [ ] 완료
+- **목표**: 감사
+EOF
+
+# assert_trace <기대: pass|fail> <설명> <spec> <plan> [기대 출력 행]
+# fail 은 종료 코드 1 과 기대 행의 정확 일치를 함께 본다 — 종료 코드만 보면 다른 사유의 위반도 통과한다.
+assert_trace() {
+  local want="$1" desc="$2" s="$3" p="$4" needle="${5:-}"
+  local out rc
+  out="$("$CHECKPLAN" --trace "$s" "$p" 2>&1)"; rc=$?
+  case "$want" in
+    pass) if [ "$rc" -eq 0 ] && [ -z "$out" ]; then ok "$desc"; else ng "$desc (기대 exit 0·무출력, 실제 exit $rc [$out])"; fi ;;
+    fail) if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qxF -- "$needle"; then ok "$desc"; else ng "$desc (기대 exit 1·행 '$needle', 실제 exit $rc [$out])"; fi ;;
+  esac
+}
+
+assert_trace pass 'trace: 정상 fixture 통과 (R1·R2, DoD R1·R2·공통, Task 0·1·2·N)' "$tspec" "$tplan"
+
+# 반례 4종 — 정상 fixture 의 awk 변형.
+awk '{print} /^### R2: /{print ""; print "### R3: 유령 그룹"}' "$tspec" > "$sandbox/ts-r3.md"
+awk '!/^### R2: /' "$tspec" > "$sandbox/ts-no-r2.md"
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: R1"); print}' "$tplan" > "$sandbox/tp-r2-unref.md"
+awk '!/^- \*\*대상 요구사항\*\*: R2$/' "$tplan" > "$sandbox/tp-no-field.md"
+
+assert_trace fail 'trace: R 없는 DoD 그룹 격추'     "$sandbox/ts-r3.md"    "$tplan"                 'R 없는 DoD 그룹: R3'
+assert_trace fail 'trace: DoD 없는 R 격추'          "$sandbox/ts-no-r2.md" "$tplan"                 'DoD 없는 R: R2'
+assert_trace fail 'trace: Task 없는 R 격추'         "$tspec" "$sandbox/tp-r2-unref.md"              'Task 없는 R: R2'
+assert_trace fail 'trace: 필드 없는 일반 Task 격추' "$tspec" "$sandbox/tp-no-field.md"              '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+
+# 고정 Task 판정 — 헤더 두 가지만. 일반 Task 제목의 `고정` 단어는 통과, 일반 Task 의 `(고정)` 개서는 격추.
+awk '{gsub(/^### Task 1: 본작업$/, "### Task 1: 고정 설정 갱신"); print}' "$tplan" > "$sandbox/tp-fixed-word.md"
+assert_trace pass 'trace: 일반 Task 제목의 고정 단어 오분류 없음' "$tspec" "$sandbox/tp-fixed-word.md"
+awk '{gsub(/^### Task 2: /, "### Task 2 (고정): "); print}' "$sandbox/tp-no-field.md" > "$sandbox/tp-fake-fixed.md"
+assert_trace fail 'trace: 일반 Task 의 (고정) 개서 우회 격추' "$tspec" "$sandbox/tp-fake-fixed.md" '대상 요구사항 없는 일반 Task: Task 2 (고정): 후속 작업'
+# 고정 Task 의 필드는 참조 집계에 넣지 않는다 — Task 0 이 R2 를 적어도 일반 Task 가 없으면 Task 없는 R 이다.
+awk '/^### Task 0/{f=1} {print} f && /^- \*\*목표\*\*:/{print "- **대상 요구사항**: R2"; f=0}' \
+  "$sandbox/tp-r2-unref.md" > "$sandbox/tp-fixed-ref.md"
+assert_trace fail 'trace: 고정 Task 의 필드는 참조로 세지 않음' "$tspec" "$sandbox/tp-fixed-ref.md" 'Task 없는 R: R2'
+
+# 값 없는 필드 — 라벨만 있고 값에 R<n> 이 없으면(빈 값·`-`·공백) 필드가 없는 것과 같다.
+# Task 1·2 가 R1·R2 를 전부 참조하는 상태에서 Task 3 을 더해, `Task 없는 R` 이 보완하지 못하는 조합에서 Task 별 진단을 본다.
+# add_task3 <필드 값> <출력 파일> — 정상 plan 의 Task N 앞에 필드 값만 다른 일반 Task 3 을 끼운다.
+add_task3() {
+  awk -v val="$1" '/^### Task N/ { print "### Task 3: 연결 미정"; print ""; print "- [ ] 완료"; print "- **목표**: 미정"; print "- **대상 요구사항**:" val; print "" } { print }' \
+    "$tplan" > "$2"
+}
+add_task3 ''    "$sandbox/tp-value-empty.md"
+add_task3 ' -'  "$sandbox/tp-value-dash.md"
+add_task3 '   ' "$sandbox/tp-value-blank.md"
+assert_trace fail 'trace: 필드 값이 빈 일반 Task 격추'    "$tspec" "$sandbox/tp-value-empty.md" '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
+assert_trace fail 'trace: 필드 값이 - 인 일반 Task 격추'  "$tspec" "$sandbox/tp-value-dash.md"  '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
+assert_trace fail 'trace: 필드 값이 공백인 일반 Task 격추' "$tspec" "$sandbox/tp-value-blank.md" '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R1$/, "- **대상 요구사항**: R1, R2"); print}' "$tplan" > "$sandbox/tp-multi-value.md"
+assert_trace pass 'trace: R<n>, R<m> 나열 값 정상' "$tspec" "$sandbox/tp-multi-value.md"
+
+# 펜스·주석·절 밖 — 코드 예시·HTML 블록 주석 안의 앵커는 구조로 세지 않는다. 실제 구조를 지우고 예시에만 남기면 누락이고,
+# 예시에만 있는 유령 그룹은 위반이 아니다. DoD 그룹은 `## 완료의 정의` 절 밖(전제 절)에 있어도 세지 않는다.
+{ awk '!/^### R2: /' "$tspec"; printf '\n```markdown\n### R2: 둘째 그룹\n```\n'; } > "$sandbox/ts-fenced-dod.md"
+assert_trace fail 'trace: 펜스 안에만 남긴 DoD 그룹은 세지 않음' "$sandbox/ts-fenced-dod.md" "$tplan" 'DoD 없는 R: R2'
+{ awk '!/^### R2: /' "$tspec"; printf '\n## 전제 (Assumptions)\n\n### R2: 둘째 그룹\n'; } > "$sandbox/ts-dod-outside.md"
+assert_trace fail 'trace: 완료의 정의 절 밖의 DoD 그룹은 세지 않음' "$sandbox/ts-dod-outside.md" "$tplan" 'DoD 없는 R: R2'
+{ cat "$tspec"; printf '\n<!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-comment-phantom.md"
+assert_trace pass 'trace: 주석 안의 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-comment-phantom.md" "$tplan"
+# spec DoD 접기의 펜스는 들여쓰기되어 있다. 들여쓴 펜스도 토글해야 그 안의 행이 앵커로 새지 않는다.
+awk '{print} /^### R2: /{print ""; print "  ```markdown"; print "### R3: 유령 그룹"; print "  ```"}' "$tspec" > "$sandbox/ts-indented-fence.md"
+assert_trace pass 'trace: 들여쓴 펜스 안의 앵커도 세지 않음' "$sandbox/ts-indented-fence.md" "$tplan"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "<!--"; print; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-comment-field.md"
+assert_trace fail 'trace: 주석 안의 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-comment-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 주석 안의 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-comment-field.md" 'Task 없는 R: R2'
+
+# 한 줄 주석·긴 펜스·물결표 펜스·주석 안 펜스 — 값 안의 닫힌 주석은 연결이 아니다(실제 R 뒤의 메모는 유지).
+# 펜스는 여는 문자·길이를 기억해 백틱 4개 예시 안의 백틱 3개 행에서 닫히지 않고 물결표도 받는다.
+# 주석 안의 펜스 행은 펜스 상태를, 펜스 안의 `<!--` 는 주석 상태를 바꾸지 않는다.
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: <!-- R2 -->"); print}' "$tplan" > "$sandbox/tp-inline-comment-only.md"
+assert_trace fail 'trace: 값이 한 줄 주석뿐인 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-inline-comment-only.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 값이 한 줄 주석뿐인 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-inline-comment-only.md" 'Task 없는 R: R2'
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: R2 <!-- 메모 -->"); print}' "$tplan" > "$sandbox/tp-inline-note.md"
+assert_trace pass 'trace: 실제 R 뒤의 한 줄 주석 메모는 정상 참조 유지' "$tspec" "$sandbox/tp-inline-note.md"
+# long_fence <입력> <출력> <감쌀 행의 정규식> — 그 행을 백틱 4개 예시 안의 백틱 3개 블록으로 감싼다.
+long_fence() { awk -v re="$3" '$0 ~ re { print "````markdown"; print "```markdown"; print; print "```"; print "````"; next } { print }' "$1" > "$2"; }
+long_fence "$tspec" "$sandbox/ts-long-fence-dod.md" '^### R2: '
+assert_trace fail 'trace: 백틱 4개 예시 안의 DoD 그룹은 세지 않음' "$sandbox/ts-long-fence-dod.md" "$tplan" 'DoD 없는 R: R2'
+{ cat "$tspec"; printf '\n````markdown\n```markdown\n### R99: 폐기된 대안\n```\n````\n'; } > "$sandbox/ts-long-fence-phantom.md"
+assert_trace pass 'trace: 백틱 4개 예시 안의 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-long-fence-phantom.md" "$tplan"
+long_fence "$tplan" "$sandbox/tp-long-fence-field.md" '^- \\*\\*대상 요구사항\\*\\*: R2$'
+assert_trace fail 'trace: 백틱 4개 예시 안의 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-long-fence-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 백틱 4개 예시 안의 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-long-fence-field.md" 'Task 없는 R: R2'
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "~~~markdown"; print; print "~~~"; next } { print }' "$tplan" > "$sandbox/tp-tilde-field.md"
+assert_trace fail 'trace: 물결표 펜스 안의 필드는 연결로 세지 않음' "$tspec" "$sandbox/tp-tilde-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+{ printf '<!--\n```markdown\n-->\n'; cat "$tspec"; } > "$sandbox/ts-comment-fence.md"
+assert_trace pass 'trace: 주석 안의 펜스 행은 펜스 상태를 바꾸지 않음' "$sandbox/ts-comment-fence.md" "$tplan"
+{ printf '```text\n<!--\n```\n'; cat "$tspec"; } > "$sandbox/ts-fence-comment.md"
+assert_trace pass 'trace: 펜스 안의 주석 열기는 주석 상태를 바꾸지 않음' "$sandbox/ts-fence-comment.md" "$tplan"
+
+# 연속 주석·행 중간 주석·인라인 코드 (3차 audit F-4·F-5) — 주석을 닫은 행의 나머지에서 다시 연 주석(`--> <!--`)은
+# 이어지고, 행 중간에서 시작한 여러 줄 주석은 `<!--` 앞의 본문을 살리며, 인라인 코드 안의 `<!--` 는 주석을 열지 않는다.
+{ awk '!/^### R2: /' "$tspec"; printf '\n<!--\n앞 메모\n--> <!--\n### R2: 둘째 그룹\n-->\n'; } > "$sandbox/ts-reopen-dod.md"
+assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 DoD 그룹은 세지 않음' "$sandbox/ts-reopen-dod.md" "$tplan" 'DoD 없는 R: R2'
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "<!--"; print "앞 메모"; print "--> <!--"; print; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-reopen-field.md"
+assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-reopen-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-reopen-field.md" 'Task 없는 R: R2'
+{ cat "$tspec"; printf '\n<!--\n앞 메모\n--> <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-reopen-phantom.md"
+assert_trace pass 'trace: 연속 주석의 두 번째 주석 안 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-reopen-phantom.md" "$tplan"
+# 두 번째 주석의 R99 는 무시하고 주석 밖의 실제 유령 그룹만 정확히 1행 출력해야 한다 — 행 포함 검사만으로는 R99 유령 위반의 동반 출력을 놓친다.
+{ cat "$sandbox/ts-r3.md"; printf '\n<!--\n앞 메모\n--> <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-reopen-phantom-real.md"
+out="$("$CHECKPLAN" --trace "$sandbox/ts-reopen-phantom-real.md" "$tplan" 2>&1)"; rc=$?
+if [ "$rc" -eq 1 ] && [ "$out" = 'R 없는 DoD 그룹: R3' ]; then ok 'trace: 연속 주석 밖의 실제 유령 DoD 그룹만 격추 (R99 동반 출력 없음)'
+else ng "trace: 연속 주석 밖의 실제 유령 DoD 그룹만 격추 (R99 동반 출력 없음) (기대 exit 1·행 1개, 실제 exit $rc [$out])"; fi
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print $0 " <!--"; print "다음 줄 설명"; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-field-then-comment.md"
+assert_trace pass 'trace: 실제 R 뒤에서 시작한 여러 줄 주석은 앞의 참조를 유지' "$tspec" "$sandbox/tp-field-then-comment.md"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!--"; print "R2"; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-multiline-comment-only.md"
+assert_trace fail 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-multiline-comment-only.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-multiline-comment-only.md" 'Task 없는 R: R2'
+awk '/^### R2: / { print $0 " <!--"; print "그룹 메모"; print "-->"; next } { print }' "$tspec" > "$sandbox/ts-dod-then-comment.md"
+assert_trace pass 'trace: DoD 그룹 헤더 뒤에서 시작한 여러 줄 주석은 헤더를 유지' "$sandbox/ts-dod-then-comment.md" "$tplan"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "`<!--`는 검사할 구분자다."; print ""; print; next } { print }' "$tplan" > "$sandbox/tp-inline-code-marker.md"
+assert_trace pass 'trace: 인라인 코드 안의 <!-- 는 주석을 열지 않음' "$tspec" "$sandbox/tp-inline-code-marker.md"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "``<!-- `코드` -->``는 예시다."; print ""; print; next } { print }' "$tplan" > "$sandbox/tp-inline-code-double.md"
+assert_trace pass 'trace: 백틱 2개 인라인 코드 안의 백틱 1개·주석 구분자는 본문이 아님' "$tspec" "$sandbox/tp-inline-code-double.md"
+{ cat "$tspec"; printf '\n백틱 ` 하나 뒤의 <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-lone-backtick.md"
+assert_trace pass 'trace: 짝 없는 백틱은 인라인 코드가 아니라 뒤의 주석 열기가 유효' "$sandbox/ts-lone-backtick.md" "$tplan"
+
+# 주석 안의 백틱 (4차 audit F-6) — 인라인 코드와 주석은 먼저 시작한 쪽이 이긴다. 주석 안의 백틱은 코드를 열지 않아,
+# 두 주석에 하나씩 든 백틱이 짝지어져 사이의 실제 값이 사라지거나, 백틱으로 감싼 `-->` 가 가려져 주석이 열린 채 남지 않는다.
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!-- ` --> R2 <!-- ` -->"; next } { print }' "$tplan" > "$sandbox/tp-backtick-between-comments.md"
+assert_trace pass 'trace: 두 주석에 하나씩 든 백틱 사이의 실제 값은 유지' "$tspec" "$sandbox/tp-backtick-between-comments.md"
+awk '/^- \*\*대상 요구사항\*\*: R1$/ { print $0 " <!-- `-->`"; next } { print }' "$tplan" > "$sandbox/tp-backtick-comment-end.md"
+assert_trace pass 'trace: 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 Task 를 건너뛰지 않음' "$tspec" "$sandbox/tp-backtick-comment-end.md"
+awk '/^### R1: / { print $0 " <!-- `-->`"; next } { print }' "$tspec" > "$sandbox/ts-backtick-comment-end.md"
+assert_trace pass 'trace: DoD 헤더 뒤 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 그룹을 건너뛰지 않음' "$sandbox/ts-backtick-comment-end.md" "$tplan"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!-- `R2` -->"; next } { print }' "$tplan" > "$sandbox/tp-backtick-comment-only.md"
+assert_trace fail 'trace: 값이 백틱을 담은 한 줄 주석뿐인 필드는 연결로 세지 않음' "$tspec" "$sandbox/tp-backtick-comment-only.md" 'Task 없는 R: R2'
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: `<!--` <!-- ` --> R2"; next } { print }' "$tplan" > "$sandbox/tp-code-then-comment.md"
+assert_trace pass 'trace: 코드 안의 <!-- 뒤에 온 주석 안의 백틱은 글자 (먼저 시작한 쪽이 이김)' "$tspec" "$sandbox/tp-code-then-comment.md"
+
+# 공집합 — 포함 목록이 비었거나 Task 블록이 없으면 위반 0건이 아니라 추적 불가다.
+awk '!/^- R[0-9]+: /' "$tspec" > "$sandbox/ts-empty-inc.md"
+assert_trace fail 'trace: 포함 목록 공집합 격추' "$sandbox/ts-empty-inc.md" "$tplan" \
+  '추적 불가: spec 포함 목록에 R<n> 항목이 없습니다 — 경로를 확인하세요'
+printf '# 빈 문서\n' > "$sandbox/tp-empty.md"
+assert_trace fail 'trace: Task 블록 없는 plan 격추' "$tspec" "$sandbox/tp-empty.md" \
+  '추적 불가: plan 에 ### Task 블록이 없습니다 — 경로를 확인하세요'
+
+# 사용오류 — 종료 코드 2 와 함께 표준 출력이 비어 있어야 한다 (assert_usage_error 가 함께 본다).
+assert_usage_error 'check-plan 인자 누락(--trace 단독)' "$CHECKPLAN" --trace
+assert_usage_error 'check-plan 인자 부족(spec 만)'      "$CHECKPLAN" --trace "$tspec"
+assert_usage_error 'check-plan 모드 미지정'             "$CHECKPLAN"
+assert_usage_error 'check-plan 읽을 수 없는 파일'       "$CHECKPLAN" --trace "$tspec" "$sandbox/does-not-exist.md"
+assert_usage_error 'check-plan 알 수 없는 옵션'         "$CHECKPLAN" --all "$tspec" "$tplan"
+assert_usage_error 'check-plan 모드 중복'               "$CHECKPLAN" --trace "$tspec" "$tplan" --trace "$tspec" "$tplan"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"

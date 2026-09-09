@@ -2,7 +2,7 @@
 source: github_issue
 source_url: https://github.com/scroogy-dev/scroogy-agent-skills/issues/23
 related_jira:
-last_harvested: 2026-06-22
+last_harvested: 2026-09-09
 ---
 
 # ADR: 스킬 결정적 헬퍼의 테스트 동일 위치 배치 규칙

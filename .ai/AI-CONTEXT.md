@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-09-06
+> last updated: 2026-09-09
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -100,7 +100,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── templates/              # 설치 결과 보고 형식
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
-│   ├── scripts/                # 위험도·상태·판정 산출·발견 번호 계승 헬퍼 (classify-risk.sh, next-finding-number.sh)
+│   ├── scripts/                # 위험도·상태·판정 산출·발견 번호 계승·계획 추적성 헬퍼 (classify-risk.sh, next-finding-number.sh, check-plan.sh)
 │   ├── templates/              # 감사 리포트 템플릿
 │   └── tests/                  # 헬퍼 테스트 (배포 제외)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
@@ -132,7 +132,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `git-review-quiz` | PR 변경에서 비즈니스·테크 문항을 만들어 대화형으로 풀거나 PR 댓글로 게시 (문항별 변경 위치 표시, 힌트·정답 접기) |
 | `install-skills` | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
-| `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증 |
+| `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문·`.ai` 문서에 대조하는 계획 감사 |
 | `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | `readme-sync` | 프로젝트를 분석하여 README.md 생성 또는 최신화 (init/update 모드, individual/business 프로파일) |
 
@@ -237,4 +237,4 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 | Skill | 설명 | 사용 시점 |
 |-------|------|----------|
 | `/issue-work` | 이슈 단위 스펙/계획/요약 관리 | 이슈 작업 시 |
-| `/issue-audit` | 이슈 스펙 대비 구현 독립 감사 | 구현 검증 시 |
+| `/issue-audit` | 이슈 스펙 대비 구현 독립 감사, `--plan` 계획 감사 | 계획·구현 검증 시 |
