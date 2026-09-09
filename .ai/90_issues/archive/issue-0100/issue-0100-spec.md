@@ -189,8 +189,8 @@ spec의 목표·요구사항을 사용자가 승인한 뒤에 완료의 정의·
 
   ```bash
   issue-audit/scripts/check-plan.sh --trace \
-    .ai/90_issues/active/issue-0100/issue-0100-spec.md \
-    .ai/90_issues/active/issue-0100/issue-0100-plan.md
+    .ai/90_issues/archive/issue-0100/issue-0100-spec.md \
+    .ai/90_issues/archive/issue-0100/issue-0100-plan.md
   ```
 
   </details>
@@ -218,7 +218,7 @@ spec의 목표·요구사항을 사용자가 승인한 뒤에 완료의 정의·
   ```bash
   grep -rnE '설계 모델|설계 종료 게이트|`audit 모델`|\| audit 모델 \||설계·구현·audit|구현 감사' \
     issue-work issue-audit .ai/AI-CONTEXT.md .ai/90_issues/active/issue-workflow.md \
-    .ai/90_issues/active/issue-0100/issue-0100-plan.md .ai/90_issues/active/issue-0100/issue-0100-summary.md
+    .ai/90_issues/archive/issue-0100/issue-0100-plan.md .ai/90_issues/archive/issue-0100/issue-0100-summary.md
   ```
 
   - 설계 주의: 이 spec은 개명 대응표를 담아 옛 표기가 남으므로 검색 대상에서 뺀다. `설계 주의`·`과잉 설계`는 다른 뜻이라 패턴에 넣지 않는다.
@@ -234,9 +234,9 @@ spec의 목표·요구사항을 사용자가 승인한 뒤에 완료의 정의·
   [ "$(grep -c '^## 계획 종료 게이트 (고정)$' "$T/issue-plan-template.md")" = 1 ] || echo '위반: plan 템플릿 계획 종료 게이트 헤더가 1개가 아님'
   grep -q '계획 종료 게이트' issue-work/scripts/check-clear.sh || echo '위반: check-clear.sh 메시지에 계획 종료 게이트 없음'
   grep -q '최종 감사' issue-audit/SKILL.md || echo '위반: issue-audit SKILL.md 에 최종 감사 호칭 없음'
-  grep -q '^## 계획 종료 게이트 (고정)$' .ai/90_issues/active/issue-0100/issue-0100-plan.md || echo '위반: 이 이슈 plan 게이트 헤더가 새 표기가 아님'
+  grep -q '^## 계획 종료 게이트 (고정)$' .ai/90_issues/archive/issue-0100/issue-0100-plan.md || echo '위반: 이 이슈 plan 게이트 헤더가 새 표기가 아님'
   for r in '계획 모델' '계획 audit 모델' '구현 모델' '최종 audit 모델'; do
-    grep -qE "^\| $r \|" .ai/90_issues/active/issue-0100/issue-0100-summary.md || echo "위반: 이 이슈 summary 에 '$r' 행 없음"
+    grep -qE "^\| $r \|" .ai/90_issues/archive/issue-0100/issue-0100-summary.md || echo "위반: 이 이슈 summary 에 '$r' 행 없음"
   done
   ```
 
