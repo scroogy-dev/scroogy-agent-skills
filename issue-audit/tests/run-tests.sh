@@ -7,6 +7,8 @@
 # 한쪽만 바뀌면 드리프트가 잡힌다. 이모지도 대응표에서만 합성하고 러너 본문에 리터럴로 적지 않는다.
 # next-finding-number.sh 는 SKILL.md 가 서술한 함정(번호 건너뜀·재사용·발견 0건 회차)을
 # 반례 fixture 로 재현해 격추 여부를 확인한다.
+# check-plan.sh 는 계획 감사(--plan)의 추적성 판정 4종을 spec·plan 정상 fixture 의 awk 변형으로
+# 재현해 격추 여부와 고정 Task 판정·공집합·사용오류를 확인한다.
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -16,6 +18,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 CLASSIFY="$HERE/../scripts/classify-risk.sh"
 NEXTNUM="$HERE/../scripts/next-finding-number.sh"
+CHECKPLAN="$HERE/../scripts/check-plan.sh"
 
 pass=0
 fail=0
@@ -23,7 +26,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for s in "$CLASSIFY" "$NEXTNUM"; do
+for s in "$CLASSIFY" "$NEXTNUM" "$CHECKPLAN"; do
   [ -x "$s" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $s"; exit 1; }
 done
 
@@ -585,6 +588,123 @@ assert_report_structure "$sandbox/t-no-fold.md"        fail "리포트 구조: �
 assert_report_structure "$sandbox/t-verdict-inside.md" fail "리포트 구조: 판정 행 접기 안 이동 격추"
 assert_report_structure "$sandbox/t-dup-verdict.md"    fail "리포트 구조: 판정 자리표시자 중복 격추"
 assert_report_structure "$sandbox/t-old-summary.md"    fail "리포트 구조: 요약 줄 옛 형식 격추"
+
+# --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
+#
+# spec 포함 R · DoD `### R<n>` 그룹 · plan 일반 Task `대상 요구사항` 필드의 삼자 대응 위반 4종을
+# 정상 fixture 의 awk 변형으로 재현해 격추 여부를 확인한다. 고정 Task 판정은 헤더 두 가지만이라
+# 일반 Task 제목의 `고정` 단어를 오분류하지 않아야 하고, 일반 Task 에 `(고정)` 을 붙인 우회는 격추해야 한다.
+# 포함 목록 공집합·Task 블록 없음은 위반 0건이 아니라 추적 불가다 — 경로 오기가 통과로 보이지 않게 한다.
+
+tspec="$sandbox/trace-spec.md"
+cat > "$tspec" <<'EOF'
+# Issue #99 스펙 — 추적성 fixture
+
+## 요구사항 (Requirements)
+
+**포함**
+
+- R1: 첫 요구
+- R2: 둘째 요구
+
+**제외**
+
+- 셋째: 불필요
+
+## 완료의 정의 (Definition of Done)
+
+### R1: 첫 그룹
+
+- [ ] [D] 조건
+
+### R2: 둘째 그룹
+
+- [ ] [D] 조건
+
+### 공통
+
+- [ ] [D] 전체 테스트
+EOF
+
+tplan="$sandbox/trace-plan.md"
+cat > "$tplan" <<'EOF'
+# Issue #99 실행계획 — 추적성 fixture
+
+## Tasks
+
+### Task 0 (고정): 구현 시작 게이트
+
+- [ ] 완료
+- **목표**: 전제 확인
+
+### Task 1: 본작업
+
+- [ ] 완료
+- **목표**: 첫 요구 구현
+- **대상 요구사항**: R1
+
+### Task 2: 후속 작업
+
+- [ ] 완료
+- **목표**: 둘째 요구 구현
+- **대상 요구사항**: R2
+
+### Task N (고정): 교차모델 issue-audit 검증
+
+- [ ] 완료
+- **목표**: 감사
+EOF
+
+# assert_trace <기대: pass|fail> <설명> <spec> <plan> [기대 출력 행]
+# fail 은 종료 코드 1 과 기대 행의 정확 일치를 함께 본다 — 종료 코드만 보면 다른 사유의 위반도 통과한다.
+assert_trace() {
+  local want="$1" desc="$2" s="$3" p="$4" needle="${5:-}"
+  local out rc
+  out="$("$CHECKPLAN" --trace "$s" "$p" 2>&1)"; rc=$?
+  case "$want" in
+    pass) if [ "$rc" -eq 0 ] && [ -z "$out" ]; then ok "$desc"; else ng "$desc (기대 exit 0·무출력, 실제 exit $rc [$out])"; fi ;;
+    fail) if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qxF -- "$needle"; then ok "$desc"; else ng "$desc (기대 exit 1·행 '$needle', 실제 exit $rc [$out])"; fi ;;
+  esac
+}
+
+assert_trace pass 'trace: 정상 fixture 통과 (R1·R2, DoD R1·R2·공통, Task 0·1·2·N)' "$tspec" "$tplan"
+
+# 반례 4종 — 정상 fixture 의 awk 변형.
+awk '{print} /^### R2: /{print ""; print "### R3: 유령 그룹"}' "$tspec" > "$sandbox/ts-r3.md"
+awk '!/^### R2: /' "$tspec" > "$sandbox/ts-no-r2.md"
+awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: R1"); print}' "$tplan" > "$sandbox/tp-r2-unref.md"
+awk '!/^- \*\*대상 요구사항\*\*: R2$/' "$tplan" > "$sandbox/tp-no-field.md"
+
+assert_trace fail 'trace: R 없는 DoD 그룹 격추'     "$sandbox/ts-r3.md"    "$tplan"                 'R 없는 DoD 그룹: R3'
+assert_trace fail 'trace: DoD 없는 R 격추'          "$sandbox/ts-no-r2.md" "$tplan"                 'DoD 없는 R: R2'
+assert_trace fail 'trace: Task 없는 R 격추'         "$tspec" "$sandbox/tp-r2-unref.md"              'Task 없는 R: R2'
+assert_trace fail 'trace: 필드 없는 일반 Task 격추' "$tspec" "$sandbox/tp-no-field.md"              '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+
+# 고정 Task 판정 — 헤더 두 가지만. 일반 Task 제목의 `고정` 단어는 통과, 일반 Task 의 `(고정)` 개서는 격추.
+awk '{gsub(/^### Task 1: 본작업$/, "### Task 1: 고정 설정 갱신"); print}' "$tplan" > "$sandbox/tp-fixed-word.md"
+assert_trace pass 'trace: 일반 Task 제목의 고정 단어 오분류 없음' "$tspec" "$sandbox/tp-fixed-word.md"
+awk '{gsub(/^### Task 2: /, "### Task 2 (고정): "); print}' "$sandbox/tp-no-field.md" > "$sandbox/tp-fake-fixed.md"
+assert_trace fail 'trace: 일반 Task 의 (고정) 개서 우회 격추' "$tspec" "$sandbox/tp-fake-fixed.md" '대상 요구사항 없는 일반 Task: Task 2 (고정): 후속 작업'
+# 고정 Task 의 필드는 참조 집계에 넣지 않는다 — Task 0 이 R2 를 적어도 일반 Task 가 없으면 Task 없는 R 이다.
+awk '/^### Task 0/{f=1} {print} f && /^- \*\*목표\*\*:/{print "- **대상 요구사항**: R2"; f=0}' \
+  "$sandbox/tp-r2-unref.md" > "$sandbox/tp-fixed-ref.md"
+assert_trace fail 'trace: 고정 Task 의 필드는 참조로 세지 않음' "$tspec" "$sandbox/tp-fixed-ref.md" 'Task 없는 R: R2'
+
+# 공집합 — 포함 목록이 비었거나 Task 블록이 없으면 위반 0건이 아니라 추적 불가다.
+awk '!/^- R[0-9]+: /' "$tspec" > "$sandbox/ts-empty-inc.md"
+assert_trace fail 'trace: 포함 목록 공집합 격추' "$sandbox/ts-empty-inc.md" "$tplan" \
+  '추적 불가: spec 포함 목록에 R<n> 항목이 없습니다 — 경로를 확인하세요'
+printf '# 빈 문서\n' > "$sandbox/tp-empty.md"
+assert_trace fail 'trace: Task 블록 없는 plan 격추' "$tspec" "$sandbox/tp-empty.md" \
+  '추적 불가: plan 에 ### Task 블록이 없습니다 — 경로를 확인하세요'
+
+# 사용오류 — 종료 코드 2 와 함께 표준 출력이 비어 있어야 한다 (assert_usage_error 가 함께 본다).
+assert_usage_error 'check-plan 인자 누락(--trace 단독)' "$CHECKPLAN" --trace
+assert_usage_error 'check-plan 인자 부족(spec 만)'      "$CHECKPLAN" --trace "$tspec"
+assert_usage_error 'check-plan 모드 미지정'             "$CHECKPLAN"
+assert_usage_error 'check-plan 읽을 수 없는 파일'       "$CHECKPLAN" --trace "$tspec" "$sandbox/does-not-exist.md"
+assert_usage_error 'check-plan 알 수 없는 옵션'         "$CHECKPLAN" --all "$tspec" "$tplan"
+assert_usage_error 'check-plan 모드 중복'               "$CHECKPLAN" --trace "$tspec" "$tplan" --trace "$tspec" "$tplan"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
