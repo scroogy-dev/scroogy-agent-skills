@@ -508,7 +508,7 @@ plan_done="$sandbox/plan-done.md"
 cat > "$plan_done" <<'EOF'
 # Issue #99 실행계획 — clear 게이트 fixture
 
-## 설계 종료 게이트 (고정)
+## 계획 종료 게이트 (고정)
 
 - [x] 점검 완료
 
@@ -531,10 +531,10 @@ assert_clear pass "clear 완료 확인: 전부 체크된 plan 통과" --completi
 
 # 게이트만 미체크 — `## Tasks` 밖이라 Task 체크박스만 세면 놓치는 자리다.
 awk '{gsub(/^- \[x\] 점검 완료$/, "- [ ] 점검 완료"); print}' "$plan_done" > "$sandbox/plan-gate-open.md"
-assert_clear fail "clear 완료 확인: 설계 종료 게이트 미체크 격추" --completion "$sandbox/plan-gate-open.md"
+assert_clear fail "clear 완료 확인: 계획 종료 게이트 미체크 격추" --completion "$sandbox/plan-gate-open.md"
 # `set -o pipefail` 아래에서는 헬퍼의 exit 1 이 파이프라인 전체로 전파되므로 출력을 변수에 담아 본다.
 gate_out="$("$CLEAR" --completion "$sandbox/plan-gate-open.md" 2>&1)"
-printf '%s\n' "$gate_out" | grep -q '설계 종료 게이트 점검 완료' \
+printf '%s\n' "$gate_out" | grep -q '계획 종료 게이트 점검 완료' \
   && ok "clear 완료 확인: 게이트 미완료 사유 출력" \
   || ng "clear 완료 확인: 게이트 미완료 사유가 출력되지 않음 — [$gate_out]"
 
@@ -550,7 +550,7 @@ assert_clear fail "clear 완료 확인: 게이트 항목 소실 격추" --comple
 # 이웃 반례: 게이트 체크박스가 2개이고 둘 다 체크된 경우.
 # 미체크만 세면 이 입력이 통과하므로 Task 쪽과 같이 유일성도 함께 센다.
 awk '{print} /^- \[x\] 점검 완료$/{print "- [x] 점검 완료"}' "$plan_done" > "$sandbox/plan-gate-dup.md"
-assert_clear fail "clear 완료 확인: 설계 종료 게이트 중복 격추" --completion "$sandbox/plan-gate-dup.md"
+assert_clear fail "clear 완료 확인: 계획 종료 게이트 중복 격추" --completion "$sandbox/plan-gate-dup.md"
 dup_gate_out="$("$CLEAR" --completion "$sandbox/plan-gate-dup.md" 2>&1)"
 printf '%s\n' "$dup_gate_out" | grep -q '항목이 2개입니다' \
   && ok "clear 완료 확인: 게이트 중복 사유 출력" \
