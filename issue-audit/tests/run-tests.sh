@@ -745,6 +745,47 @@ assert_trace pass 'trace: 주석 안의 펜스 행은 펜스 상태를 바꾸지
 { printf '```text\n<!--\n```\n'; cat "$tspec"; } > "$sandbox/ts-fence-comment.md"
 assert_trace pass 'trace: 펜스 안의 주석 열기는 주석 상태를 바꾸지 않음' "$sandbox/ts-fence-comment.md" "$tplan"
 
+# 연속 주석·행 중간 주석·인라인 코드 (3차 audit F-4·F-5) — 주석을 닫은 행의 나머지에서 다시 연 주석(`--> <!--`)은
+# 이어지고, 행 중간에서 시작한 여러 줄 주석은 `<!--` 앞의 본문을 살리며, 인라인 코드 안의 `<!--` 는 주석을 열지 않는다.
+{ awk '!/^### R2: /' "$tspec"; printf '\n<!--\n앞 메모\n--> <!--\n### R2: 둘째 그룹\n-->\n'; } > "$sandbox/ts-reopen-dod.md"
+assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 DoD 그룹은 세지 않음' "$sandbox/ts-reopen-dod.md" "$tplan" 'DoD 없는 R: R2'
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "<!--"; print "앞 메모"; print "--> <!--"; print; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-reopen-field.md"
+assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-reopen-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-reopen-field.md" 'Task 없는 R: R2'
+{ cat "$tspec"; printf '\n<!--\n앞 메모\n--> <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-reopen-phantom.md"
+assert_trace pass 'trace: 연속 주석의 두 번째 주석 안 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-reopen-phantom.md" "$tplan"
+# 두 번째 주석의 R99 는 무시하고 주석 밖의 실제 유령 그룹만 정확히 1행 출력해야 한다 — 행 포함 검사만으로는 R99 유령 위반의 동반 출력을 놓친다.
+{ cat "$sandbox/ts-r3.md"; printf '\n<!--\n앞 메모\n--> <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-reopen-phantom-real.md"
+out="$("$CHECKPLAN" --trace "$sandbox/ts-reopen-phantom-real.md" "$tplan" 2>&1)"; rc=$?
+if [ "$rc" -eq 1 ] && [ "$out" = 'R 없는 DoD 그룹: R3' ]; then ok 'trace: 연속 주석 밖의 실제 유령 DoD 그룹만 격추 (R99 동반 출력 없음)'
+else ng "trace: 연속 주석 밖의 실제 유령 DoD 그룹만 격추 (R99 동반 출력 없음) (기대 exit 1·행 1개, 실제 exit $rc [$out])"; fi
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print $0 " <!--"; print "다음 줄 설명"; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-field-then-comment.md"
+assert_trace pass 'trace: 실제 R 뒤에서 시작한 여러 줄 주석은 앞의 참조를 유지' "$tspec" "$sandbox/tp-field-then-comment.md"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!--"; print "R2"; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-multiline-comment-only.md"
+assert_trace fail 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-multiline-comment-only.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+assert_trace fail 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-multiline-comment-only.md" 'Task 없는 R: R2'
+awk '/^### R2: / { print $0 " <!--"; print "그룹 메모"; print "-->"; next } { print }' "$tspec" > "$sandbox/ts-dod-then-comment.md"
+assert_trace pass 'trace: DoD 그룹 헤더 뒤에서 시작한 여러 줄 주석은 헤더를 유지' "$sandbox/ts-dod-then-comment.md" "$tplan"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "`<!--`는 검사할 구분자다."; print ""; print; next } { print }' "$tplan" > "$sandbox/tp-inline-code-marker.md"
+assert_trace pass 'trace: 인라인 코드 안의 <!-- 는 주석을 열지 않음' "$tspec" "$sandbox/tp-inline-code-marker.md"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "``<!-- `코드` -->``는 예시다."; print ""; print; next } { print }' "$tplan" > "$sandbox/tp-inline-code-double.md"
+assert_trace pass 'trace: 백틱 2개 인라인 코드 안의 백틱 1개·주석 구분자는 본문이 아님' "$tspec" "$sandbox/tp-inline-code-double.md"
+{ cat "$tspec"; printf '\n백틱 ` 하나 뒤의 <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-lone-backtick.md"
+assert_trace pass 'trace: 짝 없는 백틱은 인라인 코드가 아니라 뒤의 주석 열기가 유효' "$sandbox/ts-lone-backtick.md" "$tplan"
+
+# 주석 안의 백틱 (4차 audit F-6) — 인라인 코드와 주석은 먼저 시작한 쪽이 이긴다. 주석 안의 백틱은 코드를 열지 않아,
+# 두 주석에 하나씩 든 백틱이 짝지어져 사이의 실제 값이 사라지거나, 백틱으로 감싼 `-->` 가 가려져 주석이 열린 채 남지 않는다.
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!-- ` --> R2 <!-- ` -->"; next } { print }' "$tplan" > "$sandbox/tp-backtick-between-comments.md"
+assert_trace pass 'trace: 두 주석에 하나씩 든 백틱 사이의 실제 값은 유지' "$tspec" "$sandbox/tp-backtick-between-comments.md"
+awk '/^- \*\*대상 요구사항\*\*: R1$/ { print $0 " <!-- `-->`"; next } { print }' "$tplan" > "$sandbox/tp-backtick-comment-end.md"
+assert_trace pass 'trace: 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 Task 를 건너뛰지 않음' "$tspec" "$sandbox/tp-backtick-comment-end.md"
+awk '/^### R1: / { print $0 " <!-- `-->`"; next } { print }' "$tspec" > "$sandbox/ts-backtick-comment-end.md"
+assert_trace pass 'trace: DoD 헤더 뒤 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 그룹을 건너뛰지 않음' "$sandbox/ts-backtick-comment-end.md" "$tplan"
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!-- `R2` -->"; next } { print }' "$tplan" > "$sandbox/tp-backtick-comment-only.md"
+assert_trace fail 'trace: 값이 백틱을 담은 한 줄 주석뿐인 필드는 연결로 세지 않음' "$tspec" "$sandbox/tp-backtick-comment-only.md" 'Task 없는 R: R2'
+awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: `<!--` <!-- ` --> R2"; next } { print }' "$tplan" > "$sandbox/tp-code-then-comment.md"
+assert_trace pass 'trace: 코드 안의 <!-- 뒤에 온 주석 안의 백틱은 글자 (먼저 시작한 쪽이 이김)' "$tspec" "$sandbox/tp-code-then-comment.md"
+
 # 공집합 — 포함 목록이 비었거나 Task 블록이 없으면 위반 0건이 아니라 추적 불가다.
 awk '!/^- R[0-9]+: /' "$tspec" > "$sandbox/ts-empty-inc.md"
 assert_trace fail 'trace: 포함 목록 공집합 격추' "$sandbox/ts-empty-inc.md" "$tplan" \
