@@ -485,6 +485,66 @@ assert_structure check_plan_structure "$sandbox/p-field-outside.md"  fail "plan 
 assert_structure check_plan_structure "$sandbox/p-field-dangling.md" fail "plan 구조: spec 포함 목록에 없는 dangling 참조(PR #95 3차 리뷰 반례) 격추"
 assert_structure check_plan_structure "$sandbox/p-general-as-fixed.md" fail "plan 구조: 일반 Task의 (고정) 개서 우회(PR #95 5차 리뷰 반례) 격추"
 
+# --- summary 템플릿 effort 구조 (PR #103 리뷰 반례) -------------------------------
+#
+# 모델 기록 표 effort 열과 Task `수행 effort` 행은 issue-0102 spec R1·R2 의 일회성 [D]
+# 명령으로만 검증되었고, 게이트·집계 파서는 effort 행을 읽지 않는다 — 삭제·이동해도
+# 정규 러너가 통과하므로 여기에 편입한다.
+# 표 행은 이름별로 센다 — 총 행 수만 보면 한 행 삭제와 다른 행 중복이 상쇄된다.
+# Task 블록도 블록 단위로 센다 — 한 블록의 누락을 다른 블록의 중복으로 상쇄할 수 없다.
+
+SUMMARY_TPL="$HERE/../templates/issue-summary-template.md"
+
+# check_summary_structure <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_summary_structure() {
+  awk -F'|' '
+    function chk() { if (!t) return
+      if (n) { if (e) print "Task N 블록에 수행 effort 행: " t }
+      else if (e != 1) print "수행 effort 행 " e + 0 "개: " t }
+    /^\| 구분 \| 모델 \| effort \|$/ { hdr++ }
+    /^\| (계획 모델|계획 audit 모델|구현 모델|최종 audit 모델) \|/ {
+      l = $2; gsub(/^ +| +$/, "", l); rows[l]++
+      if (NF != 5) print "모델 기록 행 셀 수 " NF - 2 "개: " l }
+    /^### Task / { chk(); t = $0; n = ($0 ~ /^### Task N/); m = 0; e = 0 }
+    !t && /^- \*\*수행 effort\*\*:/ { print "수행 effort 행이 Task 블록 밖 (" NR "행)" }
+    t && /^- \*\*수행 모델\*\*:/ { m = NR }
+    t && /^- \*\*수행 effort\*\*:/ { e++; if (NR != m + 1) print "수행 effort 행이 수행 모델 바로 다음이 아님: " t }
+    END { chk()
+      if (hdr != 1) print "모델 기록 표 헤더(구분·모델·effort) " hdr + 0 "개 (기대 1개)"
+      split("계획 모델|계획 audit 모델|구현 모델|최종 audit 모델", want, "|")
+      for (i = 1; i <= 4; i++) if (rows[want[i]] != 1) print "모델 기록 " want[i] " 행 " rows[want[i]] + 0 "개 (기대 1개)" }
+  ' "$1"
+}
+
+awk '{sub(/^\| 구분 \| 모델 \| effort \|$/, "| 구분 | 모델 |"); print}' "$SUMMARY_TPL" > "$sandbox/m-no-effort-col.md"
+awk '/^\| 구현 모델 \|/{sub(/ \| <!--[^|]*--> \|$/, " |")} {print}' "$SUMMARY_TPL" > "$sandbox/m-row-cells.md"
+awk '!/^\| 최종 audit 모델 \|/' "$SUMMARY_TPL" > "$sandbox/m-row-missing.md"
+awk '/^\| 계획 audit 모델 \|/{next} {print} /^\| 구현 모델 \|/{print}' "$SUMMARY_TPL" > "$sandbox/m-row-offset.md"
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*수행 effort\*\*:/)' \
+  "$SUMMARY_TPL" > "$sandbox/m-task-missing.md"
+awk '{print} /^### Task 0/{s=1} s && /^- \*\*수행 effort\*\*:/{print; s=0}' "$SUMMARY_TPL" > "$sandbox/m-task-dup.md"
+awk '/^### Task 2:/{s=1} /^### Task N/{s=0}
+     s && /^- \*\*수행 effort\*\*:/ { held = $0; next }
+     { print }
+     s && held && /^- \*\*재시도\*\*:/ { print held; held = "" }' \
+  "$SUMMARY_TPL" > "$sandbox/m-task-moved.md"
+awk '{print} /^### Task N/{s=1} s && /^- \*\*결과\*\*:/{print "- **수행 effort**: -"; s=0}' \
+  "$SUMMARY_TPL" > "$sandbox/m-taskn-effort.md"
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0; d=1} s && /^- \*\*수행 effort\*\*:/{next}
+     {print} d && /^- \*\*수행 effort\*\*:/{print; d=0}' \
+  "$SUMMARY_TPL" > "$sandbox/m-task-offset.md"
+
+assert_structure check_summary_structure "$SUMMARY_TPL"               pass "summary 구조: 실제 템플릿 통과"
+assert_structure check_summary_structure "$sandbox/m-no-effort-col.md" fail "summary 구조: 모델 기록 표 effort 열 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-row-cells.md"    fail "summary 구조: 모델 기록 행 셀 소실 격추"
+assert_structure check_summary_structure "$sandbox/m-row-missing.md"  fail "summary 구조: 모델 기록 행 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-row-offset.md"   fail "summary 구조: 모델 기록 행 삭제+중복 상쇄 격추"
+assert_structure check_summary_structure "$sandbox/m-task-missing.md" fail "summary 구조: 일반 Task 수행 effort 누락 격추"
+assert_structure check_summary_structure "$sandbox/m-task-dup.md"     fail "summary 구조: Task 0 수행 effort 중복 격추"
+assert_structure check_summary_structure "$sandbox/m-task-moved.md"   fail "summary 구조: 수행 effort 수행 모델 뒤 이탈 격추"
+assert_structure check_summary_structure "$sandbox/m-taskn-effort.md" fail "summary 구조: Task N 블록 수행 effort 오기 격추"
+assert_structure check_summary_structure "$sandbox/m-task-offset.md"  fail "summary 구조: 블록 간 누락+중복 상쇄 격추"
+
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
 CLEAR="$HERE/../scripts/check-clear.sh"
