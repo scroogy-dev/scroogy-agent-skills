@@ -10,7 +10,7 @@ last_harvested: 2026-09-09
 
 - 분류 값은 한글 우선 병기다. 위험도 높음(HIGH)/중간(MEDIUM)/낮음(LOW)/정보(INFO), 판정 충족(PASS)/미충족(FAIL)/부분 충족(PARTIAL)/판정 불가(N/A), 단계는 1단계/2단계(영문 부제 병기). 새 분류 값도 같은 관례를 따른다.
 - 예외: 스크립트 출력 토큰(`verify-install.sh`의 PASS/FAIL), 기계 판독용 YAML 값(`confidence: high`), CLI 옵션 인자(`init`/`update`, `dev`/`doc`), 완료 이슈의 이력 문서.
-- 모델 기록은 "벤더, 모델명" 형식이다(예: `OpenAI, GPT-5 (Codex)`). 특정 모델·벤더명은 절차·규칙에 하드코딩하지 않는다.
+- 모델 기록은 "벤더, 모델명 (모델 ID)" 형식이다(예: `Anthropic, Claude Fable 5.1 (claude-fable-5-1)` / `OpenAI, GPT-6 (gpt-6-astra)`). 괄호 안은 모델 ID 전용이며 도구명·회차 같은 다른 정보를 넣지 않는다. 모델 ID는 실행 기록에서 effort와 같은 레코드로 읽고, 확인할 수 없으면 괄호를 남겨 `(-)`로 적으며, 컨텍스트 접미어(`[1m]` 등)는 `[`부터 끝까지 제거한다. 모델 ID는 게이트·벤더 교차 조건에 쓰지 않는다. 특정 모델·벤더명은 절차·규칙에 하드코딩하지 않는다.
 - effort(모델의 추론 강도 설정값)는 모델 값에 섞지 않고 별도 필드(summary `모델 기록` 표의 `effort` 열, Task `수행 effort`)에 도구가 기록한 표기 그대로 적는다(확인 불가면 `-`). 벤더가 다르면 같은 이름의 단계라도 같은 수준이 아니므로 벤더끼리 비교하지 않는다.
 - 디렉토리 트리는 IDE 기본 표시 순서다. 같은 단계 항목은 대소문자 무시 알파벳순, 디렉토리를 파일보다 위, `.` 숨김 항목도 같은 알파벳순.
 - 이모지는 SKILL.md 설명 본문에 쓰지 않는다. 산출물 값 명세(issue-work 요약의 완료 표시, 신호등 판정·상태·등급)는 예외이며 헬퍼가 출력한다.
@@ -27,6 +27,7 @@ last_harvested: 2026-09-09
 - 트리 정렬 규칙은 각 영향 스킬에 같은 문장으로 명시한다. 본 repo의 트리는 이미 IDE 순서와 일치해 명문화가 본질이었다 (#11).
 - 스킬명 결정 기준은 #64에서 확정했다. `install-skills --clear` 선례와 Claude Code `/clear` 유추가 `--clear`의 근거다 (#15). `--response`는 감사 도메인의 auditee response 용어와 일치한다 (#31).
 - 이모지 정책은 #96에서 확인했다. 산출물 값 명세 예외는 issue-work 요약의 완료 표시 선례를 따른다.
+- 모델 ID 병기는 같은 제품명 아래의 다른 변형을 사후에 구분하려고 도입했다. 괄호를 모델 ID 전용으로 두면서, 모델명 뒤 괄호에 도구명을 적던 이전 예시를 교체했다 (#104).
 
 </details>
 
@@ -45,6 +46,7 @@ last_harvested: 2026-09-09
 - [Issue #92 git-review-quiz (대상-행위 패턴)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/92)
 - [Issue #96 git-review 신호등 판정 (이모지 정책)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/96)
 - [Issue #102 모델 기록에 effort 기록 추가](https://github.com/scroogy-dev/scroogy-agent-skills/issues/102)
+- [Issue #104 모델 기록 형식에 모델 ID 병기 도입](https://github.com/scroogy-dev/scroogy-agent-skills/issues/104)
 - [PR #65 리뷰 코멘트 (라인 번호 참조)](https://github.com/scroogy-dev/scroogy-agent-skills/pull/65)
 
 </details>
