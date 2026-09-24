@@ -11,6 +11,7 @@ last_harvested: 2026-09-09
 - 분류 값은 한글 우선 병기다. 위험도 높음(HIGH)/중간(MEDIUM)/낮음(LOW)/정보(INFO), 판정 충족(PASS)/미충족(FAIL)/부분 충족(PARTIAL)/판정 불가(N/A), 단계는 1단계/2단계(영문 부제 병기). 새 분류 값도 같은 관례를 따른다.
 - 예외: 스크립트 출력 토큰(`verify-install.sh`의 PASS/FAIL), 기계 판독용 YAML 값(`confidence: high`), CLI 옵션 인자(`init`/`update`, `dev`/`doc`), 완료 이슈의 이력 문서.
 - 모델 기록은 "벤더, 모델명" 형식이다(예: `OpenAI, GPT-5 (Codex)`). 특정 모델·벤더명은 절차·규칙에 하드코딩하지 않는다.
+- effort(모델의 추론 강도 설정값)는 모델 값에 섞지 않고 별도 필드(summary `모델 기록` 표의 `effort` 열, Task `수행 effort`)에 도구가 기록한 표기 그대로 적는다(확인 불가면 `-`). 벤더가 다르면 같은 이름의 단계라도 같은 수준이 아니므로 벤더끼리 비교하지 않는다.
 - 디렉토리 트리는 IDE 기본 표시 순서다. 같은 단계 항목은 대소문자 무시 알파벳순, 디렉토리를 파일보다 위, `.` 숨김 항목도 같은 알파벳순.
 - 이모지는 SKILL.md 설명 본문에 쓰지 않는다. 산출물 값 명세(issue-work 요약의 완료 표시, 신호등 판정·상태·등급)는 예외이며 헬퍼가 출력한다.
 - `templates/` 참조는 "이 skill 디렉토리의 `templates/<파일>`"로 적는다.
@@ -43,6 +44,7 @@ last_harvested: 2026-09-09
 - [Issue #82 templates/ 참조 표기 통일](https://github.com/scroogy-dev/scroogy-agent-skills/issues/82)
 - [Issue #92 git-review-quiz (대상-행위 패턴)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/92)
 - [Issue #96 git-review 신호등 판정 (이모지 정책)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/96)
+- [Issue #102 모델 기록에 effort 기록 추가](https://github.com/scroogy-dev/scroogy-agent-skills/issues/102)
 - [PR #65 리뷰 코멘트 (라인 번호 참조)](https://github.com/scroogy-dev/scroogy-agent-skills/pull/65)
 
 </details>
