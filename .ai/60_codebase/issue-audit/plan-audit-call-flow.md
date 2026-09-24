@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-09
-source_hash: cf3fdca
+last_synced: 2026-09-24
+source_hash: 65b2bf4
 status: current
 ---
 
@@ -21,7 +21,7 @@ issue-audit/SKILL.md `### --plan`
 │   ├── 가짜 [D] 사전 판별 [D]    # 구현 전 트리에서 [D] 명령 실행, 정상 명령은 실패해야 함, 회귀 방지 항목은 예외 표시 (수동)
 │   └── 범위·모호성·과잉 설계 [QD]
 ├── 공통 규칙                     # classify-risk.sh 등급·처리·상태·판정, 원장 대조, next-finding-number.sh 는 최종 감사와 동일
-└── 결과 기록                     # .ai/99_workspace/issue-<번호>-plan-audit-report.md, 회차 보존·--clear 이관 동일, F- 번호 축은 최종 감사와 분리
+└── 결과 기록                     # .ai/99_workspace/issue-<번호>-plan-audit-report.md, 회차 보존·--clear 이관 동일, F- 번호 축은 최종 감사와 분리, 감사 모델·effort 줄 값은 summary 계획 audit 모델 행에 사용자가 기록
 ```
 
 추적성 헬퍼 내부:
