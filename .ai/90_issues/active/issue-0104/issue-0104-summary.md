@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — .ai 안내도 정합
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 ## 모델 기록
 
@@ -75,14 +75,14 @@
 
 ### Task 4: .ai 안내도 정합
 
-- **결과**:
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: high
 - **audit 발견**: 0건
 - **보정 반영**: 0건
-- **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **재시도**: 1회
+- **수행 내용 요약**: notation-conventions의 모델 기록 관례를 확장 형식으로 바꿔 예시를 `Anthropic, Claude Fable 5.1 (claude-fable-5-1)` / `OpenAI, GPT-6 (gpt-6-astra)`로 교체했다. 괄호 안 ID 전용·같은 레코드에서 읽기·확인 불가 `(-)`·접미어 제거·게이트 미사용을 한 항목에 적고, 근거와 출처 #104를 더했다. ADR 0004 형식 통일 문장을 확장 형식으로 갱신하고 출처를 `(#26, #104)`로 병기했다. `specs/issue-workflow.md`의 summary 구성과 `specs/issue-audit.md`의 `감사 모델` 메타 줄에 형식을 맞췄다. `60_codebase/index.md`·`issue-audit/final-audit-call-flow.md`의 형식 문구를 맞추고 frontmatter를 `last_synced: 2026-09-25`, `source_hash: 50c77f4`(스킬 소스 마지막 커밋)로 갱신했다. spec `[D]` 17건 전체, repo 소스 `check-plan.sh --trace`, 전체 스킬 테스트가 모두 통과했다.
+- **특이 사항**: 재시도 1회는 R5-2 위반 때문이다. notation-conventions 근거 문장에 옛 예시 `GPT-5 (Codex)`를 인용했다가 걸려서 인용을 빼고 다시 썼다. `index.md`는 source_hash를 올리면서 issue-audit 행에 원장 K-0011 링크를 더했다(해시 범위 안의 원장 등재 반영, R5 목록 밖의 추가).
 
 ---
 
