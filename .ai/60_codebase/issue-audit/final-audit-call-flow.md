@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-09
-source_hash: 5ab2b67
+last_synced: 2026-09-24
+source_hash: 65b2bf4
 status: current
 ---
 
@@ -29,7 +29,7 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
 └── 3단계: 결과 기록
     ├── templates/issue-audit-report-template.md
     ├── scripts/classify-risk.sh --status [<위험도>…] / --verdict <상태> <상태>   # 2단계 상태·종합 판정 한 줄
-    └── .ai/99_workspace/issue-<번호>-audit-report.md   # 직전 회차는 -<회차>.md 로 회전, 모델은 "벤더, 모델명"
+    └── .ai/99_workspace/issue-<번호>-audit-report.md   # 직전 회차는 -<회차>.md 로 회전, 모델은 "벤더, 모델명", effort 는 별도 줄에 도구 표기 그대로
 ```
 
 리포트의 보정은 이 스킬이 하지 않는다. issue-work `--response`가 피드백·항목별 승인·승인분 보정을 맡는다([--response 흐름](../issue-work/response-call-flow.md)).

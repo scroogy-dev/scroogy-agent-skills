@@ -102,18 +102,21 @@ cat > "$base" <<'EOF'
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 4.8 (claude-opus-4-8)
+- **수행 effort**: high
 - **audit 발견**: 0건
 
 ### Task 1: 본작업
 
 - **결과**: 부분 완료
 - **수행 모델**: OpenAI, GPT-5
+- **수행 effort**: xhigh
 - **audit 발견**: 1건
 
 ### Task 2: 후속 작업
 
 - **결과**: 스킵
 - **수행 모델**: -
+- **수행 effort**: -
 - **audit 발견**: 0건
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
@@ -482,6 +485,82 @@ assert_structure check_plan_structure "$sandbox/p-field-outside.md"  fail "plan 
 assert_structure check_plan_structure "$sandbox/p-field-dangling.md" fail "plan 구조: spec 포함 목록에 없는 dangling 참조(PR #95 3차 리뷰 반례) 격추"
 assert_structure check_plan_structure "$sandbox/p-general-as-fixed.md" fail "plan 구조: 일반 Task의 (고정) 개서 우회(PR #95 5차 리뷰 반례) 격추"
 
+# --- summary 템플릿 effort 구조 (PR #103 리뷰 반례) -------------------------------
+#
+# 모델 기록 표 effort 열과 Task `수행 effort` 행은 issue-0102 spec R1·R2 의 일회성 [D]
+# 명령으로만 검증되었고, 게이트·집계 파서는 effort 행을 읽지 않는다 — 삭제·이동해도
+# 정규 러너가 통과하므로 여기에 편입한다.
+# 표 행은 이름별로 센다 — 총 행 수만 보면 한 행 삭제와 다른 행 중복이 상쇄된다.
+# 이름별 개수와 함께 헤더·구분선 바로 뒤 4행의 이름·순서도 본다 — 개수만 보면 행을
+# 표 밖(파일 끝 등)으로 옮겨도 통과한다(PR #103 2차 리뷰 반례).
+# 구분선도 셀을 정확히 3개로 본다 — 셀 수를 보지 않으면 effort 구분 셀 삭제가 통과한다(PR #103 3차 리뷰 반례).
+# Task 블록도 블록 단위로 센다 — 한 블록의 누락을 다른 블록의 중복으로 상쇄할 수 없다.
+
+SUMMARY_TPL="$HERE/../templates/issue-summary-template.md"
+
+# check_summary_structure <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_summary_structure() {
+  awk -F'|' '
+    function chk() { if (!t) return
+      if (n) { if (e) print "Task N 블록에 수행 effort 행: " t }
+      else if (e != 1) print "수행 effort 행 " e + 0 "개: " t }
+    BEGIN { split("계획 모델|계획 audit 모델|구현 모델|최종 audit 모델", want, "|") }
+    /^\| 구분 \| 모델 \| effort \|$/ { hdr++; h = NR; next }
+    h && NR == h + 1 && !/^\|-+\|-+\|-+\|$/ { print "모델 기록 표 3열 구분선이 헤더 바로 다음에 없음 (" NR "행)" }
+    h && NR >= h + 2 && NR <= h + 5 {
+      p = NR - h - 1; l = $2; gsub(/^ +| +$/, "", l)
+      if (l != want[p]) print "모델 기록 표 " p "번째 행이 " want[p] " 아님 (" NR "행): " l }
+    /^\| (계획 모델|계획 audit 모델|구현 모델|최종 audit 모델) \|/ {
+      l = $2; gsub(/^ +| +$/, "", l); rows[l]++
+      if (NF != 5) print "모델 기록 행 셀 수 " NF - 2 "개: " l }
+    /^### Task / { chk(); t = $0; n = ($0 ~ /^### Task N/); m = 0; e = 0 }
+    !t && /^- \*\*수행 effort\*\*:/ { print "수행 effort 행이 Task 블록 밖 (" NR "행)" }
+    t && /^- \*\*수행 모델\*\*:/ { m = NR }
+    t && /^- \*\*수행 effort\*\*:/ { e++; if (NR != m + 1) print "수행 effort 행이 수행 모델 바로 다음이 아님: " t }
+    END { chk()
+      if (hdr != 1) print "모델 기록 표 헤더(구분·모델·effort) " hdr + 0 "개 (기대 1개)"
+      for (i = 1; i <= 4; i++) if (rows[want[i]] != 1) print "모델 기록 " want[i] " 행 " rows[want[i]] + 0 "개 (기대 1개)" }
+  ' "$1"
+}
+
+awk '{sub(/^\| 구분 \| 모델 \| effort \|$/, "| 구분 | 모델 |"); print}' "$SUMMARY_TPL" > "$sandbox/m-no-effort-col.md"
+awk '/^\| 구현 모델 \|/{sub(/ \| <!--[^|]*--> \|$/, " |")} {print}' "$SUMMARY_TPL" > "$sandbox/m-row-cells.md"
+awk '!/^\| 최종 audit 모델 \|/' "$SUMMARY_TPL" > "$sandbox/m-row-missing.md"
+awk '/^\| 계획 audit 모델 \|/{next} {print} /^\| 구현 모델 \|/{print}' "$SUMMARY_TPL" > "$sandbox/m-row-offset.md"
+# PR #103 2차 리뷰 반례: 행을 표 밖(파일 끝)으로 이동, 표 안 행 순서 교환 — 이름별 개수는 그대로다.
+awk '/^\| 최종 audit 모델 \|/{held = $0; next} {print} END{print held}' "$SUMMARY_TPL" > "$sandbox/m-row-outside.md"
+awk '/^\| 계획 audit 모델 \|/{held = $0; next} {print} /^\| 구현 모델 \|/{print held}' "$SUMMARY_TPL" > "$sandbox/m-row-order.md"
+# PR #103 3차 리뷰 반례: 구분선에서 effort 구분 셀만 삭제 — 헤더·4개 행은 그대로다.
+awk 'p && /^\|[-|]+\|$/{print "|------|------|"; p=0; next} {p = /^\| 구분 \| 모델 \| effort \|$/; print}' \
+  "$SUMMARY_TPL" > "$sandbox/m-sep-cells.md"
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*수행 effort\*\*:/)' \
+  "$SUMMARY_TPL" > "$sandbox/m-task-missing.md"
+awk '{print} /^### Task 0/{s=1} s && /^- \*\*수행 effort\*\*:/{print; s=0}' "$SUMMARY_TPL" > "$sandbox/m-task-dup.md"
+awk '/^### Task 2:/{s=1} /^### Task N/{s=0}
+     s && /^- \*\*수행 effort\*\*:/ { held = $0; next }
+     { print }
+     s && held && /^- \*\*재시도\*\*:/ { print held; held = "" }' \
+  "$SUMMARY_TPL" > "$sandbox/m-task-moved.md"
+awk '{print} /^### Task N/{s=1} s && /^- \*\*결과\*\*:/{print "- **수행 effort**: -"; s=0}' \
+  "$SUMMARY_TPL" > "$sandbox/m-taskn-effort.md"
+awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0; d=1} s && /^- \*\*수행 effort\*\*:/{next}
+     {print} d && /^- \*\*수행 effort\*\*:/{print; d=0}' \
+  "$SUMMARY_TPL" > "$sandbox/m-task-offset.md"
+
+assert_structure check_summary_structure "$SUMMARY_TPL"               pass "summary 구조: 실제 템플릿 통과"
+assert_structure check_summary_structure "$sandbox/m-no-effort-col.md" fail "summary 구조: 모델 기록 표 effort 열 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-row-cells.md"    fail "summary 구조: 모델 기록 행 셀 소실 격추"
+assert_structure check_summary_structure "$sandbox/m-row-missing.md"  fail "summary 구조: 모델 기록 행 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-row-offset.md"   fail "summary 구조: 모델 기록 행 삭제+중복 상쇄 격추"
+assert_structure check_summary_structure "$sandbox/m-row-outside.md"  fail "summary 구조: 모델 기록 행 표 밖 이동(PR #103 2차 리뷰 반례) 격추"
+assert_structure check_summary_structure "$sandbox/m-row-order.md"    fail "summary 구조: 모델 기록 행 순서 교환(PR #103 2차 리뷰 반례) 격추"
+assert_structure check_summary_structure "$sandbox/m-sep-cells.md"    fail "summary 구조: 구분선 effort 셀 삭제(PR #103 3차 리뷰 반례) 격추"
+assert_structure check_summary_structure "$sandbox/m-task-missing.md" fail "summary 구조: 일반 Task 수행 effort 누락 격추"
+assert_structure check_summary_structure "$sandbox/m-task-dup.md"     fail "summary 구조: Task 0 수행 effort 중복 격추"
+assert_structure check_summary_structure "$sandbox/m-task-moved.md"   fail "summary 구조: 수행 effort 수행 모델 뒤 이탈 격추"
+assert_structure check_summary_structure "$sandbox/m-taskn-effort.md" fail "summary 구조: Task N 블록 수행 effort 오기 격추"
+assert_structure check_summary_structure "$sandbox/m-task-offset.md"  fail "summary 구조: 블록 간 누락+중복 상쇄 격추"
+
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
 CLEAR="$HERE/../scripts/check-clear.sh"
@@ -621,6 +700,7 @@ cat > "$metrics_ok" <<'EOF'
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
 - **audit 발견**: 1건
 - **보정 반영**: 1건
 - **재시도**: 0회
@@ -629,6 +709,7 @@ cat > "$metrics_ok" <<'EOF'
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
 - **audit 발견**: 2건
 - **보정 반영**: 1건
 - **재시도**: 1회
