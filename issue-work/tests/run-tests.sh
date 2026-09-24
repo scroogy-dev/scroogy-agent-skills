@@ -102,18 +102,21 @@ cat > "$base" <<'EOF'
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 4.8 (claude-opus-4-8)
+- **수행 effort**: high
 - **audit 발견**: 0건
 
 ### Task 1: 본작업
 
 - **결과**: 부분 완료
 - **수행 모델**: OpenAI, GPT-5
+- **수행 effort**: xhigh
 - **audit 발견**: 1건
 
 ### Task 2: 후속 작업
 
 - **결과**: 스킵
 - **수행 모델**: -
+- **수행 effort**: -
 - **audit 발견**: 0건
 
 ### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
@@ -621,6 +624,7 @@ cat > "$metrics_ok" <<'EOF'
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
 - **audit 발견**: 1건
 - **보정 반영**: 1건
 - **재시도**: 0회
@@ -629,6 +633,7 @@ cat > "$metrics_ok" <<'EOF'
 
 - **결과**: 완료
 - **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
 - **audit 발견**: 2건
 - **보정 반영**: 1건
 - **재시도**: 1회
