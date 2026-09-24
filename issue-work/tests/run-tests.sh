@@ -92,6 +92,7 @@ sandbox="$(mktemp -d)"
 trap 'rm -rf "$sandbox"' EXIT
 
 # 정상 fixture: 확정된 일반 Task 3개(완료·부분 완료·스킵) + 미기입 Task N.
+# Task 1 수행 모델은 모델 ID 확인 불가 표기 `(-)`가 수행 모델 게이트를 통과함을 고정한다(#104).
 base="$sandbox/summary-valid.md"
 cat > "$base" <<'EOF'
 # Issue #99 실행요약 — 게이트 테스트 fixture
@@ -108,7 +109,7 @@ cat > "$base" <<'EOF'
 ### Task 1: 본작업
 
 - **결과**: 부분 완료
-- **수행 모델**: OpenAI, GPT-5
+- **수행 모델**: OpenAI, GPT-6 (-)
 - **수행 effort**: xhigh
 - **audit 발견**: 1건
 
