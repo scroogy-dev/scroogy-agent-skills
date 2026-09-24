@@ -528,6 +528,8 @@ check_report_structure() {
     /^- 2단계 위험도: <이모지> <상태> · /             { s2++ }
     /^> 감사 모델:/                                  { ml = NR }
     /^> 감사 effort:/                                { ef++; if (NR != ml + 1) efmis++ }
+    /^---$/                                          { if (!hr) hr = NR }
+    /^> 감사 (모델|effort):/                          { if (hr) mout++ }
     END {
       if (h != 1)  print "경계 검증 헤더 " h + 0 "개 (기대 1개)"
       if (f1 != 1) print "제외 목록 침범 여부 필드 " f1 + 0 "개 (기대 1개)"
@@ -542,6 +544,8 @@ check_report_structure() {
       if (s2 != 1) print "요약 2단계 줄 " s2 + 0 "개 (기대 1개)"
       if (ef != 1) print "감사 effort 줄 " ef + 0 "개 (기대 1개)"
       if (efmis)   print "감사 effort 줄이 감사 모델 줄 바로 다음이 아님: " efmis "개"
+      if (!hr)     print "머리말 구분선(---) 없음"
+      if (mout)    print "감사 모델·effort 줄이 머리말(첫 --- 앞) 밖: " mout "개"
       if (!(ohl && vl && dl && sml && sul && ohl < vl && vl < dl && dl < sml && sml < sul))
         print "종합 의견 → 판정 → 접기 시작 → 접기 제목 → 요약 순서 아님"
     }
@@ -585,6 +589,11 @@ awk '!/^> 감사 effort:/' "$REPORT_TPL" > "$sandbox/t-no-effort.md"
 awk '{print} /^> 감사 effort:/{print}' "$REPORT_TPL" > "$sandbox/t-dup-effort.md"
 awk '/^> 감사 effort:/{held = $0; next} {print} /^> 감사 회차:/{print held}' \
   "$REPORT_TPL" > "$sandbox/t-effort-moved.md"
+# PR #103 3차 리뷰 반례: 두 줄을 함께 옮기면 인접 조건은 그대로 맞는다 — 첫 `---` 이후를 거부한다.
+awk '/^> 감사 (모델|effort):/{held[++n] = $0; next} {print} /^---$/ && !d {d = 1; print held[1]; print held[2]}' \
+  "$REPORT_TPL" > "$sandbox/t-meta-below-hr.md"
+awk '/^> 감사 (모델|effort):/{held[++n] = $0; next} {print} END{print held[1]; print held[2]}' \
+  "$REPORT_TPL" > "$sandbox/t-meta-at-end.md"
 
 assert_report_structure "$REPORT_TPL"               pass "리포트 구조: 실제 템플릿 통과"
 assert_report_structure "$sandbox/t-old-name.md"    fail "리포트 구조: 옛 명칭(범위 검증) 회귀 격추"
@@ -601,6 +610,8 @@ assert_report_structure "$sandbox/t-old-summary.md"    fail "리포트 구조: �
 assert_report_structure "$sandbox/t-no-effort.md"      fail "리포트 구조: 감사 effort 줄 삭제(PR #103 리뷰 반례) 격추"
 assert_report_structure "$sandbox/t-dup-effort.md"     fail "리포트 구조: 감사 effort 줄 중복 격추"
 assert_report_structure "$sandbox/t-effort-moved.md"   fail "리포트 구조: 감사 effort 줄 감사 모델 뒤 이탈 격추"
+assert_report_structure "$sandbox/t-meta-below-hr.md"  fail "리포트 구조: 감사 모델·effort 두 줄 첫 --- 아래 이동(PR #103 3차 리뷰 반례) 격추"
+assert_report_structure "$sandbox/t-meta-at-end.md"    fail "리포트 구조: 감사 모델·effort 두 줄 파일 끝 이동(PR #103 3차 리뷰 반례) 격추"
 
 # --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
 #
