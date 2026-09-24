@@ -274,6 +274,8 @@ classify='<skill 디렉토리>/scripts/classify-risk.sh'
    다음 이슈 정리(issue-work `--clear`)의 이관이 그 동명 파일과 충돌하거나 덮어써 이전 회차가 유실된다.
 3. 사용자에게 주요 발견 사항을 요약 보고한다. 대화창 보고도 리포트와 같은 판정 한 줄로 시작한다. 그 밖의 대화창 출력 형식은 정하지 않는다.
 4. 감사에 사용한 모델은 **"벤더, 모델명" 형식**으로 기록한다 (예: `OpenAI, GPT-5.x` / `Google, Gemini 3.x`). 이는 `issue-work`의 summary 모델 기록과 **동일한 형식**이며, 리포트 머리말의 '감사 모델' 줄도 이 형식을 따른다.
+   감사 모델의 effort(추론 강도 설정값)는 '감사 모델' 줄에 섞지 않고 바로 아래 '감사 effort' 줄에 도구가 기록한 표기 그대로 적는다. 확인할 수 없으면 `-`를 적는다.
+   사용자는 이 값을 `issue-work` summary `모델 기록` 표의 해당 audit 행(`계획 audit 모델` 또는 `최종 audit 모델`) `effort` 열에 옮겨 적는다. effort는 벤더끼리 비교하지 않고 판정·벤더 교차 조건에 쓰지 않는다.
 
 #### 상태 산출
 
@@ -409,7 +411,7 @@ classify='<skill 디렉토리>/scripts/classify-risk.sh'
 구현 전 spec·plan을 감사하는 **계획 감사** 모드다. 최종 감사가 구현 결과를 스펙에 대조하는 것과 달리, 이 모드는 spec·plan 자체를 GitHub 이슈 본문과 `.ai` 문서에 대조한다.
 
 - **시점**: issue-work 계획 종료 게이트 뒤, Task 0(구현 시작 게이트) 앞. 이슈마다 사용자가 수행 여부를 정하며(issue-work "새 이슈 시작 시" 5단계), 수행하면 계획 모델(spec·plan을 쓴 모델)과 **다른 벤더** 모델로 **사용자가 직접** 실행한다. 구현 AI는 이 모드를 **자동 실행**하지 않고 수행 여부도 판정하지 않는다.
-- **입력**: 이슈 번호(필수). 감사 대상은 `.ai/90_issues/active/issue-<번호>/`의 spec·plan이다. summary는 `모델 기록` 표의 `계획 모델` 행만 읽어 감사 모델의 벤더가 다른지 확인하고, Task별 수행 결과는 아직 없으므로 대상이 아니다. 구현 브랜치 diff도 대상이 아니다.
+- **입력**: 이슈 번호(필수). 감사 대상은 `.ai/90_issues/active/issue-<번호>/`의 spec·plan이다. summary는 `모델 기록` 표의 `계획 모델` 행만 읽어 감사 모델의 벤더가 다른지 확인하고(모델 열의 벤더만 비교하며 effort 열은 비교하지 않는다), Task별 수행 결과는 아직 없으므로 대상이 아니다. 구현 브랜치 diff도 대상이 아니다.
 - **대조 기준**: GitHub 이슈 본문(요구 항목의 원천), `.ai/30_contract/`·`.ai/40_domain/`·`.ai/50_adr/`(계약·도메인·결정과의 정합), `.ai/70_ledger/`(기등재 대조). 0단계 컨텍스트 수집의 3·4항은 그대로 수행하고, 6항은 이전 리포트 파일명을 `issue-<번호>-plan-audit-report*.md`로 바꿔 수행하며, 5항(구현 diff)은 건너뛴다.
 
 **1단계 (적합성 검증)** — 이슈 본문의 요구 항목을 행으로 삼아 spec 요구사항(포함·제외)과 대조한다. 판정 값은 최종 감사와 같다.
@@ -440,4 +442,4 @@ classify='<skill 디렉토리>/scripts/classify-risk.sh'
 
 **공통 규칙** — 위험도(영향×발생확률 매트릭스)·등급별 기본 처리·이모지·상태 산출·판정 산출·기등재 대조·발견 번호 계승 헬퍼는 최종 감사 절차의 것을 그대로 쓴다. 판정 3종의 의미도 같다. 조건부 적합(CONDITIONAL)·부적합(FAIL)이면 issue-work `--response`가 승인분을 spec·plan에 보정한다.
 
-**결과 기록** — 리포트는 `.ai/99_workspace/issue-<번호>-plan-audit-report.md`에 쓴다. 회차 보존(`issue-<번호>-plan-audit-report-<회차>.md`)과 issue-work `--clear` 이관은 최종 감사와 같은 규칙이다. 발견 번호 `F-`는 최종 감사 리포트와 축을 따로 센다. 번호 계승 헬퍼에 넘기는 글롭 `issue-<번호>-plan-audit-report*.md`가 최종 감사 글롭 `issue-<번호>-audit-report*.md`와 겹치지 않아 자연히 분리된다. 대화창 요약 형식은 같고 상세 리포트 경로만 다르다. 감사 모델은 issue-work summary `모델 기록` 표의 `계획 audit 모델` 행에 사용자가 기록한다.
+**결과 기록** — 리포트는 `.ai/99_workspace/issue-<번호>-plan-audit-report.md`에 쓴다. 회차 보존(`issue-<번호>-plan-audit-report-<회차>.md`)과 issue-work `--clear` 이관은 최종 감사와 같은 규칙이다. 발견 번호 `F-`는 최종 감사 리포트와 축을 따로 센다. 번호 계승 헬퍼에 넘기는 글롭 `issue-<번호>-plan-audit-report*.md`가 최종 감사 글롭 `issue-<번호>-audit-report*.md`와 겹치지 않아 자연히 분리된다. 대화창 요약 형식은 같고 상세 리포트 경로만 다르다. 감사 모델과 `감사 effort` 줄 값은 issue-work summary `모델 기록` 표의 `계획 audit 모델` 행 모델·effort 열에 사용자가 기록한다.
