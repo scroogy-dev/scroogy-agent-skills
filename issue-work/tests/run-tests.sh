@@ -493,6 +493,7 @@ assert_structure check_plan_structure "$sandbox/p-general-as-fixed.md" fail "pla
 # 표 행은 이름별로 센다 — 총 행 수만 보면 한 행 삭제와 다른 행 중복이 상쇄된다.
 # 이름별 개수와 함께 헤더·구분선 바로 뒤 4행의 이름·순서도 본다 — 개수만 보면 행을
 # 표 밖(파일 끝 등)으로 옮겨도 통과한다(PR #103 2차 리뷰 반례).
+# 구분선도 셀을 정확히 3개로 본다 — 셀 수를 보지 않으면 effort 구분 셀 삭제가 통과한다(PR #103 3차 리뷰 반례).
 # Task 블록도 블록 단위로 센다 — 한 블록의 누락을 다른 블록의 중복으로 상쇄할 수 없다.
 
 SUMMARY_TPL="$HERE/../templates/issue-summary-template.md"
@@ -505,7 +506,7 @@ check_summary_structure() {
       else if (e != 1) print "수행 effort 행 " e + 0 "개: " t }
     BEGIN { split("계획 모델|계획 audit 모델|구현 모델|최종 audit 모델", want, "|") }
     /^\| 구분 \| 모델 \| effort \|$/ { hdr++; h = NR; next }
-    h && NR == h + 1 && !/^\|[-|]+\|$/ { print "모델 기록 표 구분선이 헤더 바로 다음에 없음 (" NR "행)" }
+    h && NR == h + 1 && !/^\|-+\|-+\|-+\|$/ { print "모델 기록 표 3열 구분선이 헤더 바로 다음에 없음 (" NR "행)" }
     h && NR >= h + 2 && NR <= h + 5 {
       p = NR - h - 1; l = $2; gsub(/^ +| +$/, "", l)
       if (l != want[p]) print "모델 기록 표 " p "번째 행이 " want[p] " 아님 (" NR "행): " l }
@@ -529,6 +530,9 @@ awk '/^\| 계획 audit 모델 \|/{next} {print} /^\| 구현 모델 \|/{print}' "
 # PR #103 2차 리뷰 반례: 행을 표 밖(파일 끝)으로 이동, 표 안 행 순서 교환 — 이름별 개수는 그대로다.
 awk '/^\| 최종 audit 모델 \|/{held = $0; next} {print} END{print held}' "$SUMMARY_TPL" > "$sandbox/m-row-outside.md"
 awk '/^\| 계획 audit 모델 \|/{held = $0; next} {print} /^\| 구현 모델 \|/{print held}' "$SUMMARY_TPL" > "$sandbox/m-row-order.md"
+# PR #103 3차 리뷰 반례: 구분선에서 effort 구분 셀만 삭제 — 헤더·4개 행은 그대로다.
+awk 'p && /^\|[-|]+\|$/{print "|------|------|"; p=0; next} {p = /^\| 구분 \| 모델 \| effort \|$/; print}' \
+  "$SUMMARY_TPL" > "$sandbox/m-sep-cells.md"
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*수행 effort\*\*:/)' \
   "$SUMMARY_TPL" > "$sandbox/m-task-missing.md"
 awk '{print} /^### Task 0/{s=1} s && /^- \*\*수행 effort\*\*:/{print; s=0}' "$SUMMARY_TPL" > "$sandbox/m-task-dup.md"
@@ -550,6 +554,7 @@ assert_structure check_summary_structure "$sandbox/m-row-missing.md"  fail "summ
 assert_structure check_summary_structure "$sandbox/m-row-offset.md"   fail "summary 구조: 모델 기록 행 삭제+중복 상쇄 격추"
 assert_structure check_summary_structure "$sandbox/m-row-outside.md"  fail "summary 구조: 모델 기록 행 표 밖 이동(PR #103 2차 리뷰 반례) 격추"
 assert_structure check_summary_structure "$sandbox/m-row-order.md"    fail "summary 구조: 모델 기록 행 순서 교환(PR #103 2차 리뷰 반례) 격추"
+assert_structure check_summary_structure "$sandbox/m-sep-cells.md"    fail "summary 구조: 구분선 effort 셀 삭제(PR #103 3차 리뷰 반례) 격추"
 assert_structure check_summary_structure "$sandbox/m-task-missing.md" fail "summary 구조: 일반 Task 수행 effort 누락 격추"
 assert_structure check_summary_structure "$sandbox/m-task-dup.md"     fail "summary 구조: Task 0 수행 effort 중복 격추"
 assert_structure check_summary_structure "$sandbox/m-task-moved.md"   fail "summary 구조: 수행 effort 수행 모델 뒤 이탈 격추"
