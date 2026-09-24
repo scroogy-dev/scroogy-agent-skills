@@ -63,7 +63,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
   2. 표 위 주석에 effort 규칙을 더한다. 도구가 기록한 표기(`high`, `xhigh` 등) 그대로, 벤더가 다르면 비교하지 않음, 확인 불가 시 `-` 허용, effort는 벤더 교차 조건 등 게이트에 쓰지 않음.
   3. Task 0·Task 1·Task 2 블록의 `- **수행 모델**: -` 바로 다음 행에 `- **수행 effort**: -`를 추가한다. Task N 블록에는 두지 않고, 그 블록 주석에 `수행 effort`도 `최종 audit 모델` 행이 SSoT라는 한 줄을 더한다.
   4. `## Task별 수행 결과` 주석을 갱신한다. "지표 4종"을 "지표 5종"으로 고치고, `수행 effort` 항목 설명(도구 표기 그대로, ` / ` 나열은 `수행 모델`과 같은 순서, `-`는 확인 불가 시 허용)을 추가한다. 두 목록의 위치 대응 규칙(항목 수 동일, 같은 모델이 effort를 바꿔 다시 수행했으면 모델도 그 자리에 반복, 확인 불가 값은 그 자리에 `-`, 같은 effort는 그대로 반복)과 예시(모델 `A / A / B`에 effort `high / low / high`, 모델 `A / B`에 effort `high / -`)를 `수행 effort` 설명에 넣고, `수행 모델` 항목 설명에도 "같은 모델이 effort를 바꿔 다시 수행했으면 그 자리에 반복해 적는다"를 더한다(계획 감사 F-2). 모델별 집계 grep 스니펫의 필드 목록에 `수행 effort`를 넣는다. `계획 감사` 줄 주석의 "지표 4종"도 같이 고친다.
-  5. 이 이슈의 선반영 summary(`.ai/90_issues/active/issue-0102/issue-0102-summary.md`)의 `## Task별 수행 결과` 주석을 4의 템플릿 문장과 같게 맞춘다.
+  5. 이 이슈의 선반영 summary([issue-0102-summary.md](./issue-0102-summary.md), 작성 시점 경로는 `.ai/90_issues/active/issue-0102/issue-0102-summary.md`, --clear로 이관)의 `## Task별 수행 결과` 주석을 4의 템플릿 문장과 같게 맞춘다.
 - **완료 기준**:
   - [D] spec R1 [D] 항목의 표 검사 통과  (검증: spec R1 검증 명령 실행, 출력 0건)
   - [D] spec R2 [D] 항목 3건 통과  (검증: spec R2 검증 명령 실행. 블록 검사 0, 기본값 3건, 템플릿 파일 한정으로 `grep -c '지표 4종' issue-work/templates/issue-summary-template.md`가 0)
@@ -156,7 +156,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
 이 Task는 사용자가 직접 수행하며, 구현 AI는 자동으로 닫지 않는다.
 -->
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 스펙 위반·누락·소스코드와의 모순을 구현 모델과 다른 시각으로 잡는다.
 - **실행 주체**: **사용자가 직접** 수행한다. 구현 AI는 이 Task를 **자동으로 닫지 않으며**, `issue-audit`를 자동 실행하지도 않는다.
 - **작업 내용**:
@@ -171,8 +171,8 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    P=.ai/90_issues/active/issue-0102/issue-0102-plan.md
-    S=.ai/90_issues/active/issue-0102/issue-0102-summary.md
+    P=.ai/90_issues/archive/issue-0102/issue-0102-plan.md
+    S=.ai/90_issues/archive/issue-0102/issue-0102-summary.md
     { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
       && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
       || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
@@ -186,7 +186,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0102/issue-0102-summary.md
+    S=.ai/90_issues/archive/issue-0102/issue-0102-summary.md
     awk '
       /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*:/ {
@@ -205,7 +205,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0102/issue-0102-summary.md
+    S=.ai/90_issues/archive/issue-0102/issue-0102-summary.md
     awk '
       /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }

@@ -206,7 +206,7 @@ issue-work summary의 모델 기록(`모델 기록` 표·Task별 `수행 모델`
   <summary>검증 명령 — 종료 코드 0이면 통과</summary>
 
   ```bash
-  issue-work/scripts/summarize-metrics.sh .ai/90_issues/active/issue-0102/issue-0102-summary.md
+  issue-work/scripts/summarize-metrics.sh .ai/90_issues/archive/issue-0102/issue-0102-summary.md
   ```
 
   </details>
