@@ -499,6 +499,8 @@ assert_structure check_plan_structure "$sandbox/p-general-as-fixed.md" fail "pla
 # PR #105 리뷰 보강: 모델 ID 형식(issue #104)은 spec R1 의 일회성 [D] 명령으로만 검증되었고,
 # 게이트는 `수행 모델` 값의 첫 글자만 본다 — 구 형식 단독 표기 0건, 괄호 전용·확인 불가 (-) 계약 문장,
 # `수행 모델` 나열 예시의 항목별 괄호를 판정한다.
+# PR #105 3차 리뷰 보강: 모델 기록 표 행마다 모델 열의 형식 안내를 본다 — 파일 전체 카운터만 보면
+# 한 행에서 형식 안내 문구 전체를 지워도 다른 행의 확장 형식이 남아 통과한다.
 
 SUMMARY_TPL="$HERE/../templates/issue-summary-template.md"
 
@@ -516,7 +518,8 @@ check_summary_structure() {
       if (l != want[p]) print "모델 기록 표 " p "번째 행이 " want[p] " 아님 (" NR "행): " l }
     /^\| (계획 모델|계획 audit 모델|구현 모델|최종 audit 모델) \|/ {
       l = $2; gsub(/^ +| +$/, "", l); rows[l]++
-      if (NF != 5) print "모델 기록 행 셀 수 " NF - 2 "개: " l }
+      if (NF != 5) print "모델 기록 행 셀 수 " NF - 2 "개: " l
+      if ($3 !~ /형식: 벤더, 모델명 \(모델 ID\)/) print "모델 기록 행 모델 열에 확장 형식 안내 없음: " l }
     /^### Task / { chk(); t = $0; n = ($0 ~ /^### Task N/); m = 0; e = 0 }
     !t && /^- \*\*수행 effort\*\*:/ { print "수행 effort 행이 Task 블록 밖 (" NR "행)" }
     t && /^- \*\*수행 모델\*\*:/ { m = NR }
@@ -572,6 +575,8 @@ awk '/^- 수행 모델: /{sub(/, 모델 ID를 확인할 수 없으면 `\(-\)`로
   "$SUMMARY_TPL" > "$sandbox/m-id-task-no-unk.md"
 awk '/^  \(예: `/{sub(/ \(gpt-6-astra\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-list-bare.md"
 awk '/^  \(예: `/{sub(/ \(claude-opus-4-8\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-list-first-bare.md"
+# PR #105 3차 리뷰 반례: 한 행에서 형식 안내 문구 전체 삭제 — 구 형식 흔적이 남지 않는다.
+awk '/^\| 계획 모델 \|/{sub(/ 형식: 벤더, 모델명 \(모델 ID\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-row-no-fmt.md"
 
 assert_structure check_summary_structure "$SUMMARY_TPL"               pass "summary 구조: 실제 템플릿 통과"
 assert_structure check_summary_structure "$sandbox/m-no-effort-col.md" fail "summary 구조: 모델 기록 표 effort 열 삭제 격추"
@@ -593,6 +598,7 @@ assert_structure check_summary_structure "$sandbox/m-id-no-unk.md"    fail "summ
 assert_structure check_summary_structure "$sandbox/m-id-task-no-unk.md" fail "summary 구조: 수행 모델 확인 불가 (-) 안내 삭제 격추"
 assert_structure check_summary_structure "$sandbox/m-id-list-bare.md" fail "summary 구조: 수행 모델 나열 예시 뒤 항목 괄호 누락 격추"
 assert_structure check_summary_structure "$sandbox/m-id-list-first-bare.md" fail "summary 구조: 수행 모델 나열 예시 앞 항목 괄호 누락 격추"
+assert_structure check_summary_structure "$sandbox/m-id-row-no-fmt.md" fail "summary 구조: 모델 기록 한 행만 형식 안내 전체 삭제(PR #105 3차 리뷰 반례) 격추"
 
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
