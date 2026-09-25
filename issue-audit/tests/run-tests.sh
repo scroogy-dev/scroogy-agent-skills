@@ -506,7 +506,7 @@ assert_usage_error '알 수 없는 옵션'   "$NEXTNUM" --all
 # 감지하지 못하므로 여기에 편입한다.
 # F-2 보강: 존재 검사만으로는 헤더·필드 중복과 옛 비포함(Out) 필드의 공존이
 # 통과한다 — 정확한 개수를 판정하고 옛 표기 재유입을 명칭과 함께 거부한다.
-# PR #105 리뷰 보강: 감사 모델 줄의 모델 ID 형식(issue #104)은 spec R2 의 일회성 [D]
+# PR #105 리뷰 보강: 감사 모델 줄의 모델 ID 형식(issue #104)은 spec R3 의 일회성 [D]
 # 명령으로만 검증되었다 — 확장 형식·ID 예시·확인 불가 표기 (-)와 구 형식 단독 표기 0건을 판정한다.
 
 REPORT_TPL="$HERE/../templates/issue-audit-report-template.md"
@@ -528,7 +528,7 @@ check_report_structure() {
     /^## 요약$/                                      { if (!sul) sul = NR }
     /^- 1단계 적합성: <이모지> <상태> · /             { s1++ }
     /^- 2단계 위험도: <이모지> <상태> · /             { s2++ }
-    /^> 감사 모델:/                                  { ml = NR
+    /^> 감사 모델:/                                  { mc++; ml = NR
       if (/<벤더, 모델명 \(모델 ID\) /)                  mf++
       if (/예: [^,]+, [^(]+ \([^()-][^()]*\)/)            mex++
       if (/확인 불가면 \(-\)/)                            mu++ }
@@ -550,6 +550,7 @@ check_report_structure() {
       if (s2 != 1) print "요약 2단계 줄 " s2 + 0 "개 (기대 1개)"
       if (ef != 1) print "감사 effort 줄 " ef + 0 "개 (기대 1개)"
       if (efmis)   print "감사 effort 줄이 감사 모델 줄 바로 다음이 아님: " efmis "개"
+      if (mc != 1) print "감사 모델 줄 " mc + 0 "개 (기대 1개)"
       if (mf != 1) print "감사 모델 줄 확장 형식(벤더, 모델명 (모델 ID)) " mf + 0 "개 (기대 1개)"
       if (mex != 1) print "감사 모델 줄 모델 ID 병기 예시 " mex + 0 "개 (기대 1개)"
       if (mu != 1) print "감사 모델 줄 확인 불가 표기 (-) " mu + 0 "개 (기대 1개)"
@@ -610,6 +611,8 @@ awk '/^> 감사 모델:/{print "> 감사 모델: <벤더, 모델명 — 예: Ope
 awk '/^> 감사 모델:/{sub(/ \(모델 ID\)/, "")} {print}' "$REPORT_TPL" > "$sandbox/t-model-no-id.md"
 awk '/^> 감사 모델:/{sub(/ \(gpt-6-astra\)/, "")} {print}' "$REPORT_TPL" > "$sandbox/t-model-no-ex-id.md"
 awk '/^> 감사 모델:/{sub(/\. 모델 ID 확인 불가면 \(-\)/, "")} {print}' "$REPORT_TPL" > "$sandbox/t-model-no-unk.md"
+# PR #105 2차 리뷰 반례: 정상 줄 앞에 잘못된 감사 모델 줄을 끼우면 형식 판정은 모두 1개라 통과한다 — 줄 수를 판정한다.
+awk '/^> 감사 모델:/{print "> 감사 모델: <임의 값>  "} {print}' "$REPORT_TPL" > "$sandbox/t-model-dup.md"
 
 assert_report_structure "$REPORT_TPL"               pass "리포트 구조: 실제 템플릿 통과"
 assert_report_structure "$sandbox/t-old-name.md"    fail "리포트 구조: 옛 명칭(범위 검증) 회귀 격추"
@@ -632,6 +635,7 @@ assert_report_structure "$sandbox/t-model-old.md"      fail "리포트 구조: �
 assert_report_structure "$sandbox/t-model-no-id.md"    fail "리포트 구조: 감사 모델 줄 (모델 ID) 제거 격추"
 assert_report_structure "$sandbox/t-model-no-ex-id.md" fail "리포트 구조: 감사 모델 줄 예시 모델 ID 제거 격추"
 assert_report_structure "$sandbox/t-model-no-unk.md"   fail "리포트 구조: 감사 모델 줄 확인 불가 표기 (-) 제거 격추"
+assert_report_structure "$sandbox/t-model-dup.md"      fail "리포트 구조: 잘못된 감사 모델 줄 중복(PR #105 2차 리뷰 반례) 격추"
 
 # --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
 #
