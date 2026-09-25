@@ -68,6 +68,7 @@ Task 0 및 일반 실행 Task(Task N 제외) 블록의 지표 5종은 사후 집
 - 수행 effort: 그 Task를 수행한 모델의 effort. 도구가 기록한 표기(`high`, `xhigh` 등) 그대로 적는다.
   한 Task 안에서 바꿨으면 `수행 모델`과 같은 순서로 ` / `로 나열하고, 두 목록은 위치로 대응한다.
   항목 수를 `수행 모델`과 같게 두고, 확인할 수 없는 값은 그 자리에 `-`를 두며, 같은 effort가 이어지면 그대로 반복한다.
+  아래 예시의 A·B는 위치 대응을 보이기 위한 모델 기호이며, 실제 기록은 항목마다 "벤더, 모델명 (모델 ID)"로 적는다.
     A/high 뒤 A/low 뒤 B/high:  수행 모델 `A / A / B`, 수행 effort `high / low / high`
     A/high 뒤 B/low 뒤 B/high:  수행 모델 `A / B / B`, 수행 effort `high / low / high`
     A/high 뒤 B(확인 불가):     수행 모델 `A / B`, 수행 effort `high / -`
