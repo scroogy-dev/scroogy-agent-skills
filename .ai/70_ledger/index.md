@@ -28,6 +28,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0008](active/K-0008-quiz-format-vocab-fixture-absent.md) | git-review-quiz 형식 검사에 지원하지 않는 형식 어휘 반례 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | `check-quiz.sh` R1 헤더 정규식(관점·형식 어휘 집합) 변경 시, 또는 형식 어휘 추가 기능 착수 시 |
 | [K-0009](active/K-0009-plan-audit-fake-d-check-manual.md) | issue-audit 계획 감사의 가짜 `[D]` 사전 판별이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 낮음(LOW) | 수용 | 계획 감사 2회 이상에서 가짜 `[D]` 판별 결과가 감사 모델 간에 갈린 사례 관측 시, 또는 spec·plan 템플릿에 회귀 방지 예외 표기가 도입될 때 |
 | [K-0010](active/K-0010-check-plan-line-based-markdown-boundary.md) | issue-audit 추적성 헬퍼가 행 단위 파서라 여러 행 코드 스팬 등 그 밖의 마크다운 구성을 구분하지 않는다 | known issue | 낮음(LOW) | 수용 | 실제 spec·plan이 이 경계 때문에 오판정된 사례 관측 시, 또는 issue-work spec·plan 템플릿에 여러 행 코드 스팬·들여쓰기 코드 블록을 쓰는 구조가 도입될 때 |
+| [K-0011](active/K-0011-plan-audit-regression-exception-spec-only.md) | issue-audit 계획 감사의 회귀 방지 예외가 spec 본문 표기만 인정해 plan 전용 항목·템플릿 고정 블록을 예외로 읽지 못한다 | known issue | 낮음(LOW) | 수용 | issue-audit `--plan` 관점 2의 예외 문구 변경 시, K-0009 헬퍼 결정화 착수 시, 또는 다른 이슈의 계획 감사에서 템플릿 고정 블록·의존 관계 표기 항목이 가짜 `[D]` 후보로 다시 올라올 때 |
 
 ## 수명 주기
 

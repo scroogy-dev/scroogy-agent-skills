@@ -11,7 +11,7 @@ last_harvested: 2026-09-09
 
 - plan의 마지막 고정 Task(Task N)는 교차모델 `issue-audit`이다. 사용자가 직접, 구현 모델과 다른 벤더(Non-Anthropic 포함) 모델로 수동 수행한다. 구현 AI는 이 Task를 자동 실행하거나 닫지 않는다.
 - audit 벤더 비교 기준은 구현 모델이다. summary Task별 `수행 모델`에 나열된 벤더 전부와 달라야 한다. 설계 모델은 비교 대상이 아니다.
-- 모델 기록은 "벤더, 모델명" 형식으로 통일한다. audit 리포트 상단에도 `> 감사 모델:` 메타 줄을 두어 summary의 audit 모델 칸과 교차 대조할 수 있게 한다 (#26).
+- 모델 기록은 "벤더, 모델명 (모델 ID)" 형식으로 통일한다. audit 리포트 상단에도 `> 감사 모델:` 메타 줄을 두어 summary의 audit 모델 칸과 교차 대조할 수 있게 한다 (#26, #104).
 - 리포트 보정은 issue-work `--response`로 한다. 피드백만 먼저 제시하고, 항목 단위로 승인받은 뒤, 승인분만 보정한다. 승인 없는 자동 보정은 금지다 (#31).
 - 순서 게이트: 1단계 적합성 발견(미충족·부분 충족)의 처리 방향이 전부 확정되기 전에는 2단계 비판적 발견의 승인 질의·보정에 들어가지 않는다. 예외는 사용자 명시 지시로만 연다 (#52).
 - 등급별 기본 제시값을 따른다. 낮음(LOW)은 원장 이관, 정보(INFO)는 기록만이 기본이며 사용자 명시 승격 없이는 보정 루프에 넣지 않는다 ([ADR 0006](0006-risk-matrix-and-treatment.md)).
@@ -58,6 +58,7 @@ last_harvested: 2026-09-09
 - [Issue #52 --response 1단계 적합성 발견 우선 처리](https://github.com/scroogy-dev/scroogy-agent-skills/issues/52)
 - [Issue #62 issue-audit 심각도 체계 개선](https://github.com/scroogy-dev/scroogy-agent-skills/issues/62)
 - [Issue #64 git-pr-feedback 스킬 신규 작성](https://github.com/scroogy-dev/scroogy-agent-skills/issues/64)
+- [Issue #104 모델 기록 형식에 모델 ID 병기 도입](https://github.com/scroogy-dev/scroogy-agent-skills/issues/104)
 - [PR #44 리뷰 코멘트 (지표 누적·귀속 규칙)](https://github.com/scroogy-dev/scroogy-agent-skills/pull/44)
 
 </details>

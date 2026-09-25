@@ -92,6 +92,7 @@ sandbox="$(mktemp -d)"
 trap 'rm -rf "$sandbox"' EXIT
 
 # 정상 fixture: 확정된 일반 Task 3개(완료·부분 완료·스킵) + 미기입 Task N.
+# Task 1 수행 모델은 모델 ID 확인 불가 표기 `(-)`가 수행 모델 게이트를 통과함을 고정한다(#104).
 base="$sandbox/summary-valid.md"
 cat > "$base" <<'EOF'
 # Issue #99 실행요약 — 게이트 테스트 fixture
@@ -108,7 +109,7 @@ cat > "$base" <<'EOF'
 ### Task 1: 본작업
 
 - **결과**: 부분 완료
-- **수행 모델**: OpenAI, GPT-5
+- **수행 모델**: OpenAI, GPT-6 (-)
 - **수행 effort**: xhigh
 - **audit 발견**: 1건
 
@@ -495,6 +496,11 @@ assert_structure check_plan_structure "$sandbox/p-general-as-fixed.md" fail "pla
 # 표 밖(파일 끝 등)으로 옮겨도 통과한다(PR #103 2차 리뷰 반례).
 # 구분선도 셀을 정확히 3개로 본다 — 셀 수를 보지 않으면 effort 구분 셀 삭제가 통과한다(PR #103 3차 리뷰 반례).
 # Task 블록도 블록 단위로 센다 — 한 블록의 누락을 다른 블록의 중복으로 상쇄할 수 없다.
+# PR #105 리뷰 보강: 모델 ID 형식(issue #104)은 spec R1 의 일회성 [D] 명령으로만 검증되었고,
+# 게이트는 `수행 모델` 값의 첫 글자만 본다 — 구 형식 단독 표기 0건, 괄호 전용·확인 불가 (-) 계약 문장,
+# `수행 모델` 나열 예시의 항목별 괄호를 판정한다.
+# PR #105 3차 리뷰 보강: 모델 기록 표 행마다 모델 열의 형식 안내를 본다 — 파일 전체 카운터만 보면
+# 한 행에서 형식 안내 문구 전체를 지워도 다른 행의 확장 형식이 남아 통과한다.
 
 SUMMARY_TPL="$HERE/../templates/issue-summary-template.md"
 
@@ -512,12 +518,26 @@ check_summary_structure() {
       if (l != want[p]) print "모델 기록 표 " p "번째 행이 " want[p] " 아님 (" NR "행): " l }
     /^\| (계획 모델|계획 audit 모델|구현 모델|최종 audit 모델) \|/ {
       l = $2; gsub(/^ +| +$/, "", l); rows[l]++
-      if (NF != 5) print "모델 기록 행 셀 수 " NF - 2 "개: " l }
+      if (NF != 5) print "모델 기록 행 셀 수 " NF - 2 "개: " l
+      if ($3 !~ /형식: 벤더, 모델명 \(모델 ID\)/) print "모델 기록 행 모델 열에 확장 형식 안내 없음: " l }
     /^### Task / { chk(); t = $0; n = ($0 ~ /^### Task N/); m = 0; e = 0 }
     !t && /^- \*\*수행 effort\*\*:/ { print "수행 effort 행이 Task 블록 밖 (" NR "행)" }
     t && /^- \*\*수행 모델\*\*:/ { m = NR }
     t && /^- \*\*수행 effort\*\*:/ { e++; if (NR != m + 1) print "수행 effort 행이 수행 모델 바로 다음이 아님: " t }
+    { cp = $0; mfmt += gsub(/벤더, 모델명 \(모델 ID\)/, "", cp); mold += gsub(/벤더, 모델명/, "", cp) }
+    /^괄호 안은 모델 ID 전용이며 / { idonly++ }
+    /^모델 ID를 확인할 수 없으면 괄호를 남겨 `\(-\)`로 적는다\./ { unk++ }
+    /^- 수행 모델: "벤더, 모델명 \(모델 ID\)" .*확인할 수 없으면 `\(-\)`로 적는다/ { tunk++ }
+    /^  \(예: `[^`]* \/ [^`]*`\)/ { lx++
+      match($0, /`[^`]*`/); k = split(substr($0, RSTART + 1, RLENGTH - 2), it, / \/ /)
+      for (i = 1; i <= k; i++) if (it[i] !~ /[^ ] \([^()]+\)$/) print "수행 모델 나열 예시 " i "번째 항목에 모델 ID 괄호 없음: " it[i] }
     END { chk()
+      if (mold)        print "구 형식 단독 표기(벤더, 모델명) 잔존: " mold "개"
+      if (!mfmt)       print "확장 형식(벤더, 모델명 (모델 ID)) 표기 0개"
+      if (idonly != 1) print "괄호 안 모델 ID 전용 문장 " idonly + 0 "개 (기대 1개)"
+      if (unk != 1)    print "모델 기록 확인 불가 표기 (-) 문장 " unk + 0 "개 (기대 1개)"
+      if (tunk != 1)   print "수행 모델 확인 불가 표기 (-) 안내 " tunk + 0 "개 (기대 1개)"
+      if (lx != 1)     print "수행 모델 나열 예시 " lx + 0 "개 (기대 1개)"
       if (hdr != 1) print "모델 기록 표 헤더(구분·모델·effort) " hdr + 0 "개 (기대 1개)"
       for (i = 1; i <= 4; i++) if (rows[want[i]] != 1) print "모델 기록 " want[i] " 행 " rows[want[i]] + 0 "개 (기대 1개)" }
   ' "$1"
@@ -546,6 +566,17 @@ awk '{print} /^### Task N/{s=1} s && /^- \*\*결과\*\*:/{print "- **수행 effo
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0; d=1} s && /^- \*\*수행 effort\*\*:/{next}
      {print} d && /^- \*\*수행 effort\*\*:/{print; d=0}' \
   "$SUMMARY_TPL" > "$sandbox/m-task-offset.md"
+# PR #105 리뷰 반례(issue #104 모델 ID 형식): 구 형식 되돌림 / 한 행만 괄호 누락 / 계약 문장 삭제 / 나열 예시 괄호 누락.
+awk '{gsub(/ \(모델 ID\)/, ""); print}' "$SUMMARY_TPL" > "$sandbox/m-id-old.md"
+awk '/^\| 최종 audit 모델 \|/{sub(/ \(모델 ID\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-row-old.md"
+awk '!/^괄호 안은 모델 ID 전용이며 /' "$SUMMARY_TPL" > "$sandbox/m-id-no-only.md"
+awk '!/^모델 ID를 확인할 수 없으면 괄호를 남겨 /' "$SUMMARY_TPL" > "$sandbox/m-id-no-unk.md"
+awk '/^- 수행 모델: /{sub(/, 모델 ID를 확인할 수 없으면 `\(-\)`로 적는다/, "")} {print}' \
+  "$SUMMARY_TPL" > "$sandbox/m-id-task-no-unk.md"
+awk '/^  \(예: `/{sub(/ \(gpt-6-astra\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-list-bare.md"
+awk '/^  \(예: `/{sub(/ \(claude-opus-4-8\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-list-first-bare.md"
+# PR #105 3차 리뷰 반례: 한 행에서 형식 안내 문구 전체 삭제 — 구 형식 흔적이 남지 않는다.
+awk '/^\| 계획 모델 \|/{sub(/ 형식: 벤더, 모델명 \(모델 ID\)/, "")} {print}' "$SUMMARY_TPL" > "$sandbox/m-id-row-no-fmt.md"
 
 assert_structure check_summary_structure "$SUMMARY_TPL"               pass "summary 구조: 실제 템플릿 통과"
 assert_structure check_summary_structure "$sandbox/m-no-effort-col.md" fail "summary 구조: 모델 기록 표 effort 열 삭제 격추"
@@ -560,6 +591,14 @@ assert_structure check_summary_structure "$sandbox/m-task-dup.md"     fail "summ
 assert_structure check_summary_structure "$sandbox/m-task-moved.md"   fail "summary 구조: 수행 effort 수행 모델 뒤 이탈 격추"
 assert_structure check_summary_structure "$sandbox/m-taskn-effort.md" fail "summary 구조: Task N 블록 수행 effort 오기 격추"
 assert_structure check_summary_structure "$sandbox/m-task-offset.md"  fail "summary 구조: 블록 간 누락+중복 상쇄 격추"
+assert_structure check_summary_structure "$sandbox/m-id-old.md"       fail "summary 구조: 모델 ID 형식 구 형식 되돌림(PR #105 리뷰 반례) 격추"
+assert_structure check_summary_structure "$sandbox/m-id-row-old.md"   fail "summary 구조: 모델 기록 한 행만 (모델 ID) 누락 격추"
+assert_structure check_summary_structure "$sandbox/m-id-no-only.md"   fail "summary 구조: 괄호 안 모델 ID 전용 문장 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-id-no-unk.md"    fail "summary 구조: 모델 기록 확인 불가 (-) 문장 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-id-task-no-unk.md" fail "summary 구조: 수행 모델 확인 불가 (-) 안내 삭제 격추"
+assert_structure check_summary_structure "$sandbox/m-id-list-bare.md" fail "summary 구조: 수행 모델 나열 예시 뒤 항목 괄호 누락 격추"
+assert_structure check_summary_structure "$sandbox/m-id-list-first-bare.md" fail "summary 구조: 수행 모델 나열 예시 앞 항목 괄호 누락 격추"
+assert_structure check_summary_structure "$sandbox/m-id-row-no-fmt.md" fail "summary 구조: 모델 기록 한 행만 형식 안내 전체 삭제(PR #105 3차 리뷰 반례) 격추"
 
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
