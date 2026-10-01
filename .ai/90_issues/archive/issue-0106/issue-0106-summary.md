@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N (교차모델 issue-audit 검증, 사용자 수동 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -33,7 +33,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
 | 계획 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
-| 최종 audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명 (모델 ID). 마지막 교차모델 audit Task에서 사용자가 기록 --> | <!-- 최종 감사 리포트의 감사 effort 줄 값. 사용자가 기록. 확인 불가면 - --> |
+| 최종 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 
 - **계획 감사**: 수행 · 발견 2건 · 보정 1건
 
@@ -165,6 +165,6 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 수행 effort도 같은 행의 `effort` 열이 SSoT다.
 -->
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-6.1(high)로 1차 최종 감사를 수행했다([감사 리포트](./issue-0106-audit-report.md)). 종합 적합(PASS), 1단계 충족 11건, 2단계 발견 0건. `--response` 검토 결과 보정 0건.
+- **특이 사항**: 감사는 사용자가 수행했고, summary·plan의 Task N 기록과 체크는 사용자 지시로 구현 AI가 리포트 값을 옮겨 적었다.
