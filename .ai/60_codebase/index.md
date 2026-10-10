@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-25
-source_hash: 50c77f4
+last_synced: 2026-10-10
+source_hash: de0a00c
 status: current
 ---
 
@@ -82,4 +82,4 @@ status: current
 
 - `[DOC-NEEDED]` 0건: 최초 build의 2건은 2026-09-09 sync에서 해소했다. 교차모델 audit 수동 수행 원칙은 [ADR 0004](../50_adr/active/0004-cross-model-audit-and-response-gate.md), 외부 공개 행위 승인 게이트 원칙은 [승인 게이트 정책](../40_domain/policies/local/external-action-approval-gate.md)과 [ADR 0011](../50_adr/active/0011-git-pr-submission-and-approval-gate.md)이 담는다
 - `[WHY-NEEDED]` 0건: 각 스킬의 설계 근거는 작성자가 SKILL.md 본문(`설계 원칙`·근거 절)에 직접 기재했다. 상세 흐름의 Why 절이 그 절 이름을 가리킨다
-- `[UPDATE-NEEDED]` 0건: 2026-09-09 sync. `5ab2b67` 이후 스킬 소스 변경 없음(작업 트리 변경은 `.ai/` 문서와 README뿐)
+- `[UPDATE-NEEDED]` 0건: 2026-10-10 sync. `5ab2b67` 이후 스킬 소스 변경(#100·#102·#104·#106·#108)은 ai-workspace·issue-work·issue-audit 3종이며, 해당 상세 흐름을 대조해 반영했다. 나머지 스킬은 `5ab2b67` 이후 소스 변경 없음
