@@ -1,5 +1,5 @@
 ---
-last_synced: 2026-09-09
+last_synced: 2026-10-10
 source_hash: 5ab2b67
 status: current
 ---
@@ -21,6 +21,7 @@ git-pr/SKILL.md `## PR 제출`
 │   ├── templates/pr-body-template.md   # 이슈 목록 → 이슈별 리스크·주의사항(접기 밖) + 비즈니스·테크 관점(접기)
 │   ├── scripts/validate-title.sh --title '<제목>' | <제목 파일>   # exit 0/1/2
 │   ├── 문서 동기화 점검                # README·AI-CONTEXT·60_codebase 갱신 권고만, 실행 여부 질의
+│   │   └── 원장 대조                   # .ai/70_ledger/index.md active/ 항목의 재검토 조건·원인 vs diff → 재검토 이력·종결 권고, 승인분만 반영, 해소는 4단계로
 │   └── 산출: .ai/99_workspace/pr-<이슈>-title.md·pr-<이슈>-body.md   # 1회만 쓰고 이후 파일 참조
 ├── 3. 최종 제시 및 승인 (생략 불가)     # 제목 전문, 본문 경로+요약, 대상 저장소·베이스·소스·SHA·동기화 상태·유형, push 여부·원격
 └── 4. PR 생성
@@ -31,6 +32,7 @@ git-pr/SKILL.md `## PR 제출`
     ├── gh pr create [--draft] --repo --base --head --title "$(cat …)" --body-file   # 확인과 생성 사이에 다른 동작 금지
     │   └── 폴백: GitHub MCP create_pull_request (github.com 한정, 승인값 전부 명시)
     ├── gh pr view <번호> --json headRefOid                            # 생성 후 승인 SHA 대조
+    ├── 원장 해소 기재                                                  # 종결 승인 항목만: 해소(PR #<번호>) → archive/ → index, 커밋·push 별도 승인
     └── 임시 파일 삭제 질의                                            # 대조 통과·보고 뒤에만
 ```
 
@@ -41,5 +43,6 @@ git-pr/SKILL.md `## PR 제출`
 - 원장 [K-0003](../../70_ledger/active/K-0003-approved-file-content-unverified.md): 승인한 제목·본문 파일의 내용 동일성은 제출 직전에 검증하지 않는다(수용).
 - 정책: [외부 공개 행위 승인 게이트](../../40_domain/policies/local/external-action-approval-gate.md)(git-pr·git-pr-feedback·git-review-quiz·issue-work --clear 공통). 제출까지 확장한 결정과 유형 확인·승인 게이트 필수화는 [ADR 0011](../../50_adr/active/0011-git-pr-submission-and-approval-gate.md).
 - 계약: [GitHub 연동 수단](../../30_contract/github-integration.md)(gh 기본·MCP 폴백 github.com 한정, `refs/heads/` 완전 ref, 동적 인자 인용). 명세: [PR 제출 요건](../../40_domain/specs/git-pr-submission.md)(절차, 문서 동기화 점검 표).
+- 원장 대조와 PR 생성 후 해소 기재(PR 번호를 알 때만 확정)는 [ADR 0018](../../50_adr/active/0018-ledger-proactive-review-and-resolve-timing.md).
 - 제목·본문을 파일에 1회만 쓰고 삭제 질의를 SHA 대조 뒤에 두는 정리 시점(A+B)은 [ADR 0013](../../50_adr/active/0013-long-output-single-file-generation.md).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
