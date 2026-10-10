@@ -29,6 +29,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0009](active/K-0009-plan-audit-fake-d-check-manual.md) | issue-audit 계획 감사의 가짜 `[D]` 사전 판별이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 낮음(LOW) | 수용 | 계획 감사 2회 이상에서 가짜 `[D]` 판별 결과가 감사 모델 간에 갈린 사례 관측 시, 또는 `(회귀 방지 항목)` 표시의 리터럴·위치 규칙 변경 시 |
 | [K-0010](active/K-0010-check-plan-line-based-markdown-boundary.md) | issue-audit 추적성 헬퍼가 행 단위 파서라 여러 행 코드 스팬 등 그 밖의 마크다운 구성을 구분하지 않는다 | known issue | 낮음(LOW) | 수용 | 실제 spec·plan이 이 경계 때문에 오판정된 사례 관측 시, 또는 issue-work spec·plan 템플릿에 여러 행 코드 스팬·들여쓰기 코드 블록을 쓰는 구조가 도입될 때 |
 | [K-0011](archive/K-0011-plan-audit-regression-exception-spec-only.md) | issue-audit 계획 감사의 회귀 방지 예외가 spec 본문 표기만 인정해 plan 전용 항목·템플릿 고정 블록을 예외로 읽지 못한다 | known issue | 낮음(LOW) | 승격(이슈 #108) | - |
+| [K-0012](active/K-0012-git-pr-push-url-unverified.md) | git-pr의 push 전 원격 대조가 fetch URL만 정규화해 push URL을 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 4단계 push 절차 또는 `verify-submit.sh` 원격 대조 모드 실질 변경 시, 또는 push URL이 fetch URL과 다른 원격으로 git-pr을 실행한 사례 관측 시 |
 
 ## 수명 주기
 
