@@ -89,5 +89,5 @@
 ### Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 - **결과**: 완료
-- **수행 내용 요약**: 사용자가 OpenAI GPT-6.1(effort high)로 최종 감사 1차를 수행했다(`.ai/99_workspace/issue-0108-audit-report.md`, 종합 적합(PASS)). 1단계 충족 27건·미충족 0건, 2단계 신규 발견 0건, 기등재 참조 2건(K-0009·K-0011)이다. `--response` 검토 결과 보정 대상이 없어 보정 0건이다.
+- **수행 내용 요약**: 사용자가 OpenAI GPT-6.1(effort high)로 최종 감사 1차를 수행했다([issue-0108-audit-report.md](./issue-0108-audit-report.md), 종합 적합(PASS)). 1단계 충족 27건·미충족 0건, 2단계 신규 발견 0건, 기등재 참조 2건(K-0009·K-0011)이다. `--response` 검토 결과 보정 대상이 없어 보정 0건이다.
 - **특이 사항**: 리포트가 범위 밖 유지보수 사항으로 남긴 `.ai/60_codebase/index.md` 태그 현황 문구는 `/code-map --local` sync로 갱신했다. 감사인은 GitHub 연결 실패로 이슈 본문을 다시 확인하지 못해 로컬 spec 기준으로 판정했다.
