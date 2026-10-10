@@ -1,6 +1,6 @@
 ---
 last_synced: 2026-10-10
-source_hash: de0a00c
+source_hash: 9141b12
 status: current
 ---
 
@@ -24,7 +24,8 @@ issue-work/SKILL.md `### --response`
     └── 원장
         ├── 신규 등재        # .ai/70_ledger/ledger-entry-template.md → active/K-<번호>-<slug>.md, index.md 갱신, 수용 사유·재검토 조건 필수
         ├── 기등재 재제기    # 계속 수용(재검토 이력 추가) / 승격(이슈 #N, archive/) / 해소(PR #N, archive/), 새 번호 없음
-        └── 원인 소멸 종결   # 보정으로 원인이 사라진 active/ 항목을 해소로 archive/
+        ├── 원인 소멸 종결   # 보정으로 원인이 사라진 active/ 항목을 해소로 archive/
+        └── 해소 기재 시점   # PR 있으면 기재, 없으면 미확정·재검토 이력만 남기고 git-pr 생성 후 기재로 (승격은 대상 아님)
 ```
 
 ## Why
@@ -32,4 +33,4 @@ issue-work/SKILL.md `### --response`
 - 근거는 `### --response` 동작 2~5항에 있다. 등급을 직접 고치면 매트릭스가 걷어낸 재량이 되살아나고, 이관 목적지를 원장으로 고정해야 사유 없는 무한 보류를 막으며, 재검토 조건이 없으면 같은 발견이 매 감사마다 신규로 올라온다.
 - 등급별 기본 처리 표의 값은 `issue-audit/SKILL.md` 등급별 기본 처리 기준을 따른다.
 - 원장 형식은 ai-workspace가 배포하는 `ledger-entry-template.md`이며 git-pr-feedback과 공유한다([대응 흐름](../git-pr-feedback/respond-call-flow.md)).
-- 명세: [이슈 단위 작업 워크플로우 요건](../../40_domain/specs/issue-workflow.md). 피드백 먼저·항목별 승인·1단계 우선 순서 게이트·지표 누적 규칙은 [ADR 0004](../../50_adr/active/0004-cross-model-audit-and-response-gate.md), 등급별 기본 처리는 [ADR 0006](../../50_adr/active/0006-risk-matrix-and-treatment.md), 원장을 이관 목적지로 고정한 결정과 상태 행렬은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), 계획 감사 리포트 보정과 R 변경 시 승인 게이트 재수행은 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md).
+- 명세: [이슈 단위 작업 워크플로우 요건](../../40_domain/specs/issue-workflow.md). 피드백 먼저·항목별 승인·1단계 우선 순서 게이트·지표 누적 규칙은 [ADR 0004](../../50_adr/active/0004-cross-model-audit-and-response-gate.md), 등급별 기본 처리는 [ADR 0006](../../50_adr/active/0006-risk-matrix-and-treatment.md), 원장을 이관 목적지로 고정한 결정과 상태 행렬은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), 해소 기재 시점은 [ADR 0018](../../50_adr/active/0018-ledger-proactive-review-and-resolve-timing.md), 계획 감사 리포트 보정과 R 변경 시 승인 게이트 재수행은 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md).

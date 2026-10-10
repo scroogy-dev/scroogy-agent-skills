@@ -23,12 +23,14 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0003](active/K-0003-approved-file-content-unverified.md) | 승인한 제목·본문 파일의 내용 동일성이 제출 직전에 검증되지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 3·4단계 승인 게이트의 승인 대상·검증 값·절차 순서 실질 변경 시, 또는 승인 후 파일 변조로 미승인 내용이 게시된 사례 관측 시 |
 | [K-0004](active/K-0004-clear-preserve-destination-mismatch.md) | --clear 5단계 보존 목적지가 파일명의 이슈 번호를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | issue-work --clear 5단계 보존 목적지를 정하는 문장 실질 변경 시, 또는 이전 이슈 PR 파일이 다른 이슈 archive로 이관된 사례 관측 시 |
 | [K-0005](active/K-0005-install-template-exclude-pattern-literal.md) | install-skills 설치 결과 템플릿이 배포 제외 패턴 리터럴을 복제한다 | 기술부채 | 낮음(LOW) | 수용 | install-skills SKILL.md 5단계 배포 제외 패턴 값 추가·변경·삭제 시, 또는 보고의 패턴 표기가 실제 배포와 다른 사례 관측 시 |
-| [K-0006](active/K-0006-code-map-check-not-deterministic.md) | code-map `check` 모드의 정합성 점검이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 중간(MEDIUM) | 수용 | code-map local/global 참조 문서의 정합성 점검 표 항목 추가·변경·삭제 시, 또는 `.ai/60_codebase/` 색인이 생겨 `check` 모드를 실제로 운용하게 될 때 |
+| [K-0006](active/K-0006-code-map-check-not-deterministic.md) | code-map `check` 모드의 정합성 점검이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 중간(MEDIUM) | 수용 | code-map local/global 참조 문서의 정합성 점검 표 항목 추가·변경·삭제 시, 또는 `check` 모드를 처음 실행할 때 |
 | [K-0007](active/K-0007-quiz-permalink-target-unverified.md) | git-review-quiz 댓글 permalink 검사가 확정 저장소·위치 행의 경로·줄 범위를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | `check-quiz.sh` `--comment` 모드의 인자·permalink 판정 규칙 실질 변경 시, 또는 게시된 퀴즈 댓글의 permalink가 다른 저장소·경로·줄 범위를 가리킨 사례 관측 시 |
 | [K-0008](active/K-0008-quiz-format-vocab-fixture-absent.md) | git-review-quiz 형식 검사에 지원하지 않는 형식 어휘 반례 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | `check-quiz.sh` R1 헤더 정규식(관점·형식 어휘 집합) 변경 시, 또는 형식 어휘 추가 기능 착수 시 |
 | [K-0009](active/K-0009-plan-audit-fake-d-check-manual.md) | issue-audit 계획 감사의 가짜 `[D]` 사전 판별이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 낮음(LOW) | 수용 | 계획 감사 2회 이상에서 가짜 `[D]` 판별 결과가 감사 모델 간에 갈린 사례 관측 시, 또는 `(회귀 방지 항목)` 표시의 리터럴·위치 규칙 변경 시 |
 | [K-0010](active/K-0010-check-plan-line-based-markdown-boundary.md) | issue-audit 추적성 헬퍼가 행 단위 파서라 여러 행 코드 스팬 등 그 밖의 마크다운 구성을 구분하지 않는다 | known issue | 낮음(LOW) | 수용 | 실제 spec·plan이 이 경계 때문에 오판정된 사례 관측 시, 또는 issue-work spec·plan 템플릿에 여러 행 코드 스팬·들여쓰기 코드 블록을 쓰는 구조가 도입될 때 |
 | [K-0011](archive/K-0011-plan-audit-regression-exception-spec-only.md) | issue-audit 계획 감사의 회귀 방지 예외가 spec 본문 표기만 인정해 plan 전용 항목·템플릿 고정 블록을 예외로 읽지 못한다 | known issue | 낮음(LOW) | 승격(이슈 #108) | - |
+| [K-0012](active/K-0012-git-pr-push-url-unverified.md) | git-pr의 push 전 원격 대조가 fetch URL만 정규화해 push URL을 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 4단계 push 절차 또는 `verify-submit.sh` 원격 대조 모드 실질 변경 시, 또는 push URL이 fetch URL과 다른 원격으로 git-pr을 실행한 사례 관측 시 |
+| [K-0013](active/K-0013-issue-work-pr-lookup-fork-same-branch.md) | issue-work 원장 해소 기재의 PR 조회가 head 저장소를 대조하지 않아 같은 브랜치명의 포크 PR을 고를 수 있다 | known issue | 낮음(LOW) | 수용 | issue-work 이슈 완료 시 원장 해소 기재의 PR 유무 확인 절차 실질 변경 시, 또는 포크 PR 유입이나 원장 `해소(PR #N)`에 다른 저장소 PR 번호가 적힌 사례 관측 시 |
 
 ## 수명 주기
 
@@ -37,9 +39,9 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | 단계 | 상태 값 | 위치 | 계기와 수행 주체 |
 |------|---------|------|------|
 | 등재 | `수용` | `active/` | issue-work `--response`의 이관, git-pr-feedback의 수용 — 원장 등재 |
-| 재검토 | `수용` 유지 | `active/` | 항목의 `재검토 조건` 충족 — issue-audit이 `기등재 K-<번호> 재제기`로 올리거나 git-pr-feedback이 같은 지적을 다시 받을 때. 재제기를 받은 스킬이 판단 결과를 항목의 `재검토 이력` 표에 남긴다 |
-| 종결(승격) | `승격(이슈 #N)` | `archive/` | 재검토 결과 지금 고쳐야 한다고 판단 — 재제기를 처리한 스킬(issue-work `--response` / git-pr-feedback)이 이슈를 만들고 그 번호를 상태에 적는다 |
-| 종결(해소) | `해소(PR #N)` | `archive/` | 원인이 사라짐 — 원인을 고친 작업의 스킬이 해소한 PR 번호를 상태에 적는다 |
+| 재검토 | `수용` 유지 | `active/` | 항목의 `재검토 조건` 충족 — issue-audit이 `기등재 K-<번호> 재제기`로 올리거나 git-pr-feedback이 같은 지적을 다시 받을 때, 또는 git-pr `문서 동기화 점검`의 원장 대조가 diff에서 재검토 조건의 대상 변경이나 원인이 남은 상태의 항목 원인 파일 변경을 감지해 권고하고 작성자가 승인할 때. 재제기·권고를 처리한 스킬이 판단 결과를 항목의 `재검토 이력` 표에 남긴다 |
+| 종결(승격) | `승격(이슈 #N)` | `archive/` | 재검토 결과 지금 고쳐야 한다고 판단 — 재제기·권고를 처리한 스킬(issue-work `--response` / git-pr-feedback / git-pr `문서 동기화 점검`)이 이슈를 만들고 그 번호를 상태에 적는다 |
+| 종결(해소) | `해소(PR #N)` | `archive/` | 원인이 사라짐 — 원인을 고친 작업의 스킬이 해소한 PR 번호를 상태에 적는다. issue-work 새 이슈 시작에서 `함께 해소` 후보로 범위에 넣은 항목은 이슈 완료 시(`--clear`) 적고, git-pr `문서 동기화 점검`의 원장 대조가 종결을 권고해 승인된 항목은 PR 생성 후 git-pr이 적는다. PR 번호를 알기 전에는 확정하지 않는다 |
 
 - 상태가 `승격`·`해소`로 바뀐 항목은 `active/`에서 `archive/`로 옮기고 위 항목 목록을 함께 갱신합니다.
 - 재검토·종결은 **새 항목을 만들지 않고 기존 항목을 갱신**합니다. 같은 결함에 새 `K` 번호를 따면 원장이 중복 보고를 막지 못하고, 갱신을 빠뜨리면 이미 해결된 항목이 `active/`에 남아 이후 감사의 억제 기준이 됩니다.
@@ -48,7 +50,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 
 ### 상태별 처리 (같은 결함이 다시 올라왔을 때)
 
-원장의 소비자(issue-audit·git-pr-feedback)는 일치 항목의 상태에 따라 아래와 같이 갈라 처리합니다. 상태를 보지 않고 "원장에 이미 있음"으로만 판단하면, 한쪽은 회귀를 억제하고 다른 쪽은 종결한 항목을 다시 손대 원장 상태가 어긋납니다.
+같은 결함을 다시 받는 두 소비자(issue-audit·git-pr-feedback)는 일치 항목의 상태에 따라 아래와 같이 갈라 처리합니다. 상태를 보지 않고 "원장에 이미 있음"으로만 판단하면, 한쪽은 회귀를 억제하고 다른 쪽은 종결한 항목을 다시 손대 원장 상태가 어긋납니다.
 
 | 일치 항목의 상태·위치 | issue-audit | git-pr-feedback |
 |------|------|------|
