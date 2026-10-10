@@ -637,6 +637,52 @@ assert_report_structure "$sandbox/t-model-no-ex-id.md" fail "리포트 구조: �
 assert_report_structure "$sandbox/t-model-no-unk.md"   fail "리포트 구조: 감사 모델 줄 확인 불가 표기 (-) 제거 격추"
 assert_report_structure "$sandbox/t-model-dup.md"      fail "리포트 구조: 잘못된 감사 모델 줄 중복(PR #105 2차 리뷰 반례) 격추"
 
+# --- SKILL.md --plan 관점 2 가짜 [D] 사전 판별 조항 ---------------------------------
+# 관점 2 는 감사인 수동 절차라 헬퍼가 없고(K-0009) 조항 문장이 곧 계약이다. 고정 블록(Task 0·Task N)
+# 제외·제외 범위 한정·예외 표시 위치(spec 항목 본문) 한정이 빠지면 issue #108 이 막은 반복 발견이
+# 되살아나므로, 세 조항을 관점 2 행 하나에서 판정한다 (PR #109 리뷰 반례).
+
+# check_fake_d_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_fake_d_clause() {
+  awk '
+    /^2\. \*\*가짜 `\[D\]` 사전 판별\*\* `\[D\]`:/ {
+      n++
+      if (!index($0, "고정 블록(Task 0·Task N)의 완료 기준은 판별 대상에서 뺀다"))
+        print "관점 2 행에 고정 블록(Task 0·Task N) 제외 없음"
+      if (!index($0, "이슈별 spec DoD와 plan 일반 Task 완료 기준은 그대로 판별한다"))
+        print "관점 2 행에 제외 범위 한정 없음"
+      if (!index($0, "spec 항목 본문에 `(회귀 방지 항목)` 표시가 있을 때만 예외"))
+        print "관점 2 행에 예외 표시 위치(spec 항목 본문) 한정 없음"
+    }
+    END { if (n != 1) print "관점 2 행 " n + 0 "개 (기대 1개)" }
+  ' "$1"
+}
+
+# drop_literal <파일> <문자열> → 문자열을 정규식 해석 없이 지운 사본을 표준 출력으로
+drop_literal() {
+  awk -v s="$2" '{ while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)); print }' "$1"
+}
+
+assert_fake_d_clause() {
+  local out
+  out="$(check_fake_d_clause "$1")"
+  case "$2" in
+    pass) if [ -z "$out" ]; then ok "$3 (위반 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$3 (위반 검출)"; else ng "$3 (기대 >0건, 실제 0건)"; fi ;;
+  esac
+}
+
+drop_literal "$SKILL" '고정 블록(Task 0·Task N)의 완료 기준은 판별 대상에서 뺀다' > "$sandbox/k-no-fixed.md"
+drop_literal "$SKILL" '이슈별 spec DoD와 plan 일반 Task 완료 기준은 그대로 판별한다.' > "$sandbox/k-no-scope.md"
+drop_literal "$SKILL" 'spec 항목 본문에 ' > "$sandbox/k-no-body.md"
+awk '{print} /^2\. \*\*가짜 `\[D\]` 사전 판별\*\*/{print}' "$SKILL" > "$sandbox/k-dup-line.md"
+
+assert_fake_d_clause "$SKILL"                    pass "관점 2 조항: 실제 SKILL.md 통과"
+assert_fake_d_clause "$sandbox/k-no-fixed.md"    fail "관점 2 조항: 고정 블록 제외 삭제(PR #109 리뷰 반례) 격추"
+assert_fake_d_clause "$sandbox/k-no-scope.md"    fail "관점 2 조항: 제외 범위 한정 삭제 격추"
+assert_fake_d_clause "$sandbox/k-no-body.md"     fail "관점 2 조항: 예외 표시 위치(spec 항목 본문) 한정 삭제 격추"
+assert_fake_d_clause "$sandbox/k-dup-line.md"    fail "관점 2 조항: 관점 2 행 중복 격추"
+
 # --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
 #
 # spec 포함 R · DoD `### R<n>` 그룹 · plan 일반 Task `대상 요구사항` 필드의 삼자 대응 위반 4종을

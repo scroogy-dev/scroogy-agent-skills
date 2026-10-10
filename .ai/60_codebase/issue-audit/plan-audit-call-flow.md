@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-24
-source_hash: 65b2bf4
+last_synced: 2026-10-10
+source_hash: 0aa3038
 status: current
 ---
 
@@ -18,7 +18,7 @@ issue-audit/SKILL.md `### --plan`
 ├── 1단계: 적합성 검증            # 행 = 이슈 본문 요구 항목 ↔ spec 포함·제외 (PASS/FAIL/PARTIAL/N/A), DoD 표는 포함 R ↔ `### R<n>` 그룹
 ├── 2단계: 비판적 검증 5관점
 │   ├── 추적성 [D]                # scripts/check-plan.sh --trace <spec> <plan>
-│   ├── 가짜 [D] 사전 판별 [D]    # 구현 전 트리에서 [D] 명령 실행, 정상 명령은 실패해야 함, 회귀 방지 항목은 예외 표시 (수동)
+│   ├── 가짜 [D] 사전 판별 [D]    # 구현 전 트리에서 [D] 명령 실행, 정상 명령은 실패해야 함, 고정 블록(Task 0·N) 완료 기준은 제외, 회귀 방지 항목은 spec 본문 `(회귀 방지 항목)` 표시로 예외 (수동)
 │   └── 범위·모호성·과잉 설계 [QD]
 ├── 공통 규칙                     # classify-risk.sh 등급·처리·상태·판정, 원장 대조, next-finding-number.sh 는 최종 감사와 동일
 └── 결과 기록                     # .ai/99_workspace/issue-<번호>-plan-audit-report.md, 회차 보존·--clear 이관 동일, F- 번호 축은 최종 감사와 분리, 감사 모델·effort 줄 값은 summary 계획 audit 모델 행에 사용자가 기록

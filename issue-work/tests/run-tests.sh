@@ -278,9 +278,16 @@ SPEC_TPL="$HERE/../templates/issue-spec-template.md"
 # 소속만 보면 요구사항 블록 전체를 DoD 뒤로 옮겨도 통과한다.
 # 목표 헤더도 개수를 판정한다 — 위치 판정은 헤더가 있을 때만 걸려 삭제·중복이 통과한다.
 # R 번호 집합은 출현 횟수로 누적한다 — 불리언 대입은 같은 번호의 중복 그룹·항목을 잃는다.
+# `(회귀 방지 항목)` 표시는 issue-audit 관점 2 가 spec 항목 본문에서만 인정하는 예외 계약이다 —
+# DoD 주석의 표시 규칙과 R1·공통 예시의 첫 `[D]` 항목 본문 줄을 판정한다 (PR #109 리뷰 반례).
 check_spec_structure() {
   awk '
     /^## /                           { sec = $0; list = "" }
+    /^##/                            { g = "" }
+    /^### R1: /                      { g = "R1" }
+    /^### 공통$/                     { g = "공통" }
+    g != "" && /^- \[ \] \[D\]/ && !seen[g]++ { if (index($0, "(회귀 방지 항목)")) mark[g]++ }
+    /^- 회귀 방지 항목 표시: / && index($0, "`(회귀 방지 항목)`") { if (sec == "## 완료의 정의 (Definition of Done)") rule++ }
     /^## 목표 \(Goal\)$/             { goal++; goal_at = NR }
     /^## 요구사항 \(Requirements\)$/ { req++; req_at = NR }
     /^## 완료의 정의 \(Definition of Done\)$/ { dod_at = NR }
@@ -317,6 +324,9 @@ check_spec_structure() {
       for (n in dod_rs) if (dod_rs[n] > 1) print "DoD R" n " 그룹 중복: " dod_rs[n] "개"
       if (scope)          print "범위 헤더 잔존 (경계는 제외 목록으로 일원화)"
       if (old)            print "옛 포함(In)·비포함(Out) 표기 잔존"
+      if (rule != 1)      print "DoD 주석의 회귀 방지 항목 표시 규칙 " rule + 0 "개 (기대 1개)"
+      if (!mark["R1"])    print "DoD R1 예시 첫 [D] 항목 본문에 (회귀 방지 항목) 표시 없음"
+      if (!mark["공통"])  print "DoD 공통 예시 첫 [D] 항목 본문에 (회귀 방지 항목) 표시 없음"
     }
   ' "$1"
 }
@@ -410,6 +420,13 @@ awk '{print} /^- R2: /{print $0}' "$SPEC_TPL" > "$sandbox/s-dup-ritem.md"
 # PR #95 5차 리뷰 반례: 목표 헤더 삭제·중복 — 위치 판정은 헤더가 있을 때만 걸려 개수 없이는 통과한다.
 awk '!/^## 목표 \(Goal\)$/' "$SPEC_TPL" > "$sandbox/s-no-goal.md"
 awk '{print} END{print ""; print "## 목표 (Goal)"}' "$SPEC_TPL" > "$sandbox/s-dup-goal.md"
+# PR #109 리뷰 반례: 회귀 방지 표시 계약 — 주석 규칙 삭제 / R1 예시 표시 삭제 / 공통 예시 표시를 접기 안으로 이동.
+awk '!/^- 회귀 방지 항목 표시: /' "$SPEC_TPL" > "$sandbox/s-no-mark-rule.md"
+awk '/^### R1: /{g=1} /^### R2: /{g=0} g && /^- \[ \] \[D\]/{sub(/ \(회귀 방지 항목\)/, "")} {print}' \
+  "$SPEC_TPL" > "$sandbox/s-no-r1-mark.md"
+awk '/^### 공통$/{g=1} g && /^- \[ \] \[D\]/{sub(/ \(회귀 방지 항목\)/, ""); m=1}
+     g && m && /<summary>/{sub(/<\/summary>/, " (회귀 방지 항목)</summary>"); m=0} {print}' \
+  "$SPEC_TPL" > "$sandbox/s-common-mark-folded.md"
 
 assert_structure check_spec_structure "$SPEC_TPL"                  pass "spec 구조: 실제 템플릿 통과"
 assert_structure check_spec_structure "$sandbox/s-no-req.md"       fail "spec 구조: 요구사항 헤더 소실 격추"
@@ -437,6 +454,9 @@ assert_structure check_spec_structure "$sandbox/s-dup-rgroup.md"     fail "spec 
 assert_structure check_spec_structure "$sandbox/s-dup-ritem.md"      fail "spec 구조: 포함 R2 항목 중복 격추"
 assert_structure check_spec_structure "$sandbox/s-no-goal.md"        fail "spec 구조: 목표 헤더 소실(PR #95 5차 리뷰 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-goal.md"       fail "spec 구조: 목표 헤더 중복 격추"
+assert_structure check_spec_structure "$sandbox/s-no-mark-rule.md"   fail "spec 구조: 회귀 방지 표시 규칙 삭제(PR #109 리뷰 반례) 격추"
+assert_structure check_spec_structure "$sandbox/s-no-r1-mark.md"     fail "spec 구조: R1 예시 회귀 방지 표시 삭제 격추"
+assert_structure check_spec_structure "$sandbox/s-common-mark-folded.md" fail "spec 구조: 공통 예시 회귀 방지 표시 접기 안 이동 격추"
 
 # 일반 Task 필드 누락 / 고정 Task 오기 / 중복 / 누락+오기 상쇄(총개수 우회) 반례.
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*대상 요구사항\*\*:/)' \

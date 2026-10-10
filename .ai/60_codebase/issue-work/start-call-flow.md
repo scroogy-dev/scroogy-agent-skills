@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-24
-source_hash: 60c4847
+last_synced: 2026-10-10
+source_hash: de0a00c
 status: current
 ---
 
@@ -18,13 +18,13 @@ issue-work/SKILL.md `## 새 이슈 시작 시` → `## 작업 진행 중`
 ├── 2. templates/issue-workflow-template.md → active/issue-workflow.md   # 템플릿이 SSoT, 다르면 덮어쓰기
 ├── 3-1. 승인 전                        # templates/issue-spec-template.md 로 목표·요구사항(포함·제외)·연관 문서 후보 (30_contract·40_domain·50_adr index)
 │   └── 요구사항 승인 게이트            # spec 경로 + 목표 한 줄·포함·제외 목록만 제시, 이슈 본문 근거 없는 항목은 표시·질의
-├── 3-2. 승인 후                        # 완료의 정의·전제, templates/issue-plan-template.md·issue-summary-template.md
+├── 3-2. 승인 후                        # 완료의 정의·전제(구현 전에도 통과가 정상인 항목은 본문 끝 `(회귀 방지 항목)`), templates/issue-plan-template.md·issue-summary-template.md
 ├── 4. 계획 종료 게이트                 # 문서에 없는 전제를 spec `## 전제` 에 기록
 ├── 5. 계획 감사 질의                   # 기본값 없음. 수행: 사용자가 issue-audit --plan → --response / 건너뜀: summary `계획 audit 모델`·`계획 감사` 줄에 `생략`
 ├── Task 0: 구현 시작 게이트            # 전제·모호점 질의 후 착수
 ├── Task 1..N-1                         # 완료 시 plan 체크·summary 갱신
 │   └── scripts/summarize-metrics.sh <summary>   # 수치 지표 3종(audit 발견·보정 반영·재시도) 표기 검사·보정률 집계, 위반은 exit 1
-└── Task N: 교차모델 issue-audit         # 사용자 수동 (구현 AI 자동 실행·종료 금지), 리포트는 --response 로
+└── Task N: 교차모델 issue-audit         # 사용자 수동 (구현 AI 자동 실행·종료 금지), `최종 audit 모델` 행에 "벤더, 모델명 (모델 ID)"·effort, 리포트는 --response 로
 ```
 
 ## Why
