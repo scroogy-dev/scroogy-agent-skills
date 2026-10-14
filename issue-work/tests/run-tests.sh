@@ -625,28 +625,67 @@ assert_structure check_summary_structure "$sandbox/m-id-row-no-fmt.md" fail "sum
 # spec DoD [D] 는 외부 경계의 인수 테스트이고 구현 테스트는 plan Task 가 맡는다는 구분은
 # 조항 문장이 곧 계약이다 — SKILL.md "완료 기준 형식" 절과 spec 템플릿 DoD 주석의 테스트 관점 행을
 # 판정한다. 절 범위를 다음 헤더까지로 잘라, 같은 문구가 다른 절에 있어도 세지 않는다.
+# 행 안의 조항(인수 테스트·외부 경계 목록·러너 호출 조건·명령 수준·plan Task 담당)마다 앵커 문구를 판정하고,
+# 문구마다 삭제 반례를 격추한다 — 낱말 두 개만 보면 조건 문구를 지워도 통과한다 (PR #113 리뷰 반례).
 
 # check_test_view_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_test_view_skill() {
   awk '/^### 완료 기준 형식$/ { s = 1; next } /^#/ { s = 0 }
-       s && /^- \*\*테스트 관점\*\*: / { n++; if ($0 !~ /인수 테스트/ || $0 !~ /Task/) print "테스트 관점 행에 인수 테스트 또는 Task 언급 없음" }
+       s && /^- \*\*테스트 관점\*\*: / {
+         n++
+         if (!index($0, "`[D]`는 계획 관점의 인수 테스트"))
+           print "테스트 관점 행에 계획 관점 인수 테스트 언급 없음"
+         if (!index($0, "외부 경계(명령 인자·종료 코드·출력 행·파일 내용)"))
+           print "테스트 관점 행에 외부 경계 목록 없음"
+         if (!index($0, "경계가 spec에 고정되면 테스트 러너 호출로 적을 수 있고"))
+           print "테스트 관점 행에 러너 호출 조건 없음"
+         if (!index($0, "구현 중에 정해지면 명령 수준으로 둡니다"))
+           print "테스트 관점 행에 명령 수준 조건 없음"
+         if (!index($0, "그 기능을 만드는 plan Task의 `작업 내용`·`완료 기준`이 맡습니다"))
+           print "테스트 관점 행에 구현 테스트의 plan Task 담당 없음"
+       }
        END { if (n != 1) print "테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
 }
 
 # check_test_view_spec <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_test_view_spec() {
   awk '/^## 완료의 정의 \(Definition of Done\)$/ { s = 1; next } /^## / { s = 0 }
-       s && /^- 테스트 관점: / { n++; if ($0 !~ /인수 테스트/) print "spec 템플릿 테스트 관점 행에 인수 테스트 언급 없음" }
+       s && /^- 테스트 관점: / {
+         n++
+         if (!index($0, "외부 경계(명령 인자·종료 코드·출력 행·파일 내용)"))
+           print "spec 템플릿 테스트 관점 행에 외부 경계 목록 없음"
+         if (!index($0, "인수 테스트"))
+           print "spec 템플릿 테스트 관점 행에 인수 테스트 언급 없음"
+       }
        END { if (n != 1) print "spec 템플릿 테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
+}
+
+# drop_literal <파일> <문자열> → 문자열을 정규식 해석 없이 지운 사본을 표준 출력으로
+drop_literal() {
+  awk -v s="$2" '{ while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)); print }' "$1"
 }
 
 awk '!/^- \*\*테스트 관점\*\*: /' "$SKILL" > "$sandbox/tv-skill-del.md"
 awk '!/^- 테스트 관점: /' "$SPEC_TPL" > "$sandbox/tv-spec-del.md"
+drop_literal "$SKILL" '`[D]`는 계획 관점의 인수 테스트' > "$sandbox/tv-skill-no-accept.md"
+drop_literal "$SKILL" '외부 경계(명령 인자·종료 코드·출력 행·파일 내용)' > "$sandbox/tv-skill-no-boundary.md"
+drop_literal "$SKILL" '경계가 spec에 고정되면 테스트 러너 호출로 적을 수 있고' > "$sandbox/tv-skill-no-runner.md"
+drop_literal "$SKILL" '구현 중에 정해지면 명령 수준으로 둡니다' > "$sandbox/tv-skill-no-cmd.md"
+drop_literal "$SKILL" '그 기능을 만드는 plan Task의 `작업 내용`·`완료 기준`이 맡습니다' > "$sandbox/tv-skill-no-task.md"
+drop_literal "$SPEC_TPL" '외부 경계(명령 인자·종료 코드·출력 행·파일 내용)' > "$sandbox/tv-spec-no-boundary.md"
+drop_literal "$SPEC_TPL" '인수 테스트' > "$sandbox/tv-spec-no-accept.md"
 
 assert_structure check_test_view_skill "$SKILL"                    pass "테스트 관점: SKILL.md 완료 기준 형식 행 통과"
 assert_structure check_test_view_skill "$sandbox/tv-skill-del.md"  fail "테스트 관점: SKILL.md 완료 기준 형식 행 삭제 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-accept.md"   fail "테스트 관점: SKILL.md 계획 관점 인수 테스트 문구 삭제 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-boundary.md" fail "테스트 관점: SKILL.md 외부 경계 목록 삭제(PR #113 리뷰 반례) 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-runner.md"   fail "테스트 관점: SKILL.md 러너 호출 조건 삭제(PR #113 리뷰 반례) 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-cmd.md"      fail "테스트 관점: SKILL.md 명령 수준 조건 삭제 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-task.md"     fail "테스트 관점: SKILL.md 구현 테스트 plan Task 담당 삭제 격추"
 assert_structure check_test_view_spec  "$SPEC_TPL"                 pass "테스트 관점: spec 템플릿 DoD 주석 행 통과"
 assert_structure check_test_view_spec  "$sandbox/tv-spec-del.md"   fail "테스트 관점: spec 템플릿 DoD 주석 행 삭제 격추"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-no-boundary.md"  fail "테스트 관점: spec 템플릿 외부 경계 목록 삭제(PR #113 리뷰 반례) 격추"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-no-accept.md"    fail "테스트 관점: spec 템플릿 인수 테스트 문구 삭제 격추"
 
 # --- 테스트 배치 (issue #112) ------------------------------------------------------
 #
