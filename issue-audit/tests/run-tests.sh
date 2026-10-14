@@ -683,6 +683,71 @@ assert_fake_d_clause "$sandbox/k-no-scope.md"    fail "관점 2 조항: 제외 �
 assert_fake_d_clause "$sandbox/k-no-body.md"     fail "관점 2 조항: 예외 표시 위치(spec 항목 본문) 한정 삭제 격추"
 assert_fake_d_clause "$sandbox/k-dup-line.md"    fail "관점 2 조항: 관점 2 행 중복 격추"
 
+# --- SKILL.md 최종 감사 관점 5·1단계 DoD 대조 조항 (issue #112) --------------------
+# 관점 5 의 Task별 테스트 기준과 1단계 DoD 대조의 [D] 실행 지시도 감사인 절차라 조항 문장이 곧 계약이다.
+# 관점 2 조항과 같은 방식으로 각 행 하나에서 앵커 문구를 판정하고, 문구마다 삭제 반례를 격추한다.
+# 행 범위는 절 헤더로 자른다 — `--plan` 절의 관점 목록은 굵은 글씨 문단이라 범위에 들지 않는다.
+
+# check_test_view_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_test_view_clause() {
+  awk '
+    /^#### 검증 관점$/ { s = 1; next } /^####/ { s = 0 }
+    s && /^5\. \*\*누락된 검증\*\*/ {
+      n++
+      if (!index($0, "구현 Task마다 plan 완료 기준에 그 Task의 테스트 `[D]`"))
+        print "관점 5 행에 구현 Task별 테스트 [D] 존재 기준 없음"
+      if (!index($0, "해당 Task의 변경을 실제로 덮는지"))
+        print "관점 5 행에 변경 커버 기준 없음"
+      if (!index($0, "회귀 방지 항목)만 있는 Task는 Task별 테스트가 없는 것으로 보고"))
+        print "관점 5 행에 공통 회귀 항목 대체 불가 기준 없음"
+    }
+    END { if (n != 1) print "관점 5 행 " n + 0 "개 (기대 1개)" }
+  ' "$1"
+}
+
+# check_dod_run_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_dod_run_clause() {
+  awk '
+    /^### 1단계: 적합성 검증/ { s = 1 } /^### 2단계/ { s = 0 }
+    s && /^2\. \*\*완료의 정의\(DoD\) 대조\*\*/ {
+      n++
+      if (!index($0, "`[D]` 항목은 검증 명령을 구현 후 트리에서 실제로 실행해 그 결과를 판정 근거로 삼는다"))
+        print "DoD 대조 행에 [D] 실제 실행 지시 없음"
+      if (!index($0, "summary에 통과로 기록되어 있어도 미충족(FAIL) 근거로 쓰고"))
+        print "DoD 대조 행에 summary 기록 불일치 미충족 기준 없음"
+      if (!index($0, "구현 전 실행으로 가짜 `[D]`를 거르는 일은 `--plan` 관점 2가 맡는다"))
+        print "DoD 대조 행에 --plan 관점 2 역할 구분 없음"
+    }
+    END { if (n != 1) print "DoD 대조 행 " n + 0 "개 (기대 1개)" }
+  ' "$1"
+}
+
+# assert_clause <검사 함수> <파일> <기대: pass|fail> <설명>
+assert_clause() {
+  local out
+  out="$("$1" "$2")"
+  case "$3" in
+    pass) if [ -z "$out" ]; then ok "$4 (위반 0건)"; else ng "$4 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$4 (위반 검출)"; else ng "$4 (기대 >0건, 실제 0건)"; fi ;;
+  esac
+}
+
+drop_literal "$SKILL" '구현 Task마다 plan 완료 기준에 그 Task의 테스트 `[D]`' > "$sandbox/v5-no-exist.md"
+drop_literal "$SKILL" '해당 Task의 변경을 실제로 덮는지' > "$sandbox/v5-no-cover.md"
+drop_literal "$SKILL" '회귀 방지 항목)만 있는 Task는 Task별 테스트가 없는 것으로 보고' > "$sandbox/v5-no-common.md"
+drop_literal "$SKILL" '`[D]` 항목은 검증 명령을 구현 후 트리에서 실제로 실행해 그 결과를 판정 근거로 삼는다' > "$sandbox/dr-no-run.md"
+drop_literal "$SKILL" 'summary에 통과로 기록되어 있어도 미충족(FAIL) 근거로 쓰고' > "$sandbox/dr-no-summary.md"
+drop_literal "$SKILL" '구현 전 실행으로 가짜 `[D]`를 거르는 일은 `--plan` 관점 2가 맡는다' > "$sandbox/dr-no-role.md"
+
+assert_clause check_test_view_clause "$SKILL"                   pass "관점 5 조항: 실제 SKILL.md 통과"
+assert_clause check_test_view_clause "$sandbox/v5-no-exist.md"  fail "관점 5 조항: 구현 Task별 테스트 [D] 존재 기준 삭제 격추"
+assert_clause check_test_view_clause "$sandbox/v5-no-cover.md"  fail "관점 5 조항: 변경 커버 기준 삭제 격추"
+assert_clause check_test_view_clause "$sandbox/v5-no-common.md" fail "관점 5 조항: 공통 회귀 항목 대체 불가 기준 삭제 격추"
+assert_clause check_dod_run_clause   "$SKILL"                   pass "DoD 대조 조항: 실제 SKILL.md 통과"
+assert_clause check_dod_run_clause   "$sandbox/dr-no-run.md"    fail "DoD 대조 조항: [D] 실제 실행 지시 삭제 격추"
+assert_clause check_dod_run_clause   "$sandbox/dr-no-summary.md" fail "DoD 대조 조항: summary 기록 불일치 미충족 기준 삭제 격추"
+assert_clause check_dod_run_clause   "$sandbox/dr-no-role.md"   fail "DoD 대조 조항: --plan 관점 2 역할 구분 삭제 격추"
+
 # --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
 #
 # spec 포함 R · DoD `### R<n>` 그룹 · plan 일반 Task `대상 요구사항` 필드의 삼자 대응 위반 4종을
