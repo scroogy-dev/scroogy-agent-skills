@@ -620,6 +620,34 @@ assert_structure check_summary_structure "$sandbox/m-id-list-bare.md" fail "summ
 assert_structure check_summary_structure "$sandbox/m-id-list-first-bare.md" fail "summary 구조: 수행 모델 나열 예시 앞 항목 괄호 누락 격추"
 assert_structure check_summary_structure "$sandbox/m-id-row-no-fmt.md" fail "summary 구조: 모델 기록 한 행만 형식 안내 전체 삭제(PR #105 3차 리뷰 반례) 격추"
 
+# --- 테스트 관점 조항 (issue #112) ------------------------------------------------
+#
+# spec DoD [D] 는 외부 경계의 인수 테스트이고 구현 테스트는 plan Task 가 맡는다는 구분은
+# 조항 문장이 곧 계약이다 — SKILL.md "완료 기준 형식" 절과 spec 템플릿 DoD 주석의 테스트 관점 행을
+# 판정한다. 절 범위를 다음 헤더까지로 잘라, 같은 문구가 다른 절에 있어도 세지 않는다.
+
+# check_test_view_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_test_view_skill() {
+  awk '/^### 완료 기준 형식$/ { s = 1; next } /^#/ { s = 0 }
+       s && /^- \*\*테스트 관점\*\*: / { n++; if ($0 !~ /인수 테스트/ || $0 !~ /Task/) print "테스트 관점 행에 인수 테스트 또는 Task 언급 없음" }
+       END { if (n != 1) print "테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
+}
+
+# check_test_view_spec <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_test_view_spec() {
+  awk '/^## 완료의 정의 \(Definition of Done\)$/ { s = 1; next } /^## / { s = 0 }
+       s && /^- 테스트 관점: / { n++; if ($0 !~ /인수 테스트/) print "spec 템플릿 테스트 관점 행에 인수 테스트 언급 없음" }
+       END { if (n != 1) print "spec 템플릿 테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
+}
+
+awk '!/^- \*\*테스트 관점\*\*: /' "$SKILL" > "$sandbox/tv-skill-del.md"
+awk '!/^- 테스트 관점: /' "$SPEC_TPL" > "$sandbox/tv-spec-del.md"
+
+assert_structure check_test_view_skill "$SKILL"                    pass "테스트 관점: SKILL.md 완료 기준 형식 행 통과"
+assert_structure check_test_view_skill "$sandbox/tv-skill-del.md"  fail "테스트 관점: SKILL.md 완료 기준 형식 행 삭제 격추"
+assert_structure check_test_view_spec  "$SPEC_TPL"                 pass "테스트 관점: spec 템플릿 DoD 주석 행 통과"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-del.md"   fail "테스트 관점: spec 템플릿 DoD 주석 행 삭제 격추"
+
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
 CLEAR="$HERE/../scripts/check-clear.sh"
