@@ -721,7 +721,7 @@ assert_structure check_placement_comment "$sandbox/tp-comment-moved.md" fail "�
 assert_structure check_placement_example "$TEMPLATE"                    pass "테스트 배치: Task 1 테스트 [D] 예시 통과"
 assert_structure check_placement_example "$sandbox/tp-example-del.md"   fail "테스트 배치: Task 1 테스트 [D] 예시 삭제 격추"
 
-# 예시 명령 실행: 정상 러너는 출력 0건, `ok` 행 없는 러너와 종료 1 러너는 위반 행을 내야 한다.
+# 예시 명령 실행: 정상 러너는 출력 0건, `ok` 행 없는 러너·한쪽 행만 있는 러너·종료 1 러너는 위반 행을 내야 한다.
 GATE_T="$(extract_gate '새 케이스를 포함해 0 실패로 통과')"
 
 case "$GATE_T" in
@@ -740,6 +740,15 @@ EOF
 cat > "$sandbox/runners/no-case.sh" <<'EOF'
 #!/usr/bin/env bash
 echo 'passed: 0, failed: 0'
+EOF
+# 한쪽 행만 있는 러너: 통과·격추 하한 중 하나가 무력화되면 이 입력을 받아들인다.
+cat > "$sandbox/runners/pass-only.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'ok     - <라벨>: 정상 입력 통과'
+EOF
+cat > "$sandbox/runners/fail-only.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'ok     - <라벨>: 반례 격추'
 EOF
 cat > "$sandbox/runners/exit1.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -763,6 +772,8 @@ assert_example() {
 
 assert_example "$sandbox/runners/pair.sh"    pass "테스트 배치: 예시 명령 정상 러너 통과"
 assert_example "$sandbox/runners/no-case.sh" fail "테스트 배치: 예시 명령 ok 행 없는 러너 격추"
+assert_example "$sandbox/runners/pass-only.sh" fail "테스트 배치: 예시 명령 정상 행만 있는 러너 격추"
+assert_example "$sandbox/runners/fail-only.sh" fail "테스트 배치: 예시 명령 반례 행만 있는 러너 격추"
 assert_example "$sandbox/runners/exit1.sh"   fail "테스트 배치: 예시 명령 종료 1 러너 격추"
 
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
