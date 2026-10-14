@@ -653,7 +653,7 @@ assert_structure check_test_view_spec  "$sandbox/tv-spec-del.md"   fail "테스�
 # 구현 테스트를 각 Task 의 `작업 내용`·`완료 기준`에 두는 규칙은 plan 템플릿의 머리말 문단,
 # Task 1 예시 `작업 내용` 주석, Task 1 예시 테스트 [D] 항목이 계약이다 — spec R2 [D] 와 같은 범위·앵커로 판정한다.
 # 테스트 [D] 예시는 모양만 보면 명령이 판정을 못 해도 통과하므로, 예시 명령을 템플릿에서 추출해
-# fixture 러너 3종에 실행한다 (Task N 게이트와 같은 추출 방식, `R=` 행은 떼고 fixture 러너 경로를 주입).
+# fixture 러너 5종에 실행한다 (Task N 게이트와 같은 추출 방식, `R=` 행은 떼고 fixture 러너 경로를 주입).
 
 # check_placement_header <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 # blockquote 문단이 여러 행에 걸치므로 `>` 빈 행 또는 `>` 아닌 행 전까지를 한 문단으로 모은다.
