@@ -27,7 +27,7 @@ ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
 # 완료 기준 항목의 접기 안 bash 코드 블록에서 게이트 명령을 추출한다.
 # 앵커 문구가 있는 본문 행 다음에 오는 첫 ```bash 블록이 대상이며,
-# `P=`/`S=` 경로 할당 행은 제외한다 — fixture 경로는 호출자(run_gate·assert_pair_gate)가
+# `P=`/`S=`/`R=` 경로 할당 행은 제외한다 — fixture 경로는 호출자(run_gate·assert_pair_gate·assert_example)가
 # 로컬 변수로 주입하는 현행 계약을 그대로 유지하기 위함이다.
 # 블록의 공통 들여쓰기(완료 기준 리스트 하위 배치)는 첫 행 기준으로 벗겨낸다.
 # 블록 서식이 바뀌어 추출이 깨지면 아래 "추출:" 검사가 실패해 드리프트를 알린다.
@@ -39,7 +39,7 @@ extract_gate() {
     inblock {
       if (!measured) { match($0, /^[[:space:]]*/); ind = RLENGTH; measured = 1 }
       line = substr($0, ind + 1)
-      if (line !~ /^[PS]=/) print line
+      if (line !~ /^[PRS]=/) print line
     }
   ' "$TEMPLATE"
 }
@@ -619,6 +619,201 @@ assert_structure check_summary_structure "$sandbox/m-id-task-no-unk.md" fail "su
 assert_structure check_summary_structure "$sandbox/m-id-list-bare.md" fail "summary 구조: 수행 모델 나열 예시 뒤 항목 괄호 누락 격추"
 assert_structure check_summary_structure "$sandbox/m-id-list-first-bare.md" fail "summary 구조: 수행 모델 나열 예시 앞 항목 괄호 누락 격추"
 assert_structure check_summary_structure "$sandbox/m-id-row-no-fmt.md" fail "summary 구조: 모델 기록 한 행만 형식 안내 전체 삭제(PR #105 3차 리뷰 반례) 격추"
+
+# --- 테스트 관점 조항 (issue #112) ------------------------------------------------
+#
+# spec DoD [D] 는 외부 경계의 인수 테스트이고 구현 테스트는 plan Task 가 맡는다는 구분은
+# 조항 문장이 곧 계약이다 — SKILL.md "완료 기준 형식" 절과 spec 템플릿 DoD 주석의 테스트 관점 행을
+# 판정한다. 절 범위를 다음 헤더까지로 잘라, 같은 문구가 다른 절에 있어도 세지 않는다.
+# 행 안의 조항(인수 테스트·외부 경계 목록·러너 호출 조건·명령 수준·plan Task 담당)마다 앵커 문구를 판정하고,
+# 문구마다 삭제 반례를 격추한다 — 낱말 두 개만 보면 조건 문구를 지워도 통과한다 (PR #113 리뷰 반례).
+
+# check_test_view_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_test_view_skill() {
+  awk '/^### 완료 기준 형식$/ { s = 1; next } /^#/ { s = 0 }
+       s && /^- \*\*테스트 관점\*\*: / {
+         n++
+         if (!index($0, "`[D]`는 계획 관점의 인수 테스트"))
+           print "테스트 관점 행에 계획 관점 인수 테스트 언급 없음"
+         if (!index($0, "외부 경계(명령 인자·종료 코드·출력 행·파일 내용)"))
+           print "테스트 관점 행에 외부 경계 목록 없음"
+         if (!index($0, "경계가 spec에 고정되면 테스트 러너 호출로 적을 수 있고"))
+           print "테스트 관점 행에 러너 호출 조건 없음"
+         if (!index($0, "구현 중에 정해지면 명령 수준으로 둡니다"))
+           print "테스트 관점 행에 명령 수준 조건 없음"
+         if (!index($0, "그 기능을 만드는 plan Task의 `작업 내용`·`완료 기준`이 맡습니다"))
+           print "테스트 관점 행에 구현 테스트의 plan Task 담당 없음"
+       }
+       END { if (n != 1) print "테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
+}
+
+# check_test_view_spec <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_test_view_spec() {
+  awk '/^## 완료의 정의 \(Definition of Done\)$/ { s = 1; next } /^## / { s = 0 }
+       s && /^- 테스트 관점: / {
+         n++
+         if (!index($0, "외부 경계(명령 인자·종료 코드·출력 행·파일 내용)"))
+           print "spec 템플릿 테스트 관점 행에 외부 경계 목록 없음"
+         if (!index($0, "인수 테스트"))
+           print "spec 템플릿 테스트 관점 행에 인수 테스트 언급 없음"
+       }
+       END { if (n != 1) print "spec 템플릿 테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
+}
+
+# drop_literal <파일> <문자열> → 문자열을 정규식 해석 없이 지운 사본을 표준 출력으로
+drop_literal() {
+  awk -v s="$2" '{ while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)); print }' "$1"
+}
+
+awk '!/^- \*\*테스트 관점\*\*: /' "$SKILL" > "$sandbox/tv-skill-del.md"
+awk '!/^- 테스트 관점: /' "$SPEC_TPL" > "$sandbox/tv-spec-del.md"
+drop_literal "$SKILL" '`[D]`는 계획 관점의 인수 테스트' > "$sandbox/tv-skill-no-accept.md"
+drop_literal "$SKILL" '외부 경계(명령 인자·종료 코드·출력 행·파일 내용)' > "$sandbox/tv-skill-no-boundary.md"
+drop_literal "$SKILL" '경계가 spec에 고정되면 테스트 러너 호출로 적을 수 있고' > "$sandbox/tv-skill-no-runner.md"
+drop_literal "$SKILL" '구현 중에 정해지면 명령 수준으로 둡니다' > "$sandbox/tv-skill-no-cmd.md"
+drop_literal "$SKILL" '그 기능을 만드는 plan Task의 `작업 내용`·`완료 기준`이 맡습니다' > "$sandbox/tv-skill-no-task.md"
+drop_literal "$SPEC_TPL" '외부 경계(명령 인자·종료 코드·출력 행·파일 내용)' > "$sandbox/tv-spec-no-boundary.md"
+drop_literal "$SPEC_TPL" '인수 테스트' > "$sandbox/tv-spec-no-accept.md"
+
+assert_structure check_test_view_skill "$SKILL"                    pass "테스트 관점: SKILL.md 완료 기준 형식 행 통과"
+assert_structure check_test_view_skill "$sandbox/tv-skill-del.md"  fail "테스트 관점: SKILL.md 완료 기준 형식 행 삭제 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-accept.md"   fail "테스트 관점: SKILL.md 계획 관점 인수 테스트 문구 삭제 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-boundary.md" fail "테스트 관점: SKILL.md 외부 경계 목록 삭제(PR #113 리뷰 반례) 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-runner.md"   fail "테스트 관점: SKILL.md 러너 호출 조건 삭제(PR #113 리뷰 반례) 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-cmd.md"      fail "테스트 관점: SKILL.md 명령 수준 조건 삭제 격추"
+assert_structure check_test_view_skill "$sandbox/tv-skill-no-task.md"     fail "테스트 관점: SKILL.md 구현 테스트 plan Task 담당 삭제 격추"
+assert_structure check_test_view_spec  "$SPEC_TPL"                 pass "테스트 관점: spec 템플릿 DoD 주석 행 통과"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-del.md"   fail "테스트 관점: spec 템플릿 DoD 주석 행 삭제 격추"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-no-boundary.md"  fail "테스트 관점: spec 템플릿 외부 경계 목록 삭제(PR #113 리뷰 반례) 격추"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-no-accept.md"    fail "테스트 관점: spec 템플릿 인수 테스트 문구 삭제 격추"
+
+# --- 테스트 배치 (issue #112) ------------------------------------------------------
+#
+# 구현 테스트를 각 Task 의 `작업 내용`·`완료 기준`에 두는 규칙은 plan 템플릿의 머리말 문단,
+# Task 1 예시 `작업 내용` 주석, Task 1 예시 테스트 [D] 항목이 계약이다 — spec R2 [D] 와 같은 범위·앵커로 판정한다.
+# 테스트 [D] 예시는 모양만 보면 명령이 판정을 못 해도 통과하므로, 예시 명령을 템플릿에서 추출해
+# fixture 러너 5종에 실행한다 (Task N 게이트와 같은 추출 방식, `R=` 행은 떼고 fixture 러너 경로를 주입).
+
+# check_placement_header <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# blockquote 문단이 여러 행에 걸치므로 `>` 빈 행 또는 `>` 아닌 행 전까지를 한 문단으로 모은다.
+check_placement_header() {
+  awk '/^## Tasks$/ { s = 1 } /^### Task 0/ { s = 0 }
+       s && /^> \*\*테스트 배치\*\*/ { p = 1; n++ }
+       p && (/^>[[:space:]]*$/ || !/^>/) { p = 0 }
+       p { t = t $0 }
+       END { if (n != 1) print "테스트 배치 규칙 " n + 0 "개 (기대 1개)"
+             else { if (t !~ /테스트 자체가 작업 대상/) print "테스트 배치 규칙에 별도 테스트 Task 조건 문구 없음"
+                    if (t !~ /회귀 방지/) print "테스트 배치 규칙에 공통 회귀 항목 문구 없음" } }' "$1"
+}
+
+# check_placement_comment <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 필드 앵커로 범위를 자르므로 같은 주석을 `완료 기준` 등 다른 필드로 옮기면 실패한다.
+check_placement_comment() {
+  awk '/^### Task 1: / { s = 1 } /^### Task 2: / { s = 0 }
+       s && /^- \*\*작업 내용\*\*:/ { f = 1 }
+       s && /^- \*\*완료 기준\*\*:/ { f = 0 }
+       s && /<!--/ && /테스트 작성/ && /산출물/ { if (f) n++; else o++ }
+       END { if (n != 1) print "Task 1 작업 내용 테스트 배치 주석 " n + 0 "행 (기대 1행)"
+             if (o > 0) print "Task 1 작업 내용 밖에 테스트 배치 주석 " o "행 (기대 0행)" }' "$1"
+}
+
+# check_placement_example <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 접기 구성 요소를 전수 열거한다. 러너 경로·grep 행은 bash 코드 블록 안에서만 세고 주석 행은 건너뛴다.
+check_placement_example() {
+  awk '/^### Task 1: / { s = 1 } /^### Task 2: / { s = 0; c = 0 }
+       s && /^  - \[D\] / && /테스트/ && /0 실패/ { n++; c = 1; next }
+       c && /^  - \[/ { c = 0 }
+       c && /^    <details>/ { d++ }
+       c && /^    <\/details>/ { e++ }
+       c && !inb && /^    ```bash/ { b++; inb = 1; next }
+       c && inb && /^    ```[[:space:]]*$/ { inb = 0; next }
+       c && inb && /^[[:space:]]*#/ { next }
+       c && inb && /run-tests\.sh/ { r++ }
+       c && inb && /grep/ && / 통과/ { g1++ }
+       c && inb && /grep/ && / 격추/ { g2++ }
+       c && /설계 주의/ && /구현 전/ { w++ }
+       END { if (n != 1) print "Task 1 테스트 [D] 예시 " n + 0 "개 (기대 1개)"
+             else { if (d != 1 || e != 1) print "테스트 [D] 예시 접기 details 여닫음 " d + 0 "/" e + 0 " (기대 1/1)"
+                    if (b < 1) print "테스트 [D] 예시 접기에 bash 코드 블록 없음"
+                    if (r < 1) print "테스트 [D] 예시 코드 블록에 러너 경로 행 없음(주석 제외)"
+                    if (g1 < 1 || g2 < 1) print "테스트 [D] 예시 코드 블록에 통과·격추 grep 행 " g1 + 0 "/" g2 + 0 " (기대 각 1 이상, 주석 제외)"
+                    if (w < 1) print "테스트 [D] 예시 접기에 구현 전 통과 설계 주의 없음" } }' "$1"
+}
+
+awk '/^> \*\*테스트 배치\*\*/ { p = 1 } p && /^>[[:space:]]*$/ { p = 0 } !p' "$TEMPLATE" > "$sandbox/tp-header-del.md"
+awk '!(/<!--/ && /테스트 작성/ && /산출물/)' "$TEMPLATE" > "$sandbox/tp-comment-del.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0}
+     s && /<!--/ && /테스트 작성/ && /산출물/ { held = $0; next }
+     { print }
+     s && held && /^- \*\*완료 기준\*\*:/ { print held; held = "" }' \
+  "$TEMPLATE" > "$sandbox/tp-comment-moved.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0}
+     s && /^  - \[D\] / && /테스트/ && /0 실패/ { d = 1; next }
+     d && /^  - \[/ { d = 0 }
+     !d' "$TEMPLATE" > "$sandbox/tp-example-del.md"
+
+assert_structure check_placement_header  "$TEMPLATE"                    pass "테스트 배치: 머리말 문단 통과"
+assert_structure check_placement_header  "$sandbox/tp-header-del.md"    fail "테스트 배치: 머리말 문단 삭제 격추"
+assert_structure check_placement_comment "$TEMPLATE"                    pass "테스트 배치: Task 1 작업 내용 주석 통과"
+assert_structure check_placement_comment "$sandbox/tp-comment-del.md"   fail "테스트 배치: Task 1 작업 내용 주석 삭제 격추"
+assert_structure check_placement_comment "$sandbox/tp-comment-moved.md" fail "테스트 배치: Task 1 주석의 완료 기준 이동 격추"
+assert_structure check_placement_example "$TEMPLATE"                    pass "테스트 배치: Task 1 테스트 [D] 예시 통과"
+assert_structure check_placement_example "$sandbox/tp-example-del.md"   fail "테스트 배치: Task 1 테스트 [D] 예시 삭제 격추"
+
+# 예시 명령 실행: 정상 러너는 출력 0건, `ok` 행 없는 러너·한쪽 행만 있는 러너·종료 1 러너는 위반 행을 내야 한다.
+GATE_T="$(extract_gate '새 케이스를 포함해 0 실패로 통과')"
+
+case "$GATE_T" in
+  *'<skill>'*) ng "추출: 테스트 배치 예시 명령 — 러너 경로 할당 행이 제거되지 않음 (fixture 경로 주입 계약 위반)" ;;
+  out=*) ok "추출: 테스트 배치 예시 명령" ;;
+  *) ng "추출: 테스트 배치 예시 명령 — [$GATE_T]" ;;
+esac
+
+# fixture 러너는 템플릿 예시의 `<라벨>` 자리표시자를 그대로 담은 `ok` 행을 낸다.
+mkdir -p "$sandbox/runners"
+cat > "$sandbox/runners/pair.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'ok     - <라벨>: 정상 입력 통과'
+echo 'ok     - <라벨>: 반례 격추'
+EOF
+cat > "$sandbox/runners/no-case.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'passed: 0, failed: 0'
+EOF
+# 한쪽 행만 있는 러너: 통과·격추 하한 중 하나가 무력화되면 이 입력을 받아들인다.
+cat > "$sandbox/runners/pass-only.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'ok     - <라벨>: 정상 입력 통과'
+EOF
+cat > "$sandbox/runners/fail-only.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'ok     - <라벨>: 반례 격추'
+EOF
+cat > "$sandbox/runners/exit1.sh" <<'EOF'
+#!/usr/bin/env bash
+echo 'ok     - <라벨>: 정상 입력 통과'
+echo 'ok     - <라벨>: 반례 격추'
+echo 'NOT OK - <라벨>: 다른 케이스'
+exit 1
+EOF
+chmod +x "$sandbox/runners/"*.sh
+
+# assert_example <fixture 러너> <기대: pass|fail> <설명>
+# 예시 명령은 출력 자체로 판정한다 (출력 0건이면 통과). 러너 경로는 로컬 변수 `R` 로 주입한다.
+assert_example() {
+  local out R="$1"
+  out="$(eval "$GATE_T" 2>/dev/null)"
+  case "$2" in
+    pass) if [ -z "$out" ]; then ok "$3 (출력 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$3 (위반 출력)"; else ng "$3 (기대 위반 행, 실제 0건)"; fi ;;
+  esac
+}
+
+assert_example "$sandbox/runners/pair.sh"    pass "테스트 배치: 예시 명령 정상 러너 통과"
+assert_example "$sandbox/runners/no-case.sh" fail "테스트 배치: 예시 명령 ok 행 없는 러너 격추"
+assert_example "$sandbox/runners/pass-only.sh" fail "테스트 배치: 예시 명령 정상 행만 있는 러너 격추"
+assert_example "$sandbox/runners/fail-only.sh" fail "테스트 배치: 예시 명령 반례 행만 있는 러너 격추"
+assert_example "$sandbox/runners/exit1.sh"   fail "테스트 배치: 예시 명령 종료 1 러너 격추"
 
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 

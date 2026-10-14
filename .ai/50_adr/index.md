@@ -26,5 +26,6 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 ADR만 선택적으로 �
 | `active/0016-spec-requirements-layer-and-plan-audit.md` | spec 요구사항(포함 R<n>·제외) 신설·범위 삭제·DoD R 그룹·Task 대상 요구사항, 요구사항 승인 게이트, `--plan` 계획 감사(선택)와 계획 보정, 단계 어휘 |
 | `active/0017-git-review-quiz-study-mode.md` | git-review-quiz 별도 스킬, 문항 구성(위치 본문·힌트·정답 접기), 근거 규칙, 일반 댓글 하나 게시, 머지 차단 게이트 배제 |
 | `active/0018-ledger-proactive-review-and-resolve-timing.md` | 원장 재검토·종결 계기 확장(git-pr 원장 대조·issue-work 함께 해소 후보, 권고·승인형), `해소(PR #N)`은 PR 번호를 알 때만 확정하고 없으면 git-pr 생성 후 기재 |
+| `active/0019-test-perspectives-and-task-level-placement.md` | 테스트 관점 구분(spec DoD `[D]`는 외부 경계의 인수 테스트, 구현 테스트는 plan Task), Task별 테스트 배치와 러너형 테스트 `[D]`, 최종 감사 관점 5 Task별 테스트 기준·1단계 `[D]` 실제 실행 |
 | `superseded/` | 대체된 결정 (대체한 ADR 번호를 문서 내에 명시) |
 | (문서를 추가하면 이 목록에 함께 기재하세요) | |
