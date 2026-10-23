@@ -67,9 +67,11 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── scripts/                # 로비 형식·분량 검사 헬퍼 (check-lobby.sh)
 │   └── tests/                  # 검사 헬퍼 테스트 + 정상 로비 fixture (배포 제외)
 ├── code-map/                   # 코드베이스 색인 스킬
-│   └── references/             # 모드별(local/doc/global) 실행 절차
+│   ├── references/             # 모드별(local/doc/global) 실행 절차
+│   └── tests/                  # 원본 문서 색인 절차 구조 검사 + 모의 실행 fixture (배포 제외)
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
-│   └── templates/              # 30_contract, 40_domain, 50_adr 템플릿
+│   ├── templates/              # 30_contract, 40_domain, 50_adr 템플릿
+│   └── tests/                  # 수집 필터 구조 검사 + 모의 실행 fixture (배포 제외)
 ├── context-save/               # 대화 맥락 임시 저장 스킬
 │   └── templates/              # 노트 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬
