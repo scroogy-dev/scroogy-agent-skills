@@ -17,5 +17,6 @@
 | `sync-same-root` | 루트 일치, `--name-status -M` 출력에 수정·삭제·루트 안 이름 변경·루트 밖으로 이동·루트 안으로 이동·루트 밖 추가 | 수정 행 갱신, 삭제 행 제거, 이름 변경은 Why 태깅을 새 행으로 옮김, 밖으로 나간 행 제거, 안으로 들어온 행 추가, 루트 밖 추가는 무시, 반영 후 `source_hash` 갱신 |
 | `root-changed-sync` | 안내도 `ssot_dir`이 `docs/, handbook/`으로 넓어졌고 색인은 `docs/`, diff에는 안내도만 잡힘, 사용자가 `sync` 선택 | `rebuild`로 전환하고 사용자에게 알림, 새 루트의 기존 문서 행 추가, 기존 행의 Why 태깅 보존, 반영 후 frontmatter `ssot_dir` 갱신 |
 | `root-changed-check` | 위와 같은 루트 불일치, 사용자가 `check` 선택 | 색인 행을 바꾸지 않고 색인 전체를 `[UPDATE-NEEDED]`로 보고, `rebuild` 권고, 색인을 최신으로 보고하지 않음 |
+| `rename-check` | 루트 일치, `docs/old.md`가 `docs/remote-work.md`로 이름이 바뀐 뒤 `sync` 전에 사용자가 `check` 선택 | 색인 행과 frontmatter를 바꾸지 않음, 파일이 없는 `docs/old.md` 행을 Why 태깅과 함께 남기고 `[UPDATE-NEEDED]`로 보고. 이어지는 `sync`의 태깅 이전은 `sync-same-root`가 봄 |
 
 install-skills 배포 시 `tests/`는 제외됩니다 (제외 규칙의 단일 출처는 `install-skills/SKILL.md` 설치 절차 5단계).

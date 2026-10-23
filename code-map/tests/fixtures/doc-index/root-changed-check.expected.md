@@ -4,7 +4,7 @@
 
 ## 색인 (`.ai/60_codebase/index.md`)
 
-- 색인 행과 frontmatter를 바꾸지 않는다. 색인 행의 파일 `docs/leave.md`가 존재하므로 파일 유효성 점검으로 지울 행도 없다.
+- 색인 행과 frontmatter를 바꾸지 않는다. `check`는 파일 유효성 점검에서도 행을 지우지 않는다.
 
 ## 결과 보고
 

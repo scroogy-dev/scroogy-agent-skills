@@ -79,6 +79,8 @@ violations() {
 
   sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 루트 불일치 \|' | grep -F '[UPDATE-NEEDED]' | grep -qF 'rebuild를 권고' \
     || echo '점검 표 루트 불일치'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 파일 유효성 \|')" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.**' \
+    || echo '파일 유효성 check 보존'
   has "$(sec "$doc" '### 4단계: 결과 보고')" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' || echo '보고 문서 색인 건수'
 
   has "$(sec "$skill" '### SSoT 원칙')" '선언을 찾지 못하면 소스 코드를 SSoT로 본다' || echo 'SKILL.md 선언 부재 폴백'
@@ -157,6 +159,8 @@ assert_reject '존재 문서만 링크 삭제 격추'    '존재 문서만 링�
 assert_reject '외부 URL 제외 삭제 격추'       '외부 URL 교차 참조 제외' drop_line "$C_DOC" '**외부 URL은 교차 참조 대상이 아니다**'
 assert_reject '퍼블리싱 URL 제외 삭제 격추'   '퍼블리싱 URL 제외'       drop_line "$C_DOC" '퍼블리싱 URL(안내도 `publish` 행의 위치 포함)'
 assert_reject '점검 표 루트 불일치 삭제 격추' '점검 표 루트 불일치'     drop_line "$C_DOC" '| 루트 불일치 |'
+assert_reject '파일 유효성 check 보존 삭제 격추' '파일 유효성 check 보존' \
+  cut_str "$C_DOC" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.** '
 assert_reject '보고 건수 축소 격추'           '보고 문서 색인 건수' \
   sub_str "$C_DOC" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' '문서 색인: N건'
 assert_reject 'SKILL.md 폴백 삭제 격추'       'SKILL.md 선언 부재 폴백' cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
