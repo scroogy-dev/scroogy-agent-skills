@@ -67,6 +67,65 @@ else
   ok "날짜 자리표시자: 치환 전 템플릿은 첫 줄 검사에 걸림"
 fi
 
+# --- doc 템플릿 고유 행 ----------------------------------------------------------
+#
+# 헬퍼는 dev·doc 두 선언 문구를 모두 인정하므로, 위 템플릿 통과 루프는 doc 템플릿이
+# dev 선언·dev 우선순위로 되돌아가도 통과한다 (최종 감사 F-2 반례).
+# doc 템플릿이 doc 선언·doc 우선순위·`ssot_dir`·`publish` 행을 갖는지 따로 본다.
+
+DOC_TPL="$TMP/doc.md"
+SSOT_DOC='> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+
+# doc_tpl_violations <파일> — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
+# 본문 2번째 줄은 헬퍼와 같은 계산(H1 제목을 건너뛴 첫 비어 있지 않은 줄의 바로 다음 물리 행)으로 고른다.
+doc_tpl_violations() {
+  local f="$1" start line2 k
+  start=$(awk 'NR == 1 && /^# / { next } NF { print NR; exit }' "$f")
+  line2=$(sed -n "$((start + 1))p" "$f")
+  [ "$line2" = "$SSOT_DOC" ] || echo '본문 두 번째 줄 doc 선언'
+  [ "$(grep -c '원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도' "$f")" -eq 1 ] || echo 'doc 우선순위 행'
+  for k in ssot_dir publish; do
+    awk -v key="$k" '
+      /^## 프로젝트 도메인[[:space:]]*$/ { f = 1; next } f && /^## / { exit }
+      f && /^\|/ { v = $0; sub(/^\|[[:space:]]*/, "", v); sub(/[[:space:]]*\|.*$/, "", v); if (v == key) { found = 1; exit } }
+      END { exit !found }' "$f" || echo "프로젝트 도메인 표 $k 행"
+  done
+}
+
+# assert_doc_tpl_reject <설명> <위반 조각> <변형 명령...>
+assert_doc_tpl_reject() {
+  local desc="$1" want="$2"; shift 2
+  local f="$TMP/doc-case.md" out
+  cp "$DOC_TPL" "$f"
+  "$@" "$f" || { ng "$desc — 변형 실패"; return; }
+  out="$(doc_tpl_violations "$f")"
+  if printf '%s\n' "$out" | grep -qF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+d_dev_line()   { sed -i.bak 's/^> SSoT: .*/> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다./' "$1" && rm -f "$1.bak"; }
+d_dev_prio()   { sed -i.bak 's/원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도/소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도/' "$1" && rm -f "$1.bak"; }
+d_no_root()    { sed -i.bak '/^| ssot_dir | /d' "$1" && rm -f "$1.bak"; }
+d_no_publish() { sed -i.bak '/^| publish | /d' "$1" && rm -f "$1.bak"; }
+
+if [ -r "$DOC_TPL" ]; then
+  out="$(doc_tpl_violations "$DOC_TPL")"
+  if [ -z "$out" ]; then
+    ok "doc 템플릿 고유 행 통과"
+  else
+    ng "doc 템플릿 고유 행 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+  assert_doc_tpl_reject 'doc 템플릿 dev 선언 원복 격추'     '본문 두 번째 줄 doc 선언'   d_dev_line
+  assert_doc_tpl_reject 'doc 템플릿 dev 우선순위 원복 격추' 'doc 우선순위 행'            d_dev_prio
+  assert_doc_tpl_reject 'doc 템플릿 ssot_dir 행 삭제 격추'  '프로젝트 도메인 표 ssot_dir 행' d_no_root
+  assert_doc_tpl_reject 'doc 템플릿 publish 행 삭제 격추'   '프로젝트 도메인 표 publish 행'  d_no_publish
+else
+  ng "doc 템플릿 고유 행: 준비된 doc 템플릿 없음 — $DOC_TPL"
+fi
+
 # --- 이 저장소 안내도 -----------------------------------------------------------
 
 REPO_CTX="$HERE/../../.ai/AI-CONTEXT.md"
@@ -116,6 +175,36 @@ m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|---
 # 5차 audit F-5 반례: 열 수는 3이지만 헤더 이름이 표준과 다른 표.
 m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
 m_rules_ord() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| 설명 | 파일 | 사용 시점 |/' "$1" && rm -f "$1.bak"; }
+
+# doc 선언 변형. dev 템플릿에서 출발해 "doc 선언이 `ssot_dir`·dev 표준 문구 4곳 검사를 켠다"를 고정한다.
+# 유사 문구 변형은 `ssot_dir` 행·doc 문구 4곳이 있는 파일로 만들어 격추 원인을 2번째 줄로 한정한다.
+m_doc_noroot() { sed -i.bak 's/^> SSoT: .*/> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다./' "$1" && rm -f "$1.bak"; }
+# PR #115 리뷰 반례: 이전 doc 템플릿(dev 선언·dev 표준 문구)에서 2번째 줄만 바꾸고 update가 `ssot_dir` 행을 보강한 상태.
+m_doc_dev_text() {
+  m_doc_noroot "$1" || return 1
+  awk '{ print } /^\| keywords \| / { print "| ssot_dir | docs/ |" }' "$1" > "$1.root" && mv "$1.root" "$1"
+}
+
+# dev 표준 문구 4곳과 doc 템플릿 문구의 짝 (sed 구분자 `|`). D_* 는 dev → doc, R_* 는 doc → dev.
+D_PRIO='s|\*\*소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도\*\*|**원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도**|'
+D_TREE='s|# \[5순위\] 소스코드 엔트리포인트·호출 흐름 색인 (index.md로 선택적 참조)|# [5순위] SSoT 색인. 원본 문서(ssot_dir) 파일 지도 (index.md로 선택적 참조)|'
+D_ENTRY='s|`60_codebase/index.md`(코드 진입점)|`60_codebase/index.md`(원본 문서 색인)|'
+D_RULE='s|코드 상세는 `60_codebase/`|원본 문서 색인은 `60_codebase/`|'
+R_PRIO='s|\*\*원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도\*\*|**소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**|'
+R_TREE='s|# \[5순위\] SSoT 색인\. 원본 문서(ssot_dir) 파일 지도 (index.md로 선택적 참조)|# [5순위] 소스코드 엔트리포인트·호출 흐름 색인 (index.md로 선택적 참조)|'
+R_ENTRY='s|`60_codebase/index.md`(원본 문서 색인)|`60_codebase/index.md`(코드 진입점)|'
+R_RULE='s|원본 문서 색인은 `60_codebase/`|코드 상세는 `60_codebase/`|'
+
+# 4곳을 모두 doc 템플릿 문구로 바꾼 상태 (doc 전환 완료).
+m_doc_root() { m_doc_dev_text "$1" && sed -i.bak -e "$D_PRIO" -e "$D_TREE" -e "$D_ENTRY" -e "$D_RULE" "$1" && rm -f "$1.bak"; }
+# 전환 완료 상태에서 한 곳만 dev 표준 문구로 되돌린다. 나머지가 doc 문구라 격추 원인이 그 한 곳으로 한정된다.
+m_doc_prio_dev()  { m_doc_root "$1" && sed -i.bak "$R_PRIO"  "$1" && rm -f "$1.bak"; }
+m_doc_tree_dev()  { m_doc_root "$1" && sed -i.bak "$R_TREE"  "$1" && rm -f "$1.bak"; }
+m_doc_entry_dev() { m_doc_root "$1" && sed -i.bak "$R_ENTRY" "$1" && rm -f "$1.bak"; }
+m_doc_rule_dev()  { m_doc_root "$1" && sed -i.bak "$R_RULE"  "$1" && rm -f "$1.bak"; }
+# 사용자가 고쳐 쓴 우선순위. dev 표준 문구를 부분 문자열로 품고 있어도 굵게 표시한 구간이 달라 보존 대상이다.
+m_doc_prio_custom() { m_doc_root "$1" && sed -i.bak 's/\*\*원본 문서 > 이 repo 안내도/**원본 문서 > 소스 코드 > 이 repo 안내도/' "$1" && rm -f "$1.bak"; }
+m_near_with_root() { m_doc_root "$1" && sed -i.bak 's/^> SSoT: .*/> SSoT: 원본 문서./' "$1" && rm -f "$1.bak"; }
 
 # SKILL.md 검사 표가 허용하는 뒤 확장 열(앞 3열의 이름·순서는 그대로).
 m_rules_4col() {
@@ -214,6 +303,15 @@ assert_missing 'context-loading.md 경로가 확장 열에만 있음(3차 audit 
 assert_missing 'writing-principles.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'writing-principles.md` 행' m_wr_in_ext
 assert_missing 'context-loading.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'context-loading.md` 행' m_rows_in_2nd
 assert_missing 'writing-principles.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'writing-principles.md` 행' m_rows_in_2nd
+assert_missing 'SSoT 선언 doc ssot_dir 행 없음 격추' 'ssot_dir` 행'           m_doc_noroot
+assert_pass    'SSoT 선언 doc 문구 통과'                                      m_doc_root
+assert_missing 'SSoT 선언 doc 전환 전 dev 표준 문구 잔존 격추(PR #115 리뷰 반례)' 'doc 선언의 충돌 우선순위' m_doc_dev_text
+assert_missing 'SSoT 선언 doc dev 우선순위만 잔존 격추'          'doc 선언의 충돌 우선순위'                  m_doc_prio_dev
+assert_missing 'SSoT 선언 doc 디렉토리 구조 트리 설명만 잔존 격추' "'## .ai 디렉토리 구조' 트리에 dev 표준 설명" m_doc_tree_dev
+assert_missing 'SSoT 선언 doc 진입 절차 2번 설명만 잔존 격추'     "'### 진입 절차' 2번에 dev 표준 설명"        m_doc_entry_dev
+assert_missing 'SSoT 선언 doc 작성 규칙 설명만 잔존 격추'         "'### 작성 규칙'에 dev 표준 설명"           m_doc_rule_dev
+assert_pass    'SSoT 선언 doc 사용자 작성 우선순위 보존'                        m_doc_prio_custom
+assert_missing 'SSoT 선언 doc 유사 문구 격추' '본문 두 번째 줄 SSoT'           m_near_with_root
 
 # --- 프로젝트 규칙 표 상태 3분기 --------------------------------------------------
 #

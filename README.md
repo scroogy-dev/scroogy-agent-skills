@@ -12,7 +12,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 |-------|------|
 | [ai-workspace](./ai-workspace/) | `.ai/` 디렉토리 구조 초기화 및 갱신 (dev/doc 프로파일) |
 | [ai-workspace-directory](./ai-workspace-directory/) | 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md` 생성·재구성 (ai-workspace의 자매) |
-| [code-map](./code-map/) | 소스코드 기능별 엔트리포인트·호출 흐름을 `.ai/60_codebase/`에 색인 |
+| [code-map](./code-map/) | 소스코드 기능별 엔트리포인트·호출 흐름 또는 원본 문서 파일 지도를 `.ai/60_codebase/`에 색인 (SSoT 색인) |
 | [context-harvest](./context-harvest/) | 소스코드 바깥의 What+Why를 수집·증류하여 `.ai/30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
 | [context-save](./context-save/) | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | [git-commit](./git-commit/) | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
