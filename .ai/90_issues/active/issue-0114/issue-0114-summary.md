@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 1 — ai-workspace SSoT 선언 프로파일화 (doc 템플릿·check-context.sh·검사 표·테스트)
+> ▶️ 다음 작업: Task 2 — shared 템플릿의 선언 참조·원본 문서 작업 절·SSoT 색인 정의
 
 ## 모델 기록
 
@@ -122,14 +122,18 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 1: ai-workspace SSoT 선언 프로파일화 (doc 템플릿·check-context.sh·검사 표·테스트)
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: doc 템플릿·검사 헬퍼·검사 표·테스트에 doc 선언을 반영했다. spec R2 [D] 1건, R3 [D] 3건, Task 1 추가 [D] 1건이 모두 무출력으로 통과했다.
+  - doc 템플릿 `AI-CONTEXT.md`: 2번째 줄 doc 문구, 우선순위 `원본 문서 > …`, `ssot_dir`·`publish` 자리표시자 행과 섹션 주석
+  - `check-context.sh`: `SSOT_LINE_DEV`·`SSOT_LINE_DOC` 두 상수로 나누고, doc 선언일 때만 키 목록에 `ssot_dir`를 더한다. 사용법 설명에 doc 분기 한 줄을 더했다.
+  - `ai-workspace/SKILL.md`: 설계 원칙의 SSoT 문장, init 보고의 `ssot_dir` 안내, 검사 표 2행(SSoT 선언·프로젝트 도메인). 표는 10행 그대로다.
+  - `run-tests.sh`: 변형 3종(`m_doc_noroot`·`m_doc_root`·`m_near_with_root`)과 케이스 3건 추가, 36건 0 실패
+- **특이 사항**: 사용법 설명에 두 줄(설명 1행과 빈 주석 1행)을 더하면서 `usage()`의 `sed -n '3,18p'` 범위가 종료 코드 줄에서 끝나게 되었다. 범위 값은 그대로 두었다. 이전에는 `set -o pipefail` 행까지 출력되었다. 전체 스킬 테스트와 dev 전용 템플릿 무변경 회귀 검사도 통과했다.
 
 ---
 

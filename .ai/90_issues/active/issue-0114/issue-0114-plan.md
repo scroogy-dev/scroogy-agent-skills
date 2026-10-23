@@ -81,7 +81,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 1: ai-workspace SSoT 선언 프로파일화 (doc 템플릿·check-context.sh·검사 표·테스트)
 
-- [ ] 완료
+- [x] 완료
 - **목표**: doc 프로파일 안내도가 doc 선언·doc 우선순위·`ssot_dir`·`publish` 행을 갖고, update 검사가 dev·doc 두 표준 문구를 모두 인정하며 doc 선언이면 `ssot_dir` 행을 검사한다.
 - **대상 요구사항**: R2, R3
 - **작업 내용**:

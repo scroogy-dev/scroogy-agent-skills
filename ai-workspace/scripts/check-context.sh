@@ -13,13 +13,16 @@
 # 사용법:
 #   check-context.sh <AI-CONTEXT.md 경로>
 #
+# 본문 두 번째 줄은 dev(`소스 코드`)·doc(`원본 문서`) 두 표준 문구를 인정하며, doc 문구이면 `## 프로젝트 도메인` 표의 `ssot_dir` 행도 검사한다.
+#
 # 종료 코드: 0 누락 없음(무출력) / 1 누락 있음(항목을 1행씩 출력) / 2 사용오류
 
 set -o pipefail
 
 usage() { sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'; }
 
-SSOT_LINE='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+SSOT_LINE_DEV='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+SSOT_LINE_DOC='> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
 PREMISE='전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면'
 RULES_HEADER='파일/설명/사용 시점'
 
@@ -58,15 +61,21 @@ printf '%s\n' "$line1" | grep -qE '^> last updated: [0-9]{4}-[0-9]{2}-[0-9]{2}$'
 
 # --- 본문 두 번째 줄 SSoT 선언 ---------------------------------------------------
 
-[ "$line2" = "$SSOT_LINE" ] \
+[ "$line2" = "$SSOT_LINE_DEV" ] || [ "$line2" = "$SSOT_LINE_DOC" ] \
   || ng "본문 두 번째 줄 SSoT 선언 — 실제 [$line2]"
 
-# --- 프로젝트 도메인 섹션 + 2행 표 -------------------------------------------------
+# --- 프로젝트 도메인 섹션 + 표 행 ---------------------------------------------------
+#
+# `ssot_dir` 행은 doc 선언일 때만 검사한다. dev 선언이거나 선언이 비표준이면 검사하지 않는다
+# (비표준 선언은 위에서 이미 보고했고, 어느 프로파일 문구로 바뀔지는 조치 단계가 정한다).
+
+keys='domain keywords'
+[ "$line2" = "$SSOT_LINE_DOC" ] && keys="$keys ssot_dir"
 
 if ! grep -qE '^## 프로젝트 도메인[[:space:]]*$' "$file"; then
   ng "'## 프로젝트 도메인' 섹션"
 else
-  for k in domain keywords; do
+  for k in $keys; do
     awk -v key="$k" '
       /^## 프로젝트 도메인[[:space:]]*$/ { f = 1; next }
       f && /^## / { exit }
