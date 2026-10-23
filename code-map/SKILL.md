@@ -1,16 +1,16 @@
 ---
 name: code-map
-description: 소스코드의 기능별 엔트리포인트와 호출 흐름을 .ai/60_codebase/에 색인하고, 도메인·계약·ADR 문서와 교차 참조를 연결합니다. 코드맵, code map, 코드 지도, 코드베이스 색인 시 사용합니다.
+description: 소스코드의 기능별 엔트리포인트와 호출 흐름, 또는 원본 문서(doc 프로파일 repo의 지정 디렉토리 문서 파일) 지도를 .ai/60_codebase/에 색인하고, 도메인·계약·ADR 문서와 교차 참조를 연결합니다. 코드맵, code map, 코드 지도, 코드베이스 색인, 원본 문서 색인 시 사용합니다.
 ---
 
 ## 개요
 
-소스코드를 SSoT(Single Source of Truth, 단일 진실 공급원)로 삼아, 기능별 엔트리포인트와 호출 흐름을 `.ai/60_codebase/`에 마크다운으로 색인합니다.
-AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 필요할 때 `60_codebase/index.md`를 진입점으로 읽고, 관련된 소스코드·도메인 지식·계약·ADR 문서를 빠르게 찾을 수 있도록 합니다.
+안내도가 선언한 SSoT(Single Source of Truth, 단일 진실 공급원)를 `.ai/60_codebase/`에 마크다운으로 색인합니다. SSoT가 소스 코드이면 기능별 엔트리포인트와 호출 흐름을, 원본 문서이면 `ssot_dir` 아래 문서 파일 지도를 만듭니다.
+AI가 구현, 테스트, 코드 리뷰, 문서 작업 등 맥락 파악이 필요할 때 `60_codebase/index.md`를 진입점으로 읽고, 관련된 SSoT·도메인 지식·계약·ADR 문서를 빠르게 찾을 수 있도록 합니다.
 
 "건물·층" 비유의 2레이어 구조를 사용하며, 하나의 스킬이 두 가지 모드로 동작합니다:
 
-- **`--local`** (floor 모드): 개별 리포의 `.ai/60_codebase/`에 코드 색인을 생성·관리
+- **`--local`** (floor 모드): 개별 리포의 `.ai/60_codebase/`에 코드 색인 또는 원본 문서 색인을 생성·관리
 - **`--global`** (building 모드): 멀티 리포 환경에서 공통 도메인 지식을 통합·관리
 
 ## 관련 skill
@@ -23,14 +23,15 @@ AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 �
 - **공통 규칙**: `.ai/10_rules/context-loading.md` — 있으면 따르며, 이미 적재되어 있으면 재로딩하지 않습니다.
 - **스킬 고유 추가 참조**:
   - `.ai/30_contract/index.md`, `.ai/40_domain/index.md`, `.ai/50_adr/index.md` — 교차 참조 연결용 (index 먼저 → 관련 파일만 선택적으로 추가 로드)
-- **분리 참조 파일** (`references/` — 모드 결정 후 해당 모드 파일만 읽습니다):
-  - [local.md](references/local.md) — `--local` (floor 모드) 실행 절차
+- **분리 참조 파일** (`references/` — 모드 결정 후 해당 모드 파일만 읽습니다. `--local`은 SSoT 선언이 원본 문서이면 doc.md를, 그 밖이면 local.md를 읽습니다):
+  - [local.md](references/local.md) — `--local` (floor 모드) 실행 절차 (SSoT가 소스 코드이거나 선언이 없을 때)
+  - [doc.md](references/doc.md) — `--local` (floor 모드) 원본 문서 색인 실행 절차 (SSoT 선언이 원본 문서일 때)
   - [global.md](references/global.md) — `--global` (building 모드) 실행 절차
 
 ## 사용법
 
 ```
-/code-map --local          # 현재 리포의 코드 색인 생성/갱신
+/code-map --local          # 현재 리포의 코드 색인 또는 원본 문서 색인 생성/갱신
 /code-map --global         # 멀티 리포 공통 도메인 지식 통합·관리
 ```
 
@@ -42,6 +43,7 @@ AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 �
 
 - **Java 웹 애플리케이션** (Spring Boot, Spring MVC 등)
 - **Java 배치 애플리케이션** (Spring Batch, 스케줄러 등)
+- **원본 문서 저장소** (SSoT 선언이 원본 문서인 doc 프로파일 repo. `ssot_dir` 아래 문서 파일)
 
 ---
 
@@ -49,9 +51,9 @@ AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 �
 
 ### SSoT 원칙
 
-- **소스코드가 SSoT**이다.
-- `.ai/60_codebase/`의 문서는 소스코드에서 파생된 2차 산출물이다.
-- 소스코드와 문서 사이에 불일치가 발생하면 소스코드가 우선한다.
+- SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따른다. 값은 `소스 코드` 또는 `원본 문서`이며 그 외 값은 선언으로 보지 않는다. 선언을 찾지 못하면 소스 코드를 SSoT로 본다.
+- `.ai/60_codebase/`의 문서는 SSoT에서 파생된 2차 산출물이다.
+- SSoT와 문서 사이에 불일치가 발생하면 SSoT가 우선한다.
 
 ### 지식 프레임워크: What / How / Why
 
@@ -102,7 +104,8 @@ AI가 구현, 테스트, 코드 리뷰 등 코드베이스의 맥락 파악이 �
 
 | 모드 | 참조 파일 | 요약 |
 |------|-----------|------|
-| `--local` (floor) | [references/local.md](references/local.md) | 개별 리포의 코드 색인 생성/갱신/점검 (build / sync / check / rebuild) |
+| `--local` (floor) | [references/local.md](references/local.md) | 개별 리포의 코드 색인 생성/갱신/점검 (build / sync / check / rebuild). SSoT가 소스 코드이거나 선언이 없을 때 |
+| `--local` (floor, 원본 문서) | [references/doc.md](references/doc.md) | SSoT 선언이 원본 문서인 리포의 문서 파일 지도 생성/갱신/점검 (build / sync / check / rebuild) |
 | `--global` (building) | [references/global.md](references/global.md) | `repository.yaml` 기반 멀티 리포 수집 → 아키텍처 문서·건물 안내도 생성/갱신/점검 |
 
 ---
@@ -166,6 +169,7 @@ status: current | stale | draft  # 문서 상태
 - `source_hash`는 "이 색인이 어느 시점의 소스코드까지 반영했는가"를 나타내는 참조이다.
 - stale 여부는 `source_hash` 이후 **변경된 파일 목록**을 기준으로 판정한다. 무관한 파일만 변경된 경우 stale로 판정하지 않는다.
 - stale 문서는 check에서 `[UPDATE-NEEDED]` 태그로 리포팅한다.
+- 원본 문서 색인은 색인한 루트 경로 `ssot_dir` 키를 더해 4키로 쓴다 (상세는 [references/doc.md](references/doc.md)).
 
 ---
 

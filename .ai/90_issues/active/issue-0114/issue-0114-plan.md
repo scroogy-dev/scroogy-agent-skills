@@ -163,7 +163,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 4: code-map 원본 문서 색인 절차 (`references/doc.md` 신설)
 
-- [ ] 완료
+- [x] 완료
 - **목표**: code-map이 SSoT 선언이 원본 문서이면 별도 참조 파일의 절차로 `ssot_dir` 아래 문서 파일 지도를 build·sync·check한다.
 - **대상 요구사항**: R9
 - **작업 내용**:
