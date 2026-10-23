@@ -176,13 +176,17 @@ m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|---
 m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
 m_rules_ord() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| 설명 | 파일 | 사용 시점 |/' "$1" && rm -f "$1.bak"; }
 
-# doc 선언 변형 3종. dev 템플릿에서 출발해 "doc 선언이 `ssot_dir` 검사를 켠다"를 고정한다.
-# 유사 문구 변형은 `ssot_dir` 행이 있는 파일로 만들어 격추 원인을 2번째 줄로 한정한다.
+# doc 선언 변형 5종. dev 템플릿에서 출발해 "doc 선언이 `ssot_dir`·우선순위 검사를 켠다"를 고정한다.
+# 유사 문구 변형은 `ssot_dir` 행·doc 우선순위가 있는 파일로 만들어 격추 원인을 2번째 줄로 한정한다.
 m_doc_noroot() { sed -i.bak 's/^> SSoT: .*/> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다./' "$1" && rm -f "$1.bak"; }
-m_doc_root() {
+# PR #115 리뷰 반례: 이전 doc 템플릿(dev 선언·dev 우선순위)에서 2번째 줄만 바꾸고 update가 `ssot_dir` 행을 보강한 상태.
+m_doc_prio_dev() {
   m_doc_noroot "$1" || return 1
   awk '{ print } /^\| keywords \| / { print "| ssot_dir | docs/ |" }' "$1" > "$1.root" && mv "$1.root" "$1"
 }
+m_doc_root() { m_doc_prio_dev "$1" && sed -i.bak 's/\*\*소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도\*\*/**원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도**/' "$1" && rm -f "$1.bak"; }
+# 사용자가 고쳐 쓴 우선순위. dev 표준 문구를 부분 문자열로 품고 있어도 굵게 표시한 구간이 달라 보존 대상이다.
+m_doc_prio_custom() { m_doc_prio_dev "$1" && sed -i.bak 's/\*\*소스 코드 > 이 repo 안내도/**원본 문서 > 소스 코드 > 이 repo 안내도/' "$1" && rm -f "$1.bak"; }
 m_near_with_root() { m_doc_root "$1" && sed -i.bak 's/^> SSoT: .*/> SSoT: 원본 문서./' "$1" && rm -f "$1.bak"; }
 
 # SKILL.md 검사 표가 허용하는 뒤 확장 열(앞 3열의 이름·순서는 그대로).
@@ -284,6 +288,8 @@ assert_missing 'context-loading.md 행이 두 번째 표에만 있음(4차 audit
 assert_missing 'writing-principles.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'writing-principles.md` 행' m_rows_in_2nd
 assert_missing 'SSoT 선언 doc ssot_dir 행 없음 격추' 'ssot_dir` 행'           m_doc_noroot
 assert_pass    'SSoT 선언 doc 문구 통과'                                      m_doc_root
+assert_missing 'SSoT 선언 doc dev 우선순위 잔존 격추(PR #115 리뷰 반례)' 'doc 선언의 충돌 우선순위' m_doc_prio_dev
+assert_pass    'SSoT 선언 doc 사용자 작성 우선순위 보존'                        m_doc_prio_custom
 assert_missing 'SSoT 선언 doc 유사 문구 격추' '본문 두 번째 줄 SSoT'           m_near_with_root
 
 # --- 프로젝트 규칙 표 상태 3분기 --------------------------------------------------
