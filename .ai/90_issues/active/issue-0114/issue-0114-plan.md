@@ -89,6 +89,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
   2. `ai-workspace/scripts/check-context.sh`의 `SSOT_LINE` 단일 상수를 `SSOT_LINE_DEV`·`SSOT_LINE_DOC` 두 상수로 나누고, 본문 두 번째 줄이 둘 중 하나와 정확히 같을 때만 통과시킨다. 누락 메시지(`본문 두 번째 줄 SSoT 선언 — 실제 [...]`)는 유지한다. `## 프로젝트 도메인` 표 행 검사의 키 목록(`domain keywords`)에 두 번째 줄이 `SSOT_LINE_DOC`와 같을 때만 `ssot_dir`를 더해, 같은 awk·같은 메시지 형식(`'## 프로젝트 도메인' 표의 \`ssot_dir\` 행`)으로 보고한다. dev 선언이거나 선언이 비표준이면 `ssot_dir`를 검사하지 않는다. 머리 주석의 "10행 중 8행"은 유지하고, 사용법 설명에 doc 선언 분기 한 줄을 더한다.
   3. `ai-workspace/SKILL.md` 멱등 보강 검사 표에서 `본문 두 번째 줄 SSoT 선언` 행의 검사를 "dev·doc 두 표준 문구 중 하나 존재?"로, 조치를 "선택한 프로파일의 표준 문구를 삽입·교체. doc 문구를 삽입·교체했으면 `## 프로젝트 도메인` 표에 `ssot_dir` 행이 없을 때 템플릿과 같은 자리표시자 행도 함께 넣는다(헬퍼를 한 번만 실행하므로 이 실행에서는 `ssot_dir` 검사가 돌지 않는다)"로 고친다(spec 전제 "update의 doc 선언 처리"). `` `## 프로젝트 도메인` 섹션 `` 행의 검사에 "doc 선언이면 `ssot_dir` 행 존재?"를, 조치에 "doc 프로파일이면 골격에 `ssot_dir`(필수)·`publish`(선택) 행을 포함하고, `ssot_dir` 행만 누락이면 표 끝에 템플릿과 같은 자리표시자 행을 삽입한 뒤 사용자 입력을 요청"을 더한다. 표는 10행을 유지한다. 13행 `### 설계 원칙`의 "SSoT는 소스 코드" 문장을 "SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언이 정한다 (dev: 소스 코드, doc: 원본 문서 = `ssot_dir` 아래 문서 파일)"로 바꾸고, 122행 init 보고 안내에 "doc 프로파일은 `ssot_dir` 행도 채워주세요"를 더한다.
   4. `ai-workspace/tests/run-tests.sh`에 변형 3종과 케이스 3건을 추가한다. `m_doc_noroot`(2번째 줄을 doc 문구로 교체)·`m_doc_root`(`m_doc_noroot` 뒤 `keywords` 행 다음에 `| ssot_dir | docs/ |` 삽입)·`m_near_with_root`(`m_doc_root` 뒤 2번째 줄을 `> SSoT: 원본 문서.`로 교체). 케이스는 `assert_missing 'SSoT 선언 doc ssot_dir 행 없음 격추' 'ssot_dir` 행' m_doc_noroot`, `assert_pass 'SSoT 선언 doc 문구 통과' m_doc_root`, `assert_missing 'SSoT 선언 doc 유사 문구 격추' '본문 두 번째 줄 SSoT' m_near_with_root`다. 기존 `본문 두 번째 줄 SSoT` 격추 케이스(`m_ssot`)와 템플릿 2종 통과 루프는 그대로 둔다(doc 템플릿의 `ssot_dir` 행이 검사 대상임은 그 루프가 증명한다).
+  5. 같은 러너에 doc 템플릿 고유 행 케이스를 추가한다. 헬퍼가 두 선언 문구를 모두 인정하므로 템플릿 통과 루프는 doc 템플릿이 dev 선언으로 되돌아가도 통과한다 (최종 감사 F-2). `doc_tpl_violations`가 본문 2번째 줄 doc 문구·doc 우선순위 행·`ssot_dir`·`publish` 행을 대조하고, 케이스는 `doc 템플릿 고유 행 통과` 1건과 네 요소를 하나씩 되돌린 `… 격추` 4건이다.
 - **완료 기준**:
   - [D] spec R2 [D] 1건 통과 (doc init 2번째 줄·우선순위 행·`ssot_dir`·`publish` 행)
   - [D] spec R3 [D] 3건 통과 (헬퍼 통과 3종·격추 4종, 러너의 doc 케이스 3건 실행, 검사 표 2행·10행 유지)
@@ -101,6 +102,24 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     [ "$(grep -E '^\| 본문 두 번째 줄 SSoT 선언 \|' ai-workspace/SKILL.md | grep -c 'ssot_dir')" -eq 1 ] || echo '위반: 검사 표 SSoT 행에 ssot_dir 동시 보강 없음'
     ```
 
+    </details>
+  - [D] 러너가 doc 템플릿 고유 행 케이스(통과 1·격추 4)를 실행해 통과하고, doc 템플릿을 이슈 착수 시점 버전으로 되돌린 사본에서는 실패한다 (최종 감사 F-2)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    R=ai-workspace/tests/run-tests.sh
+    out=$("$R" 2>&1) \
+      && [ "$(printf '%s\n' "$out" | grep -cE '^ok +- doc 템플릿 고유 행 통과$')" -eq 1 ] \
+      && [ "$(printf '%s\n' "$out" | grep -cE '^ok +- doc 템플릿 .* 격추$')" -eq 4 ] \
+      || echo '위반: 러너 실패 또는 doc 템플릿 고유 행 케이스(통과 1·격추 4) 미실행'
+    D=$(mktemp -d); cp -R ai-workspace "$D/"
+    git show 23c92bb:ai-workspace/templates/doc/.ai/AI-CONTEXT.md > "$D/ai-workspace/templates/doc/.ai/AI-CONTEXT.md"
+    "$D/ai-workspace/tests/run-tests.sh" >/dev/null 2>&1 && echo '위반: doc 템플릿을 되돌린 사본에서 러너가 통과'
+    rm -rf "$D"
+    ```
+
+    - 설계 주의: `23c92bb`는 이슈 착수 시점의 main이다. `main`으로 적으면 머지 뒤에는 새 템플릿을 가리켜 반례가 사라진다.
     </details>
 
 ---
@@ -144,6 +163,9 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
   3. 같은 파일 `### 4단계: 증류 및 분류`에 doc 분기를 한 줄 추가한다. 선언이 원본 문서이면 40_domain 문서의 `근거 출처`(출처·조항·시행일·확인일) 섹션을 채운다.
   4. 같은 파일 `## 수집 제외 대상` 표에 행을 추가한다. 대상 "퍼블리싱 사본(SSoT를 내보낸 위키·블로그 페이지 등)", 사유 "SSoT의 사본이라 출처가 아니다. repo 문서를 링크한다. `publish` 선언 아래 자료는 결정적으로 제외한다".
   5. `context-harvest/templates/40_domain-template.md`에 `## 근거 출처` 섹션을 `## 원본 출처` 앞에 추가한다. 선택 섹션이며 주석으로 "SSoT 선언이 원본 문서인 repo에서 문서가 근거로 삼는 외부 자료(법령·표준 등)를 적는다. 소스 코드가 SSoT인 repo에서는 삭제한다"를 적고, 출처·조항·시행일·확인일 4열 표를 둔다. `## 원본 반영` 섹션은 두지 않는다. frontmatter 1~5행은 바꾸지 않는다.
+  6. `context-harvest/tests/`에 이 Task의 테스트를 둔다 (최종 감사 F-3, F-2 잔여). 1차 F-2 검토에서는 두지 않았으나 2차 F-3에서 반영으로 정했다. spec [D]는 이슈를 닫은 뒤 다시 실행되지 않으므로 이후 변경의 회귀는 `*/tests/run-tests.sh`가 맡는다.
+     - `run-tests.sh` [D]: 1~5의 규칙 문장(선언 위치·허용 값·폴백, 원본 문서 수집 대상, 대응하지 않는 정보 제외, `publish` 아래 제외, 판정 규칙 문장, 비파생 자료 수집, 수집 제외 표 행, 4단계 근거 출처 채움·삭제, 템플릿 근거 출처 섹션·위치·4열, 원본 반영 섹션 부재, frontmatter 3키)이 제자리에 있으면 통과 1건이고, 규칙을 하나씩 되돌린 사본은 격추 16건이다. README 케이스 표와 fixture 쌍의 일치도 본다.
+     - `fixtures/collect-filter/` [QD]: 선언(`소스 코드`·`원본 문서`·허용 값 밖)과 `publish` 행 유무별로 후보 자료의 수집·제외 판정과 `## 근거 출처` 섹션 처리를 입력·기대 결과 쌍 4건(`dev-source`·`doc-publish`·`doc-no-publish`·`invalid-declaration`)으로 둔다. 실행 방법은 ai-workspace update-4 fixture와 같은 README 형식이다.
 - **완료 기준**:
   - [D] spec R6 [D] 1건 통과 (구 문구·구 필터 0건, 원본 문서 분기, 일반화 필터)
   - [D] spec R7 [D] 1건 통과 (SSoT 원칙 절의 퍼블리싱·`publish`·규칙 문장, 수집 제외 대상 행)
@@ -157,6 +179,34 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     ```
 
     </details>
+  - [D] 이 Task의 테스트가 0 실패로 통과하고 통과 1건·격추 16건을 실행한다 (최종 감사 F-3)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    R=context-harvest/tests/run-tests.sh
+    out=$("$R" 2>&1) \
+      && [ "$(printf '%s\n' "$out" | grep -cE '^ok +- .* 통과$')" -eq 1 ] \
+      && [ "$(printf '%s\n' "$out" | grep -cE '^ok +- .* 격추$')" -eq 16 ] \
+      || echo '위반: 러너 실패 또는 통과 1·격추 16 미실행'
+    ```
+
+    </details>
+  - [D] SKILL.md·40_domain 템플릿을 이슈 착수 시점 버전으로 되돌린 사본에서는 러너가 실패한다 (최종 감사 F-3)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    D=$(mktemp -d); cp -R context-harvest "$D/"
+    git show 23c92bb:context-harvest/SKILL.md > "$D/context-harvest/SKILL.md"
+    git show 23c92bb:context-harvest/templates/40_domain-template.md > "$D/context-harvest/templates/40_domain-template.md"
+    "$D/context-harvest/tests/run-tests.sh" >/dev/null 2>&1 && echo '위반: 착수 시점 본문 사본에서 러너가 통과'
+    rm -rf "$D"
+    ```
+
+    - 설계 주의: `23c92bb`는 이슈 착수 시점의 main이다. `main`으로 적으면 머지 뒤에는 새 본문을 가리켜 반례가 사라진다.
+    </details>
+  - [QD] `fixtures/collect-filter/` 4케이스를 README 절차대로 모의 실행한 결과가 기대 결과와 일치한다 (최종 감사 F-3)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 자연어 절차를 입력에 적용한 결과는 명령으로 판정 불가
   - [QD] 선언이 원본 문서인 repo에서 `ssot_dir` 문서에 반영된 사실의 근거를 수집하고 퍼블리싱 사본을 거르는 절차가 소스 코드 분기와 섞이지 않고 읽힌다  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 분기 서술의 명확성은 의미 판단이라 명령으로 환원 불가
 
 ---
@@ -171,14 +221,63 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
      - 트리거 조건: `--local`이고 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언이 원본 문서일 때.
      - 파일 구조: `60_codebase/index.md` 하나다. 상세 흐름 파일은 두지 않는다. frontmatter는 `last_synced`·`source_hash`·`ssot_dir`·`status` 4키다.
      - 0단계 모드 결정: `index.md` 내용 유무로 build / sync·check·rebuild 선택(local과 동일). sync·check를 고르면 진입 시 안내도 `## 프로젝트 도메인` 표의 `ssot_dir`과 frontmatter `ssot_dir`을 대조한다. 다르면 sync는 rebuild로 전환하고(Why 태깅 보존, 전환 사실을 사용자에게 알린다), check는 3단계의 루트 불일치 판정으로 넘긴다. 선언만 바뀐 커밋은 `source_hash` 기준 diff에 안내도만 잡혀 새 루트의 기존 문서와 범위 밖 행을 놓치기 때문이다 (계획 감사 F-2).
-     - 1단계 원본 문서 색인: 1-1 스캔 범위 — build/rebuild는 `AI-CONTEXT.md` `## 프로젝트 도메인` 표의 `ssot_dir` 전체이며, 행이 없으면 사용자에게 묻고 답을 frontmatter `ssot_dir`에 기록한 뒤 안내도 표에도 채우라고 안내한다. sync는 루트가 같을 때만 수행하며 `git diff <source_hash>..HEAD --name-only` 중 `ssot_dir` 아래 파일만이다. frontmatter `ssot_dir`·`source_hash`는 색인 반영을 마친 뒤에만 갱신한다. 1-2 단위 식별 — 문서 파일 1개가 색인 행 1개이고 하위 디렉토리는 행을 묶는 절 제목이며, sync에서 삭제된 파일은 행을 제거한다. 1-3 index.md 작성 — 표는 파일 경로·다루는 주제·관련 문서 3열이고, `다루는 주제`는 문서 H1·머리 요약·헤더에서 뽑으며, 근거 없이 규칙·결정만 적힌 문서는 `[WHY-NEEDED]`로 표시한다.
+     - 1단계 원본 문서 색인: 1-1 스캔 범위 — build/rebuild는 `AI-CONTEXT.md` `## 프로젝트 도메인` 표의 `ssot_dir` 전체이며, 행이 없으면 사용자에게 묻고 답을 frontmatter `ssot_dir`에 기록한 뒤 안내도 표에도 채우라고 안내한다. sync는 루트가 같을 때만 수행하며 `git diff <source_hash>..HEAD --name-status -M`으로 변경 유형과 경로를 받아 `ssot_dir` 아래 파일만 대상으로 한다(이름 변경은 이전·새 경로 중 하나라도 아래이면 대상). `--name-only`는 이름 변경의 이전 경로를 내주지 않아 옛 행의 Why 태깅을 옮길 수 없다 (최종 감사 F-1). frontmatter `ssot_dir`·`source_hash`는 색인 반영을 마친 뒤에만 갱신한다. 1-2 단위 식별 — 문서 파일 1개가 색인 행 1개이고 하위 디렉토리는 행을 묶는 절 제목이며, sync에서 삭제된 파일은 행을 제거한다. 이름이 바뀐 파일은 두 경로를 `ssot_dir`과 각각 대조해, 둘 다 아래면 Why 태깅을 새 행으로 옮긴 뒤 옛 행을 지우고, 이전 경로만 아래면 옛 행을 지우고, 새 경로만 아래면 새 행을 만든다. 1-3 index.md 작성 — 표는 파일 경로·다루는 주제·관련 문서 3열이고, `다루는 주제`는 문서 H1·머리 요약·헤더에서 뽑으며, 근거 없이 규칙·결정만 적힌 문서는 `[WHY-NEEDED]`로 표시한다.
      - 2단계 교차 참조 연결: `local.md` 2단계의 표·규칙(존재하는 문서만 링크, `[DOC-NEEDED]`, 외부 URL은 교차 참조 대상 아님)을 그대로 복제한다(ADR 0002 의도적 중복). 퍼블리싱 URL도 색인에 두지 않는다.
      - 3단계 정합성 점검: 루트 불일치(안내도 `ssot_dir`과 frontmatter `ssot_dir`이 다르면 색인 전체를 `[UPDATE-NEEDED]`로 보고하고 rebuild 권고), stale 탐지(`source_hash` 이후 `ssot_dir` 변경 파일이 미반영 → `[UPDATE-NEEDED]`), 파일 유효성(없으면 행 제거), 교차참조 유효성, `[WHY-NEEDED]`·`[DOC-NEEDED]` 목록.
      - 4단계 결과 보고: `local.md` 4단계 형식에 "문서 색인 N건 (신규 N / 갱신 N / 삭제 N)"으로 맞춘다.
   2. `code-map/SKILL.md`를 고친다. (a) frontmatter `description`과 `## 개요`에 원본 문서 색인을 추가한다. (b) `### SSoT 원칙`을 선언 참조로 바꾼다. SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따른다. 값은 `소스 코드` 또는 `원본 문서`이며 그 외 값은 선언으로 보지 않는다. 선언을 찾지 못하면 소스 코드를 SSoT로 본다. `60_codebase/`는 SSoT에서 파생된 2차 산출물이며 불일치 시 SSoT가 우선한다. (c) `## 참조 문서`의 분리 참조 파일 목록과 `## 모드별 실행 절차` 표에 `references/doc.md` 행을 추가하고, `--local`이 선언에 따라 `local.md`(소스 코드) 또는 `doc.md`(원본 문서)를 읽는다고 적는다. (d) `## 적용 대상`에 "원본 문서 저장소 (SSoT 선언이 원본 문서인 doc 프로파일 repo. `ssot_dir` 아래 문서 파일)"를 추가한다. (e) `## 문서 메타데이터`에 doc 색인은 `ssot_dir` 키를 더해 쓴다는 주석을 더한다.
   3. `references/local.md`·`references/global.md`는 바꾸지 않는다.
+  4. `code-map/tests/`에 이 Task의 테스트를 둔다 (최종 감사 F-3, F-2 잔여). 1차 F-2 검토에서는 두지 않았으나 2차 F-3에서 반영으로 정했다. 대상은 `doc.md`와 SKILL.md의 모드 분기이며 `local.md`·`global.md`는 대상이 아니다.
+     - `run-tests.sh` [D]: 트리거·폴백, frontmatter `ssot_dir` 키, 0단계 루트 대조(sync 전환·Why 보존·check 위임), 1-1 build 범위·`ssot_dir` 부재 질의·sync 동일 루트 조건·`--name-status -M` 입력·메타데이터 갱신 시점, 1-2 삭제·이름 변경 세 경우, 1-3 3열·`[WHY-NEEDED]`, 2단계 존재 문서만 링크·외부 URL·퍼블리싱 URL 제외, 3단계 루트 불일치 행, 4단계 건수 보고, SKILL.md 폴백·모드 표 행·적용 대상이 제자리에 있으면 통과 1건이고, 규칙을 하나씩 되돌린 사본은 격추 25건이다. README 케이스 표와 fixture 쌍의 일치도 본다.
+     - `fixtures/doc-index/` [QD]: build 범위·교차 참조(`build`), 동일 루트 sync의 수정·삭제·이름 변경·루트 밖/안 이동과 Why 보존(`sync-same-root`), 루트 변경 시 sync의 rebuild 전환(`root-changed-sync`)과 check의 불일치 보고(`root-changed-check`)를 입력·기대 결과 쌍 4건으로 둔다. `git diff` 출력은 입력에 고정한다.
 - **완료 기준**:
   - [D] spec R9 [D] 1건 통과 (doc.md 존재·필수 어휘·루트 불일치 어휘·외부 원본 어휘 0건·단계 수, SKILL.md 적용 대상·참조 2곳·구 문구 0건, local.md·global.md 무변경)
+  - [D] `doc.md`의 sync 입력이 이름 변경의 이전·새 경로를 함께 받고, 1-2에 이름 변경 처리가 있다 (최종 감사 F-1)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    F=code-map/references/doc.md
+    sync_line=$(grep -E '^- sync:' "$F")
+    [ "$(printf '%s\n' "$sync_line" | grep -c -- '--name-status -M')" -eq 1 ] || echo '위반: sync 입력 행에 --name-status -M 없음'
+    [ "$(printf '%s\n' "$sync_line" | grep -c -- '--name-only')" -eq 0 ] || echo '위반: sync 입력 행에 --name-only 잔존'
+    sec() { awk '/^\*\*1-2\. / { f = 1; next } f && /^\*\*1-3\. / { f = 0 } f' "$F"; }
+    for k in '이전 경로' '새 경로' 'Why 태깅'; do [ "$(sec | grep -c "$k")" -ge 1 ] || echo "위반: 1-2에 $k 없음"; done
+    ```
+
+    - 설계 주의: sync 입력은 `^- sync:` 행 하나로 범위를 자른다. 파일 전체에서 `--name-only`를 세면 그 입력을 쓰지 않는 이유를 적은 하위 항목에 걸린다.
+    </details>
+  - [D] 이 Task의 테스트가 0 실패로 통과하고 통과 1건·격추 25건을 실행한다 (최종 감사 F-3)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    R=code-map/tests/run-tests.sh
+    out=$("$R" 2>&1) \
+      && [ "$(printf '%s\n' "$out" | grep -cE '^ok +- .* 통과$')" -eq 1 ] \
+      && [ "$(printf '%s\n' "$out" | grep -cE '^ok +- .* 격추$')" -eq 25 ] \
+      || echo '위반: 러너 실패 또는 통과 1·격추 25 미실행'
+    ```
+
+    </details>
+  - [D] 이슈 착수 시점 사본과 최종 감사 F-1 보정 전 `doc.md` 사본에서는 러너가 실패한다 (최종 감사 F-3)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    D=$(mktemp -d); cp -R code-map "$D/"
+    git show 23c92bb:code-map/SKILL.md > "$D/code-map/SKILL.md"; rm -f "$D/code-map/references/doc.md"
+    "$D/code-map/tests/run-tests.sh" >/dev/null 2>&1 && echo '위반: 착수 시점 사본에서 러너가 통과'
+    rm -rf "$D"; D=$(mktemp -d); cp -R code-map "$D/"
+    git show 8c1abab:code-map/references/doc.md > "$D/code-map/references/doc.md"
+    "$D/code-map/tests/run-tests.sh" >/dev/null 2>&1 && echo '위반: F-1 보정 전 doc.md 사본에서 러너가 통과'
+    rm -rf "$D"
+    ```
+
+    - 설계 주의: `23c92bb`는 이슈 착수 시점의 main이고 `8c1abab`은 F-1 보정 전 마지막 커밋이다. `main`·`HEAD`로 적으면 머지·커밋 뒤에 새 본문을 가리켜 반례가 사라진다.
+    </details>
+  - [QD] `fixtures/doc-index/` 4케이스를 README 절차대로 모의 실행한 결과가 기대 결과와 일치한다 (최종 감사 F-3)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 대화형 AI 절차를 입력에 적용한 결과는 명령으로 판정 불가
+  - [ND] 이름 변경이 섞인 sync에서 옛 행 0개·새 행 1개가 되고 옛 행의 Why 태깅이 새 행에 남는다  (검증: 사람이 spec R9 [ND]의 임시 디렉토리에서 build 뒤 문서 이름을 바꾸고 sync해 확인)  ← 강등 사유: sync는 대화형 AI 절차라 명령으로 재현 불가
   - [QD] `doc.md`의 build·sync·check 절차가 `local.md`를 읽지 않은 구현자도 따라 할 수 있을 만큼 자기완결적이다  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 절차 완결성은 의미 판단이라 명령으로 환원 불가
 
 ---
@@ -225,6 +324,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
   2. `.ai/40_domain/specs/ai-workspace.md`를 갱신한다. doc 프로파일 선언 문구·`ssot_dir`(필수)·`publish`(선택) 행, `check-context.sh`의 두 문구 인정과 doc 선언 시 `ssot_dir` 검사, `60_codebase/` SSoT 색인 정의.
   3. `.ai/60_codebase/index.md`의 code-map 행 설명(참조 파일 목록에 `doc.md`)과 context-harvest 행 설명(퍼블리싱 제외), `.ai/60_codebase/ai-workspace/update-call-flow.md`의 `check-context.sh` 설명(두 문구 인정, doc 선언 시 `ssot_dir` 행 검사, doc 문구를 넣은 실행의 `ssot_dir` 동시 보강), `.ai/60_codebase/ai-workspace/init-call-flow.md` 25행(init-2 보고의 doc `ssot_dir` 입력 안내)·30행(설계 원칙의 SSoT 문구를 선언 기준으로)을 대조해 반영한다. 상세 흐름 2건의 frontmatter `last_synced`·`source_hash`는 갱신하고, index frontmatter는 2026-10-10 전체 sync 기준을 유지한 채 `## 태그 현황`에 #114 부분 반영 사실을 한 줄 남긴다(#110·#112와 같은 방식. index 표의 #110·#112 미반영분을 다음 sync가 놓치지 않게 하기 위함, 2026-10-23 Task 6 결정).
   4. `.ai/AI-CONTEXT.md` `## 스킬 목록`의 `code-map` 설명과 `README.md` 15행 code-map 설명에 원본 문서 색인을 더한다. `.ai/AI-CONTEXT.md` `## 디렉토리 구조`의 code-map `references/` 행(70행 `모드별(local/global) 실행 절차`)에 원본 문서 절차(`doc.md`)를 더한다. `.ai/AI-CONTEXT.md` 2번째 줄은 dev 문구를 유지한다.
+  5. Task 3·4의 테스트 신설에 맞춰 `.ai/10_rules/architecture.md` 역할 분담 표 `tests/` 행에 "`scripts/`가 없는 스킬은 절차 문장의 구조 회귀 검사와 모의 실행 fixture를 둔다"를 더하고, `.ai/AI-CONTEXT.md` `## 디렉토리 구조`에 code-map·context-harvest의 `tests/` 행을 더한다 (최종 감사 F-3).
 - **완료 기준**:
   - [D] spec R11 [D] 1건 통과 (고정 문구 0건, 선언·원본 문서·SSoT 색인·퍼블리싱·`ssot_dir` 언급, #114 출처)
   - [D] 명세·색인·안내도·README가 새 어휘를 담는다
@@ -243,6 +343,20 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
     ```
 
     - 설계 주의: 디렉토리 구조에는 `references/` 행이 스킬마다 있으므로 `├── code-map/` 바로 다음 행만 본다.
+    </details>
+  - [D] 역할 분담 표와 디렉토리 구조가 `scripts/`가 없는 스킬의 `tests/`를 담는다 (최종 감사 F-3)
+    <details>
+    <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+    ```bash
+    [ "$(grep -E '^\| `tests/` \|' .ai/10_rules/architecture.md | grep -c '`scripts/`가 없는 스킬')" -eq 1 ] || echo '위반: architecture.md 역할 분담 표 tests/ 행'
+    for s in code-map context-harvest; do
+      [ "$(awk -v s="├── $s/" 'index($0, s) == 1 { f = 1; next } f && /^├── / { exit } f' .ai/AI-CONTEXT.md | grep -c 'tests/')" -eq 1 ] \
+        || echo "위반: AI-CONTEXT 디렉토리 구조 $s tests/ 행"
+    done
+    ```
+
+    - 설계 주의: `tests/` 행은 스킬마다 있으므로 해당 스킬 행부터 다음 최상위 행 전까지만 본다.
     </details>
   - [QD] spec R11 [QD] 통과 (정책이 R1~R10과 모순 없음)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 정책 서술과 스킬 절차의 의미 대조라 명령으로 환원 불가
 
