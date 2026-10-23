@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — shared 템플릿의 선언 참조·원본 문서 작업 절·SSoT 색인 정의
+> ▶️ 다음 작업: Task 3 — context-harvest 수집 필터의 선언 의존·퍼블리싱 제외와 40_domain 템플릿 근거 출처 섹션
 
 ## 모델 기록
 
@@ -139,14 +139,18 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 2: shared 템플릿의 선언 참조·원본 문서 작업 절·SSoT 색인 정의
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 버전 고정 규칙 파일과 shared 색인 골격, doc 안내도 설명을 SSoT 선언 기준으로 바꿨다. spec R4 [D]는 무출력 통과, R5 [D]는 context-harvest 관계표 1행만 위반으로 남았다(plan대로 Task 3 이후 통과). ai-workspace 테스트도 0 실패다.
+  - shared `context-loading.md`: 맺음 문장을 선언 읽기 표준 세 문장으로 바꾸고 `## 원본 문서 작업 시` 절(색인 → 관련 문서 → `ssot_dir` 직접 확인 3단계)을 추가했다. 이 repo 사본도 같은 내용으로 덮어썼다.
+  - shared `60_codebase/index.md` 3~4행: SSoT 색인 정의(소스코드 엔트리포인트·호출 흐름 또는 원본 문서 파일 지도)
+  - doc 템플릿 `AI-CONTEXT.md`: `60_codebase` 언급 3곳(트리 설명·진입 절차·작성 규칙)을 원본 문서 색인 기준으로 바꿨다.
+  - `ai-workspace/SKILL.md`: code-map 소개 행을 SSoT 색인 정의로 바꿨다.
+- **특이 사항**: code-map 소개 행에는 plan 문구의 em dash 대신 마침표를 썼다(작성 원칙의 em dash 금지).
 
 ---
 

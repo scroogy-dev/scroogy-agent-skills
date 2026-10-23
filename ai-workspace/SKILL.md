@@ -17,7 +17,7 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 ## 이 구조와 함께 사용 가능한 skill
 
 - **ai-workspace-directory** (자매): 멀티 repo 워크스페이스 루트의 상위 안내도 `.ai/AI-CONTEXT.md`(로비) 생성·재구성. 상위 안내도의 `Repos` 표는 각 repo의 `path`/`domain`/`keywords`/`status`를 가지고, 본 스킬이 만드는 repo 안내도의 `## 프로젝트 도메인` 표(`domain`/`keywords`)와 **1:1 동기화 대상**입니다.
-- **code-map**: 소스코드 기능별 엔트리포인트·호출 흐름 색인 (`.ai/60_codebase/` 활용)
+- **code-map**: SSoT 색인. 소스코드 기능별 엔트리포인트·호출 흐름 또는 원본 문서 파일 지도 (`.ai/60_codebase/` 활용)
 - **git-commit**: Conventional Commits 규칙에 따른 커밋 메시지 작성
 - **git-pr**: PR 제목/메시지 작성 (비즈니스+테크 관점, `.ai/50_adr/`, `.ai/30_contract/`, `.ai/40_domain/` 활용) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성
 - **git-pr-feedback**: PR 리뷰 코멘트 수집·분류 후 항목별 대응 (답글 게시·코드 변경·원장 등재). 수용한 지적을 `.ai/70_ledger/`에 등재하고, 코드 수정으로 원인이 사라진 기존 항목을 종결합니다.
