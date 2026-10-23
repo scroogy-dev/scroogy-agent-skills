@@ -8,7 +8,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 파일만 선택적으�
 | 파일 | 설명 |
 |------|------|
 | `policies/` | 비즈니스 정책 문서 모음 (`common/` 공통 정책, `local/` 이 repo 고유 정책) |
-| `policies/local/ssot-and-router-principle.md` | 소스 코드 SSoT, 안내도는 라우터, 충돌 우선순위, 멀티/단독 repo CoC 런타임 판정과 판정 결과 미기재 |
+| `policies/local/ssot-and-router-principle.md` | 안내도 SSoT 선언(dev 소스 코드·doc 원본 문서)과 폴백, 퍼블리싱·출처 구분, 60_codebase SSoT 색인, 안내도는 라우터, 충돌 우선순위, 멀티/단독 repo CoC 런타임 판정과 판정 결과 미기재 |
 | `policies/local/external-action-approval-gate.md` | PR 제출·답글·resolve·push·이슈 댓글·퀴즈 댓글의 승인 게이트, 승인 값 불변 보관·재대조, 저장소 명시, 동적 인자·자격증명 처리 |
 | `policies/local/notation-conventions.md` | 분류 값 한글 우선 병기, 모델 표기, 트리 정렬, 이모지 정책, templates/ 참조 표기, 스킬·옵션 명명 기준, 호환 도구 목록 |
 | `policies/local/license-policy.md` | Apache 2.0·NOTICE 두 줄·헤더 파일명 가드, readme-sync 라이선스 옵션과 `--force-license` 가드 |

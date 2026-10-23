@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 6 — 정책·명세·색인·안내도·README 문서 정합
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자가 구현 모델과 다른 벤더 모델로 직접 수행)
 
 ## 모델 기록
 
@@ -213,14 +213,19 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 6: 정책·명세·색인·안내도·README 문서 정합
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 이 repo의 정책·명세·색인·안내도·README에 바뀐 절차를 기록했다. spec R11 [D]와 Task 6 [D]가 통과했다. spec `완료의 정의` [D] 15블록 전체도 무출력으로 통과했다(공통 회귀 항목 포함).
+  - `ssot-and-router-principle.md`: SSoT 선언 항목(위치·dev/doc 값·폴백), 퍼블리싱·출처 용어 2항목, 우선순위 `SSoT(소스 코드 또는 원본 문서) > …`와 세부 우선순위는 repo 규칙 파일 영역이라는 문장, `60_codebase/` SSoT 색인 정의, 수집·색인 산출물 제약(퍼블리싱 제외)을 반영했다. 근거 1항목과 #114 원본 출처도 더했다.
+  - `specs/ai-workspace.md`: 안내도 SSoT 선언·doc 우선순위·`ssot_dir`·`publish` 행, `context-loading.md` 선언 참조·원본 문서 작업 절, SSoT 색인 정의, 멱등 보강 검사의 두 문구 인정·`ssot_dir` 검사·동시 보강·자동 전환 없음, 출처 #114
+  - `.ai/60_codebase/`: index의 code-map 행(`doc.md`)·context-harvest 행(퍼블리싱 제외)·태그 현황 한 줄, `update-call-flow.md`(SSoT 선언 행 검사), `init-call-flow.md`(doc 템플릿 행, init 보고 `ssot_dir`, 설계 원칙 SSoT 문구). 상세 흐름 2건의 `source_hash`는 `85e6c80`이다.
+  - `.ai/AI-CONTEXT.md`: 스킬 목록 code-map 행, 디렉토리 구조 `references/`(local/doc/global), `last updated`. 2번째 줄은 dev 문구 그대로다. `README.md` code-map 행도 고쳤다.
+  - `.ai/40_domain/index.md`: 정책 파일 설명을 새 정책 범위로 갱신(plan 밖, 정책 변경에 따른 목차 정합)
+- **특이 사항**: index frontmatter 처리는 사용자 결정(2026-10-23)으로 plan 작업 내용 3을 바꿨다. index frontmatter는 `de0a00c` 그대로 두고 상세 흐름 `source_hash`만 갱신했다. 그대로 올리면 index 표에 #110·#112 미반영분(ADR 0018·0019 링크)이 있는데도 최신으로 기록된다. 정책 퍼블리싱 판정 문장은 "매체가 아니라 유래" 대조 구문 대신 "매체로 가르지 않고 SSoT에서 파생했는지로 가른다"로 썼다. Task 6 [QD](spec R11 [QD])는 별도 세션의 다른 AI 채점 항목이라 이번에 판정하지 않았다.
 
 ---
 

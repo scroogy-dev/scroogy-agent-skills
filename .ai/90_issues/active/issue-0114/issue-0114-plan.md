@@ -217,13 +217,13 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 6: 정책·명세·색인·안내도·README 문서 정합
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 이 repo의 정책·명세·색인·안내도·README가 바뀐 절차(선언 위치·값·폴백·우선순위·`ssot_dir`·`publish`·퍼블리싱 판정·SSoT 색인)를 기록한다.
 - **대상 요구사항**: R11
 - **작업 내용**:
   1. `.ai/40_domain/policies/local/ssot-and-router-principle.md` `## 원칙`을 고친다. 첫 항목을 "SSoT는 repo 안내도 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언이 정한다. dev 프로파일은 소스 코드, doc 프로파일은 원본 문서(`## 프로젝트 도메인` 표 `ssot_dir` 아래 문서 파일)다. 선언을 찾지 못하면 소스 코드를 SSoT로 본다. 마크다운은 SSoT를 가리키는 지도이지 사본이 아니다"로 바꾼다. 그 아래에 용어 항목 두 개를 더한다. "퍼블리싱은 SSoT에서 파생해 밖으로 내보낸 사본(위키·블로그·PDF 등 형태 불문)이며 SSoT도 출처도 아니다. `publish` 행으로 위치를 선언할 수 있다"와 "출처는 SSoT에서 파생되지 않은 외부 자료이며 `40_domain/`·`50_adr/`가 근거로 인용한다. 판정 기준은 매체가 아니라 유래다". 우선순위를 "SSoT(소스 코드 또는 원본 문서) > repo 안내도 > 로비 안내도"로, `60_codebase/index.md` 포인터 설명을 "SSoT 색인"으로, 마지막 항목(수집·색인 스킬 산출물 제약)을 "선언이 가리키는 SSoT에 반영된 사실의 계약·근거만 담고, 퍼블리싱 사본은 수집하지 않으며, 외부 URL은 원본 출처 섹션에만 둔다"로 바꾼다. 근거 접기에 #114의 이유(스킬마다 고정한 "SSoT = 소스 코드"가 doc repo에서 작동하지 않음, 위키를 SSoT로 두면 PR diff·감사가 원본을 보지 못해 repo 안 문서 파일을 SSoT로 정함)를 한 항목 더하고, 원본 출처에 이슈 #114 링크를 추가한다. 근거 출처 > 원본 문서 우선순위는 repo 규칙 파일 영역이라 스킬 표준에 넣지 않는다는 한 줄도 적는다.
   2. `.ai/40_domain/specs/ai-workspace.md`를 갱신한다. doc 프로파일 선언 문구·`ssot_dir`(필수)·`publish`(선택) 행, `check-context.sh`의 두 문구 인정과 doc 선언 시 `ssot_dir` 검사, `60_codebase/` SSoT 색인 정의.
-  3. `.ai/60_codebase/index.md`의 code-map 행 설명(참조 파일 목록에 `doc.md`)과 context-harvest 행 설명(퍼블리싱 제외), `.ai/60_codebase/ai-workspace/update-call-flow.md`의 `check-context.sh` 설명(두 문구 인정, doc 선언 시 `ssot_dir` 행 검사, doc 문구를 넣은 실행의 `ssot_dir` 동시 보강), `.ai/60_codebase/ai-workspace/init-call-flow.md` 25행(init-2 보고의 doc `ssot_dir` 입력 안내)·30행(설계 원칙의 SSoT 문구를 선언 기준으로)을 대조해 반영하고, index frontmatter `last_synced`·`source_hash`를 갱신한다.
+  3. `.ai/60_codebase/index.md`의 code-map 행 설명(참조 파일 목록에 `doc.md`)과 context-harvest 행 설명(퍼블리싱 제외), `.ai/60_codebase/ai-workspace/update-call-flow.md`의 `check-context.sh` 설명(두 문구 인정, doc 선언 시 `ssot_dir` 행 검사, doc 문구를 넣은 실행의 `ssot_dir` 동시 보강), `.ai/60_codebase/ai-workspace/init-call-flow.md` 25행(init-2 보고의 doc `ssot_dir` 입력 안내)·30행(설계 원칙의 SSoT 문구를 선언 기준으로)을 대조해 반영한다. 상세 흐름 2건의 frontmatter `last_synced`·`source_hash`는 갱신하고, index frontmatter는 2026-10-10 전체 sync 기준을 유지한 채 `## 태그 현황`에 #114 부분 반영 사실을 한 줄 남긴다(#110·#112와 같은 방식. index 표의 #110·#112 미반영분을 다음 sync가 놓치지 않게 하기 위함, 2026-10-23 Task 6 결정).
   4. `.ai/AI-CONTEXT.md` `## 스킬 목록`의 `code-map` 설명과 `README.md` 15행 code-map 설명에 원본 문서 색인을 더한다. `.ai/AI-CONTEXT.md` `## 디렉토리 구조`의 code-map `references/` 행(70행 `모드별(local/global) 실행 절차`)에 원본 문서 절차(`doc.md`)를 더한다. `.ai/AI-CONTEXT.md` 2번째 줄은 dev 문구를 유지한다.
 - **완료 기준**:
   - [D] spec R11 [D] 1건 통과 (고정 문구 0건, 선언·원본 문서·SSoT 색인·퍼블리싱·`ssot_dir` 언급, #114 출처)

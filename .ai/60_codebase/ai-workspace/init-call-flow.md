@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-10
-source_hash: 6b3f0f2
+last_synced: 2026-10-23
+source_hash: 85e6c80
 status: current
 ---
 
@@ -20,14 +20,14 @@ ai-workspace/SKILL.md
 ├── init-1단계: 파일 복사
 │   ├── rm -rf .ai                     # 전체 초기화, GNU cp 중첩 복사 회피 겸함
 │   ├── cp -r templates/shared/.ai/    # 공통 골격: 10_rules 공통 4종, 각 index.md, 70_ledger/ledger-entry-template.md, .gitkeep
-│   ├── cp -r templates/<profile>/.ai/*   # AI-CONTEXT.md, dev 전용 architecture.md·coding-convention.md
+│   ├── cp -r templates/<profile>/.ai/*   # AI-CONTEXT.md(doc은 원본 문서 선언·ssot_dir·publish 행), dev 전용 architecture.md·coding-convention.md
 │   └── sed "> last updated: YYYY-MM-DD"  # date +%Y-%m-%d 로 치환
-└── init-2단계: 완료 보고              # 생성 트리, multi면 상위 안내도 Repos 행 동기화 권유, solo면 단독 repo 명시
+└── init-2단계: 완료 보고              # 생성 트리, domain·keywords 입력 요청(doc은 ssot_dir도), multi면 상위 안내도 Repos 행 동기화 권유, solo면 단독 repo 명시
 ```
 
 ## Why
 
-- 설계 근거는 `ai-workspace/SKILL.md` `### 설계 원칙`에 작성자가 기재했다. SSoT는 소스 코드, 멀티·단독은 CoC로 런타임 판정, 멀티면 `## 프로젝트 도메인` 표를 상위 안내도 `Repos` 행과 1:1 동기화한다.
+- 설계 근거는 `ai-workspace/SKILL.md` `### 설계 원칙`에 작성자가 기재했다. SSoT는 안내도 본문 2번째 줄의 선언이 정하고(dev 소스 코드, doc 원본 문서), 멀티·단독은 CoC로 런타임 판정, 멀티면 `## 프로젝트 도메인` 표를 상위 안내도 `Repos` 행과 1:1 동기화한다.
 - 판정 결과를 `AI-CONTEXT.md` 본문에 적지 않는 이유는 `### init-0단계`의 인용문에 있다. 클론 환경마다 부모 디렉토리가 달라 정적 기재는 거짓이 된다.
 - 자매 스킬 ai-workspace-directory와의 역할 분담은 `## 이 구조와 함께 사용 가능한 skill`에 있다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(init 전체 초기화, dev/doc 프로파일, `.ai/` 읽기 우선순위).

@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-09-09
+> last updated: 2026-10-23
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -67,7 +67,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── scripts/                # 로비 형식·분량 검사 헬퍼 (check-lobby.sh)
 │   └── tests/                  # 검사 헬퍼 테스트 + 정상 로비 fixture (배포 제외)
 ├── code-map/                   # 코드베이스 색인 스킬
-│   └── references/             # 모드별(local/global) 실행 절차
+│   └── references/             # 모드별(local/doc/global) 실행 절차
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
 │   └── templates/              # 30_contract, 40_domain, 50_adr 템플릿
 ├── context-save/               # 대화 맥락 임시 저장 스킬
@@ -121,7 +121,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 |------|------|
 | `ai-workspace` | `.ai` 작업공간 설치 및 갱신 (dev/doc 프로파일 지원) |
 | `ai-workspace-directory` | 멀티 repo 워크스페이스 루트의 로비 `.ai/AI-CONTEXT.md` 생성·재구성 (`ai-workspace`의 자매) |
-| `code-map` | 소스코드 기능별 엔트리포인트·호출 흐름을 `.ai/60_codebase/`에 색인 |
+| `code-map` | 소스코드 기능별 엔트리포인트·호출 흐름 또는 원본 문서 파일 지도를 `.ai/60_codebase/`에 색인 (SSoT 색인) |
 | `context-harvest` | 소스코드 바깥의 What+Why를 수집·증류하여 `30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
 | `context-save` | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
