@@ -13,7 +13,7 @@
 
 | 케이스 | 입력 상태 | 기대 결과 |
 |--------|----------|----------|
-| `build` | 빈 색인, `ssot_dir` `docs/`, `publish` 행 있음, 루트 밖 문서와 기존 `.ai` 문서 있음 | `docs/` 아래 파일만 행으로 만들고, 존재하는 문서만 링크하며, 근거 없는 규칙 문서는 `[WHY-NEEDED]`, 퍼블리싱 URL 없음 |
+| `build` | ai-workspace init 골격뿐인 색인, `ssot_dir` `docs/`, `publish` 행 있음, 루트 밖 문서와 기존 `.ai` 문서 있음 | `docs/` 아래 파일만 행으로 만들고, 존재하는 문서만 링크하며, 근거 없는 규칙 문서는 `[WHY-NEEDED]`, 퍼블리싱 URL 없음 |
 | `sync-same-root` | 루트 일치, `--name-status -M` 출력에 수정·삭제·루트 안 이름 변경·루트 밖으로 이동·루트 안으로 이동·루트 밖 추가 | 수정 행 갱신, 삭제 행 제거, 이름 변경은 Why 태깅을 새 행으로 옮김, 밖으로 나간 행 제거, 안으로 들어온 행 추가, 루트 밖 추가는 무시, 반영 후 `source_hash` 갱신 |
 | `root-changed-sync` | 안내도 `ssot_dir`이 `docs/, handbook/`으로 넓어졌고 색인은 `docs/`, diff에는 안내도만 잡힘, 사용자가 `sync` 선택 | `rebuild`로 전환하고 사용자에게 알림, 새 루트의 기존 문서 행 추가, 기존 행의 Why 태깅 보존, 반영 후 frontmatter `ssot_dir` 갱신 |
 | `root-changed-check` | 위와 같은 루트 불일치, 사용자가 `check` 선택 | 색인 행을 바꾸지 않고 색인 전체를 `[UPDATE-NEEDED]`로 보고, `rebuild` 권고, 색인을 최신으로 보고하지 않음 |

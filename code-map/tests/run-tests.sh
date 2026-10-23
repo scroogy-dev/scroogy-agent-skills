@@ -18,6 +18,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 DOC="$HERE/../references/doc.md"
 FIX="$HERE/fixtures/doc-index"
+# ai-workspace init 이 복사하는 색인 골격. doc.md 0단계가 이 골격을 미생성으로 판정한다.
+TEMPLATE="$HERE/../../ai-workspace/templates/shared/.ai/60_codebase/index.md"
+PLACEHOLDER='(문서를 추가하면 이 목록에 함께 기재하세요)'
 
 pass=0
 fail=0
@@ -25,7 +28,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for f in "$SKILL" "$DOC" "$FIX/README.md"; do
+for f in "$SKILL" "$DOC" "$FIX/README.md" "$TEMPLATE"; do
   [ -r "$f" ] || { echo "NOT OK - 파일을 찾을 수 없습니다 — $f"; exit 1; }
 done
 
@@ -54,6 +57,8 @@ violations() {
   sec "$doc" '## 파일 구조' | grep -qE '^ssot_dir: ' || echo 'frontmatter ssot_dir 키'
 
   s="$(sec "$doc" '### 0단계: 모드 결정')"
+  line="$(printf '%s\n' "$s" | grep -E '^- \*\*미생성\*\* → `build`')"
+  { has "$line" '템플릿 골격만 있는 상태다' && has "$line" "자리표시자 \`$PLACEHOLDER\` 하나뿐"; } || echo '골격 미생성 판정'
   has "$s" '`sync`는 `rebuild`로 전환한다' || echo '루트 불일치 sync 전환'
   has "$s" 'Why 태깅은 보존하고' || echo '루트 불일치 rebuild Why 보존'
   has "$s" '`check`는 3단계의 루트 불일치 판정으로 넘긴다' || echo '루트 불일치 check 위임'
@@ -98,6 +103,13 @@ else
   ng "원본 문서 색인 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
+# 골격 판정 기준이 실제 템플릿과 어긋나면 init 직후 색인을 생성됨으로 오판한다 (PR #115 리뷰).
+if [ "$(head -n 1 "$TEMPLATE")" != '---' ] && grep -qxF "| $PLACEHOLDER | |" "$TEMPLATE"; then
+  ok "골격 판정 기준과 ai-workspace 템플릿 일치"
+else
+  ng "골격 판정 기준과 ai-workspace 템플릿 일치 — frontmatter가 있거나 자리표시자 행이 다릅니다"
+fi
+
 # --- 규칙별 격추 -----------------------------------------------------------------
 #
 # 원본 사본에 변형 하나를 적용하고 그 규칙의 위반이 나오는지 본다.
@@ -138,6 +150,8 @@ assert_reject() {
 assert_reject '트리거 선언 값 변경 격추'      '트리거 원본 문서'        sub_str "$C_DOC" '선언 값이 `원본 문서`일 때' '선언 값이 있을 때'
 assert_reject '트리거 폴백 삭제 격추'         '트리거 폴백'             drop_line "$C_DOC" '이 파일 대신 [local.md](local.md)를 따른다'
 assert_reject 'frontmatter ssot_dir 키 삭제 격추' 'frontmatter ssot_dir 키' drop_line "$C_DOC" '# 색인한 루트 경로'
+assert_reject '골격 미생성 판정 삭제 격추'    '골격 미생성 판정'        cut_str "$C_DOC" '파일이 비어 있거나 템플릿 골격만 있는 상태다. '
+assert_reject '골격 자리표시자 변경 격추'     '골격 미생성 판정'        sub_str "$C_DOC" "$PLACEHOLDER" '(자리표시자)'
 assert_reject '루트 불일치 sync 전환 삭제 격추' '루트 불일치 sync 전환'  cut_str "$C_DOC" '`sync`는 `rebuild`로 전환한다. '
 assert_reject '루트 불일치 Why 보존 삭제 격추' '루트 불일치 rebuild Why 보존' cut_str "$C_DOC" 'Why 태깅은 보존하고, '
 assert_reject '루트 불일치 check 위임 삭제 격추' '루트 불일치 check 위임' drop_line "$C_DOC" '`check`는 3단계의 루트 불일치 판정으로 넘긴다'
