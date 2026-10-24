@@ -30,7 +30,7 @@ ai-workspace-directory/SKILL.md
 
 - 설계 근거는 init 흐름과 같은 `### 대전제`·`### 산출물의 본질`이다. 로비에 도메인 본문이 쌓이면 SSoT가 갈라지므로 이동 후보만 내고 실제 이동은 사람이 한다.
 - `check-lobby.sh`의 형식 검사 8종은 `references/standard-structure.md`가 정한 골격의 사본이다.
-- 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(`status: placeholder`·`archived`는 drift 검사 제외, `Repos` 4열 1:1 동기화).
+- 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(안내도 부재 repo는 `status: placeholder`, drift 검사 제외는 `archived`만, `Repos` 4열 1:1 동기화).
 - 정책: [SSoT 원칙과 안내도 라우터](../../40_domain/policies/local/ssot-and-router-principle.md)(로비에 도메인 본문·코드 스니펫·운영 정보·상세 목차를 두지 않는 근거).
 - 로비 SSoT 문구를 repo 선언을 따르는 문장으로 바꾼 결정은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md). 기존 로비는 update-2단계의 교체로 옮겨 가 별도 이행 절차가 없다.
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
