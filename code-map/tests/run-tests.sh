@@ -8,7 +8,7 @@
 #
 # 절차를 입력에 적용한 결과(어떤 행을 만들고 지우며 Why 태깅을 어디에 남기는지)는
 # fixtures/doc-index/ 의 입력·기대 쌍으로 [QD] 모의 실행한다. 여기서는 그 쌍이 빠짐없이 있는지만 본다.
-# local.md·global.md(소스 코드 색인 절차)는 이 러너의 대상이 아니다.
+# local.md·global.md(소스 코드·건물 색인 절차)는 0단계 골격 판정 문장만 같은 방식으로 검사한다 (#116).
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -17,8 +17,10 @@ set -o pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 DOC="$HERE/../references/doc.md"
+LOCAL="$HERE/../references/local.md"
+GLOBAL="$HERE/../references/global.md"
 FIX="$HERE/fixtures/doc-index"
-# ai-workspace init 이 복사하는 색인 골격. doc.md 0단계가 이 골격을 미생성으로 판정한다.
+# ai-workspace init 이 복사하는 색인 골격. doc.md·local.md·global.md 0단계가 이 골격을 미생성으로 판정한다.
 TEMPLATE="$HERE/../../ai-workspace/templates/shared/.ai/60_codebase/index.md"
 PLACEHOLDER='(문서를 추가하면 이 목록에 함께 기재하세요)'
 
@@ -28,7 +30,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for f in "$SKILL" "$DOC" "$FIX/README.md" "$TEMPLATE"; do
+for f in "$SKILL" "$DOC" "$LOCAL" "$GLOBAL" "$FIX/README.md" "$TEMPLATE"; do
   [ -r "$f" ] || { echo "NOT OK - 파일을 찾을 수 없습니다 — $f"; exit 1; }
 done
 
@@ -94,6 +96,27 @@ violations() {
   has "$(sec "$skill" '## 적용 대상')" '**원본 문서 저장소**' || echo 'SKILL.md 적용 대상'
 }
 
+# local_violations <references/local.md> — 0단계 골격 판정이 doc.md 와 같은지 본다. 무출력이면 통과.
+local_violations() {
+  local s line
+  s="$(sec "$1" '### 0단계: 모드 결정')"
+  line="$(printf '%s\n' "$s" | grep -E '^- \*\*미생성\*\* → `build`')"
+  { has "$line" '템플릿 골격만 있는 상태다' && has "$line" "자리표시자 \`$PLACEHOLDER\` 하나뿐"; } || echo 'local 골격 미생성 판정'
+  printf '%s\n' "$s" | grep -qE '^- \*\*생성됨\*\*' || echo 'local 생성됨 분기'
+}
+
+# global_violations <references/global.md> — 0단계 4·5번이 골격을 색인 없음으로 보는지 본다. 무출력이면 통과.
+# 4·5번 하위 행은 들여쓰기가 있어 앵커가 앞 공백을 허용한다.
+global_violations() {
+  local s line
+  s="$(sec "$1" '### 0단계: 리포 목록 확인 및 모드 결정')"
+  has "$s" "자리표시자 \`$PLACEHOLDER\` 하나뿐" || echo 'global 골격 기준'
+  line="$(printf '%s\n' "$s" | grep -E '^[[:space:]]*- \*\*미분석\*\*')"
+  has "$line" '템플릿 골격만 있는' || echo 'global 미분석 골격'
+  line="$(printf '%s\n' "$s" | grep -E '^[[:space:]]*- \*\*미생성\*\* → `build`')"
+  has "$line" '템플릿 골격만 있는 상태다' || echo 'global 미생성 골격'
+}
+
 # --- 현재 본문이 규칙을 모두 갖는다 ------------------------------------------------
 
 out="$(violations "$DOC" "$SKILL")"
@@ -101,6 +124,20 @@ if [ -z "$out" ]; then
   ok "원본 문서 색인 규칙 통과"
 else
   ng "원본 문서 색인 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(local_violations "$LOCAL")"
+if [ -z "$out" ]; then
+  ok "local 0단계 골격 판정 통과"
+else
+  ng "local 0단계 골격 판정 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(global_violations "$GLOBAL")"
+if [ -z "$out" ]; then
+  ok "global 0단계 골격 판정 통과"
+else
+  ng "global 0단계 골격 판정 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
 # 골격 판정 기준이 실제 템플릿과 어긋나면 init 직후 색인을 생성됨으로 오판한다 (PR #115 리뷰).
@@ -119,6 +156,8 @@ fi
 mkdir -p "$TMP/case"
 C_DOC="$TMP/case/doc.md"
 C_SKILL="$TMP/case/SKILL.md"
+C_LOCAL="$TMP/case/local.md"
+C_GLOBAL="$TMP/case/global.md"
 
 # sub_str <파일> <찾을 문자열> <바꿀 문자열> — 첫 등장 하나를 바꾼다(고정 문자열 대조).
 sub_str() {
@@ -137,9 +176,9 @@ drop_line() {
 # assert_reject <설명> <위반 행> <변형 명령...>
 assert_reject() {
   local desc="$1" want="$2" out; shift 2
-  cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"
+  cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"
   "$@" || { ng "$desc — 변형 실패"; return; }
-  out="$(violations "$C_DOC" "$C_SKILL")"
+  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL")"
   if printf '%s\n' "$out" | grep -qxF "$want"; then
     ok "$desc"
   else
@@ -180,6 +219,12 @@ assert_reject '보고 건수 축소 격추'           '보고 문서 색인 건�
 assert_reject 'SKILL.md 폴백 삭제 격추'       'SKILL.md 선언 부재 폴백' cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
 assert_reject 'SKILL.md 모드 표 doc.md 행 삭제 격추' 'SKILL.md 모드 표 doc.md 행' drop_line "$C_SKILL" '| `--local` (floor, 원본 문서) |'
 assert_reject 'SKILL.md 적용 대상 삭제 격추'  'SKILL.md 적용 대상'      drop_line "$C_SKILL" '**원본 문서 저장소**'
+assert_reject 'local 0단계 골격 판정 삭제 격추' 'local 골격 미생성 판정' cut_str "$C_LOCAL" '파일이 비어 있거나 템플릿 골격만 있는 상태다. '
+assert_reject 'local 0단계 골격 자리표시자 변경 격추' 'local 골격 미생성 판정' sub_str "$C_LOCAL" "$PLACEHOLDER" '(자리표시자)'
+assert_reject 'global 0단계 골격 미분석 삭제 격추' 'global 미분석 골격' \
+  sub_str "$C_GLOBAL" '없거나 비어 있거나 템플릿 골격만 있는 리포' '없거나 비어 있는 리포'
+assert_reject 'global 0단계 골격 build 분기 삭제 격추' 'global 미생성 골격' cut_str "$C_GLOBAL" '파일이 비어 있거나 템플릿 골격만 있는 상태다.'
+assert_reject 'global 0단계 골격 자리표시자 변경 격추' 'global 골격 기준' sub_str "$C_GLOBAL" "$PLACEHOLDER" '(자리표시자)'
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 
