@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행, 구현 모델과 다른 벤더)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -33,7 +33,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 |  |  |
+| 최종 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 
 - **계획 감사**: 수행 · 발견 0건 · 보정 0건
 
@@ -152,6 +152,8 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 수행 effort도 같은 행의 `effort` 열이 SSoT다.
 -->
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-6.1(effort high)로 최종 감사를 1차 수행했다. 리포트는 [issue-0116-audit-report.md](./issue-0116-audit-report.md)다.
+  - 판정은 적합(PASS)이다. 1단계 충족 15건(요구사항 R1~R4, 완료의 정의 11건), 2단계 발견 0건, `--response` 보정 0건이다.
+  - 기등재 참조는 0건이다. code-map 관련 K-0006은 재검토 조건 미충족으로 집계에서 제외됐다.
+- **특이 사항**: 사용자 지시(2026-10-24)로 구현 AI가 Task N 기록을 대신 작성했다. 감사는 사용자가 수행했다. 최종 audit 벤더(OpenAI)는 Task 0~2 수행 모델의 벤더(Anthropic)와 다르다. `--response` 검토에서 spec `[D]` 8건, Task 1·2 고유 `[D]` 3건, Task N `[D]` 게이트 3건을 다시 실행해 모두 통과했다. spec `[QD]` 3건(R1~R3)은 감사 모델이 실제 init 골격을 0단계 절차에 대입해 채점했다.
