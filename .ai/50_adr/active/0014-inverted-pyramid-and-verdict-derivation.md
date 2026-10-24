@@ -11,6 +11,7 @@ last_harvested: 2026-09-09
 
 - git-review 결과와 issue-audit 리포트는 "판정 한 줄 → 최종 의견/종합 의견(접기) → 요약 대시보드 → 상세" 역피라미드다.
 - 테크 리뷰 카테고리 7종(기능, 아키텍처, 버그, 보안, 코드품질, 성능, 테스트)의 원본은 git-review이고 issue-audit이 복사·동기화한다. 카테고리 검증은 상호 독립(순서 무관)이며 실행 방식(서브에이전트 병렬 등)은 스킬에 지시하지 않는다.
+- SSoT 선언이 `원본 문서`이면 7종 대신 doc 카테고리 세트(내용 정확성, 구조 정합, 모순·누락, 보안·민감정보, 가독성·일관성, 최신성, 근거 검증)를 쓴다. 개수 7과 순서를 유지해 결과 템플릿·집계 줄 구조는 그대로 두고 행 이름만 바꾼다. doc 세트도 git-review가 원본이고 issue-audit·git-review-quiz가 복사한다 (#118).
 - 상태는 재량 없이 산출한다. 카테고리·리뷰 상태는 최고 위험도로(높음→보완 필요(FAIL), 중간→주의(WARN), 낮음 이하·발견 없음→통과(PASS)). issue-audit 1단계 상태는 항목 판정의 최고값(미충족 > 부분 충족 > 충족, 판정 불가는 올리지 않음).
 - 판정은 두 상태의 최고값이다. git-review는 승인(APPROVE) / 조건부 승인(CONDITIONAL) / 변경 요청(REQUEST CHANGES), issue-audit은 적합(PASS) / 조건부 적합(CONDITIONAL) / 부적합(FAIL). 판정은 우선순위 신호이며 보정 여부는 작성자·`--response` 승인이 정한다. Self 리뷰의 승인은 "제출 가능"을 뜻한다.
 - 신호등 이모지(빨강·노랑·초록·흰색)는 헬퍼 `classify-risk.sh`가 출력하며 손으로 붙이지 않는다. 이모지 리터럴은 헬퍼의 두 함수와 SKILL.md 대응표에만 두고, 러너는 표에서 기대값을 합성한다. 값 입력 모드는 이모지 접두가 붙은 값과 안 붙은 값을 모두 받는다.
@@ -56,6 +57,7 @@ last_harvested: 2026-09-09
 - [Issue #76 issue-audit 리포트 역피라미드 재배치·카테고리 축](https://github.com/scroogy-dev/scroogy-agent-skills/issues/76)
 - [Issue #96 git-review 신호등 판정·상태 이모지·항목별 접기](https://github.com/scroogy-dev/scroogy-agent-skills/issues/96)
 - [Issue #98 issue-audit 신호등 판정·항목별 판정·위험도 이모지](https://github.com/scroogy-dev/scroogy-agent-skills/issues/98)
+- [Issue #118 doc 프로파일 운영 보강: 리뷰·감사·퀴즈 doc 카테고리 세트](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
 - [PR #77 리뷰 코멘트](https://github.com/scroogy-dev/scroogy-agent-skills/pull/77), [PR #78 리뷰 코멘트](https://github.com/scroogy-dev/scroogy-agent-skills/pull/78)
 
 </details>

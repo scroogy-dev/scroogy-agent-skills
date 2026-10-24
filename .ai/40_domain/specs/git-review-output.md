@@ -10,6 +10,7 @@ last_harvested: 2026-09-09
 
 - 리뷰는 비즈니스 리뷰(`.ai/30_contract/`·`40_domain/` 대조)와 테크 리뷰 두 단계다. 비즈니스 리뷰 절차는 #72~#96에서 변경하지 않았다.
 - 테크 리뷰는 카테고리 7종(기능, 아키텍처, 버그, 보안, 코드품질, 성능, 테스트)을 검증한다. 상호 독립이며 실행 방식은 지시하지 않는다. 프로젝트 고유 관점을 행으로 추가할 수 있으나 issue-audit 사본과 동기화해야 한다.
+- SSoT 선언이 `원본 문서`이면 doc 카테고리 세트(내용 정확성, 구조 정합, 모순·누락, 보안·민감정보, 가독성·일관성, 최신성, 근거 검증)를 쓰고, `소스 코드`이거나 선언이 없으면 위 7종을 쓴다. 개수 7과 순서가 같아 결과 템플릿의 카테고리 행 이름만 바뀐다. issue-audit·git-review-quiz가 같은 이름·순서로 복사한다 (#118).
 - 리뷰 포인트 등급은 영향×발생확률 매트릭스로 산출하고 축 판정을 병기한다. 계약·정책 위반은 영향 축 `스펙·기능 달성 차단`이다. 등급은 우선순위 표시·수용 판단 근거로만 쓴다.
 - 상태: 카테고리·리뷰 상태는 최고 위험도로 산출(통과(PASS)/주의(WARN)/보완 필요(FAIL)). 판정은 두 리뷰 상태의 최고값(승인(APPROVE)/조건부 승인(CONDITIONAL)/변경 요청(REQUEST CHANGES)). Self 리뷰의 승인은 "제출 가능"을 뜻한다.
 - 결과는 `.ai/99_workspace/temp_review_result.md`에 1회 기록하며 형식은 `templates/review-result-template.md`다. 순서는 판정 한 줄 → 최종 의견(접기) → 요약(리뷰 상태·검토 파일 수·카테고리별 건수·상태 표) → 비즈니스 리뷰 → 테크 리뷰(카테고리 소절, 항목별 블록·근거 접기).
@@ -29,7 +30,7 @@ last_harvested: 2026-09-09
 <summary>출처 목록 펼치기</summary>
 
 - [Issue #13 (git-review-context 명시적 요청 제약)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/13)
-- [Issue #72](https://github.com/scroogy-dev/scroogy-agent-skills/issues/72), [#75](https://github.com/scroogy-dev/scroogy-agent-skills/issues/75), [#96](https://github.com/scroogy-dev/scroogy-agent-skills/issues/96)
+- [Issue #72](https://github.com/scroogy-dev/scroogy-agent-skills/issues/72), [#75](https://github.com/scroogy-dev/scroogy-agent-skills/issues/75), [#96](https://github.com/scroogy-dev/scroogy-agent-skills/issues/96), [#118](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
 - [PR #73 리뷰](https://github.com/scroogy-dev/scroogy-agent-skills/pull/73), [PR #77 리뷰](https://github.com/scroogy-dev/scroogy-agent-skills/pull/77)
 
 </details>
