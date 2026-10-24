@@ -56,7 +56,12 @@ violations() {
   s="$(sec "$doc" '## 트리거 조건')"
   has "$s" '선언 값이 `원본 문서`일 때' || echo '트리거 원본 문서'
   has "$s" '선언 값이 `소스 코드`이거나 선언을 찾지 못하면 이 파일 대신 [local.md](local.md)를 따른다' || echo '트리거 폴백'
-  sec "$doc" '## 파일 구조' | grep -qE '^ssot_dir: ' || echo 'frontmatter ssot_dir 키'
+  s="$(sec "$doc" '## 파일 구조')"
+  printf '%s\n' "$s" | grep -qE '^ssot_dir: ' || echo 'frontmatter ssot_dir 키'
+  printf '%s\n' "$s" | grep -qE '^- 색인 대상은 .*`ssot_dir` 행에 적힌 디렉토리.* 아래 `\.md` 파일이다\.$' || echo '색인 대상 .md 정의'
+  has "$s" '- 다른 확장자와 첨부(이미지·PDF 등)의 분류는 repo 문서 규약 파일(`.ai/10_rules/document-convention.md`)이 정한다.' \
+    || echo '문서 규약 위임'
+  has "$s" '- 첨부는 색인 행을 따로 만들지 않고, 그 첨부를 참조하는 `.md` 파일의 색인 행에 딸린다.' || echo '첨부 딸림'
 
   s="$(sec "$doc" '### 0단계: 모드 결정')"
   line="$(printf '%s\n' "$s" | grep -E '^- \*\*미생성\*\* → `build`')"
@@ -66,12 +71,13 @@ violations() {
   has "$s" '`check`는 3단계의 루트 불일치 판정으로 넘긴다' || echo '루트 불일치 check 위임'
 
   s="$(sec "$doc" '### 1단계: 원본 문서 색인')"
-  has "$s" '- build / rebuild: 안내도 `ssot_dir` 아래 문서 파일 전체' || echo 'build 범위'
+  has "$s" '- build / rebuild: 안내도 `ssot_dir` 아래 `.md` 파일 전체' || echo 'build 범위'
   has "$s" '자리표시자(`<...>`)이면 사용자에게 묻는다' || echo 'ssot_dir 부재 질의'
   line="$(printf '%s\n' "$s" | grep -E '^- sync:')"
   has "$line" '0단계 루트 대조에서 두 값이 같을 때만 수행한다' || echo 'sync 동일 루트 조건'
   { has "$line" '--name-status -M' && ! has "$line" '--name-only'; } || echo 'sync 이름 변경 입력'
   has "$s" '색인 반영을 마친 뒤에만 갱신한다' || echo '메타데이터 갱신 시점'
+  printf '%s\n' "$s" | grep -qxF -- '- `.md` 파일 1개가 색인 행 1개다.' || echo '색인 단위 .md'
   has "$s" '**삭제된 파일**(`D`)은 해당 행을 index.md에서 제거한다' || echo '삭제 행 제거'
   has "$s" '두 경로 모두 `ssot_dir` 아래: 새 행을 만들고 옛 행의 Why 태깅을 새 행으로 옮긴 뒤 옛 행을 지운다' || echo '이름 변경 Why 이전'
   has "$s" '이전 경로만 `ssot_dir` 아래(루트 밖으로 이동): 옛 행을 지운다' || echo '루트 밖 이동'
@@ -189,13 +195,19 @@ assert_reject() {
 assert_reject '트리거 선언 값 변경 격추'      '트리거 원본 문서'        sub_str "$C_DOC" '선언 값이 `원본 문서`일 때' '선언 값이 있을 때'
 assert_reject '트리거 폴백 삭제 격추'         '트리거 폴백'             drop_line "$C_DOC" '이 파일 대신 [local.md](local.md)를 따른다'
 assert_reject 'frontmatter ssot_dir 키 삭제 격추' 'frontmatter ssot_dir 키' drop_line "$C_DOC" '# 색인한 루트 경로'
+assert_reject '색인 대상 .md 정의 원복 격추'  '색인 대상 .md 정의'      sub_str "$C_DOC" '아래 `.md` 파일이다.' '아래 문서 파일이다.'
+assert_reject '문서 규약 위임 삭제 격추'      '문서 규약 위임'          drop_line "$C_DOC" '의 분류는 repo 문서 규약 파일('
+assert_reject '첨부 색인 행 딸림 삭제 격추'   '첨부 딸림'               drop_line "$C_DOC" '- 첨부는 색인 행을 따로 만들지 않고'
 assert_reject '골격 미생성 판정 삭제 격추'    '골격 미생성 판정'        cut_str "$C_DOC" '파일이 비어 있거나 템플릿 골격만 있는 상태다. '
 assert_reject '골격 자리표시자 변경 격추'     '골격 미생성 판정'        sub_str "$C_DOC" "$PLACEHOLDER" '(자리표시자)'
 assert_reject '루트 불일치 sync 전환 삭제 격추' '루트 불일치 sync 전환'  cut_str "$C_DOC" '`sync`는 `rebuild`로 전환한다. '
 assert_reject '루트 불일치 Why 보존 삭제 격추' '루트 불일치 rebuild Why 보존' cut_str "$C_DOC" 'Why 태깅은 보존하고, '
 assert_reject '루트 불일치 check 위임 삭제 격추' '루트 불일치 check 위임' drop_line "$C_DOC" '`check`는 3단계의 루트 불일치 판정으로 넘긴다'
 assert_reject 'build 범위 확대 격추'          'build 범위' \
-  sub_str "$C_DOC" '- build / rebuild: 안내도 `ssot_dir` 아래 문서 파일 전체' '- build / rebuild: repo 전체 문서 파일'
+  sub_str "$C_DOC" '- build / rebuild: 안내도 `ssot_dir` 아래 `.md` 파일 전체' '- build / rebuild: repo 전체 문서 파일'
+assert_reject 'build 범위 .md 정의 원복 격추'  'build 범위' \
+  sub_str "$C_DOC" '아래 `.md` 파일 전체' '아래 문서 파일 전체'
+assert_reject '색인 단위 .md 정의 원복 격추'  '색인 단위 .md'           sub_str "$C_DOC" '- `.md` 파일 1개가 색인 행 1개다.' '- 문서 파일 1개가 색인 행 1개다.'
 assert_reject 'ssot_dir 부재 질의 삭제 격추'  'ssot_dir 부재 질의'      drop_line "$C_DOC" '자리표시자(`<...>`)이면 사용자에게 묻는다'
 assert_reject 'sync 동일 루트 조건 삭제 격추' 'sync 동일 루트 조건'     cut_str "$C_DOC" '0단계 루트 대조에서 두 값이 같을 때만 수행한다. '
 assert_reject 'sync 입력 --name-only 원복 격추' 'sync 이름 변경 입력'   sub_str "$C_DOC" '--name-status -M' '--name-only'

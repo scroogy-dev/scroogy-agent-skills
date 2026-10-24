@@ -50,6 +50,8 @@ violations() {
   s="$(sec "$skill" '### SSoT 원칙 유지')"
   has "$s" '`AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따른다' || echo '선언 위치'
   has "$s" '그 외 값은 선언으로 보지 않는다' || echo '허용 값'
+  has "$s" '`원본 문서`(`## 프로젝트 도메인` 표 `ssot_dir` 아래 `.md` 파일.' || echo '원본 문서 .md 정의'
+  has "$s" '다른 확장자·첨부의 분류는 repo 문서 규약 파일(`.ai/10_rules/document-convention.md`)이 정한다' || echo '문서 규약 위임'
   has "$s" '선언을 찾지 못하면 소스 코드를 SSoT로 본다' || echo '선언 부재 폴백'
   has "$s" '선언이 원본 문서이면 `ssot_dir` 아래 문서에 반영된 사실이 대상이다' || echo '원본 문서 수집 대상'
   has "$s" 'SSoT에 대응하지 않는 정보(기각된 제안, 미구현 요청 등)는 수집하지 않는다' || echo '대응하지 않는 정보 제외'
@@ -133,6 +135,9 @@ assert_reject() {
 assert_reject '선언 위치 원복 격추'          '선언 위치' \
   sub_str "$C_SKILL" 'SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따른다.' 'SSoT는 소스코드이다.'
 assert_reject '허용 값 문장 삭제 격추'        '허용 값'                 cut_str "$C_SKILL" ' 그 외 값은 선언으로 보지 않는다'
+assert_reject '원본 문서 .md 정의 원복 격추'  '원본 문서 .md 정의'      sub_str "$C_SKILL" '`ssot_dir` 아래 `.md` 파일.' '`ssot_dir` 아래 문서 파일.'
+assert_reject '문서 규약 위임 삭제 격추'      '문서 규약 위임' \
+  cut_str "$C_SKILL" ' 다른 확장자·첨부의 분류는 repo 문서 규약 파일(`.ai/10_rules/document-convention.md`)이 정한다'
 assert_reject '선언 부재 폴백 삭제 격추'      '선언 부재 폴백'          cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
 assert_reject '원본 문서 수집 대상 삭제 격추' '원본 문서 수집 대상' \
   cut_str "$C_SKILL" ' 선언이 원본 문서이면 `ssot_dir` 아래 문서에 반영된 사실이 대상이다.'
