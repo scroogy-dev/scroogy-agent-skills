@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — SSoT 대상 `.md` 확정 (code-map·context-harvest·doc 템플릿·정책)
+> ▶️ 다음 작업: Task 3 — 로비 SSoT 선언 문구·충돌 우선순위·placeholder 폴백 (ai-workspace-directory 전수)
 
 ## 모델 기록
 
@@ -134,14 +134,17 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 2: SSoT 대상 `.md` 확정 (code-map·context-harvest·doc 템플릿·정책)
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
+- **수행 내용 요약**: code-map `doc.md`의 색인 대상 정의·1단계 머리·1-1 스캔 범위(build/rebuild·sync)·1-2 색인 단위를 `.md` 파일로 바꾸고, 문서 규약 위임·첨부 딸림 항목을 더했다. context-harvest SSoT 원칙, doc 템플릿 `ssot_dir` 주석, 정책 원칙 첫 항목에 `.md` 정의와 위임 문장을 넣고 정책 근거·원본 출처에 #118을 더했다. fixture README에 색인 범위를 적었다(입력에 `.md` 외 경로 없음 확인, 기대 결과 무변경). 러너에 code-map 격추 5건(`.md` 정의·위임·첨부·build 범위 `.md`·색인 단위)·context-harvest 격추 2건(`.md` 정의·위임)을 더해 각각 47건·23건 통과. spec R3 `[D]`와 공통 회귀 `[D]` 무출력.
 - **특이 사항**:
+  - 절차 정합을 위해 plan 작업 목록 밖 3곳을 함께 맞췄다. `doc.md` 1-2 이름 변경 항목에 "확장자가 `.md`가 아닌 경로는 `ssot_dir` 밖과 같게 본다"를 더해(기존 세 하위 규칙과 러너 리터럴은 유지) `.md`↔다른 확장자 이름 변경을 루트 밖·안 이동으로 처리하게 했고, 3단계 stale 탐지 대상을 `.md` 파일로 좁혔다.
+  - 정책 원칙 첫 항목 끝 "마크다운은 SSoT를 가리키는 지도이지 사본이 아니다"가 같은 항목의 "`.md` 파일이 SSoT"와 어긋나, Task 0 확정 문구(ai-workspace-directory 대전제)와 같은 뜻으로 "안내도 마크다운은 SSoT를 가리키는 지도이지 SSoT의 사본이 아니다"로 고쳤다. Task 0 전제는 이 문장의 사본이 없다고 적었으나 정책에 같은 뜻의 문장이 있었다.
+  - 정책 원칙 넷째 항목의 세부 우선순위 위임 대상 `repo 규칙 파일(10_rules/)`을 `repo 문서 규약 파일(10_rules/document-convention.md)`로 구체화했다(이슈 본문 문제 2의 정책 행).
 
 ---
 
