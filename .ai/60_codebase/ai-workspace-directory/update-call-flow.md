@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-09
-source_hash: 5ab2b67
+last_synced: 2026-10-24
+source_hash: b7fccef
 status: current
 ---
 
@@ -20,8 +20,8 @@ ai-workspace-directory/SKILL.md
 │   ├── references/ssot-checklist.md   # SSoT 위배 항목
 │   ├── 로비 역할 위배 판정            # 정책 본문·도메인 본문 중복
 │   ├── drift·메타 일치 검사           # 각 repo `## 프로젝트 도메인` domain/keywords ↔ Repos 행
-│   └── scripts/check-lobby.sh <파일>  # 형식 위배 8종 1행씩·exit 1 (frontmatter·last updated·SSoT 문구·H2 순서·Repos 4열·status 열거값·진입 절차)
-├── update-2단계: 재구성 로비 전문 출력   # "이대로 덮어쓸까요?" 승인 게이트
+│   └── scripts/check-lobby.sh <파일>  # 형식 위배 8종 1행씩·exit 1 (frontmatter·last updated·SSoT 문구·H2 순서·Repos 4열·status 열거값·진입 절차). SSoT 문구는 repo 안내도 선언을 따른다는 고정 문구만 인정하고 구 `소스 코드` 문구는 위배
+├── update-2단계: 재구성 로비 전문 출력   # "이대로 덮어쓸까요?" 승인 게이트, 비표준 SSoT 문구(구 `소스 코드` 문구 포함)는 표준 문구로 교체
 ├── update-3단계: floor 이동 후보 목록    # YAML, target_location_hint 로 repo `.ai/40_domain/…` 제안, 파일 미수정
 └── update-4단계: 보고
 ```
@@ -32,4 +32,5 @@ ai-workspace-directory/SKILL.md
 - `check-lobby.sh`의 형식 검사 8종은 `references/standard-structure.md`가 정한 골격의 사본이다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(`status: placeholder`·`archived`는 drift 검사 제외, `Repos` 4열 1:1 동기화).
 - 정책: [SSoT 원칙과 안내도 라우터](../../40_domain/policies/local/ssot-and-router-principle.md)(로비에 도메인 본문·코드 스니펫·운영 정보·상세 목차를 두지 않는 근거).
+- 로비 SSoT 문구를 repo 선언을 따르는 문장으로 바꾼 결정은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md). 기존 로비는 update-2단계의 교체로 옮겨 가 별도 이행 절차가 없다.
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
