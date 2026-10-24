@@ -10,7 +10,7 @@
 배치: 등재 시 `.ai/70_ledger/active/`, 청산(승격·해소) 시 `.ai/70_ledger/archive/`로 이동합니다.
 등재·이동 후에는 `.ai/70_ledger/index.md`의 항목 목록 표를 함께 갱신합니다.
 
-등재 주체: issue-work `--response`(미승인·보류 발견), git-pr-feedback(수용 — 원장 등재).
+등재 주체: issue-work `--response`(미승인·보류 발견), issue-work 이슈 완료 시(spec 제외 `보류` 항목), git-pr-feedback(수용 — 원장 등재).
 아래 필드 7종은 `- **<필드>**:` 형식을 유지합니다 — 원장 집계·검증이 이 앵커에 의존합니다.
 -->
 
