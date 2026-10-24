@@ -31,6 +31,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0011](archive/K-0011-plan-audit-regression-exception-spec-only.md) | issue-audit 계획 감사의 회귀 방지 예외가 spec 본문 표기만 인정해 plan 전용 항목·템플릿 고정 블록을 예외로 읽지 못한다 | known issue | 낮음(LOW) | 승격(이슈 #108) | - |
 | [K-0012](active/K-0012-git-pr-push-url-unverified.md) | git-pr의 push 전 원격 대조가 fetch URL만 정규화해 push URL을 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 4단계 push 절차 또는 `verify-submit.sh` 원격 대조 모드 실질 변경 시, 또는 push URL이 fetch URL과 다른 원격으로 git-pr을 실행한 사례 관측 시 |
 | [K-0013](active/K-0013-issue-work-pr-lookup-fork-same-branch.md) | issue-work 원장 해소 기재의 PR 조회가 head 저장소를 대조하지 않아 같은 브랜치명의 포크 PR을 고를 수 있다 | known issue | 낮음(LOW) | 수용 | issue-work 이슈 완료 시 원장 해소 기재의 PR 유무 확인 절차 실질 변경 시, 또는 포크 PR 유입이나 원장 `해소(PR #N)`에 다른 저장소 PR 번호가 적힌 사례 관측 시 |
+| [K-0014](active/K-0014-publishing-skill-deferred.md) | 퍼블리싱 실행·기록과 위키 직접 수정 탐지가 스킬 범위 밖이라 프롬프트로만 수행된다 | 기술부채 | 중간(MEDIUM) | 수용 | 퍼블리싱을 스킬로 만들기로 결정할 때, 또는 위키 직접 수정이 SSoT(원본 문서)와 어긋난 사례 관측 시 |
 
 ## 수명 주기
 
