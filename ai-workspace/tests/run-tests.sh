@@ -330,6 +330,35 @@ assert_missing 'SSoT 선언 doc 작성 규칙 설명만 잔존 격추'         "
 assert_pass    'SSoT 선언 doc 사용자 작성 우선순위 보존'                        m_doc_prio_custom
 assert_missing 'SSoT 선언 doc 유사 문구 격추' '본문 두 번째 줄 SSoT'           m_near_with_root
 
+# --- 건물 repo SSoT 선언 ----------------------------------------------------------
+#
+# 헬퍼는 입력 파일 옆 `60_codebase/repository.yaml` 존재로 건물 repo를 판정한다.
+# 위 케이스들은 `$TMP/case.md` 옆에 그 파일이 없어야 하므로 repo 구조를 별도 디렉토리에 만든다.
+
+# assert_building <설명> <프로파일 템플릿> <repository.yaml 유무 yes|no> <기대 exit> <건물 보고 기대 yes|no> [<2번째 줄 치환>]
+assert_building() {
+  local desc="$1" src="$2" yaml="$3" want_rc="$4" want_msg="$5" line2="${6:-}" dir out rc hit=no
+  dir="$(mktemp -d "$TMP/bld.XXXXXX")"
+  mkdir -p "$dir/.ai/60_codebase"
+  [ "$yaml" = yes ] && : > "$dir/.ai/60_codebase/repository.yaml"
+  prepare "$src" "$dir/.ai/AI-CONTEXT.md"
+  if [ -n "$line2" ]; then
+    sed -i.bak "s/^> SSoT: .*/$line2/" "$dir/.ai/AI-CONTEXT.md" && rm -f "$dir/.ai/AI-CONTEXT.md.bak"
+  fi
+  out="$("$CHECK" "$dir/.ai/AI-CONTEXT.md" 2>&1)"; rc=$?
+  printf '%s\n' "$out" | grep -qF '건물 repo 선언' && hit=yes
+  if [ "$rc" -eq "$want_rc" ] && [ "$hit" = "$want_msg" ]; then
+    ok "$desc"
+  else
+    ng "$desc — exit $want_rc·건물 보고 $want_msg 기대, 실제 exit $rc·건물 보고 $hit ($(printf '%s' "$out" | tr '\n' ' '))"
+  fi
+}
+
+assert_building '건물 repo doc 선언 보고 격추'                       "$TPL_DIR/doc/.ai/AI-CONTEXT.md" yes 1 yes
+assert_building '건물 repo dev 선언 무보고 통과'                     "$TPL_DIR/dev/.ai/AI-CONTEXT.md" yes 0 no
+assert_building '건물 repo 아님(repository.yaml 없음) doc 선언 무보고 통과' "$TPL_DIR/doc/.ai/AI-CONTEXT.md" no 0 no
+assert_building '건물 repo 비표준 선언 중복 보고 없음 통과'           "$TPL_DIR/dev/.ai/AI-CONTEXT.md" yes 1 no '> SSoT: 알아서 판단할 것.'
+
 # --- 프로젝트 규칙 표 상태 3분기 --------------------------------------------------
 #
 # 조치가 상태별로 갈리므로 세 상태가 서로 다른 메시지로 나와야 한다.
@@ -369,7 +398,7 @@ assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 
 # --- 검사 표 행 수 (SKILL.md 대조) -------------------------------------------------
 #
-# 헬퍼가 다루는 8종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
+# 헬퍼가 다루는 9종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
 # SKILL.md 표가 늘면 이 검사가 걸려 제외 범위를 다시 판단하게 한다.
 
 rows="$(awk '
@@ -380,8 +409,8 @@ rows="$(awk '
 ' "$SKILL")"
 # 헤더·구분선 2행을 뺀 항목 수
 items=$((rows - 2))
-[ "$items" -eq 10 ] \
-  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 8종 + 트리 관련 2종 제외)" \
+[ "$items" -eq 11 ] \
+  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 9종 + 트리 관련 2종 제외)" \
   || ng "SKILL.md 멱등 보강 검사 표가 ${items}행입니다 — 헬퍼의 제외 범위를 다시 판단하세요"
 
 # --- 사용오류 ------------------------------------------------------------------

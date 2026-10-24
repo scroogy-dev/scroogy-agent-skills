@@ -102,10 +102,12 @@ AI가 구현, 테스트, 코드 리뷰, 문서 작업 등 맥락 파악이 필�
 
 모드를 결정한 뒤, 해당 모드의 참조 파일만 읽고 그 절차를 따른다.
 
+- **건물 리포 규칙**: `.ai/60_codebase/repository.yaml`이 있으면 건물 리포다. 건물 리포에서 `--local`을 실행하면 건물 안내도(`.ai/60_codebase/index.md`)를 덮어쓰지 않도록 중단하고 `--global`을 안내한다.
+
 | 모드 | 참조 파일 | 요약 |
 |------|-----------|------|
-| `--local` (floor) | [references/local.md](references/local.md) | 개별 리포의 코드 색인 생성/갱신/점검 (build / sync / check / rebuild). SSoT가 소스 코드이거나 선언이 없을 때 |
-| `--local` (floor, 원본 문서) | [references/doc.md](references/doc.md) | SSoT 선언이 원본 문서인 리포의 문서 파일 지도 생성/갱신/점검 (build / sync / check / rebuild) |
+| `--local` (floor) | [references/local.md](references/local.md) | 개별 리포의 코드 색인 생성/갱신/점검 (build / sync / check / rebuild). SSoT가 소스 코드이거나 선언이 없을 때. 건물 리포에서는 중단 |
+| `--local` (floor, 원본 문서) | [references/doc.md](references/doc.md) | SSoT 선언이 원본 문서인 리포의 문서 파일 지도 생성/갱신/점검 (build / sync / check / rebuild). 건물 리포에서는 중단 |
 | `--global` (building) | [references/global.md](references/global.md) | `repository.yaml` 기반 멀티 리포 수집 → 아키텍처 문서·건물 안내도 생성/갱신/점검 |
 
 ---

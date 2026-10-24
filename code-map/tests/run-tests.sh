@@ -9,6 +9,7 @@
 # 절차를 입력에 적용한 결과(어떤 행을 만들고 지우며 Why 태깅을 어디에 남기는지)는
 # fixtures/doc-index/ 의 입력·기대 쌍으로 [QD] 모의 실행한다. 여기서는 그 쌍이 빠짐없이 있는지만 본다.
 # local.md·global.md(소스 코드·건물 색인 절차)는 0단계 골격 판정 문장만 같은 방식으로 검사한다 (#116).
+# 건물 리포 규칙(SKILL.md 의 `--local` 중단, global.md 의 선언 규칙·SSoT 종류 분류·호출 식별 제외)도 같은 방식으로 본다 (#118).
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -111,8 +112,8 @@ local_violations() {
   printf '%s\n' "$s" | grep -qE '^- \*\*생성됨\*\*' || echo 'local 생성됨 분기'
 }
 
-# global_violations <references/global.md> — 0단계 4·5번이 골격을 색인 없음으로 보는지 본다. 무출력이면 통과.
-# 4·5번 하위 행은 들여쓰기가 있어 앵커가 앞 공백을 허용한다.
+# global_violations <references/global.md> — 0단계 5·7번이 골격을 색인 없음으로 보는지 본다. 무출력이면 통과.
+# 5·7번 하위 행은 들여쓰기가 있어 앵커가 앞 공백을 허용한다.
 global_violations() {
   local s line
   s="$(sec "$1" '### 0단계: 리포 목록 확인 및 모드 결정')"
@@ -121,6 +122,33 @@ global_violations() {
   has "$line" '템플릿 골격만 있는' || echo 'global 미분석 골격'
   line="$(printf '%s\n' "$s" | grep -E '^[[:space:]]*- \*\*미생성\*\* → `build`')"
   has "$line" '템플릿 골격만 있는 상태다' || echo 'global 미생성 골격'
+}
+
+# building_violations <SKILL.md> <references/global.md> — 건물 리포 규칙(#118)이 제자리에 있는지 본다. 무출력이면 통과.
+# 건물 리포 자신의 선언 규칙·`--local` 중단과, 대상 리포 선언에 따른 SSoT 종류 분류·호출 식별 제외를 함께 본다.
+building_violations() {
+  local skill="$1" g="$2" s
+  has "$(sec "$skill" '## 모드별 실행 절차')" \
+    '`.ai/60_codebase/repository.yaml`이 있으면 건물 리포다. 건물 리포에서 `--local`을 실행하면 건물 안내도(`.ai/60_codebase/index.md`)를 덮어쓰지 않도록 중단하고 `--global`을 안내한다.' \
+    || echo '건물 --local 중단'
+
+  s="$(sec "$g" '## 전제 조건')"
+  has "$s" 'SSoT 선언은 `소스 코드`다' || echo '건물 선언 규칙'
+  has "$s" '이 리포 안에는 없다' || echo '건물 SSoT 부재'
+
+  s="$(sec "$g" '### 0단계: 리포 목록 확인 및 모드 결정')"
+  has "$s" '3. 현재 프로젝트 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 확인한다. `소스 코드`가 아니면' || echo '건물 0단계 선언 확인'
+  has "$s" '6. 각 리포 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 읽어 SSoT 종류를 분류한다.' || echo '건물 0단계 대상 선언 읽기'
+  has "$s" 'SSoT 종류는 5번 분석 상태와 별개의 축이다' || echo '건물 0단계 별개 축'
+
+  s="$(sec "$g" '### 1단계: 수집 (floor → building)')"
+  has "$s" '분석 완료로 분류된 리포만(SSoT 종류 무관)' || echo '건물 1단계 수집 대상'
+  has "$s" '`원본 문서` 리포는 상세 호출 흐름 문서 대신 문서 지도(색인의 파일 목록)를 읽는다' || echo '건물 1단계 문서 지도'
+  has "$s" '`원본 문서` 리포는 호출 흐름이 없으므로 이 식별에서 제외한다' || echo '건물 1단계 원본 문서 제외'
+
+  s="$(sec "$g" '### 3단계: 건물 안내도 갱신')"
+  printf '%s\n' "$s" | grep -qxF '> SSoT: 등록 리포의 소스 코드. 이 리포 안에는 SSoT가 없다.' || echo '건물 안내도 SSoT 행'
+  printf '%s\n' "$s" | grep -qxF '| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |' || echo '건물 안내도 SSoT 열'
 }
 
 # --- 현재 본문이 규칙을 모두 갖는다 ------------------------------------------------
@@ -144,6 +172,13 @@ if [ -z "$out" ]; then
   ok "global 0단계 골격 판정 통과"
 else
   ng "global 0단계 골격 판정 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(building_violations "$SKILL" "$GLOBAL")"
+if [ -z "$out" ]; then
+  ok "건물 리포 규칙 통과"
+else
+  ng "건물 리포 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
 # 골격 판정 기준이 실제 템플릿과 어긋나면 init 직후 색인을 생성됨으로 오판한다 (PR #115 리뷰).
@@ -184,7 +219,7 @@ assert_reject() {
   local desc="$1" want="$2" out; shift 2
   cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"
   "$@" || { ng "$desc — 변형 실패"; return; }
-  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL")"
+  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL"; building_violations "$C_SKILL" "$C_GLOBAL")"
   if printf '%s\n' "$out" | grep -qxF "$want"; then
     ok "$desc"
   else
@@ -237,6 +272,20 @@ assert_reject 'global 0단계 골격 미분석 삭제 격추' 'global 미분석 
   sub_str "$C_GLOBAL" '없거나 비어 있거나 템플릿 골격만 있는 리포' '없거나 비어 있는 리포'
 assert_reject 'global 0단계 골격 build 분기 삭제 격추' 'global 미생성 골격' cut_str "$C_GLOBAL" '파일이 비어 있거나 템플릿 골격만 있는 상태다.'
 assert_reject 'global 0단계 골격 자리표시자 변경 격추' 'global 골격 기준' sub_str "$C_GLOBAL" "$PLACEHOLDER" '(자리표시자)'
+assert_reject '건물 SKILL.md --local 중단 규칙 삭제 격추' '건물 --local 중단'     drop_line "$C_SKILL" '- **건물 리포 규칙**:'
+assert_reject '건물 전제 조건 선언 규칙 삭제 격추'      '건물 선언 규칙'         drop_line "$C_GLOBAL" 'SSoT 선언은 `소스 코드`다'
+assert_reject '건물 0단계 선언 확인 삭제 격추'          '건물 0단계 선언 확인'   drop_line "$C_GLOBAL" '3. 현재 프로젝트 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 확인한다.'
+assert_reject '건물 0단계 대상 리포 선언 읽기 삭제 격추' '건물 0단계 대상 선언 읽기' \
+  drop_line "$C_GLOBAL" '6. 각 리포 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 읽어'
+assert_reject '건물 0단계 분석 상태·SSoT 종류 별개 축 삭제 격추' '건물 0단계 별개 축' drop_line "$C_GLOBAL" 'SSoT 종류는 5번 분석 상태와 별개의 축이다'
+assert_reject '건물 1단계 수집 대상 SSoT 종류 무관 삭제 격추' '건물 1단계 수집 대상' cut_str "$C_GLOBAL" '(SSoT 종류 무관)'
+assert_reject '건물 1단계 문서 지도 삭제 격추'          '건물 1단계 문서 지도' \
+  cut_str "$C_GLOBAL" ' `원본 문서` 리포는 상세 호출 흐름 문서 대신 문서 지도(색인의 파일 목록)를 읽는다.'
+assert_reject '건물 1단계 원본 문서 제외 삭제 격추'     '건물 1단계 원본 문서 제외' \
+  cut_str "$C_GLOBAL" ' `원본 문서` 리포는 호출 흐름이 없으므로 이 식별에서 제외한다.'
+assert_reject '건물 안내도 SSoT 행 삭제 격추'           '건물 안내도 SSoT 행'    drop_line "$C_GLOBAL" '> SSoT: 등록 리포의 소스 코드.'
+assert_reject '건물 안내도 SSoT 열 삭제 격추'           '건물 안내도 SSoT 열' \
+  sub_str "$C_GLOBAL" '| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |' '| 리포 | 요약 | URL | 상태 | 마지막 동기화 |'
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 

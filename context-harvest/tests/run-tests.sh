@@ -64,6 +64,10 @@ violations() {
   has "$s" 'SSoT 선언이 원본 문서이면 40_domain 문서의 `근거 출처` 섹션' || echo '4단계 근거 출처 채움'
   has "$s" '소스 코드가 SSoT이면 이 섹션을 지운다' || echo '4단계 근거 출처 삭제'
 
+  has "$(sec "$skill" '### 6단계: 결과 보고')" \
+    '건물 리포(`.ai/60_codebase/repository.yaml` 존재)에서는 마지막 줄 다음 단계로 `/code-map --local sync`를 권하지 않고 `/code-map --global sync`를 안내한다.' \
+    || echo '6단계 건물 리포 다음 단계'
+
   [ "$(grep -c '^## 근거 출처$' "$tpl")" -eq 1 ] || echo '템플릿 근거 출처 섹션'
   a="$(grep -n '^## 근거 출처$' "$tpl" | head -1 | cut -d: -f1)"
   b="$(grep -n '^## 원본 출처$' "$tpl" | head -1 | cut -d: -f1)"
@@ -152,6 +156,7 @@ assert_reject '수집 제외 표 퍼블리싱 행 삭제 격추' '수집 제외 
 assert_reject '4단계 근거 출처 조건 삭제 격추' '4단계 근거 출처 채움' \
   sub_str "$C_SKILL" 'SSoT 선언이 원본 문서이면 40_domain 문서의 `근거 출처` 섹션' '40_domain 문서의 `근거 출처` 섹션'
 assert_reject '4단계 근거 출처 삭제 분기 삭제 격추' '4단계 근거 출처 삭제' cut_str "$C_SKILL" ' 소스 코드가 SSoT이면 이 섹션을 지운다.'
+assert_reject '6단계 건물 리포 분기 삭제 격추'  '6단계 건물 리포 다음 단계' drop_line "$C_SKILL" '건물 리포(`.ai/60_codebase/repository.yaml` 존재)에서는'
 assert_reject '템플릿 근거 출처 섹션 삭제 격추' '템플릿 근거 출처 섹션'   drop_line "$C_TPL" '## 근거 출처'
 assert_reject '템플릿 근거 출처 위치 이동 격추' '템플릿 근거 출처 위치'   move_sec_end "$C_TPL" '## 근거 출처'
 assert_reject '템플릿 근거 출처 열 축소 격추'   '템플릿 근거 출처 4열' \

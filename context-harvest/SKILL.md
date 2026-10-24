@@ -192,6 +192,7 @@ description: 소스코드 바깥의 What(계약, 명세)과 Why(정책, 의사�
 ### 6단계: 결과 보고
 
 사용자에게 요약을 보고한다.
+건물 리포(`.ai/60_codebase/repository.yaml` 존재)에서는 마지막 줄 다음 단계로 `/code-map --local sync`를 권하지 않고 `/code-map --global sync`를 안내한다.
 
 ```
 ## context-harvest 실행 결과

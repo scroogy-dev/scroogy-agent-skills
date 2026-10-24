@@ -6,7 +6,7 @@
 # 표가 바뀌면 이 스크립트와 tests/ 의 기대값을 함께 갱신한다.
 #
 # 이 스크립트는 판정만 한다. 표의 **누락 시 조치**(삽입·정정·교체)는 내용 생성이 섞여 있어 SKILL.md 절차가 맡는다.
-# 검사 표 10행 중 8행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
+# 검사 표 11행 중 9행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
 # 앵커 존재 판정이 아니라 트리 구조 해석이라 제외했다 (조건 분기가 과하게 늘어나는 경우 —
 # `.ai/10_rules/architecture.md` "디자인 원칙"의 예외).
 #
@@ -14,12 +14,13 @@
 #   check-context.sh <AI-CONTEXT.md 경로>
 #
 # 본문 두 번째 줄은 dev(`소스 코드`)·doc(`원본 문서`) 두 표준 문구를 인정하며, doc 문구이면 `## 프로젝트 도메인` 표의 `ssot_dir` 행과 dev 표준 문구(충돌 우선순위, `60_codebase` 설명 3곳) 잔존도 검사한다.
+# 입력 파일 옆에 `60_codebase/repository.yaml`이 있으면(code-map 건물 repo) doc 문구를 보고한다. 건물 repo는 `소스 코드`로 선언한다.
 #
 # 종료 코드: 0 누락 없음(무출력) / 1 누락 있음(항목을 1행씩 출력) / 2 사용오류
 
 set -o pipefail
 
-usage() { sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,19p' "$0" | sed 's/^# \{0,1\}//'; }
 
 SSOT_LINE_DEV='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
 SSOT_LINE_DOC='> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
@@ -67,6 +68,16 @@ printf '%s\n' "$line1" | grep -qE '^> last updated: [0-9]{4}-[0-9]{2}-[0-9]{2}$'
 
 [ "$line2" = "$SSOT_LINE_DEV" ] || [ "$line2" = "$SSOT_LINE_DOC" ] \
   || ng "본문 두 번째 줄 SSoT 선언 — 실제 [$line2]"
+
+# --- 건물 repo SSoT 선언 -----------------------------------------------------------
+#
+# code-map 건물 repo(`.ai/60_codebase/repository.yaml` 존재)의 문서는 등록 repo의 색인에서 만든 것이라
+# SSoT가 등록 repo의 소스 코드이고 건물 repo 안에는 없다. 그래서 `소스 코드`로 선언한다 (code-map `references/global.md`).
+# doc 표준 문구만 보고한다. 비표준 문구는 위 검사가 이미 보고했다. 조치는 보고와 질의까지이며 자동 전환은 없다.
+
+if [ "$line2" = "$SSOT_LINE_DOC" ] && [ -f "$(dirname "$file")/60_codebase/repository.yaml" ]; then
+  ng "건물 repo 선언 (repository.yaml 존재, doc 선언 — 소스 코드 선언 대상, 자동 전환 없음)"
+fi
 
 # --- 프로젝트 도메인 섹션 + 표 행 ---------------------------------------------------
 #
