@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 3 — 로비 SSoT 선언 문구·충돌 우선순위·placeholder 폴백 (ai-workspace-directory 전수)
+> ▶️ 다음 작업: Task 4 — code-map 건물 리포 선언 규칙·대상 리포 선언 확인·`--local` 멈춤·ai-workspace update 보고
 
 ## 모델 기록
 
@@ -150,14 +150,16 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 3: 로비 SSoT 선언 문구·충돌 우선순위·placeholder 폴백 (ai-workspace-directory 전수)
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
+- **수행 내용 요약**: 로비 2번째 줄을 `> SSoT: 각 repo 안내도의 선언을 따른다. …`로 바꿔 `check-lobby.sh` `SSOT_LINE`·규격(필수 규칙·골격·강제 규칙 표)·체크리스트·`SKILL.md`(update-1 표·update-2)·예시 3곳·fixture에 반영했다. 충돌 우선순위를 `각 repo의 SSoT(repo 안내도 선언: 소스 코드 또는 원본 문서) > …`로, `placeholder` 분기를 소스 코드 폴백·doc 설치 권고로 바꾸고 `status` 표 `placeholder` 행에 폴백을 보충했다. `SKILL.md` 대전제 세 항목(선언, 지도 문장, 우선순위)을 고쳤다. 러너에 구 문구 격추 케이스 1건을 더해 30건 통과. 정책 로비 항목·근거와 `specs/ai-workspace.md`에 로비 선언 서술을 더했다. spec R4·R5 `[D]`, Task 3 완료 기준 `[D]`, 전체 테스트·공통 회귀 `[D]` 무출력.
 - **특이 사항**:
+  - `placeholder` 분기는 spec 전제 문구("문서 repo이면 `ai-workspace doc` init")를 그대로 쓰지 않고 기존 `<path>/.ai/` 유무 분기를 유지했다. init은 기존 `.ai/`를 지우므로 `.ai/`가 있는 문서 repo에 doc init을 권하면 기존 내용이 사라진다. `.ai/`가 없을 때만 프로파일별 초기 설치를, 있으면 update를 권한다. spec 전제 문구를 같은 뜻으로 정정했다(R5 `[D]`의 `폴백`·`ai-workspace doc` 검사는 그대로 통과).
+  - plan 작업 목록 밖 2곳을 함께 맞췄다. 규격 필수 규칙에 로비가 SSoT 값을 선언하지 않는 이유 한 문장을 더했고, 정책 근거 접기에 로비 선언 근거 한 줄(#118)과 `specs/ai-workspace.md` 원본 출처에 #118을 더했다.
 
 ---
 
