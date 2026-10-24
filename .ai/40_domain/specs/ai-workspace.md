@@ -10,6 +10,7 @@ last_harvested: 2026-09-09
 
 - ai-workspace는 개별 repo의 층 안내도(`.ai/AI-CONTEXT.md`)와 `.ai/` 구조를, ai-workspace-directory는 멀티 repo 워크스페이스 루트의 로비 안내도(`<워크스페이스 루트>/.ai/AI-CONTEXT.md`)를 담당한다. 둘은 자매 스킬이며 모든 안내도는 각자의 `.ai/` 안에 둔다.
 - ai-workspace-directory: `init`/`update` 모드, 로비 파일 존재로 모드 자동 판정. 표준 섹션 구조 강제, 분량 가드레일, SSoT 위배 진단 체크리스트(`check-lobby.sh`). 안내도 부재 repo는 `status: placeholder`, `archived`는 drift 검사 제외. git 명령에 의존하지 않는다.
+- 로비 SSoT 선언: 로비는 SSoT 값을 선언하지 않고 각 repo 안내도의 선언을 따른다. 본문 2번째 줄은 `> SSoT: 각 repo 안내도의 선언을 따른다. 이 파일은 라우터일 뿐 진실의 원천이 아니다.`로 고정하고 그 외 문구(구 `소스 코드` 고정 문구 포함)는 update가 교체한다. 충돌 우선순위는 `각 repo의 SSoT(repo 안내도 선언: 소스 코드 또는 원본 문서) > 각 repo 안내도 > 로비`이며, `placeholder` repo는 선언을 찾지 못하므로 소스 코드로 폴백하고 문서 repo이면 doc 프로파일 설치를 권한다.
 - ai-workspace: `init`(전체 초기화, 복사 전 기존 `.ai/` 제거)/`update`(멱등 보강) 모드, dev/doc 프로파일. update는 사용자 작성분을 보존하고 버전 고정 파일(`context-loading.md`, `writing-principles.md`)만 덮어쓴다. 사용자 관리 파일(`writing-principles-local.md`, dev 전용 `architecture.md`·`coding-convention.md`, doc 전용 `document-convention.md`)은 없을 때만 빈 템플릿을 복사한다.
 - 안내도 SSoT 선언: 본문 2번째 줄이 dev는 `> SSoT: 소스 코드. …`, doc은 `> SSoT: 원본 문서. …`이다. doc 템플릿은 충돌 우선순위를 `원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도`로 두고, `## 프로젝트 도메인` 표에 `ssot_dir`(필수, SSoT 문서 디렉토리)·`publish`(선택, 퍼블리싱 위치 URL) 행을 둔다. dev 템플릿에는 두 행이 없다.
 - 버전 고정 `context-loading.md`는 프로파일과 무관하게 SSoT 선언을 따르고(선언이 없으면 소스 코드), 원본 문서 작업 절(색인 → 관련 문서 → `ssot_dir` 직접 확인)을 둔다. `60_codebase/`는 SSoT 색인이다(dev 소스코드 엔트리포인트·호출 흐름, doc `ssot_dir` 아래 문서 파일 지도).
@@ -30,7 +31,7 @@ last_harvested: 2026-09-09
 <details>
 <summary>출처 목록 펼치기</summary>
 
-- [Issue #1](https://github.com/scroogy-dev/scroogy-agent-skills/issues/1), [#3](https://github.com/scroogy-dev/scroogy-agent-skills/issues/3), [#5](https://github.com/scroogy-dev/scroogy-agent-skills/issues/5), [#39](https://github.com/scroogy-dev/scroogy-agent-skills/issues/39), [#41](https://github.com/scroogy-dev/scroogy-agent-skills/issues/41), [#61](https://github.com/scroogy-dev/scroogy-agent-skills/issues/61), [#70](https://github.com/scroogy-dev/scroogy-agent-skills/issues/70), [#90](https://github.com/scroogy-dev/scroogy-agent-skills/issues/90), [#114](https://github.com/scroogy-dev/scroogy-agent-skills/issues/114)
+- [Issue #1](https://github.com/scroogy-dev/scroogy-agent-skills/issues/1), [#3](https://github.com/scroogy-dev/scroogy-agent-skills/issues/3), [#5](https://github.com/scroogy-dev/scroogy-agent-skills/issues/5), [#39](https://github.com/scroogy-dev/scroogy-agent-skills/issues/39), [#41](https://github.com/scroogy-dev/scroogy-agent-skills/issues/41), [#61](https://github.com/scroogy-dev/scroogy-agent-skills/issues/61), [#70](https://github.com/scroogy-dev/scroogy-agent-skills/issues/70), [#90](https://github.com/scroogy-dev/scroogy-agent-skills/issues/90), [#114](https://github.com/scroogy-dev/scroogy-agent-skills/issues/114), [#118](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
 - [PR #40 리뷰](https://github.com/scroogy-dev/scroogy-agent-skills/pull/40), [PR #91 리뷰](https://github.com/scroogy-dev/scroogy-agent-skills/pull/91)
 
 </details>

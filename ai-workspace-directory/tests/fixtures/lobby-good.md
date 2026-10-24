@@ -1,5 +1,5 @@
 > last updated: 2026-08-13
-> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.
+> SSoT: 각 repo 안내도의 선언을 따른다. 이 파일은 라우터일 뿐 진실의 원천이 아니다.
 
 ## 정체성
 
@@ -37,9 +37,9 @@
 2. `Repos` 표의 `keywords`와 `라우팅 규칙`을 매칭해 후보 repo를 정한다.
 3. 후보 repo의 `status`에 따라 분기한다.
    - `active` → `<path>/.ai/AI-CONTEXT.md` (repo 안내도)로 진입한다.
-   - `placeholder` → 안내도 없음. repo의 소스 코드만 SSoT로 사용한다.
+   - `placeholder` → 안내도 없음. 선언을 찾지 못하므로 소스 코드로 폴백한다. `<path>/.ai/` 자체가 없으면 문서 repo는 `ai-workspace doc`, 그 외는 `ai-workspace dev` 초기 설치를, 있으면 `ai-workspace update` 갱신을 권유한다.
    - `archived` → 자동 진입 금지. 사용자 확인 후에만 답변한다.
-4. 답변 직전 정보 충돌 시 우선순위: 소스 코드 > 각 repo 안내도 > 이 안내도(상위 워크스페이스).
+4. 답변 직전 정보 충돌 시 우선순위: 각 repo의 SSoT(repo 안내도 선언: 소스 코드 또는 원본 문서) > 각 repo 안내도 > 이 안내도(상위 워크스페이스).
 
 ### 작성 규칙 (이 파일을 손볼 때)
 

@@ -31,7 +31,7 @@ Why 진입점
 에이전트 운영 지침'
 
 # 본문 두 번째 줄의 고정 문구.
-SSOT_LINE='> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다.'
+SSOT_LINE='> SSoT: 각 repo 안내도의 선언을 따른다. 이 파일은 라우터일 뿐 진실의 원천이 아니다.'
 
 # Repos 표의 4열 이름.
 REPOS_HEADER='path domain keywords status'

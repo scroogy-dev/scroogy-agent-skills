@@ -97,6 +97,8 @@ assert_violation() {
 
 mutate_first_line() { sed -i.bak '1s/.*/> last updated: 어제/' "$1" && rm -f "$1.bak"; }
 mutate_ssot()       { sed -i.bak '2s/.*/> SSoT: 알아서 판단할 것./' "$1" && rm -f "$1.bak"; }
+# #118 이전 표준 문구. 로비가 SSoT 값을 `소스 코드`로 고정하던 구 로비를 비표준으로 격추하는지 본다.
+mutate_ssot_legacy() { sed -i.bak '2s/.*/> SSoT: 소스 코드. 이 파일은 라우터일 뿐 진실의 원천이 아니다./' "$1" && rm -f "$1.bak"; }
 mutate_frontmatter() { printf '%s\n' '---' 'title: lobby' '---' '' > "$1.new" && cat "$1" >> "$1.new" && mv "$1.new" "$1"; }
 mutate_drop_h2()    { sed -i.bak '/^## 공통 규약$/d' "$1" && rm -f "$1.bak"; }
 mutate_floors()     { sed -i.bak 's/^## Repos$/## Floors/' "$1" && rm -f "$1.bak"; }
@@ -116,6 +118,7 @@ mutate_entry_parent() {
 
 assert_violation '(1) 첫 줄 last updated 형식'  '본문 첫 줄이'          mutate_first_line
 assert_violation '(2) SSoT 고정 문구'           '표준 SSoT 문구가 아닙니다' mutate_ssot
+assert_violation '(2) SSoT 구 문구(소스 코드 고정) 격추' '표준 SSoT 문구가 아닙니다' mutate_ssot_legacy
 assert_violation '(3) YAML frontmatter 존재'    'YAML frontmatter 가 있습니다' mutate_frontmatter
 assert_violation '(4) 표준 H2 누락'             '표준 H2 섹션 누락'      mutate_drop_h2
 assert_violation '(5) 구버전 Floors 섹션명'      "구버전 섹션명 'Floors'" mutate_floors
