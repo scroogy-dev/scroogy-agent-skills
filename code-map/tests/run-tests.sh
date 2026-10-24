@@ -77,9 +77,12 @@ violations() {
   line="$(printf '%s\n' "$s" | grep -E '^- sync:')"
   has "$line" '0단계 루트 대조에서 두 값이 같을 때만 수행한다' || echo 'sync 동일 루트 조건'
   { has "$line" '--name-status -M' && ! has "$line" '--name-only'; } || echo 'sync 이름 변경 입력'
+  has "$line" '이름 변경(`R`) 행은 이전 경로와 새 경로 중 하나라도 `ssot_dir` 아래 `.md` 파일이면 대상이고, 그 밖의 행은 `ssot_dir` 아래 `.md` 파일만 대상이다.' \
+    || echo 'sync 범위 .md'
   has "$s" '색인 반영을 마친 뒤에만 갱신한다' || echo '메타데이터 갱신 시점'
   printf '%s\n' "$s" | grep -qxF -- '- `.md` 파일 1개가 색인 행 1개다.' || echo '색인 단위 .md'
   has "$s" '**삭제된 파일**(`D`)은 해당 행을 index.md에서 제거한다' || echo '삭제 행 제거'
+  has "$s" '확장자가 `.md`가 아닌 경로는 `ssot_dir` 밖과 같게 본다.' || echo '이름 변경 .md 외 확장자'
   has "$s" '두 경로 모두 `ssot_dir` 아래: 새 행을 만들고 옛 행의 Why 태깅을 새 행으로 옮긴 뒤 옛 행을 지운다' || echo '이름 변경 Why 이전'
   has "$s" '이전 경로만 `ssot_dir` 아래(루트 밖으로 이동): 옛 행을 지운다' || echo '루트 밖 이동'
   has "$s" '새 경로만 `ssot_dir` 아래(루트 안으로 이동): 새 행을 만든다' || echo '루트 안 이동'
@@ -93,6 +96,8 @@ violations() {
 
   sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 루트 불일치 \|' | grep -F '[UPDATE-NEEDED]' | grep -qF 'rebuild를 권고' \
     || echo '점검 표 루트 불일치'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| stale 탐지 \|')" '`ssot_dir` 아래에서 변경된 `.md` 파일 목록' \
+    || echo 'stale 탐지 .md'
   has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 파일 유효성 \|')" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.**' \
     || echo '파일 유효성 check 보존'
   has "$(sec "$doc" '### 4단계: 결과 보고')" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' || echo '보고 문서 색인 건수'
@@ -246,8 +251,14 @@ assert_reject '색인 단위 .md 정의 원복 격추'  '색인 단위 .md'     
 assert_reject 'ssot_dir 부재 질의 삭제 격추'  'ssot_dir 부재 질의'      drop_line "$C_DOC" '자리표시자(`<...>`)이면 사용자에게 묻는다'
 assert_reject 'sync 동일 루트 조건 삭제 격추' 'sync 동일 루트 조건'     cut_str "$C_DOC" '0단계 루트 대조에서 두 값이 같을 때만 수행한다. '
 assert_reject 'sync 입력 --name-only 원복 격추' 'sync 이름 변경 입력'   sub_str "$C_DOC" '--name-status -M' '--name-only'
+assert_reject 'sync 범위 이름 변경 행 .md 정의 원복 격추' 'sync 범위 .md' \
+  sub_str "$C_DOC" '중 하나라도 `ssot_dir` 아래 `.md` 파일이면 대상이고' '중 하나라도 `ssot_dir` 아래이면 대상이고'
+assert_reject 'sync 범위 그 밖의 행 .md 정의 원복 격추' 'sync 범위 .md' \
+  sub_str "$C_DOC" '그 밖의 행은 `ssot_dir` 아래 `.md` 파일만 대상이다' '그 밖의 행은 `ssot_dir` 아래 파일만 대상이다'
 assert_reject '메타데이터 갱신 시점 삭제 격추' '메타데이터 갱신 시점'   drop_line "$C_DOC" '색인 반영을 마친 뒤에만 갱신한다'
 assert_reject '삭제 행 제거 삭제 격추'        '삭제 행 제거'            drop_line "$C_DOC" '**삭제된 파일**(`D`)'
+assert_reject '이름 변경 .md 외 확장자 규칙 삭제 격추' '이름 변경 .md 외 확장자' \
+  cut_str "$C_DOC" ' 확장자가 `.md`가 아닌 경로는 `ssot_dir` 밖과 같게 본다.'
 assert_reject '이름 변경 Why 이전 삭제 격추'  '이름 변경 Why 이전' \
   sub_str "$C_DOC" '새 행을 만들고 옛 행의 Why 태깅을 새 행으로 옮긴 뒤 옛 행을 지운다' '옛 행을 지우고 새 행을 만든다'
 assert_reject '루트 밖 이동 삭제 격추'        '루트 밖 이동'            drop_line "$C_DOC" '이전 경로만 `ssot_dir` 아래(루트 밖으로 이동)'
@@ -259,6 +270,8 @@ assert_reject '존재 문서만 링크 삭제 격추'    '존재 문서만 링�
 assert_reject '외부 URL 제외 삭제 격추'       '외부 URL 교차 참조 제외' drop_line "$C_DOC" '**외부 URL은 교차 참조 대상이 아니다**'
 assert_reject '퍼블리싱 URL 제외 삭제 격추'   '퍼블리싱 URL 제외'       drop_line "$C_DOC" '퍼블리싱 URL(안내도 `publish` 행의 위치 포함)'
 assert_reject '점검 표 루트 불일치 삭제 격추' '점검 표 루트 불일치'     drop_line "$C_DOC" '| 루트 불일치 |'
+assert_reject 'stale 탐지 .md 원복 격추'      'stale 탐지 .md' \
+  sub_str "$C_DOC" '아래에서 변경된 `.md` 파일 목록' '아래에서 변경된 파일 목록'
 assert_reject '파일 유효성 check 보존 삭제 격추' '파일 유효성 check 보존' \
   cut_str "$C_DOC" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.** '
 assert_reject '보고 건수 축소 격추'           '보고 문서 색인 건수' \

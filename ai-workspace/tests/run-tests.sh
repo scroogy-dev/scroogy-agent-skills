@@ -143,6 +143,69 @@ else
   ng "doc 템플릿 고유 행: 준비된 doc 템플릿 없음 — $DOC_TPL"
 fi
 
+# --- update-1 문서 규약 복사 (SKILL.md 코드 블록 실행) ----------------------------
+#
+# 문서 규약은 사용자 관리 파일이라 update-1이 doc 프로파일에서만, 없을 때만 복사한다.
+# 위 doc 템플릿 검사는 템플릿 쪽만 보므로 SKILL.md의 복사 분기를 지워도 통과한다 (#118 최종 감사 F-1).
+# update-1단계 코드 블록을 그대로 꺼내 임시 repo에서 실행하고, 생긴 파일로 판정한다.
+
+U1_BLOCK="$TMP/update1.sh"
+CONV='.ai/10_rules/document-convention.md'
+
+# update1_block <SKILL.md> → `### update-1단계` 절의 첫 bash 코드 블록 본문
+update1_block() {
+  awk '/^### update-1단계/ { f = 1; next }
+       f && /^### / { exit }
+       f && /^```bash$/ { c = 1; next }
+       c && /^```$/ { exit }
+       c' "$1"
+}
+
+# run_update1 <코드 블록 파일> <프로파일> <작업 디렉토리> — 블록을 그 디렉토리에서 실행한다.
+run_update1() {
+  (cd "$3" && SKILL_DIR="$HERE/.." PROFILE="$2" bash "$1") >/dev/null 2>&1
+}
+
+# update1_violations <코드 블록 파일> — 어긋난 동작을 1행씩 출력한다. 무출력이면 통과.
+update1_violations() {
+  local w
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai"
+  run_update1 "$1" doc "$w"
+  cmp -s "$w/$CONV" "$TPL_DIR/doc/$CONV" || echo 'doc 신규 복사'
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai/10_rules"; echo '사용자 내용' > "$w/$CONV"
+  run_update1 "$1" doc "$w"
+  [ "$(cat "$w/$CONV" 2>/dev/null)" = '사용자 내용' ] || echo 'doc 기존 내용 보존'
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai"
+  run_update1 "$1" dev "$w"
+  [ ! -e "$w/$CONV" ] || echo 'dev 미복사'
+}
+
+# assert_update1_reject <설명> <위반 행> <awk 변형 프로그램> — 변형 대상이 없으면 "변형 실패"로 떨어진다.
+assert_update1_reject() {
+  local f="$TMP/update1-case.sh" out
+  awk "$3" "$U1_BLOCK" > "$f" || { ng "$1 — 변형 실패"; return; }
+  out="$(update1_violations "$f")"
+  if printf '%s\n' "$out" | grep -qxF "$2"; then
+    ok "$1"
+  else
+    ng "$1 — 위반에 '$2' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+update1_block "$SKILL" > "$U1_BLOCK"
+out="$(update1_violations "$U1_BLOCK")"
+if [ -z "$out" ]; then
+  ok "문서 규약 update-1 복사(doc 신규·기존 보존·dev 미복사) 통과"
+else
+  ng "문서 규약 update-1 복사(doc 신규·기존 보존·dev 미복사) 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+assert_update1_reject '문서 규약 update-1 doc 분기 삭제 격추' 'doc 신규 복사' \
+  '/^# doc 프로파일 전용/ { skip = 1; hit = 1 } skip && /^fi$/ { skip = 0; next } !skip { print } END { exit !hit }'
+assert_update1_reject '문서 규약 update-1 보존 조건 삭제 격추' 'doc 기존 내용 보존' \
+  'index($0, "[ ! -f .ai/10_rules/document-convention.md ] && \\") { hit = 1; next } { print } END { exit !hit }'
+assert_update1_reject '문서 규약 update-1 프로파일 조건 변경 격추' 'dev 미복사' \
+  '/^# doc 프로파일 전용/ { d = 1 } d && /^if \[ "\$PROFILE" = "doc" \]; then$/ { sub(/"doc"/, "\"dev\""); d = 0; hit = 1 } { print } END { exit !hit }'
+
 # --- 이 저장소 안내도 -----------------------------------------------------------
 
 REPO_CTX="$HERE/../../.ai/AI-CONTEXT.md"

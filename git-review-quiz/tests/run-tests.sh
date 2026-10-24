@@ -279,6 +279,36 @@ assert_doc_categories "$tmpdir/doc-drop-row.md"   fail 'doc 카테고리 표: �
 assert_doc_categories "$tmpdir/doc-code-name.md"  fail 'doc 카테고리 표: 행 수 유지 이름 오기(구조 정합→아키텍처) 격추'
 assert_doc_categories "$tmpdir/doc-swap.md"       fail 'doc 카테고리 표: 행 수 유지 순서 교환(모순·누락↔보안·민감정보) 격추'
 
+# 표 앞의 분기 문장이 선언에 따라 어느 표에서 소재를 고를지 정한다. 위 표 검사는 첫 열만 보므로 분기 문장을
+# 지우거나 두 조건을 맞바꿔도 통과한다 (#118 최종 감사 F-1). 분기 문장을 정확히 1행으로 잡아 두 조건을 대조한다.
+
+# doc_branch_violations <파일> — 어긋난 조건을 1행씩 출력한다. 무출력이면 통과.
+doc_branch_violations() {
+  local rows
+  rows="$(grep -F '이면 아래 doc 카테고리 세트' "$1")"
+  [ "$(printf '%s' "$rows" | grep -c .)" -eq 1 ] || { echo '분기 문장 1행'; return; }
+  printf '%s\n' "$rows" | grep -qF '`원본 문서`이면 아래 doc 카테고리 세트' || echo 'doc 세트 조건'
+  printf '%s\n' "$rows" | grep -qF '`소스 코드`이거나 선언이 없으면 위 표를 ' || echo '코드 표 조건'
+}
+
+# assert_doc_branch <파일> <기대: pass|fail> <설명>
+assert_doc_branch() {
+  local out
+  out="$(doc_branch_violations "$1")"
+  case "$2" in
+    pass) if [ -z "$out" ]; then ok "$3"; else ng "$3 (위반 [$(flat "$out")])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$3"; else ng "$3 (분기 문장이 그대로 읽힘)"; fi ;;
+  esac
+}
+
+awk 'index($0, "이면 아래 doc 카테고리 세트") == 0' "$SKILL" > "$tmpdir/doc-branch-drop.md"
+awk 'index($0, "이면 아래 doc 카테고리 세트") { gsub(/`원본 문서`/, "@@"); gsub(/`소스 코드`/, "`원본 문서`"); gsub(/@@/, "`소스 코드`") } { print }' \
+  "$SKILL" > "$tmpdir/doc-branch-swap.md"
+
+assert_doc_branch "$SKILL"                      pass 'doc 카테고리 분기 문장: 원본 문서·소스 코드 두 조건 통과'
+assert_doc_branch "$tmpdir/doc-branch-drop.md"  fail 'doc 카테고리 분기 문장: 행 삭제 격추'
+assert_doc_branch "$tmpdir/doc-branch-swap.md"  fail 'doc 카테고리 분기 문장: 두 조건 맞바꿈 격추'
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
