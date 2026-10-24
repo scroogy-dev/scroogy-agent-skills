@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ▶️ 다음 작업: issue-work `--clear` (PR 생성 전 마무리)
 
 ## 모델 기록
 
@@ -33,7 +33,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 | 계획 모델 | Anthropic, Claude Fable 5.1 (claude-fable-5-1) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명 (모델 ID). 마지막 교차모델 audit Task에서 사용자가 기록 --> | <!-- 최종 감사 리포트의 감사 effort 줄 값. 사용자가 기록. 확인 불가면 - --> |
+| 최종 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 
 - **계획 감사**: 수행 · 발견 4건 · 보정 4건
 
@@ -268,6 +268,8 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 수행 effort도 같은 행의 `effort` 열이 SSoT다.
 -->
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI, GPT-6 (gpt-6-astra)(effort high)로 최종 감사를 2회 수행했다. 1차(2026-10-24, HEAD `6b97e98`)는 조건부 적합으로, 1단계 충족 41건·판정 불가 2건, 2단계 F-1 낮음(LOW)·F-2 중간(MEDIUM)이다. 2차(2026-10-25, HEAD `8060014`)는 적합(PASS)으로, 1단계 충족 41건·판정 불가 2건, 이전 발견 2건 닫힘, 신규 F-5 낮음(LOW)이다. `--response` 검토에서 F-1(Task 5)·F-5(Task 8)는 사용자가 명시 승격해 반영했고, F-2(Task 2)는 K-0006 계속 수용으로 재검토 이력만 더했다. 리포트는 `.ai/99_workspace/issue-0118-audit-report-1.md`(1차)와 `.ai/99_workspace/issue-0118-audit-report.md`(2차)다.
 - **특이 사항**:
+  - 판정 불가 2건(R7 회사 건물 repo `--global` 실행, R8 doc repo git-review 실행)과 plan Task 4 `[ND]`(회사 환경 `--local` 중단)는 실행 환경이 없어 확인하지 못했다.
+  - 2차 리포트의 발견 번호가 F-5부터인 것은 1차 본문에 계획 감사 참고 번호(F-1~F-4)가 함께 있어 번호 헬퍼가 5를 반환했기 때문이다. 최종 감사 발견은 F-1·F-2·F-5 3건이다.
