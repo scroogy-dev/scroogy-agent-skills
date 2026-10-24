@@ -10,7 +10,7 @@ last_harvested: 2026-09-09
 
 - ai-workspace는 개별 repo의 층 안내도(`.ai/AI-CONTEXT.md`)와 `.ai/` 구조를, ai-workspace-directory는 멀티 repo 워크스페이스 루트의 로비 안내도(`<워크스페이스 루트>/.ai/AI-CONTEXT.md`)를 담당한다. 둘은 자매 스킬이며 모든 안내도는 각자의 `.ai/` 안에 둔다.
 - ai-workspace-directory: `init`/`update` 모드, 로비 파일 존재로 모드 자동 판정. 표준 섹션 구조 강제, 분량 가드레일, SSoT 위배 진단 체크리스트(`check-lobby.sh`). 안내도 부재 repo는 `status: placeholder`, `archived`는 drift 검사 제외. git 명령에 의존하지 않는다.
-- ai-workspace: `init`(전체 초기화, 복사 전 기존 `.ai/` 제거)/`update`(멱등 보강) 모드, dev/doc 프로파일. update는 사용자 작성분을 보존하고 버전 고정 파일(`context-loading.md`, `writing-principles.md`)만 덮어쓴다. 사용자 관리 파일(`writing-principles-local.md`, `architecture.md`, `coding-convention.md`)은 없을 때만 빈 템플릿을 복사한다.
+- ai-workspace: `init`(전체 초기화, 복사 전 기존 `.ai/` 제거)/`update`(멱등 보강) 모드, dev/doc 프로파일. update는 사용자 작성분을 보존하고 버전 고정 파일(`context-loading.md`, `writing-principles.md`)만 덮어쓴다. 사용자 관리 파일(`writing-principles-local.md`, dev 전용 `architecture.md`·`coding-convention.md`, doc 전용 `document-convention.md`)은 없을 때만 빈 템플릿을 복사한다.
 - 안내도 SSoT 선언: 본문 2번째 줄이 dev는 `> SSoT: 소스 코드. …`, doc은 `> SSoT: 원본 문서. …`이다. doc 템플릿은 충돌 우선순위를 `원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도`로 두고, `## 프로젝트 도메인` 표에 `ssot_dir`(필수, SSoT 문서 디렉토리)·`publish`(선택, 퍼블리싱 위치 URL) 행을 둔다. dev 템플릿에는 두 행이 없다.
 - 버전 고정 `context-loading.md`는 프로파일과 무관하게 SSoT 선언을 따르고(선언이 없으면 소스 코드), 원본 문서 작업 절(색인 → 관련 문서 → `ssot_dir` 직접 확인)을 둔다. `60_codebase/`는 SSoT 색인이다(dev 소스코드 엔트리포인트·호출 흐름, doc `ssot_dir` 아래 문서 파일 지도).
 - update 구조 정합: 정의된 디렉토리 생성, 신규 디렉토리(`70_ledger/`)와 골격 index 전파(설치본에 있으면 미덮어씀), 기존 파일 정리 시 루트 상주 파일(각 index.md, `40_domain/glossary.md`) 제외. 원장 항목은 `- **상태**:` 앵커 값으로 이동 판단.

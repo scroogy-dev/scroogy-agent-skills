@@ -72,14 +72,17 @@ fi
 # 헬퍼는 dev·doc 두 선언 문구를 모두 인정하므로, 위 템플릿 통과 루프는 doc 템플릿이
 # dev 선언·dev 우선순위로 되돌아가도 통과한다 (최종 감사 F-2 반례).
 # doc 템플릿이 doc 선언·doc 우선순위·`ssot_dir`·`publish` 행을 갖는지 따로 본다.
+# 문서 규약(`document-convention.md`)은 헬퍼가 검사하지 않는 사용자 관리 파일이라(dev의
+# `architecture.md`·`coding-convention.md`와 같은 취급) `## 프로젝트 규칙` 표 행과 파일 존재를 여기서 본다.
 
 DOC_TPL="$TMP/doc.md"
 SSOT_DOC='> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
 
-# doc_tpl_violations <파일> — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
+# doc_tpl_violations <파일> [<10_rules 디렉토리>] — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
 # 본문 2번째 줄은 헬퍼와 같은 계산(H1 제목을 건너뛴 첫 비어 있지 않은 줄의 바로 다음 물리 행)으로 고른다.
+# 10_rules 디렉토리를 생략하면 doc 템플릿의 디렉토리를 본다.
 doc_tpl_violations() {
-  local f="$1" start line2 k
+  local f="$1" rules="${2:-$TPL_DIR/doc/.ai/10_rules}" start line2 k
   start=$(awk 'NR == 1 && /^# / { next } NF { print NR; exit }' "$f")
   line2=$(sed -n "$((start + 1))p" "$f")
   [ "$line2" = "$SSOT_DOC" ] || echo '본문 두 번째 줄 doc 선언'
@@ -90,6 +93,11 @@ doc_tpl_violations() {
       f && /^\|/ { v = $0; sub(/^\|[[:space:]]*/, "", v); sub(/[[:space:]]*\|.*$/, "", v); if (v == key) { found = 1; exit } }
       END { exit !found }' "$f" || echo "프로젝트 도메인 표 $k 행"
   done
+  awk '
+    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next } f && /^## / { exit }
+    f && /^\|/ { v = $0; sub(/^\|[[:space:]]*/, "", v); sub(/[[:space:]]*\|.*$/, "", v); if (v == "`.ai/10_rules/document-convention.md`") { found = 1; exit } }
+    END { exit !found }' "$f" || echo '프로젝트 규칙 표 문서 규약 행'
+  [ -f "$rules/document-convention.md" ] || echo '문서 규약 파일'
 }
 
 # assert_doc_tpl_reject <설명> <위반 조각> <변형 명령...>
@@ -110,18 +118,27 @@ d_dev_line()   { sed -i.bak 's/^> SSoT: .*/> SSoT: 소스 코드. 이 파일은 
 d_dev_prio()   { sed -i.bak 's/원본 문서 > 이 repo 안내도 > 상위 워크스페이스 안내도/소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도/' "$1" && rm -f "$1.bak"; }
 d_no_root()    { sed -i.bak '/^| ssot_dir | /d' "$1" && rm -f "$1.bak"; }
 d_no_publish() { sed -i.bak '/^| publish | /d' "$1" && rm -f "$1.bak"; }
+d_no_conv()    { sed -i.bak '/^| `\.ai\/10_rules\/document-convention\.md` /d' "$1" && rm -f "$1.bak"; }
 
 if [ -r "$DOC_TPL" ]; then
   out="$(doc_tpl_violations "$DOC_TPL")"
   if [ -z "$out" ]; then
-    ok "doc 템플릿 고유 행 통과"
+    ok "doc 템플릿 고유 행·문서 규약 통과"
   else
-    ng "doc 템플릿 고유 행 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+    ng "doc 템플릿 고유 행·문서 규약 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
   fi
   assert_doc_tpl_reject 'doc 템플릿 dev 선언 원복 격추'     '본문 두 번째 줄 doc 선언'   d_dev_line
   assert_doc_tpl_reject 'doc 템플릿 dev 우선순위 원복 격추' 'doc 우선순위 행'            d_dev_prio
   assert_doc_tpl_reject 'doc 템플릿 ssot_dir 행 삭제 격추'  '프로젝트 도메인 표 ssot_dir 행' d_no_root
   assert_doc_tpl_reject 'doc 템플릿 publish 행 삭제 격추'   '프로젝트 도메인 표 publish 행'  d_no_publish
+  assert_doc_tpl_reject 'doc 템플릿 문서 규약 행 삭제 격추'  '프로젝트 규칙 표 문서 규약 행'  d_no_conv
+  mkdir -p "$TMP/rules-empty"
+  out="$(doc_tpl_violations "$DOC_TPL" "$TMP/rules-empty")"
+  if printf '%s\n' "$out" | grep -qxF '문서 규약 파일'; then
+    ok 'doc 템플릿 문서 규약 파일 부재 격추'
+  else
+    ng "doc 템플릿 문서 규약 파일 부재 격추 — 위반에 '문서 규약 파일' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
 else
   ng "doc 템플릿 고유 행: 준비된 doc 템플릿 없음 — $DOC_TPL"
 fi

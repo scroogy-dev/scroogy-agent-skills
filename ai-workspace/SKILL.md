@@ -99,7 +99,7 @@ cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 
 프로파일별 전용 파일 예시:
 - `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
-- `doc` 전용: (없음)
+- `doc` 전용: `.ai/10_rules/document-convention.md`
 
 산출물 작성 원칙 두 파일도 위 일괄 복사에 포함됩니다. 아래 구분은 update 모드의 복사 정책이며, init은 기존 `.ai/`가 있어도 사용자 관리 파일까지 전체를 덮어씁니다 (2단계 모드 선택의 경고 참조):
 - `writing-principles.md`: 버전 고정 — `context-loading.md`와 동일하게 항상 최신본 덮어쓰기
@@ -131,7 +131,7 @@ sed -i.bak "s/> last updated: YYYY-MM-DD/> last updated: $(date +%Y-%m-%d)/" .ai
 ### update-1단계: 10_rules/ 정리
 
 이전 버전에서 설치된 파일 중 개별 skill로 분리된 파일을 제거하고, 새 규칙 파일을 복사합니다.
-사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `file-change-policy.md`, `writing-principles-local.md`)은 그대로 유지합니다.
+사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `document-convention.md`, `file-change-policy.md`, `writing-principles-local.md`)은 그대로 유지합니다.
 
 ```bash
 # 10_rules/ 디렉토리 보장 — 모드 결정은 .ai/ 존재만 확인하므로 10_rules/ 누락 상태로도 update에 진입할 수 있음
@@ -161,6 +161,12 @@ if [ "$PROFILE" = "dev" ]; then
     cp "$SKILL_DIR/templates/dev/.ai/10_rules/architecture.md" .ai/10_rules/architecture.md
   [ ! -f .ai/10_rules/coding-convention.md ] && \
     cp "$SKILL_DIR/templates/dev/.ai/10_rules/coding-convention.md" .ai/10_rules/coding-convention.md
+fi
+
+# doc 프로파일 전용 (없을 때만 빈 템플릿 복사)
+if [ "$PROFILE" = "doc" ]; then
+  [ ! -f .ai/10_rules/document-convention.md ] && \
+    cp "$SKILL_DIR/templates/doc/.ai/10_rules/document-convention.md" .ai/10_rules/document-convention.md
 fi
 
 # doc 프로파일: 기존 architecture.md가 있으면 삭제하지 않고 유지
