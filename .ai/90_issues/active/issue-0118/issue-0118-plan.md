@@ -81,12 +81,12 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 1: ai-workspace doc 문서 규약 파일과 writing-principles 위임
 
-- [ ] 완료
+- [x] 완료
 - **목표**: doc 프로파일에 사용자 관리 문서 규약 파일 골격을 배포하고, 산출물 작성 원칙이 `ssot_dir` 문서를 그 파일에 위임하게 한다.
 - **대상 요구사항**: R1, R2
 - **작업 내용**:
   1. `ai-workspace/templates/doc/.ai/10_rules/document-convention.md`를 신설한다. H1 `# 문서 규약`, H2 4칸(spec 전제 리터럴), 칸마다 HTML 주석 안내와 기본값 한 줄(`.md` / 기본값 없음 / 기본값 없음 / 기본값 없음). 머리 주석에 사용자 관리 파일임과 스킬 표준(`.md`)을 적는다.
-  2. doc 템플릿 `AI-CONTEXT.md` `## 프로젝트 규칙` 표에 `.ai/10_rules/document-convention.md` 행(설명 "문서 규약 (SSoT 대상 확장자·첨부 분류·우선순위·명명)", 사용 시점 "원본 문서 작성·리뷰 시")을 `context-loading.md` 행 앞에 둔다(파일명 알파벳순).
+  2. doc 템플릿 `AI-CONTEXT.md` `## 프로젝트 규칙` 표에 `.ai/10_rules/document-convention.md` 행(설명 "문서 규약 (SSoT 대상 확장자·첨부 분류·우선순위·명명)", 사용 시점 "원본 문서 작성·리뷰 시")을 `context-loading.md` 행 뒤에 둔다(파일명 알파벳순. 작성 시 "앞"으로 오기해 Task 1에서 정정).
   3. `ai-workspace/SKILL.md`: init-1단계 "doc 전용: (없음)"을 `document-convention.md`로 바꾸고, update-1단계 설명의 사용자 작성 파일 목록과 코드 블록에 doc 프로파일 분기(없을 때만 복사)를 더한다.
   4. shared `writing-principles.md` 적용 범위 제외 줄 끝에 "doc 프로파일의 `ssot_dir` 문서는 `document-convention.md`를 따른다."를 잇고 버전 주석을 `1.2.0`으로 올린 뒤 `.ai/10_rules/writing-principles.md`에 그대로 덮어쓴다.
   5. `ai-workspace/tests/run-tests.sh` "doc 템플릿 고유 행" 절에 문서 규약 검사를 더한다. `doc_tpl_violations`에 규칙 표 행 존재와 `templates/doc/.ai/10_rules/document-convention.md` 파일 존재를 더하고, 통과 케이스 라벨에 `문서 규약 … 통과`, 행 삭제 격추 케이스 라벨에 `문서 규약 … 격추`를 쓴다.

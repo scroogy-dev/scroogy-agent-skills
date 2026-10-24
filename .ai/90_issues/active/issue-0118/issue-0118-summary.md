@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 1 — ai-workspace doc 문서 규약 파일과 writing-principles 위임
+> ▶️ 다음 작업: Task 2 — SSoT 대상 `.md` 확정 (code-map·context-harvest·doc 템플릿·정책)
 
 ## 모델 기록
 
@@ -118,14 +118,17 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 1: ai-workspace doc 문서 규약 파일과 writing-principles 위임
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
+- **수행 내용 요약**: doc 템플릿에 `10_rules/document-convention.md` 골격(H2 4칸, 확장자 `.md`·나머지 "기본값 없음")을 신설하고 doc 안내도 규칙 표에 행을 더했다. `ai-workspace/SKILL.md` init doc 전용 목록·update-1 사용자 작성 파일 목록·doc 분기(없을 때만 복사)를 반영했다. shared `writing-principles.md` 제외 줄에 위임 문장을 잇고 1.2.0으로 올려 이 repo 사본에 덮어썼다. 러너에 문서 규약 행·파일 검사와 격추 2건(행 삭제·파일 부재)을 더해 49건 통과. spec R1·R2 `[D]`와 공통 회귀 `[D]` 무출력.
 - **특이 사항**:
+  - 규칙 표 행은 `context-loading.md` 행 뒤에 두었다. plan 작업 2의 "앞에 둔다"와 근거 "파일명 알파벳순"이 어긋나 알파벳순(`context-loading` < `document-convention`)을 따르고 plan 문구를 "뒤"로 정정했다.
+  - 연관 문서 표가 R1 동기화 대상으로 지정한 `specs/ai-workspace.md`의 사용자 관리 파일 목록에 doc 전용 `document-convention.md`를 더했다(plan 작업 목록 밖).
+  - 설계상 결과: 기존 doc repo에 update를 돌리면 파일은 복사되지만 규칙 표 행은 보강되지 않는다(`check-context.sh` 비검사, dev `architecture.md`·`coding-convention.md`와 같은 취급, spec 전제).
 
 ---
 
