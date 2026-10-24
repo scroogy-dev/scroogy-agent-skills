@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 8 — 색인·안내도·README 문서 정합
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 ## 모델 기록
 
@@ -235,14 +235,20 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 8: 색인·안내도·README 문서 정합
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
+- **수행 내용 요약**: `.ai/60_codebase/` 상세 흐름 7건에 바뀐 절차를 반영하고 `source_hash`를 `b7fccef`, `last_synced`를 2026-10-24로 갱신했다. 반영 내용은 ai-workspace init의 doc 전용 `document-convention.md`, update의 doc 분기 복사·9항목 판정·건물 repo 선언 행, 로비 init·update의 대전제·고정 문구·구 문구 교체, git-review·issue-audit의 doc 카테고리 분기·결과 템플릿 행 이름, `--clear` 4단계의 보류 항목 등재 질의다. `index.md` 본문은 ai-workspace·ai-workspace-directory·code-map·issue-work 행과 공통 참조의 카테고리 문장 2곳, 태그 현황의 #118 부분 반영 기록을 고쳤다(frontmatter 유지). `40_domain/index.md`의 정책·명세 4행 설명을 바뀐 범위에 맞췄다. plan Task 8 `[D]`, spec `[D]` 28건 전체(공통 회귀 포함), 색인 링크 검사가 무출력이다.
 - **특이 사항**:
+  - plan 작업 목록 밖: 사용자 승인(2026-10-24)으로 `ai-workspace/SKILL.md`의 issue-work 설명에 이슈 완료 시 보류 항목 등재 경로를 더하고 `b7fccef`로 먼저 커밋했다. 이 커밋이 이 이슈의 마지막 스킬 소스 커밋이라 상세 흐름 `source_hash`로 썼다.
+  - git-review·issue-audit 흐름은 `source_hash`를 올리면서 같은 범위의 #114 변경(`eb6a6ff`, 색인을 신뢰하지 않고 SSoT 선언으로 직접 확인)도 반영했다. 두 흐름은 #114에서 대조되지 않았다.
+  - ai-workspace update 흐름 Why의 "검사 표 10종 중 8종"은 #90 당시 기록이라 "트리 해석 2종을 헬퍼 밖에 둔 판단(#90 당시 10종 중 8종)"으로 고쳤다.
+  - `AI-CONTEXT.md`의 `last updated`는 main에서 이미 2026-10-24라 바꾸지 않았다. 디렉토리 구조·스킬 목록과 README 스킬 표에는 틀린 서술이 없어 무변경이다.
+  - git-review-quiz 흐름은 카테고리를 서술하지 않아 대상에서 뺐다(plan 7건 목록과 같음).
+  - Task 8의 `[QD]`(색인·안내도 서술과 절차의 정합)는 아직 판정하지 않았다.
 
 ---
 
