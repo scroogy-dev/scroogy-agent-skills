@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 3 — update-3 회귀 fixture 도입 (K-0001)
+> ▶️ 다음 작업: Task 4 — context-harvest ADR 상태 줄 반영
 
 ## 모델 기록
 
@@ -151,14 +151,17 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 3: update-3 회귀 fixture 도입 (K-0001)
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `ai-workspace/tests/fixtures/update3-file-cleanup/`에 README와 케이스 4쌍(`domain`·`adr`·`ledger`·`issues`)을 만들었다. 케이스 표 `대상 행` 열이 판단 기준 표 디렉토리 5개와 루트 상주 파일·`legacy/`를 덮는다.
+  - `adr` 케이스는 상태 줄 없이 본문에 `superseded` 낱말이 있는 ADR을 `active/`로 두는 키워드 판정 회귀 반례를 담는다. `issues` 케이스는 plan 항목 외에 완료 표시가 있는 summary(→ `archive/`)를 더해 판단 기준 행의 두 조건을 모두 덮는다.
+  - `ai-workspace/tests/run-tests.sh`에 `update-3 fixture` 블록을 더했다. 통과 5(대상 행 대조 1, 케이스 쌍 4)·격추 4(plan 변형 3종에 README 표에 없는 파일을 더함)다.
+  - spec R11 `[D]` 명령 출력 0건(bash·zsh), Task 3 게이트 통과, 전체 스킬 테스트 통과(ai-workspace 82건), 원장 링크 검사 0건.
+- **특이 사항**: 원장 K-0001은 고치지 않았다(이슈 완료 시 해소 기재). Task 완료 기준의 `[QD]` 모의 실행 채점은 다른 AI가 별도 세션에서 수행해야 하며 아직 하지 않았다. 러너의 대상 행 대조는 판단 기준 표 행 수를 고정하지 않고 추출 결과가 비었는지만 본다(행이 늘면 대상 행 미포함으로 실패).
 
 ---
 
