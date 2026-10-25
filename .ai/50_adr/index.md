@@ -28,5 +28,6 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 ADR만 선택적으로 �
 | `active/0018-ledger-proactive-review-and-resolve-timing.md` | 원장 재검토·종결 계기 확장(git-pr 원장 대조·issue-work 함께 해소 후보, 권고·승인형), `해소(PR #N)`은 PR 번호를 알 때만 확정하고 없으면 git-pr 생성 후 기재 |
 | `active/0019-test-perspectives-and-task-level-placement.md` | 테스트 관점 구분(spec DoD `[D]`는 외부 경계의 인수 테스트, 구현 테스트는 plan Task), Task별 테스트 배치와 러너형 테스트 `[D]`, 최종 감사 관점 5 Task별 테스트 기준·1단계 `[D]` 실제 실행 |
 | `active/0020-doc-ssot-original-documents-and-publishing-deferred.md` | doc SSoT는 `ssot_dir`의 원본 문서(위키 원본·page ID 추적 기각), 퍼블리싱은 스킬 범위 밖(재검토 K-0014), `.md` 대상·문서 규약 파일·로비와 건물 repo 선언·doc 카테고리·보류 항목 등재 |
+| `active/0021-ledger-archive-move-link-update.md` | 원장 항목 archive 이동 시 들어오는 링크 갱신(`.ai/` 아래, `90_issues/archive/` 제외, 같은 디렉토리 링크 포함·깊이 재계산), 적용 지점 5곳·스킬별 정의 1곳, 끊긴 원장 링크 검사 헬퍼 `check-ledger-links.sh` 사본 3개, ADR 0018 유지, #121 복제 |
 | `superseded/` | 대체된 결정 (대체한 ADR 번호를 문서 내에 명시) |
 | (문서를 추가하면 이 목록에 함께 기재하세요) | |
