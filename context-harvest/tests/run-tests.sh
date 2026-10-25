@@ -3,7 +3,7 @@
 # context-harvest 회귀 테스트 러너 (외부 의존성 없음, ADR 0001).
 #
 # 이 스킬은 scripts/ 가 없어 수집 동작이 SKILL.md 절차 문장과 templates/ 에 있다.
-# 수집 필터·퍼블리싱 제외·근거 출처 섹션의 규칙 문장이 제자리에 있는지를 [D] 로 보고,
+# 수집 필터·퍼블리싱 제외·근거 출처 섹션·ADR 상태 줄의 규칙 문장이 제자리에 있는지를 [D] 로 보고,
 # 규칙을 하나씩 되돌린 사본이 격추되는지로 검사가 실제로 동작함을 확인한다 (#114 최종 감사 F-3).
 #
 # 규칙을 입력에 적용한 결과(무엇을 수집·제외하고 근거 출처 섹션을 남길지)는
@@ -16,6 +16,7 @@ set -o pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 TPL="$HERE/../templates/40_domain-template.md"
+ADR_TPL="$HERE/../templates/50_adr-template.md"
 FIX="$HERE/fixtures/collect-filter"
 
 pass=0
@@ -24,7 +25,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for f in "$SKILL" "$TPL" "$FIX/README.md"; do
+for f in "$SKILL" "$TPL" "$ADR_TPL" "$FIX/README.md"; do
   [ -r "$f" ] || { echo "NOT OK - 파일을 찾을 수 없습니다 — $f"; exit 1; }
 done
 
@@ -163,6 +164,77 @@ assert_reject '템플릿 근거 출처 열 축소 격추'   '템플릿 근거 �
   sub_str "$C_TPL" '| 출처 | 조항 | 시행일 | 확인일 |' '| 출처 | 조항 | 시행일 |'
 assert_reject '템플릿 원본 반영 섹션 추가 격추' '템플릿 원본 반영 섹션'   add_line "$C_TPL" '## 원본 반영'
 assert_reject '템플릿 frontmatter 키 변경 격추' '템플릿 frontmatter 3키'  sub_str "$C_TPL" 'source_url:' 'url:'
+
+# --- ADR 상태 줄 -----------------------------------------------------------------
+#
+# ADR 템플릿은 제목 바로 아래에 상태 줄을 두고, 5단계는 증분 수집이 상태 줄을 지키며
+# 결정 변경을 ADR index `## 수명 주기`로 처리하게 한다 (#121).
+# 수명 주기 섹션이 없는 설치본에서는 이동만이 아니라 내용·상태 줄·`last_harvested` 갱신도 보류해야
+# 다음 증분 수집이 같은 결정 변경을 다시 판정한다 (#121 계획 감사 F-1).
+# 재판정 기준 시각은 보류한 ADR 자신의 `last_harvested`다. 같은 소스의 다른 문서 시각으로 바꾸면
+# 그 사이에 생긴 결정 변경 후보가 다음 수집에서 빠진다 (#121 최종 감사 F-1).
+
+# adr_violations <SKILL.md> <ADR 템플릿> — 어긋난 규칙을 1행씩 출력한다. 무출력이면 통과.
+adr_violations() {
+  local skill="$1" tpl="$2" s
+  [ "$(grep -c '^- \*\*상태\*\*:' "$tpl")" -eq 1 ] || echo '템플릿 상태 줄'
+  [ "$(awk '/^# ADR: / { f = 1; next } f && NF { print; exit }' "$tpl")" = '- **상태**: 유효' ] || echo '템플릿 상태 줄 위치'
+  [ "$(sed -n '1,6p' "$tpl" | sed 's/:.*//' | tr '\n' ' ')" = '--- source source_url related_jira last_harvested --- ' ] \
+    || echo '템플릿 frontmatter 4키'
+
+  s="$(sec "$skill" '### 5단계: 문서 생성')"
+  has "$s" '상태 줄(`- **상태**:`)은 그대로 둔다' || echo '5단계 상태 줄 유지'
+  has "$s" '`.ai/50_adr/index.md`의 `## 수명 주기`' || echo '5단계 수명 주기 참조'
+  has "$s" '섹션이 없으면 기존 ADR은 옮기지 않고' || echo '5단계 섹션 부재 대비'
+  has "$s" '내용·상태 줄·`last_harvested`도 바꾸지 않으며' || echo '5단계 섹션 부재 보류 범위'
+  has "$s" '같은 소스는 이 ADR의 `last_harvested` 이후 변경분부터 다시 판정한다' || echo '5단계 재판정 기준 시각'
+}
+
+out="$(adr_violations "$SKILL" "$ADR_TPL")"
+if [ -z "$out" ]; then
+  ok "ADR 상태 줄 템플릿·5단계 규칙 통과"
+else
+  ng "ADR 상태 줄 템플릿·5단계 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+C_ADR="$TMP/case/adr.md"
+
+# move_line_after <파일> <옮길 행> <기준 행> — 옮길 행을 지우고 기준 행 다음에 둔다.
+move_line_after() {
+  awk -v l="$2" -v h="$3" '
+    $0 == l { hit = 1; next }
+    { print }
+    $0 == h { print l; at = 1 }
+    END { exit !(hit && at) }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+# assert_adr_reject <설명> <위반 행> <변형 명령...>
+assert_adr_reject() {
+  local desc="$1" want="$2" out; shift 2
+  cp "$SKILL" "$C_SKILL"; cp "$ADR_TPL" "$C_ADR"
+  "$@" || { ng "$desc — 변형 실패"; return; }
+  out="$(adr_violations "$C_SKILL" "$C_ADR")"
+  if printf '%s\n' "$out" | grep -qxF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+assert_adr_reject 'ADR 상태 줄 템플릿 상태 줄 삭제 격추'      '템플릿 상태 줄'        drop_line "$C_ADR" '- **상태**: 유효'
+assert_adr_reject 'ADR 상태 줄 결정 섹션 아래 이동 격추'      '템플릿 상태 줄 위치'   move_line_after "$C_ADR" '- **상태**: 유효' '## 결정'
+assert_adr_reject 'ADR 상태 줄 템플릿 frontmatter 키 변경 격추' '템플릿 frontmatter 4키' sub_str "$C_ADR" 'related_jira:' 'jira:'
+assert_adr_reject 'ADR 상태 줄 5단계 유지 문장 삭제 격추'     '5단계 상태 줄 유지'    drop_line "$C_SKILL" '- 기존 ADR 갱신:'
+assert_adr_reject 'ADR 상태 줄 5단계 수명 주기 참조 삭제 격추' '5단계 수명 주기 참조' \
+  sub_str "$C_SKILL" '`.ai/50_adr/index.md`의 `## 수명 주기`에 따라' '기존 규칙에 따라'
+assert_adr_reject 'ADR 상태 줄 5단계 섹션 부재 대비 삭제 격추' '5단계 섹션 부재 대비' \
+  cut_str "$C_SKILL" ' 섹션이 없으면 기존 ADR은 옮기지 않고 내용·상태 줄·`last_harvested`도 바꾸지 않으며 새 ADR도 만들지 않는다.'
+assert_adr_reject 'ADR 상태 줄 5단계 보류 범위 축소 격추'     '5단계 섹션 부재 보류 범위' \
+  sub_str "$C_SKILL" '옮기지 않고 내용·상태 줄·`last_harvested`도 바꾸지 않으며 새 ADR도 만들지 않는다' '옮기지 않는다'
+assert_adr_reject 'ADR 상태 줄 5단계 재판정 문장 삭제 격추'   '5단계 재판정 기준 시각' \
+  cut_str "$C_SKILL" ' 다음 증분 수집에서 같은 소스는 이 ADR의 `last_harvested` 이후 변경분부터 다시 판정한다.'
+assert_adr_reject 'ADR 상태 줄 5단계 재판정 기준 시각 변경 격추' '5단계 재판정 기준 시각' \
+  sub_str "$C_SKILL" '이 ADR의 `last_harvested` 이후 변경분부터 다시 판정한다' '최신 문서의 `last_harvested` 이후 변경분부터 판정한다'
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 

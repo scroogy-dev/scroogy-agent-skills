@@ -61,7 +61,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── references/             # 구버전 마이그레이션 참조 문서
 │   ├── scripts/                # update-4 멱등 보강 검사 헬퍼 (check-context.sh)
 │   ├── templates/              # 프로파일별 템플릿 (원장 index 골격·항목 템플릿 포함)
-│   └── tests/                  # 검사 헬퍼 테스트 + update-4 멱등 보강 fixture (배포 제외)
+│   └── tests/                  # 검사 헬퍼 테스트·문서 구조 검사 + update-3 파일 정리·update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 │   ├── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
 │   ├── scripts/                # 로비 형식·분량 검사 헬퍼 (check-lobby.sh)
@@ -71,7 +71,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   └── tests/                  # 원본 문서 색인 절차·0단계 골격 판정 구조 검사 + 모의 실행 fixture (배포 제외)
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
 │   ├── templates/              # 30_contract, 40_domain, 50_adr 템플릿
-│   └── tests/                  # 수집 필터 구조 검사 + 모의 실행 fixture (배포 제외)
+│   └── tests/                  # 수집 필터·ADR 상태 줄 구조 검사 + 모의 실행 fixture (배포 제외)
 ├── context-save/               # 대화 맥락 임시 저장 스킬
 │   └── templates/              # 노트 템플릿
 ├── git-commit/                 # 커밋 메시지 작성 스킬

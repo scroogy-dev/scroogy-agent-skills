@@ -18,7 +18,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 
 | 번호 | 제목 | 유형 | 위험도 | 상태 | 재검토 조건 |
 |------|------|------|--------|------|-------------|
-| [K-0001](active/K-0001-update3-fixture-absent.md) | ai-workspace update-3 "기존 파일 정리"에 회귀 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | update-3 이동 판단 기준·루트 상주 파일 제외 규칙 재수정 시, 또는 update-3 전체 fixture 도입 착수 시 |
+| [K-0001](archive/K-0001-update3-fixture-absent.md) | ai-workspace update-3 "기존 파일 정리"에 회귀 fixture가 없다 | 기술부채 | 낮음(LOW) | 해소(PR #124) | - |
 | [K-0002](active/K-0002-audit-axis-tiebreak-absent.md) | issue-audit 영향·발생확률 축에 경계 판정 우선 규칙이 없다 | 기술부채 | 낮음(LOW) | 수용 | 교차모델 audit 2회 이상에서 같은 발견의 축 판정이 갈린 사례 관측 시, 또는 위험도 분류 소절의 축 값·정의·매트릭스 실질 변경 시 |
 | [K-0003](active/K-0003-approved-file-content-unverified.md) | 승인한 제목·본문 파일의 내용 동일성이 제출 직전에 검증되지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 3·4단계 승인 게이트의 승인 대상·검증 값·절차 순서 실질 변경 시, 또는 승인 후 파일 변조로 미승인 내용이 게시된 사례 관측 시 |
 | [K-0004](active/K-0004-clear-preserve-destination-mismatch.md) | --clear 5단계 보존 목적지가 파일명의 이슈 번호를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | issue-work --clear 5단계 보존 목적지를 정하는 문장 실질 변경 시, 또는 이전 이슈 PR 파일이 다른 이슈 archive로 이관된 사례 관측 시 |
@@ -33,6 +33,8 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0013](active/K-0013-issue-work-pr-lookup-fork-same-branch.md) | issue-work 원장 해소 기재의 PR 조회가 head 저장소를 대조하지 않아 같은 브랜치명의 포크 PR을 고를 수 있다 | known issue | 낮음(LOW) | 수용 | issue-work 이슈 완료 시 원장 해소 기재의 PR 유무 확인 절차 실질 변경 시, 또는 포크 PR 유입이나 원장 `해소(PR #N)`에 다른 저장소 PR 번호가 적힌 사례 관측 시 |
 | [K-0014](active/K-0014-publishing-skill-deferred.md) | 퍼블리싱 실행·기록과 위키 직접 수정 탐지가 스킬 범위 밖이라 프롬프트로만 수행된다 | 기술부채 | 중간(MEDIUM) | 수용 | 퍼블리싱을 스킬로 만들기로 결정할 때, 또는 위키 직접 수정이 SSoT(원본 문서)와 어긋난 사례 관측 시 |
 | [K-0015](active/K-0015-ssot-declaration-silent-fallback.md) | SSoT 선언이 표준 값이 아니면 선언을 읽는 스킬이 경고 없이 소스 코드로 폴백한다 | known issue | 낮음(LOW) | 수용 | 선언이 깨져 원본 문서 repo가 소스 코드로 폴백한 사례 관측 시, 또는 선언 읽기 표준 문장(8곳 복제) 변경 시 |
+| [K-0016](active/K-0016-git-pr-adr-sync-check-absent.md) | git-pr 문서 동기화 점검이 변경과 ADR 결정의 어긋남을 대조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | ADR 결정과 어긋난 변경이 머지된 사례 관측 시, 또는 git-pr 문서 동기화 점검 표의 행 실질 변경 시 |
+| [K-0017](active/K-0017-adr-link-helper-absent.md) | ADR을 superseded/로 옮긴 뒤 끊긴 링크를 결정적 헬퍼로 검사하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 첫 `superseded/` 이동에서 링크 갱신 누락 관측 시, 또는 ADR index `## 수명 주기`의 들어오는 링크 갱신 행 실질 변경 시 |
 
 ## 수명 주기
 

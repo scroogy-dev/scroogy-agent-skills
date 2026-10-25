@@ -216,7 +216,7 @@ rm -rf .ai/20_templates/*
 |---------|---------|
 | `40_domain/` | 파일명·내용이 기능 명세이면 `specs/`, 정책이면 `policies/local/`로 이동 |
 | `40_domain/policies/` | `policies/` 바로 아래에 파일이 있으면 `policies/local/`로 이동 |
-| `50_adr/` | `superseded`, `deprecated`, `replaced` 등의 키워드가 있으면 `superseded/`, 아니면 `active/`로 이동 |
+| `50_adr/` | ADR의 `- **상태**:` 값이 `대체(ADR <번호>)`·`폐기(이슈 #N)`이면 `superseded/`, `유효`이거나 상태 줄이 없으면 `active/`로 이동 |
 | `70_ledger/` | 항목의 `- **상태**:` 값이 `승격`·`해소`이면 `archive/`, 아니면 `active/`로 이동 |
 | `90_issues/` | 모든 Task 체크박스가 완료되었거나 완료 표시가 있으면 `archive/`, 아니면 `active/`로 이동 |
 
