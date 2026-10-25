@@ -754,6 +754,58 @@ else
   ng "update-3 fixture: README를 찾을 수 없습니다 — $U3_FIX/README.md"
 fi
 
+# --- context-loading 제약 문장 ---------------------------------------------------
+#
+# 1순위 규칙 문서의 "정책·ADR은 코드와 동등한 제약" 문장이 ADR index 수명 주기의 `superseded/` 읽기 규칙과
+# 어긋나지 않게 `50_adr/superseded/` 제외를 담는지 본다 (#121). `context-loading.md`는 update-1이 항상 덮어쓰는
+# 파일이라 이 저장소 사본(`.ai/10_rules/context-loading.md`)은 템플릿과 바이트 단위로 같아야 한다 (파일이 없으면 건너뛴다).
+
+CTX_TPL="$TPL_DIR/shared/.ai/10_rules/context-loading.md"
+REPO_CTX="$HERE/../../.ai/10_rules/context-loading.md"
+
+# ctx_violations <템플릿> [<사본>] — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
+ctx_violations() {
+  local l
+  l="$(grep -F '정책·ADR은 코드와 동등한 제약' "$1")"
+  { [ "$(printf '%s\n' "$l" | grep -c .)" -eq 1 ] && printf '%s' "$l" | grep -qF '`50_adr/superseded/`'; } || echo '제약 문장'
+  [ -z "${2:-}" ] || cmp -s "$1" "$2" || echo '사본 불일치'
+}
+
+C_CTX="$TMP/context-loading.md"
+C_CTX_COPY="$TMP/context-loading-copy.md"
+
+# assert_ctx_reject <설명> <위반 행> <변형 명령...> — 템플릿 사본과 사본 자리(템플릿 복제)를 만든 뒤 변형한다.
+assert_ctx_reject() {
+  local desc="$1" want="$2" out; shift 2
+  cp "$CTX_TPL" "$C_CTX"; cp "$CTX_TPL" "$C_CTX_COPY"
+  "$@" || { ng "$desc — 변형 실패"; return; }
+  out="$(ctx_violations "$C_CTX" "$C_CTX_COPY")"
+  if printf '%s\n' "$out" | grep -qxF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+if [ -r "$CTX_TPL" ]; then
+  if [ -r "$REPO_CTX" ]; then
+    desc='context-loading 제약 문장·저장소 사본 일치 통과'; out="$(ctx_violations "$CTX_TPL" "$REPO_CTX")"
+  else
+    desc='context-loading 제약 문장(저장소 사본 없음, 대조 건너뜀) 통과'; out="$(ctx_violations "$CTX_TPL")"
+  fi
+  if [ -z "$out" ]; then
+    ok "$desc"
+  else
+    ng "$desc — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+  assert_ctx_reject 'context-loading 제약 superseded 제외 삭제 격추' '제약 문장' \
+    cut_str "$C_CTX" ' 단, `50_adr/superseded/`의 ADR은 제약으로 쓰지 않고 이력 확인에만 읽는다.'
+  assert_ctx_reject 'context-loading 제약 사본 불일치 격추' '사본 불일치' \
+    sub_str "$C_CTX_COPY" '이력 확인에만 읽는다.' '이력 확인에만 읽는다. 사본에만 있는 문장이다.'
+else
+  ng "context-loading 제약: 템플릿을 찾을 수 없습니다 — $CTX_TPL"
+fi
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
