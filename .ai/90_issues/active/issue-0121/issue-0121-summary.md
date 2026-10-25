@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 4 — context-harvest ADR 상태 줄 반영
+> ▶️ 다음 작업: Task 5 — context-loading 제약 문장에 superseded 제외
 
 ## 모델 기록
 
@@ -167,14 +167,17 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 4: context-harvest ADR 상태 줄 반영
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `context-harvest/templates/50_adr-template.md` 제목 다음에 `- **상태**: 유효`를 두고, 그다음 행에 값과 수명 주기 참조를 적은 HTML 주석을 두었다. frontmatter는 그대로다.
+  - `context-harvest/SKILL.md` 5단계 "기존 문서 갱신" 줄 아래에 `기존 ADR 갱신:`(상태 줄 유지)·`결정 변경:`(수명 주기 처리, 섹션 부재 시 보류 범위와 재판정 시점) 두 줄을 plan 문장 그대로 더했다. 6단계 예시 블록에 `결정 변경 후보` 1행을 더했다.
+  - `context-harvest/tests/run-tests.sh`에 수집 필터 검사와 분리한 `adr_violations`·`assert_adr_reject`와 변형 도구 `move_line_after`를 더하고 머리 주석 검사 범위에 ADR 상태 줄을 넣었다. 통과 1·격추 7(plan 변형 7종, 보류 범위 문장은 "이동만 보류"로 줄인 변형)이다.
+  - spec R6·R7 `[D]` 명령 출력 0건, Task 4 게이트 통과, 전체 스킬 테스트 통과(context-harvest 32건), 원장 링크 검사 0건.
+- **특이 사항**: 러너는 spec R7 인용 문구 4개만 검사한다. 같은 줄의 "새 ADR도 만들지 않는다"와 재판정 문장은 검사 대상이 아니다. Task 완료 기준의 `[QD]`(섹션 없는 index에서 첫 실행·다음 증분 수집)는 교차모델 audit 몫이라 아직 하지 않았다. Task 6에서 이 템플릿으로 ADR 0022를 만들 때 상태 줄 다음 주석은 다른 섹션 주석과 함께 지운다.
 
 ---
 
