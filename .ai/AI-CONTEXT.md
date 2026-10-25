@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-10-24
+> last updated: 2026-10-25
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -78,11 +78,11 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── scripts/                # 커밋 메시지 규격 검증 헬퍼 (validate-message.sh)
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── git-pr/                     # PR 제목/메시지 작성·제출 스킬
-│   ├── scripts/                # 제목 규격·제출 가드 헬퍼 (validate-title.sh, verify-submit.sh)
+│   ├── scripts/                # 제목 규격·제출 가드·원장 링크 검사 헬퍼 (validate-title.sh, verify-submit.sh, check-ledger-links.sh)
 │   ├── templates/              # PR 본문 템플릿
 │   └── tests/                  # 헬퍼 테스트 (배포 제외)
 ├── git-pr-feedback/            # PR 리뷰 코멘트 검토·대응 스킬
-│   ├── scripts/                # push 직전 가드 헬퍼 (verify-push.sh)
+│   ├── scripts/                # push 직전 가드·원장 링크 검사 헬퍼 (verify-push.sh, check-ledger-links.sh)
 │   └── tests/                  # 가드 헬퍼 테스트 (배포 제외)
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
 │   └── templates/              # QA 체크리스트 템플릿
@@ -106,7 +106,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── templates/              # 감사 리포트 템플릿
 │   └── tests/                  # 헬퍼 테스트 (배포 제외)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
-│   ├── scripts/                # --clear 완료·경로 검사와 지표 집계 헬퍼 (check-clear.sh, summarize-metrics.sh)
+│   ├── scripts/                # --clear 완료·경로 검사, 지표 집계, 원장 링크 검사 헬퍼 (check-clear.sh, summarize-metrics.sh, check-ledger-links.sh)
 │   ├── templates/              # 이슈 템플릿
 │   └── tests/                  # 헬퍼 테스트 + plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
 ├── readme-sync/                # README.md 생성/갱신 스킬

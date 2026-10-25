@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-09
-source_hash: 5ab2b67
+last_synced: 2026-10-25
+source_hash: bd9a683
 status: current
 ---
 
@@ -22,6 +22,8 @@ git-pr-feedback/SKILL.md
 ├── 사용자 선택·승인 게이트 (생략 불가)
 │   ├── 항목별 선택        # 코드 수정 / 답글 / 보류 / 수용(원장 등재)
 │   └── 기존 원장 항목 종결   # 코드 수정으로 원인이 사라진 K 항목을 해소로
+│       └── 들어오는 링크 갱신   # archive/로 옮긴 항목을 가리키는 .ai/ 링크(같은 디렉토리 원장 링크 포함, 90_issues/archive/ 제외)를 새 경로로
+│           └── scripts/check-ledger-links.sh '.ai'   # 끊긴 원장 링크 1행씩·exit 1, 이동과 무관한 기존 끊김은 목록으로 알리고 질의
 └── 조치 실행
     ├── 코드 수정
     │   ├── scripts/verify-push.sh --normalize <URL>
@@ -39,5 +41,5 @@ git-pr-feedback/SKILL.md
 - 원장 형식은 ai-workspace가 배포하는 `.ai/70_ledger/ledger-entry-template.md`이며 issue-work `--response`와 공유한다. 등재 주체가 둘이라 어느 스킬에도 두지 않는다(ai-workspace SKILL.md `## 이 구조와 함께 사용 가능한 skill`).
 - 계약: [GitHub 연동 수단](../../30_contract/github-integration.md)(gh 기본·MCP 폴백, `--repo`·`--hostname`, resolve 스키마 필수 입력, push URL 1개 규칙). 명세: [PR 리뷰 코멘트 대응 요건](../../40_domain/specs/git-pr-feedback.md).
 - 정책: [외부 공개 행위 승인 게이트](../../40_domain/policies/local/external-action-approval-gate.md)(답글·resolve·push 승인, 승인 값 불변 보관·재대조, userinfo 제거). 별도 스킬로 둔 결정과 의견 유형 5종은 [ADR 0012](../../50_adr/active/0012-git-pr-feedback-separate-skill.md).
-- 원장 등재·종결 규칙과 소비자 상태 행렬은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md).
+- 원장 등재·종결 규칙과 소비자 상태 행렬은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md). 종결로 옮긴 뒤 들어오는 링크 갱신과 끊긴 원장 링크 검사 헬퍼는 [ADR 0021](../../50_adr/active/0021-ledger-archive-move-link-update.md).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
