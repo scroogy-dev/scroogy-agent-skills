@@ -492,6 +492,131 @@ assert_usage_error '읽을 수 없는 파일'  "$TMP/absent.md"
 assert_usage_error '알 수 없는 옵션'    --profile dev "$BASE"
 assert_usage_error '파일 중복'         "$BASE" "$BASE"
 
+# --- 문서 변형 도구 ---------------------------------------------------------------
+#
+# 아래 블록들은 원본 사본에 변형 하나를 적용하고 그 규칙의 위반이 나오는지 본다 (context-harvest 러너와 같은 방식).
+# 변형 대상 문자열이 없으면 종료 코드 1로 "변형 실패"가 되어, 본문이 바뀌었는데 케이스가 헛도는 것을 막는다.
+
+# sub_str <파일> <찾을 문자열> <바꿀 문자열> — 첫 등장 하나를 바꾼다(고정 문자열 대조).
+sub_str() {
+  awk -v s="$2" -v r="$3" '
+    !done && (i = index($0, s)) { $0 = substr($0, 1, i - 1) r substr($0, i + length(s)); done = 1 }
+    { print }
+    END { exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+cut_str() { sub_str "$1" "$2" ''; }
+
+# drop_line <파일> <문자열> — 문자열을 포함한 행을 모두 지운다.
+drop_line() {
+  awk -v s="$2" 'index($0, s) { hit = 1; next } { print } END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+# drop_sec <파일> <제목 행> — 제목 행부터 다음 `## ` 전까지 지운다.
+drop_sec() {
+  awk -v h="$2" '$0 == h { f = 1; hit = 1; next } f && /^## / { f = 0 } !f { print } END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+# --- ADR index 수명 주기 ---------------------------------------------------------
+#
+# ADR을 쓰거나 고치는 쪽(이슈 작업, context-harvest)은 `50_adr/index.md`의 `## 수명 주기`에서
+# 경우별 처리·상태 줄·옮길 때 갱신 규칙을 읽는다 (#121). 라벨 행과 인용 문구는 이슈 spec이 정한 경계다.
+# 이 저장소 사본(`.ai/50_adr/index.md`)은 update가 덮어쓰지 않아 직접 고치므로 템플릿과 섹션 본문이 같은지도 본다
+# (파일이 없으면 건너뛴다).
+
+ADR_TPL="$TPL_DIR/shared/.ai/50_adr/index.md"
+REPO_ADR="$HERE/../../.ai/50_adr/index.md"
+
+# adr_sec <파일> — `## 수명 주기` 다음부터 다음 `## ` 전까지.
+adr_sec() { awk '/^## 수명 주기$/ { f = 1; next } f && /^## / { exit } f' "$1"; }
+
+# adr_line <섹션 본문> <라벨> <위반 행> <문자열...> — `- **<라벨>**:` 행이 정확히 1개이고 문자열을 모두 담는지 본다.
+adr_line() {
+  local s="$1" label="$2" bad="$3" l x; shift 3
+  l="$(printf '%s\n' "$s" | grep -E "^- \*\*$label\*\*:")"
+  [ "$(printf '%s\n' "$l" | grep -c .)" -eq 1 ] || { echo "$bad"; return; }
+  for x in "$@"; do printf '%s' "$l" | grep -qF -- "$x" || { echo "$bad"; return; }; done
+}
+
+# adr_superseded_ok <파일> — 파일 목록 `superseded/` 행이 1개이고 새 설명으로 시작하며 옛 설명이 없다.
+adr_superseded_ok() {
+  [ "$(grep -c '^| `superseded/` |' "$1")" -eq 1 ] \
+    && grep -q '^| `superseded/` | 대체·폐기된 결정' "$1" \
+    && ! grep -qF '대체된 결정 (대체한 ADR 번호를 문서 내에 명시)' "$1"
+}
+
+# adr_violations <템플릿> [<사본>] — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
+# 표는 섹션 안 유일한 표로 보고, 헤더(`| 경우 |`)를 뺀 `| ` 행이 경우 행이다. 위치는 마지막 열이다.
+adr_violations() {
+  local t="$1" c="${2:-}" s rows loc
+  [ "$(grep -c '^## 수명 주기$' "$t")" -eq 1 ] || echo '섹션 수'
+  s="$(adr_sec "$t")"
+  rows="$(printf '%s\n' "$s" | grep '^| ' | grep -v '^| 경우 |')"
+  loc="$(printf '%s\n' "$rows" | awk -F'|' 'NF > 2 { print $(NF-1) }')"
+  { [ "$(printf '%s\n' "$rows" | grep -c '^| ')" -eq 4 ] \
+    && [ "$(printf '%s\n' "$loc" | grep -c 'active/')" -eq 2 ] \
+    && [ "$(printf '%s\n' "$loc" | grep -c 'superseded/')" -eq 2 ]; } || echo '경우 행'
+  adr_line "$s" '일부 변경과 대체의 경계' '경계 행' '결정 항목이 하나라도 유효하면'
+  adr_line "$s" '상태 줄' '상태 줄 행' \
+    '`- **상태**:`' '`유효`' '`대체(ADR <번호>)`' '`폐기(이슈 #N)`' '상태 줄이 없는 ADR은 `유효`로 봅니다'
+  adr_line "$s" '대체·폐기된 ADR 읽기' '읽기 행' '제약으로 쓰지 않고 이력을 확인할 때만 읽습니다'
+  adr_line "$s" '옮길 때 index 갱신' 'index 갱신 행' '`superseded/` 행 아래로'
+  adr_line "$s" '들어오는 링크 갱신' '링크 갱신 행' \
+    '`50_adr/active/<파일>`' '(`.ai/90_issues/archive/` 제외)' '상대 경로 깊이는 링크가 있는 문서 위치에서 다시 계산합니다' '파일명으로'
+  printf '%s\n' "$s" | grep -E '^- \*\*들어오는 링크 갱신\*\*:' | grep -qE 'check-ledger-links|K-<번호>' \
+    && echo '링크 갱신 원장 표기'
+  adr_superseded_ok "$t" || echo 'superseded 설명'
+  if [ -n "$c" ]; then
+    { [ "$(grep -c '^## 수명 주기$' "$c")" -eq 1 ] && [ "$s" = "$(adr_sec "$c")" ]; } || echo '사본 섹션 불일치'
+    adr_superseded_ok "$c" || echo '사본 superseded 설명'
+  fi
+}
+
+# assert_adr_reject <설명> <위반 행> <변형 명령...> — 템플릿 사본과 사본 자리(템플릿 복제)를 만든 뒤 변형한다.
+mkdir -p "$TMP/adr"
+C_ADR="$TMP/adr/index.md"
+C_ADR_COPY="$TMP/adr/copy.md"
+assert_adr_reject() {
+  local desc="$1" want="$2" out; shift 2
+  cp "$ADR_TPL" "$C_ADR"; cp "$ADR_TPL" "$C_ADR_COPY"
+  "$@" || { ng "$desc — 변형 실패"; return; }
+  out="$(adr_violations "$C_ADR" "$C_ADR_COPY")"
+  if printf '%s\n' "$out" | grep -qxF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+if [ -r "$ADR_TPL" ]; then
+  if [ -r "$REPO_ADR" ]; then
+    desc='ADR 수명 주기 템플릿 규칙·저장소 사본 일치 통과'; out="$(adr_violations "$ADR_TPL" "$REPO_ADR")"
+  else
+    desc='ADR 수명 주기 템플릿 규칙(저장소 사본 없음, 대조 건너뜀) 통과'; out="$(adr_violations "$ADR_TPL")"
+  fi
+  if [ -z "$out" ]; then
+    ok "$desc"
+  else
+    ng "$desc — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+  assert_adr_reject 'ADR 수명 주기 섹션 삭제 격추'           '섹션 수'       drop_sec "$C_ADR" '## 수명 주기'
+  assert_adr_reject 'ADR 수명 주기 경우 행 삭제 격추'        '경우 행'       drop_line "$C_ADR" '| 대체 결정 없이 폐기 |'
+  assert_adr_reject 'ADR 수명 주기 경계 문구 삭제 격추'      '경계 행'       cut_str "$C_ADR" '결정 항목이 하나라도 유효하면 '
+  assert_adr_reject 'ADR 수명 주기 상태 값 변경 격추'        '상태 줄 행'    sub_str "$C_ADR" '`폐기(이슈 #N)` 중' '`폐기` 중'
+  assert_adr_reject 'ADR 수명 주기 읽기 규칙 삭제 격추'      '읽기 행'       drop_line "$C_ADR" '- **대체·폐기된 ADR 읽기**:'
+  assert_adr_reject 'ADR 수명 주기 index 갱신 행 삭제 격추'  'index 갱신 행' drop_line "$C_ADR" '- **옮길 때 index 갱신**:'
+  assert_adr_reject 'ADR 수명 주기 링크 확인 수단 변경 격추' '링크 갱신 행'  sub_str "$C_ADR" '옮긴 ADR 파일명으로' '옮긴 ADR 이름으로'
+  assert_adr_reject 'ADR 수명 주기 링크 갱신 원장 표기 원복 격추' '링크 갱신 원장 표기' \
+    sub_str "$C_ADR" '`50_adr/active/<파일>`' '`70_ledger/active/K-<번호>-`'
+  assert_adr_reject 'ADR 수명 주기 superseded 설명 원복 격추' 'superseded 설명' \
+    sub_str "$C_ADR" '대체·폐기된 결정 (상태 줄에 대체한 ADR 번호 또는 폐기 이슈 번호를 적음)' '대체된 결정 (대체한 ADR 번호를 문서 내에 명시)'
+  assert_adr_reject 'ADR 수명 주기 사본 섹션 불일치 격추'    '사본 섹션 불일치' \
+    sub_str "$C_ADR_COPY" '제자리에서 고칩니다.' '제자리에서 고칩니다. 사본에만 있는 문장입니다.'
+  assert_adr_reject 'ADR 수명 주기 사본 superseded 설명 원복 격추' '사본 superseded 설명' \
+    sub_str "$C_ADR_COPY" '대체·폐기된 결정 (상태 줄에 대체한 ADR 번호 또는 폐기 이슈 번호를 적음)' '대체된 결정 (대체한 ADR 번호를 문서 내에 명시)'
+else
+  ng "ADR 수명 주기: 템플릿을 찾을 수 없습니다 — $ADR_TPL"
+fi
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
