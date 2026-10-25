@@ -663,6 +663,97 @@ assert_u3_adr_reject 'update-3 ADR 판정 상태 줄 없음 분기 삭제 격추
   sub_str "$C_SKILL" '`유효`이거나 상태 줄이 없으면 `active/`' '`유효`이면 `active/`'
 assert_u3_adr_reject 'update-3 ADR 판정 행 삭제 격추' '판정 행 수' drop_line "$C_SKILL" '| `50_adr/` | ADR의'
 
+# --- update-3 fixture ------------------------------------------------------------
+#
+# update-3 "기존 파일 정리"는 AI가 수행하는 절차라 이동 결과는 fixtures/update3-file-cleanup/ 의
+# 입력·기대 쌍으로 [QD] 모의 실행한다 (K-0001, #121). 여기서는 README 케이스 표의 `대상 행`이
+# SKILL.md 이동 판단 기준 표의 디렉토리와 루트 상주 파일·`legacy/`를 모두 덮는지, 케이스 쌍이 빠짐없는지를 본다.
+# 판단 기준 표에 행이 늘면 대상 행 대조가 실패해 fixture를 함께 늘리게 한다.
+
+U3_FIX="$HERE/fixtures/update3-file-cleanup"
+
+# u3_dirs <SKILL.md> — 이동 판단 기준 표의 디렉토리(백틱 안) 목록.
+u3_dirs() {
+  awk '/^\*\*이동 판단 기준:\*\*/ { f = 1; next } f && /^#/ { exit } f && /^\| `/' "$1" | awk -F'`' '{ print $2 }'
+}
+# u3_cases <fixture 디렉토리> — README 케이스 표의 케이스명 목록.
+u3_cases() { awk -F'`' '/^\| `[a-z0-9-]+` \|/ { print $2 }' "$1/README.md"; }
+
+# u3_cover_violations <SKILL.md> <fixture 디렉토리> — 대상 행 열이 덮지 못한 항목을 1행씩 출력한다.
+u3_cover_violations() {
+  local dirs cov d
+  dirs="$(u3_dirs "$1")"
+  [ -n "$dirs" ] || echo '판단 기준 표 추출'
+  cov="$(awk -F'|' '/^\| `[a-z0-9-]+` \|/ { print $3 }' "$2/README.md")"
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    printf '%s\n' "$cov" | grep -qF "\`$d\`" || echo "대상 행 미포함 — $d"
+  done <<< "$dirs"
+  printf '%s\n' "$cov" | grep -qF '루트 상주 파일' || echo '대상 행 미포함 — 루트 상주 파일'
+  printf '%s\n' "$cov" | grep -qF '`legacy/`' || echo '대상 행 미포함 — legacy/'
+}
+
+# u3_pair_violations <fixture 디렉토리> — 케이스 쌍 누락과 표에 없는 파일을 1행씩 출력한다.
+u3_pair_violations() {
+  local cases c f
+  cases="$(u3_cases "$1")"
+  [ -n "$cases" ] || echo '케이스 표 추출'
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    { [ -r "$1/$c.input.md" ] && [ -r "$1/$c.expected.md" ]; } || echo "쌍 없음 — $c"
+  done <<< "$cases"
+  for f in "$1"/*.input.md "$1"/*.expected.md; do
+    [ -e "$f" ] || continue
+    c="$(basename "$f")"; c="${c%.input.md}"; c="${c%.expected.md}"
+    printf '%s\n' "$cases" | grep -qxF "$c" || echo "표에 없는 파일 — $(basename "$f")"
+  done
+}
+
+C_U3_FIX="$TMP/u3-fix"
+
+# assert_u3_fix_reject <설명> <위반 행> <변형 명령...> — SKILL.md 사본과 fixture 디렉토리 사본을 만든 뒤 변형한다.
+assert_u3_fix_reject() {
+  local desc="$1" want="$2" out; shift 2
+  cp "$SKILL" "$C_SKILL"; rm -rf "$C_U3_FIX"; cp -R "$U3_FIX" "$C_U3_FIX"
+  "$@" || { ng "$desc — 변형 실패"; return; }
+  out="$(u3_cover_violations "$C_SKILL" "$C_U3_FIX"; u3_pair_violations "$C_U3_FIX")"
+  if printf '%s\n' "$out" | grep -qxF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+if [ -r "$U3_FIX/README.md" ]; then
+  out="$(u3_cover_violations "$SKILL" "$U3_FIX")"
+  if [ -z "$out" ]; then
+    ok 'update-3 fixture 대상 행 대조 통과'
+  else
+    ng "update-3 fixture 대상 행 대조 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+  out="$(u3_pair_violations "$U3_FIX")"
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    if printf '%s\n' "$out" | grep -qxF "쌍 없음 — $c"; then
+      ng "update-3 fixture 쌍: $c — input·expected 중 없는 파일이 있습니다"
+    else
+      ok "update-3 fixture 쌍: $c 통과"
+    fi
+  done <<< "$(u3_cases "$U3_FIX")"
+  while IFS= read -r l; do
+    [ -n "$l" ] && ng "update-3 fixture: $l"
+  done <<< "$(printf '%s\n' "$out" | grep -v '^쌍 없음 — ')"
+  assert_u3_fix_reject 'update-3 fixture 판단 기준 표 행 추가 격추' '대상 행 미포함 — 60_codebase/' \
+    sub_str "$C_SKILL" '| `70_ledger/` | 항목의' '| `60_codebase/` | 격추용 행 |\n| `70_ledger/` | 항목의'
+  assert_u3_fix_reject 'update-3 fixture 대상 행 50_adr 제거 격추' '대상 행 미포함 — 50_adr/' \
+    sub_str "$C_U3_FIX/README.md" '`50_adr/`·루트 상주 파일' '루트 상주 파일'
+  assert_u3_fix_reject 'update-3 fixture expected 파일 누락 격추' '쌍 없음 — adr' rm "$C_U3_FIX/adr.expected.md"
+  assert_u3_fix_reject 'update-3 fixture 표에 없는 파일 격추'     '표에 없는 파일 — stray.input.md' \
+    cp "$U3_FIX/adr.input.md" "$C_U3_FIX/stray.input.md"
+else
+  ng "update-3 fixture: README를 찾을 수 없습니다 — $U3_FIX/README.md"
+fi
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
