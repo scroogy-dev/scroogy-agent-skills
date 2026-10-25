@@ -10,7 +10,7 @@
 # 스킬 독립성 원칙(단독 실행·단독 설치)상 헬퍼를 공유하지 않는다.
 # 세 파일은 바이트 단위로 같고 한쪽을 고치면 나머지도 고친다.
 #
-# 검사 범위: <.ai 디렉토리> 아래 *.md 전체. 90_issues/archive/ 아래는 작성 시점 기록이라 뺀다.
+# 검사 범위: <.ai 디렉토리> 아래 *.md 전체(심볼릭 링크로 주면 그 대상). 90_issues/archive/ 아래는 작성 시점 기록이라 뺀다.
 # 대상 링크: `](<대상>)` 가운데 파일 이름이 K-<4자리 숫자>- 로 시작하는 .md 다.
 #   # 뒤 앵커는 떼고 보며, :// 가 들어간 외부 URL 은 대상이 아니다.
 #   코드 블록·코드 스팬 안의 링크 문법도 구분하지 않고 검사한다. 오탐은 호출한 쪽이 건별로 판정한다.
@@ -19,7 +19,7 @@
 #   check-ledger-links.sh [<.ai 디렉토리>]    (생략하면 .ai)
 #
 # 출력: 끊긴 링크마다 `<파일>:<줄>: <대상>` 1행. 파일 경로는 인자로 준 디렉토리 경로로 시작한다.
-# 종료 코드: 0 끊긴 링크 없음(무출력) / 1 끊긴 링크 있음 / 2 사용오류
+# 종료 코드: 0 끊긴 링크 없음(무출력) / 1 끊긴 링크 있음 / 2 사용오류·읽기 실패
 
 set -o pipefail
 
@@ -34,7 +34,9 @@ dir="${1:-.ai}"
 while [ "$dir" != / ] && [ "${dir%/}" != "$dir" ]; do dir="${dir%/}"; done
 
 # 후보: <파일>\t<줄>\t<대상> — 대상은 링크에 적힌 그대로, 경로는 앵커를 뗀 값이다.
-cands="$(find "$dir" -path "$dir/90_issues/archive" -prune -o -type f -name '*.md' -print \
+# find -H 는 인자로 준 디렉토리가 심볼릭 링크여도 그 대상을 검사한다 (하위 심볼릭 링크는 따라가지 않는다).
+# 한 파일이라도 읽지 못하면 그 자리에서 2 로 끝낸다. while 의 종료 상태는 마지막 awk 만 반영해 앞 파일의 실패가 가려진다.
+cands="$(find -H "$dir" -path "$dir/90_issues/archive" -prune -o -type f -name '*.md' -print \
   | LC_ALL=C sort \
   | while IFS= read -r f; do
       awk '
@@ -52,7 +54,7 @@ cands="$(find "$dir" -path "$dir/90_issues/archive" -prune -o -type f -name '*.m
             if (b ~ /^K-[0-9][0-9][0-9][0-9]-.*\.md$/) print FILENAME "\t" FNR "\t" t "\t" p
           }
         }
-      ' "$f"
+      ' "$f" || exit 2
     done)" || { echo "error: 검사 대상을 읽지 못했습니다 — $dir" >&2; exit 2; }
 
 broken=0

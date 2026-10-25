@@ -1166,6 +1166,40 @@ ledger_tree usage
 assert_ledger usage "원장 링크: 없는 디렉토리 사용오류 격추" '' no-such-dir
 assert_ledger usage "원장 링크: 인자 2개 사용오류 격추" '' .ai .ai
 
+# 읽기 실패 (최종 감사 F-1). while 의 종료 상태가 마지막 awk 만 반영해, 앞 파일을 읽지 못해도 뒤 파일이 정상이면 0 이 나왔다.
+# 정렬 순서로 첫·중간·마지막 위치에 읽을 수 없는 파일을 둔다. root 는 chmod 000 이어도 읽을 수 있어 읽기가 막히지 않으면 건너뛴다.
+# ledger_unreadable <이름> <.ai 기준 파일> <위치> — 기본 트리에 읽을 수 없는 파일을 두고 종료 코드 2 를 기대한다.
+ledger_unreadable() {
+  ledger_tree "$1"
+  local u="$LT/.ai/$2"
+  printf '# 읽기 차단\n' > "$u"; chmod 000 "$u"
+  if [ -r "$u" ]; then echo "skip   - 원장 링크: $3 파일 읽기 실패 (읽기를 막을 수 없는 환경)"
+  else assert_ledger usage "원장 링크: $3 파일 읽기 실패 격추" '' .ai; fi
+  chmod 644 "$u"
+}
+ledger_unreadable unreadable-first 60_codebase/a.md 첫
+ledger_unreadable unreadable-mid   70_ledger/a.md   중간
+ledger_unreadable unreadable-last  z.md             마지막
+
+# 심볼릭 링크 루트 (최종 감사 F-2). find 가 명령행의 심볼릭 링크를 따라가지 않아 후보 0개로 통과했다.
+# ledger_symlink <이름> — 기본 트리의 .ai 를 real-ai 로 옮기고 .ai 를 그 심볼릭 링크로 둔다.
+ledger_symlink() {
+  ledger_tree "$1"
+  mv "$LT/.ai" "$LT/real-ai" && ln -s real-ai "$LT/.ai"
+}
+
+ledger_symlink symlink-ok
+mkdir -p "$LT/real-ai/90_issues/archive/issue-0001"
+printf '[K-0001](../../../70_ledger/active/K-0001-a.md)\n' > "$LT/real-ai/90_issues/archive/issue-0001/r.md"
+assert_ledger pass "원장 링크: 심볼릭 링크 루트의 고친 트리 통과 (90_issues/archive 옛 경로·인자 생략)" ''
+
+ledger_symlink symlink-old
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/real-ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: 심볼릭 링크 루트의 옛 경로 격추 (.ai)" \
+  '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' .ai
+assert_ledger fail "원장 링크: 심볼릭 링크 루트의 옛 경로 격추 (.ai/)" \
+  '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' .ai/
+
 # --- 링크 갱신 규칙 (issue #120) --------------------------------------------------
 #
 # 원장 항목을 archive/ 로 옮긴 뒤의 링크 갱신은 SKILL.md `## 이슈 완료 시` 3단계 원장 해소 기재의 정의 행
