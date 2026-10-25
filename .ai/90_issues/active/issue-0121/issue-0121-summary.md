@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — update-3 ADR 판정을 상태 줄로 변경
+> ▶️ 다음 작업: Task 3 — update-3 회귀 fixture 도입 (K-0001)
 
 ## 모델 기록
 
@@ -136,14 +136,16 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 2: update-3 ADR 판정을 상태 줄로 변경
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `ai-workspace/SKILL.md` `**이동 판단 기준:**` 표의 `50_adr/` 행을 plan 문장 그대로 상태 줄 판정으로 바꿨다(`대체(ADR <번호>)`·`폐기(이슈 #N)`이면 `superseded/`, `유효`이거나 상태 줄이 없으면 `active/`).
+  - `ai-workspace/tests/run-tests.sh`에 `update-3 ADR 판정` 블록을 더했다. 통과 1·격추 3(키워드 판정 원복, 상태 줄 없음 분기 삭제, 판정 행 삭제)이다.
+  - spec R5 `[D]` 명령 출력 0건, Task 2 게이트 통과, 전체 스킬 테스트 통과(ai-workspace 73건).
+- **특이 사항**: SKILL.md 밖에서 `deprecated`·`replaced`가 남은 곳은 `ai-workspace-directory/references/ssot-checklist.md` 1행이며, 정의되지 않은 상태 값 예시라 이번 판정과 무관하다. 도메인 명세·호출 흐름의 키워드 판정 서술은 Task 7에서 고친다.
 
 ---
 
