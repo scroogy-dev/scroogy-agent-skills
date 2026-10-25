@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -33,7 +33,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명 (모델 ID). 마지막 교차모델 audit Task에서 사용자가 기록 --> | <!-- 최종 감사 리포트의 감사 effort 줄 값. 사용자가 기록. 확인 불가면 - --> |
+| 최종 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 
 - **계획 감사**: 수행 · 발견 1건 · 보정 1건
 
@@ -230,6 +230,6 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 수행 effort도 같은 행의 `effort` 열이 SSoT다.
 -->
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: spec `완료의 정의`의 bash 검증 블록 23개를 다시 실행했고 모두 무출력·종료 코드 0이다. 최종 감사는 2회 수행했다. [1차 리포트](./issue-0120-audit-report-1.md)는 조건부 적합(CONDITIONAL)이며 R6·R6-2 부분 충족(PARTIAL) 근거인 중간(MEDIUM) 2건을 냈다. F-1은 읽기 실패에도 성공을 반환한 문제, F-2는 심볼릭 링크 검사 루트에서 성공을 반환한 문제다. `--response`에서 2건 모두 반영을 승인받아 보정했고 Task 1에 귀속했다. [2차 리포트](./issue-0120-audit-report.md)는 적합(PASS)이며 신규 발견 0건, F-1·F-2 닫힘이다. 2차 `--response` 검토에서 보정 대상은 없었다.
+- **특이 사항**: Task 0~8의 `수행 모델`은 모두 Anthropic이라 감사 벤더 OpenAI와 겹치지 않는다. 두 회차 모두 감사 effort는 high다.
