@@ -617,6 +617,52 @@ else
   ng "ADR 수명 주기: 템플릿을 찾을 수 없습니다 — $ADR_TPL"
 fi
 
+# --- update-3 ADR 판정 -----------------------------------------------------------
+#
+# update-3 "기존 파일 정리"는 `50_adr/` 루트 파일을 상태 줄 값으로 나눈다 (#121).
+# 본문 키워드 판정은 유효한 ADR(0007·0018 등)도 `superseded/`로 옮기므로 키워드 어휘가 남지 않았는지도 본다.
+# 같은 파일의 하위 디렉토리 구조 표에도 `` | `50_adr/` | `` 행이 있어 `**이동 판단 기준:**` 뒤에서만 찾는다.
+
+# u3_adr_violations <SKILL.md> — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
+u3_adr_violations() {
+  local row x
+  row="$(awk '/^\*\*이동 판단 기준:\*\*/ { f = 1; next } f && /^#/ { exit } f && /^\| `50_adr\/` \|/' "$1")"
+  [ "$(printf '%s\n' "$row" | grep -c .)" -eq 1 ] || echo '판정 행 수'
+  for x in '`- **상태**:`' '`대체(ADR <번호>)`' '`폐기(이슈 #N)`' '`superseded/`' '상태 줄이 없으면 `active/`'; do
+    printf '%s' "$row" | grep -qF -- "$x" || { echo '판정 행 문구'; break; }
+  done
+  grep -qE 'deprecated|replaced' "$1" && echo '키워드 어휘'
+}
+
+mkdir -p "$TMP/skill"
+C_SKILL="$TMP/skill/SKILL.md"
+
+# assert_u3_adr_reject <설명> <위반 행> <변형 명령...>
+assert_u3_adr_reject() {
+  local desc="$1" want="$2" out; shift 2
+  cp "$SKILL" "$C_SKILL"
+  "$@" || { ng "$desc — 변형 실패"; return; }
+  out="$(u3_adr_violations "$C_SKILL")"
+  if printf '%s\n' "$out" | grep -qxF "$want"; then
+    ok "$desc"
+  else
+    ng "$desc — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+out="$(u3_adr_violations "$SKILL")"
+if [ -z "$out" ]; then
+  ok 'update-3 ADR 판정 상태 줄 기준 통과'
+else
+  ng "update-3 ADR 판정 상태 줄 기준 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+assert_u3_adr_reject 'update-3 ADR 판정 키워드 판정 원복 격추' '키워드 어휘' \
+  sub_str "$C_SKILL" 'ADR의 `- **상태**:` 값이 `대체(ADR <번호>)`·`폐기(이슈 #N)`이면 `superseded/`, `유효`이거나 상태 줄이 없으면 `active/`로 이동' \
+  '`superseded`, `deprecated`, `replaced` 등의 키워드가 있으면 `superseded/`, 아니면 `active/`로 이동'
+assert_u3_adr_reject 'update-3 ADR 판정 상태 줄 없음 분기 삭제 격추' '판정 행 문구' \
+  sub_str "$C_SKILL" '`유효`이거나 상태 줄이 없으면 `active/`' '`유효`이면 `active/`'
+assert_u3_adr_reject 'update-3 ADR 판정 행 삭제 격추' '판정 행 수' drop_line "$C_SKILL" '| `50_adr/` | ADR의'
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
