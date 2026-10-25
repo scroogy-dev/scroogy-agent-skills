@@ -29,6 +29,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 ADR만 선택적으로 �
 | `active/0019-test-perspectives-and-task-level-placement.md` | 테스트 관점 구분(spec DoD `[D]`는 외부 경계의 인수 테스트, 구현 테스트는 plan Task), Task별 테스트 배치와 러너형 테스트 `[D]`, 최종 감사 관점 5 Task별 테스트 기준·1단계 `[D]` 실제 실행 |
 | `active/0020-doc-ssot-original-documents-and-publishing-deferred.md` | doc SSoT는 `ssot_dir`의 원본 문서(위키 원본·page ID 추적 기각), 퍼블리싱은 스킬 범위 밖(재검토 K-0014), `.md` 대상·문서 규약 파일·로비와 건물 repo 선언·doc 카테고리·보류 항목 등재 |
 | `active/0021-ledger-archive-move-link-update.md` | 원장 항목 archive 이동 시 들어오는 링크 갱신(`.ai/` 아래, `90_issues/archive/` 제외, 같은 디렉토리 링크 포함·깊이 재계산), 적용 지점 5곳·스킬별 정의 1곳, 끊긴 원장 링크 검사 헬퍼 `check-ledger-links.sh` 사본 3개, ADR 0018 유지, #121 복제 |
+| `active/0022-adr-lifecycle-status-and-superseded-move.md` | ADR 수명 주기(일부 변경·대체·폐기)를 index에 두고 경계는 결정 섹션, 상태 줄(`유효`·`대체`·`폐기`, 없으면 유효)과 `superseded/` 제약 제외(context-loading 명시), 이동 시 index 행·들어오는 링크 갱신(0021 복제, 파일명 검색 확인·헬퍼 보류), update-3 상태 줄 판정·회귀 fixture(K-0001 해소), context-harvest 상태 줄 유지·섹션 부재 보류 |
 | `superseded/` | 대체·폐기된 결정 (상태 줄에 대체한 ADR 번호 또는 폐기 이슈 번호를 적음) |
 | (문서를 추가하면 이 목록에 함께 기재하세요) | |
 
