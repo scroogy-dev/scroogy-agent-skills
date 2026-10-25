@@ -50,6 +50,8 @@ violations() {
   s="$(sec "$skill" '### SSoT 원칙 유지')"
   has "$s" '`AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따른다' || echo '선언 위치'
   has "$s" '그 외 값은 선언으로 보지 않는다' || echo '허용 값'
+  has "$s" '`원본 문서`(`## 프로젝트 도메인` 표 `ssot_dir` 아래 `.md` 파일.' || echo '원본 문서 .md 정의'
+  has "$s" '다른 확장자·첨부의 분류는 repo 문서 규약 파일(`.ai/10_rules/document-convention.md`)이 정한다' || echo '문서 규약 위임'
   has "$s" '선언을 찾지 못하면 소스 코드를 SSoT로 본다' || echo '선언 부재 폴백'
   has "$s" '선언이 원본 문서이면 `ssot_dir` 아래 문서에 반영된 사실이 대상이다' || echo '원본 문서 수집 대상'
   has "$s" 'SSoT에 대응하지 않는 정보(기각된 제안, 미구현 요청 등)는 수집하지 않는다' || echo '대응하지 않는 정보 제외'
@@ -61,6 +63,10 @@ violations() {
   s="$(sec "$skill" '### 4단계: 증류 및 분류')"
   has "$s" 'SSoT 선언이 원본 문서이면 40_domain 문서의 `근거 출처` 섹션' || echo '4단계 근거 출처 채움'
   has "$s" '소스 코드가 SSoT이면 이 섹션을 지운다' || echo '4단계 근거 출처 삭제'
+
+  has "$(sec "$skill" '### 6단계: 결과 보고')" \
+    '건물 리포(`.ai/60_codebase/repository.yaml` 존재)에서는 마지막 줄 다음 단계로 `/code-map --local sync`를 권하지 않고 `/code-map --global sync`를 안내한다.' \
+    || echo '6단계 건물 리포 다음 단계'
 
   [ "$(grep -c '^## 근거 출처$' "$tpl")" -eq 1 ] || echo '템플릿 근거 출처 섹션'
   a="$(grep -n '^## 근거 출처$' "$tpl" | head -1 | cut -d: -f1)"
@@ -133,6 +139,9 @@ assert_reject() {
 assert_reject '선언 위치 원복 격추'          '선언 위치' \
   sub_str "$C_SKILL" 'SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따른다.' 'SSoT는 소스코드이다.'
 assert_reject '허용 값 문장 삭제 격추'        '허용 값'                 cut_str "$C_SKILL" ' 그 외 값은 선언으로 보지 않는다'
+assert_reject '원본 문서 .md 정의 원복 격추'  '원본 문서 .md 정의'      sub_str "$C_SKILL" '`ssot_dir` 아래 `.md` 파일.' '`ssot_dir` 아래 문서 파일.'
+assert_reject '문서 규약 위임 삭제 격추'      '문서 규약 위임' \
+  cut_str "$C_SKILL" ' 다른 확장자·첨부의 분류는 repo 문서 규약 파일(`.ai/10_rules/document-convention.md`)이 정한다'
 assert_reject '선언 부재 폴백 삭제 격추'      '선언 부재 폴백'          cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
 assert_reject '원본 문서 수집 대상 삭제 격추' '원본 문서 수집 대상' \
   cut_str "$C_SKILL" ' 선언이 원본 문서이면 `ssot_dir` 아래 문서에 반영된 사실이 대상이다.'
@@ -147,6 +156,7 @@ assert_reject '수집 제외 표 퍼블리싱 행 삭제 격추' '수집 제외 
 assert_reject '4단계 근거 출처 조건 삭제 격추' '4단계 근거 출처 채움' \
   sub_str "$C_SKILL" 'SSoT 선언이 원본 문서이면 40_domain 문서의 `근거 출처` 섹션' '40_domain 문서의 `근거 출처` 섹션'
 assert_reject '4단계 근거 출처 삭제 분기 삭제 격추' '4단계 근거 출처 삭제' cut_str "$C_SKILL" ' 소스 코드가 SSoT이면 이 섹션을 지운다.'
+assert_reject '6단계 건물 리포 분기 삭제 격추'  '6단계 건물 리포 다음 단계' drop_line "$C_SKILL" '건물 리포(`.ai/60_codebase/repository.yaml` 존재)에서는'
 assert_reject '템플릿 근거 출처 섹션 삭제 격추' '템플릿 근거 출처 섹션'   drop_line "$C_TPL" '## 근거 출처'
 assert_reject '템플릿 근거 출처 위치 이동 격추' '템플릿 근거 출처 위치'   move_sec_end "$C_TPL" '## 근거 출처'
 assert_reject '템플릿 근거 출처 열 축소 격추'   '템플릿 근거 출처 4열' \

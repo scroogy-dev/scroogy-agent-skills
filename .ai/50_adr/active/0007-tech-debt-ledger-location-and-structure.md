@@ -14,7 +14,7 @@ last_harvested: 2026-09-09
 - 출처는 식별자만 적는다(이슈 #N / audit 발견 F-n / PR 코멘트 스레드). 파일 경로를 넣지 않는다.
 - 번호는 `active/`·`archive/`를 합쳐 최대 번호 + 1로 채번한다.
 - index 골격은 ai-workspace가 단독 소유·배포하고, 항목 템플릿은 원장 데이터 옆(`.ai/70_ledger/ledger-entry-template.md`)에 두어 원장 골격과 함께 배포한다.
-- 소비자는 issue-audit(기등재 대조·집계 제외·재검토 조건 충족 시 재제기), issue-work `--response`(미승인 항목 이관 목적지), git-pr-feedback(`수용 — 원장 등재` 선택지) 세 곳이다. 신규 스킬은 만들지 않는다. 재검토·종결 계기는 git-pr 문서 동기화 점검의 원장 대조와 issue-work 새 이슈 시작의 함께 해소 후보로 확장했다 ([ADR 0018](./0018-ledger-proactive-review-and-resolve-timing.md)).
+- 소비자는 issue-audit(기등재 대조·집계 제외·재검토 조건 충족 시 재제기), issue-work `--response`(미승인 항목 이관 목적지), git-pr-feedback(`수용 — 원장 등재` 선택지) 세 곳이다. 신규 스킬은 만들지 않는다. 재검토·종결 계기는 git-pr 문서 동기화 점검의 원장 대조와 issue-work 새 이슈 시작의 함께 해소 후보로 확장했다 ([ADR 0018](./0018-ledger-proactive-review-and-resolve-timing.md)). issue-work는 이슈 완료 시 spec 제외 `보류` 항목을 승인받아 등재하는 경로도 가진다 (#118).
 - 소비자 두 곳은 같은 상태 행렬을 본다. `active/수용`만 억제 대상이고, `archive/해소` 재발과 `승격` 연결 이슈 닫힘은 `K-n 재발` 계보의 신규 발견이다. 확인 수단이 없으면 `승격` 항목은 참조 처리를 유지한다.
 - 종결(해소)은 재검토 조건 충족 여부·등재 선택과 독립이다. 원인이 사라진 항목은 조건 미충족이어도 종결한다.
 - git-review는 연계 범위 밖이다.
@@ -57,6 +57,7 @@ last_harvested: 2026-09-09
 - [Issue #61 기술부채·known issue 원장 도입](https://github.com/scroogy-dev/scroogy-agent-skills/issues/61)
 - [Issue #62 issue-audit 심각도 체계 개선 (낮음 등급 이관 목적지)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/62)
 - [Issue #80 git 스킬 3종 templates/ 분리 (원장 템플릿 위치 근거)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/80)
+- [Issue #118 doc 프로파일 운영 보강: 보류 항목 원장 등재 경로](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
 - 수명 주기·상태별 처리 표: [`.ai/70_ledger/index.md`](../../70_ledger/index.md)
 
 </details>

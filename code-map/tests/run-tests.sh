@@ -9,6 +9,7 @@
 # 절차를 입력에 적용한 결과(어떤 행을 만들고 지우며 Why 태깅을 어디에 남기는지)는
 # fixtures/doc-index/ 의 입력·기대 쌍으로 [QD] 모의 실행한다. 여기서는 그 쌍이 빠짐없이 있는지만 본다.
 # local.md·global.md(소스 코드·건물 색인 절차)는 0단계 골격 판정 문장만 같은 방식으로 검사한다 (#116).
+# 건물 리포 규칙(SKILL.md 의 `--local` 중단, global.md 의 선언 규칙·SSoT 종류 분류·호출 식별 제외)도 같은 방식으로 본다 (#118).
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -56,7 +57,12 @@ violations() {
   s="$(sec "$doc" '## 트리거 조건')"
   has "$s" '선언 값이 `원본 문서`일 때' || echo '트리거 원본 문서'
   has "$s" '선언 값이 `소스 코드`이거나 선언을 찾지 못하면 이 파일 대신 [local.md](local.md)를 따른다' || echo '트리거 폴백'
-  sec "$doc" '## 파일 구조' | grep -qE '^ssot_dir: ' || echo 'frontmatter ssot_dir 키'
+  s="$(sec "$doc" '## 파일 구조')"
+  printf '%s\n' "$s" | grep -qE '^ssot_dir: ' || echo 'frontmatter ssot_dir 키'
+  printf '%s\n' "$s" | grep -qE '^- 색인 대상은 .*`ssot_dir` 행에 적힌 디렉토리.* 아래 `\.md` 파일이다\.$' || echo '색인 대상 .md 정의'
+  has "$s" '- 다른 확장자와 첨부(이미지·PDF 등)의 분류는 repo 문서 규약 파일(`.ai/10_rules/document-convention.md`)이 정한다.' \
+    || echo '문서 규약 위임'
+  has "$s" '- 첨부는 색인 행을 따로 만들지 않고, 그 첨부를 참조하는 `.md` 파일의 색인 행에 딸린다.' || echo '첨부 딸림'
 
   s="$(sec "$doc" '### 0단계: 모드 결정')"
   line="$(printf '%s\n' "$s" | grep -E '^- \*\*미생성\*\* → `build`')"
@@ -66,13 +72,17 @@ violations() {
   has "$s" '`check`는 3단계의 루트 불일치 판정으로 넘긴다' || echo '루트 불일치 check 위임'
 
   s="$(sec "$doc" '### 1단계: 원본 문서 색인')"
-  has "$s" '- build / rebuild: 안내도 `ssot_dir` 아래 문서 파일 전체' || echo 'build 범위'
+  has "$s" '- build / rebuild: 안내도 `ssot_dir` 아래 `.md` 파일 전체' || echo 'build 범위'
   has "$s" '자리표시자(`<...>`)이면 사용자에게 묻는다' || echo 'ssot_dir 부재 질의'
   line="$(printf '%s\n' "$s" | grep -E '^- sync:')"
   has "$line" '0단계 루트 대조에서 두 값이 같을 때만 수행한다' || echo 'sync 동일 루트 조건'
   { has "$line" '--name-status -M' && ! has "$line" '--name-only'; } || echo 'sync 이름 변경 입력'
+  has "$line" '이름 변경(`R`) 행은 이전 경로와 새 경로 중 하나라도 `ssot_dir` 아래 `.md` 파일이면 대상이고, 그 밖의 행은 `ssot_dir` 아래 `.md` 파일만 대상이다.' \
+    || echo 'sync 범위 .md'
   has "$s" '색인 반영을 마친 뒤에만 갱신한다' || echo '메타데이터 갱신 시점'
+  printf '%s\n' "$s" | grep -qxF -- '- `.md` 파일 1개가 색인 행 1개다.' || echo '색인 단위 .md'
   has "$s" '**삭제된 파일**(`D`)은 해당 행을 index.md에서 제거한다' || echo '삭제 행 제거'
+  has "$s" '확장자가 `.md`가 아닌 경로는 `ssot_dir` 밖과 같게 본다.' || echo '이름 변경 .md 외 확장자'
   has "$s" '두 경로 모두 `ssot_dir` 아래: 새 행을 만들고 옛 행의 Why 태깅을 새 행으로 옮긴 뒤 옛 행을 지운다' || echo '이름 변경 Why 이전'
   has "$s" '이전 경로만 `ssot_dir` 아래(루트 밖으로 이동): 옛 행을 지운다' || echo '루트 밖 이동'
   has "$s" '새 경로만 `ssot_dir` 아래(루트 안으로 이동): 새 행을 만든다' || echo '루트 안 이동'
@@ -86,8 +96,14 @@ violations() {
 
   sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 루트 불일치 \|' | grep -F '[UPDATE-NEEDED]' | grep -qF 'rebuild를 권고' \
     || echo '점검 표 루트 불일치'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| stale 탐지 \|')" '`ssot_dir` 아래에서 변경된 `.md` 파일 목록' \
+    || echo 'stale 탐지 .md'
   has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 파일 유효성 \|')" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.**' \
     || echo '파일 유효성 check 보존'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 범위 밖 행 \|')" '**`.md`가 아닌 행을 색인에서 자동 제거한다.**' \
+    || echo '범위 밖 행 제거'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 범위 밖 행 \|')" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.**' \
+    || echo '범위 밖 행 check 보존'
   has "$(sec "$doc" '### 4단계: 결과 보고')" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' || echo '보고 문서 색인 건수'
 
   has "$(sec "$skill" '### SSoT 원칙')" '선언을 찾지 못하면 소스 코드를 SSoT로 본다' || echo 'SKILL.md 선언 부재 폴백'
@@ -105,8 +121,8 @@ local_violations() {
   printf '%s\n' "$s" | grep -qE '^- \*\*생성됨\*\*' || echo 'local 생성됨 분기'
 }
 
-# global_violations <references/global.md> — 0단계 4·5번이 골격을 색인 없음으로 보는지 본다. 무출력이면 통과.
-# 4·5번 하위 행은 들여쓰기가 있어 앵커가 앞 공백을 허용한다.
+# global_violations <references/global.md> — 0단계 5·7번이 골격을 색인 없음으로 보는지 본다. 무출력이면 통과.
+# 5·7번 하위 행은 들여쓰기가 있어 앵커가 앞 공백을 허용한다.
 global_violations() {
   local s line
   s="$(sec "$1" '### 0단계: 리포 목록 확인 및 모드 결정')"
@@ -115,6 +131,33 @@ global_violations() {
   has "$line" '템플릿 골격만 있는' || echo 'global 미분석 골격'
   line="$(printf '%s\n' "$s" | grep -E '^[[:space:]]*- \*\*미생성\*\* → `build`')"
   has "$line" '템플릿 골격만 있는 상태다' || echo 'global 미생성 골격'
+}
+
+# building_violations <SKILL.md> <references/global.md> — 건물 리포 규칙(#118)이 제자리에 있는지 본다. 무출력이면 통과.
+# 건물 리포 자신의 선언 규칙·`--local` 중단과, 대상 리포 선언에 따른 SSoT 종류 분류·호출 식별 제외를 함께 본다.
+building_violations() {
+  local skill="$1" g="$2" s
+  has "$(sec "$skill" '## 모드별 실행 절차')" \
+    '`.ai/60_codebase/repository.yaml`이 있으면 건물 리포다. 건물 리포에서 `--local`을 실행하면 건물 안내도(`.ai/60_codebase/index.md`)를 덮어쓰지 않도록 중단하고 `--global`을 안내한다.' \
+    || echo '건물 --local 중단'
+
+  s="$(sec "$g" '## 전제 조건')"
+  has "$s" 'SSoT 선언은 `소스 코드`다' || echo '건물 선언 규칙'
+  has "$s" '이 리포 안에는 없다' || echo '건물 SSoT 부재'
+
+  s="$(sec "$g" '### 0단계: 리포 목록 확인 및 모드 결정')"
+  has "$s" '3. 현재 프로젝트 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 확인한다. `소스 코드`가 아니면' || echo '건물 0단계 선언 확인'
+  has "$s" '6. 각 리포 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 읽어 SSoT 종류를 분류한다.' || echo '건물 0단계 대상 선언 읽기'
+  has "$s" 'SSoT 종류는 5번 분석 상태와 별개의 축이다' || echo '건물 0단계 별개 축'
+
+  s="$(sec "$g" '### 1단계: 수집 (floor → building)')"
+  has "$s" '분석 완료로 분류된 리포만(SSoT 종류 무관)' || echo '건물 1단계 수집 대상'
+  has "$s" '`원본 문서` 리포는 상세 호출 흐름 문서 대신 문서 지도(색인의 파일 목록)를 읽는다' || echo '건물 1단계 문서 지도'
+  has "$s" '`원본 문서` 리포는 호출 흐름이 없으므로 이 식별에서 제외한다' || echo '건물 1단계 원본 문서 제외'
+
+  s="$(sec "$g" '### 3단계: 건물 안내도 갱신')"
+  printf '%s\n' "$s" | grep -qxF '> SSoT: 등록 리포의 소스 코드. 이 리포 안에는 SSoT가 없다.' || echo '건물 안내도 SSoT 행'
+  printf '%s\n' "$s" | grep -qxF '| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |' || echo '건물 안내도 SSoT 열'
 }
 
 # --- 현재 본문이 규칙을 모두 갖는다 ------------------------------------------------
@@ -138,6 +181,13 @@ if [ -z "$out" ]; then
   ok "global 0단계 골격 판정 통과"
 else
   ng "global 0단계 골격 판정 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(building_violations "$SKILL" "$GLOBAL")"
+if [ -z "$out" ]; then
+  ok "건물 리포 규칙 통과"
+else
+  ng "건물 리포 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
 # 골격 판정 기준이 실제 템플릿과 어긋나면 init 직후 색인을 생성됨으로 오판한다 (PR #115 리뷰).
@@ -178,7 +228,7 @@ assert_reject() {
   local desc="$1" want="$2" out; shift 2
   cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"
   "$@" || { ng "$desc — 변형 실패"; return; }
-  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL")"
+  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL"; building_violations "$C_SKILL" "$C_GLOBAL")"
   if printf '%s\n' "$out" | grep -qxF "$want"; then
     ok "$desc"
   else
@@ -189,18 +239,30 @@ assert_reject() {
 assert_reject '트리거 선언 값 변경 격추'      '트리거 원본 문서'        sub_str "$C_DOC" '선언 값이 `원본 문서`일 때' '선언 값이 있을 때'
 assert_reject '트리거 폴백 삭제 격추'         '트리거 폴백'             drop_line "$C_DOC" '이 파일 대신 [local.md](local.md)를 따른다'
 assert_reject 'frontmatter ssot_dir 키 삭제 격추' 'frontmatter ssot_dir 키' drop_line "$C_DOC" '# 색인한 루트 경로'
+assert_reject '색인 대상 .md 정의 원복 격추'  '색인 대상 .md 정의'      sub_str "$C_DOC" '아래 `.md` 파일이다.' '아래 문서 파일이다.'
+assert_reject '문서 규약 위임 삭제 격추'      '문서 규약 위임'          drop_line "$C_DOC" '의 분류는 repo 문서 규약 파일('
+assert_reject '첨부 색인 행 딸림 삭제 격추'   '첨부 딸림'               drop_line "$C_DOC" '- 첨부는 색인 행을 따로 만들지 않고'
 assert_reject '골격 미생성 판정 삭제 격추'    '골격 미생성 판정'        cut_str "$C_DOC" '파일이 비어 있거나 템플릿 골격만 있는 상태다. '
 assert_reject '골격 자리표시자 변경 격추'     '골격 미생성 판정'        sub_str "$C_DOC" "$PLACEHOLDER" '(자리표시자)'
 assert_reject '루트 불일치 sync 전환 삭제 격추' '루트 불일치 sync 전환'  cut_str "$C_DOC" '`sync`는 `rebuild`로 전환한다. '
 assert_reject '루트 불일치 Why 보존 삭제 격추' '루트 불일치 rebuild Why 보존' cut_str "$C_DOC" 'Why 태깅은 보존하고, '
 assert_reject '루트 불일치 check 위임 삭제 격추' '루트 불일치 check 위임' drop_line "$C_DOC" '`check`는 3단계의 루트 불일치 판정으로 넘긴다'
 assert_reject 'build 범위 확대 격추'          'build 범위' \
-  sub_str "$C_DOC" '- build / rebuild: 안내도 `ssot_dir` 아래 문서 파일 전체' '- build / rebuild: repo 전체 문서 파일'
+  sub_str "$C_DOC" '- build / rebuild: 안내도 `ssot_dir` 아래 `.md` 파일 전체' '- build / rebuild: repo 전체 문서 파일'
+assert_reject 'build 범위 .md 정의 원복 격추'  'build 범위' \
+  sub_str "$C_DOC" '아래 `.md` 파일 전체' '아래 문서 파일 전체'
+assert_reject '색인 단위 .md 정의 원복 격추'  '색인 단위 .md'           sub_str "$C_DOC" '- `.md` 파일 1개가 색인 행 1개다.' '- 문서 파일 1개가 색인 행 1개다.'
 assert_reject 'ssot_dir 부재 질의 삭제 격추'  'ssot_dir 부재 질의'      drop_line "$C_DOC" '자리표시자(`<...>`)이면 사용자에게 묻는다'
 assert_reject 'sync 동일 루트 조건 삭제 격추' 'sync 동일 루트 조건'     cut_str "$C_DOC" '0단계 루트 대조에서 두 값이 같을 때만 수행한다. '
 assert_reject 'sync 입력 --name-only 원복 격추' 'sync 이름 변경 입력'   sub_str "$C_DOC" '--name-status -M' '--name-only'
+assert_reject 'sync 범위 이름 변경 행 .md 정의 원복 격추' 'sync 범위 .md' \
+  sub_str "$C_DOC" '중 하나라도 `ssot_dir` 아래 `.md` 파일이면 대상이고' '중 하나라도 `ssot_dir` 아래이면 대상이고'
+assert_reject 'sync 범위 그 밖의 행 .md 정의 원복 격추' 'sync 범위 .md' \
+  sub_str "$C_DOC" '그 밖의 행은 `ssot_dir` 아래 `.md` 파일만 대상이다' '그 밖의 행은 `ssot_dir` 아래 파일만 대상이다'
 assert_reject '메타데이터 갱신 시점 삭제 격추' '메타데이터 갱신 시점'   drop_line "$C_DOC" '색인 반영을 마친 뒤에만 갱신한다'
 assert_reject '삭제 행 제거 삭제 격추'        '삭제 행 제거'            drop_line "$C_DOC" '**삭제된 파일**(`D`)'
+assert_reject '이름 변경 .md 외 확장자 규칙 삭제 격추' '이름 변경 .md 외 확장자' \
+  cut_str "$C_DOC" ' 확장자가 `.md`가 아닌 경로는 `ssot_dir` 밖과 같게 본다.'
 assert_reject '이름 변경 Why 이전 삭제 격추'  '이름 변경 Why 이전' \
   sub_str "$C_DOC" '새 행을 만들고 옛 행의 Why 태깅을 새 행으로 옮긴 뒤 옛 행을 지운다' '옛 행을 지우고 새 행을 만든다'
 assert_reject '루트 밖 이동 삭제 격추'        '루트 밖 이동'            drop_line "$C_DOC" '이전 경로만 `ssot_dir` 아래(루트 밖으로 이동)'
@@ -212,8 +274,13 @@ assert_reject '존재 문서만 링크 삭제 격추'    '존재 문서만 링�
 assert_reject '외부 URL 제외 삭제 격추'       '외부 URL 교차 참조 제외' drop_line "$C_DOC" '**외부 URL은 교차 참조 대상이 아니다**'
 assert_reject '퍼블리싱 URL 제외 삭제 격추'   '퍼블리싱 URL 제외'       drop_line "$C_DOC" '퍼블리싱 URL(안내도 `publish` 행의 위치 포함)'
 assert_reject '점검 표 루트 불일치 삭제 격추' '점검 표 루트 불일치'     drop_line "$C_DOC" '| 루트 불일치 |'
+assert_reject 'stale 탐지 .md 원복 격추'      'stale 탐지 .md' \
+  sub_str "$C_DOC" '아래에서 변경된 `.md` 파일 목록' '아래에서 변경된 파일 목록'
 assert_reject '파일 유효성 check 보존 삭제 격추' '파일 유효성 check 보존' \
   cut_str "$C_DOC" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.** '
+assert_reject '범위 밖 행 점검 삭제 격추'     '범위 밖 행 제거'         drop_line "$C_DOC" '| 범위 밖 행 |'
+assert_reject '범위 밖 행 check 보존 삭제 격추' '범위 밖 행 check 보존' \
+  sub_str "$C_DOC" '아닌 행을 색인에서 자동 제거한다.** `check`는 **행을 지우지 않고' '아닌 행을 색인에서 자동 제거한다.** `check`도 **행을 지우고'
 assert_reject '보고 건수 축소 격추'           '보고 문서 색인 건수' \
   sub_str "$C_DOC" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' '문서 색인: N건'
 assert_reject 'SKILL.md 폴백 삭제 격추'       'SKILL.md 선언 부재 폴백' cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
@@ -225,6 +292,20 @@ assert_reject 'global 0단계 골격 미분석 삭제 격추' 'global 미분석 
   sub_str "$C_GLOBAL" '없거나 비어 있거나 템플릿 골격만 있는 리포' '없거나 비어 있는 리포'
 assert_reject 'global 0단계 골격 build 분기 삭제 격추' 'global 미생성 골격' cut_str "$C_GLOBAL" '파일이 비어 있거나 템플릿 골격만 있는 상태다.'
 assert_reject 'global 0단계 골격 자리표시자 변경 격추' 'global 골격 기준' sub_str "$C_GLOBAL" "$PLACEHOLDER" '(자리표시자)'
+assert_reject '건물 SKILL.md --local 중단 규칙 삭제 격추' '건물 --local 중단'     drop_line "$C_SKILL" '- **건물 리포 규칙**:'
+assert_reject '건물 전제 조건 선언 규칙 삭제 격추'      '건물 선언 규칙'         drop_line "$C_GLOBAL" 'SSoT 선언은 `소스 코드`다'
+assert_reject '건물 0단계 선언 확인 삭제 격추'          '건물 0단계 선언 확인'   drop_line "$C_GLOBAL" '3. 현재 프로젝트 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 확인한다.'
+assert_reject '건물 0단계 대상 리포 선언 읽기 삭제 격추' '건물 0단계 대상 선언 읽기' \
+  drop_line "$C_GLOBAL" '6. 각 리포 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 읽어'
+assert_reject '건물 0단계 분석 상태·SSoT 종류 별개 축 삭제 격추' '건물 0단계 별개 축' drop_line "$C_GLOBAL" 'SSoT 종류는 5번 분석 상태와 별개의 축이다'
+assert_reject '건물 1단계 수집 대상 SSoT 종류 무관 삭제 격추' '건물 1단계 수집 대상' cut_str "$C_GLOBAL" '(SSoT 종류 무관)'
+assert_reject '건물 1단계 문서 지도 삭제 격추'          '건물 1단계 문서 지도' \
+  cut_str "$C_GLOBAL" ' `원본 문서` 리포는 상세 호출 흐름 문서 대신 문서 지도(색인의 파일 목록)를 읽는다.'
+assert_reject '건물 1단계 원본 문서 제외 삭제 격추'     '건물 1단계 원본 문서 제외' \
+  cut_str "$C_GLOBAL" ' `원본 문서` 리포는 호출 흐름이 없으므로 이 식별에서 제외한다.'
+assert_reject '건물 안내도 SSoT 행 삭제 격추'           '건물 안내도 SSoT 행'    drop_line "$C_GLOBAL" '> SSoT: 등록 리포의 소스 코드.'
+assert_reject '건물 안내도 SSoT 열 삭제 격추'           '건물 안내도 SSoT 열' \
+  sub_str "$C_GLOBAL" '| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |' '| 리포 | 요약 | URL | 상태 | 마지막 동기화 |'
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 

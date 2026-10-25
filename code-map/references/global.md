@@ -11,6 +11,7 @@
 ## 전제 조건
 
 - 현재 프로젝트는 **소스코드가 없는 문서 전용 리포**이다.
+- 현재 프로젝트 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언은 `소스 코드`다. 이 리포의 문서는 등록 리포의 색인에서 만든 것이라 SSoT는 `repository.yaml`에 등록한 리포의 소스 코드이며 이 리포 안에는 없다. ai-workspace doc 프로파일(`원본 문서`)로 init하지 않는다.
 - 현재 프로젝트의 `.ai/60_codebase/repository.yaml`이 존재해야 한다.
 - `repository.yaml`에 등록된 각 리포에는 이미 `--local`로 `.ai/60_codebase/index.md`가 존재해야 한다.
 - 이 모드는 각 리포의 색인을 분석하여, `.ai/10_rules/` 아래에 리포 간 의존 관계·서비스 호출 흐름·공통 인프라 정보를 아키텍처 문서로 **생성·관리**하는 역할이다.
@@ -25,6 +26,7 @@ org:
   repos:
     - https://github.com/our-org/auth-service
     - https://github.com/our-org/gateway
+    - https://github.com/our-org/policy-docs
     - https://github.com/our-org/user-service
 ```
 
@@ -57,16 +59,22 @@ org:
 
 ### 0단계: 리포 목록 확인 및 모드 결정
 
-ai-workspace init이 템플릿 골격을 `.ai/60_codebase/index.md`로 복사하므로 4·5번은 골격만 있는 파일도 색인이 없는 것으로 판정한다.
+ai-workspace init이 템플릿 골격을 `.ai/60_codebase/index.md`로 복사하므로 5·7번은 골격만 있는 파일도 색인이 없는 것으로 판정한다.
 템플릿 골격은 frontmatter가 없고 `## 파일 목록` 표의 행이 자리표시자 `(문서를 추가하면 이 목록에 함께 기재하세요)` 하나뿐인 상태다.
+3·6번의 SSoT 선언은 [SKILL.md](../SKILL.md) `### SSoT 원칙`의 규칙으로 읽는다(`AI-CONTEXT.md` 본문 2번째 줄의 `> SSoT: <값>.` 선언, 선언을 찾지 못하면 `소스 코드`).
 
 1. `.ai/60_codebase/repository.yaml`을 읽어 대상 리포 목록을 확인한다.
 2. 파일이 없으면 사용자에게 `repository.yaml` 생성을 안내하고 중단한다.
-3. 각 리포의 로컬 clone 경로를 탐색한다. 찾을 수 없는 리포는 `[REPO-NOT-FOUND]`로 표시하고 사용자에게 보고한다.
-4. 각 리포의 `.ai/60_codebase/index.md`를 확인하여 분석 상태를 분류한다.
+3. 현재 프로젝트 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 확인한다. `소스 코드`가 아니면 `## 전제 조건`의 선언 규칙과 다르다고 사용자에게 보고하고 중단한다. 선언은 자동으로 바꾸지 않는다.
+4. 각 리포의 로컬 clone 경로를 탐색한다. 찾을 수 없는 리포는 `[REPO-NOT-FOUND]`로 표시하고 사용자에게 보고한다.
+5. 각 리포의 `.ai/60_codebase/index.md`를 확인하여 분석 상태를 분류한다.
    - **분석 완료**: `.ai/60_codebase/index.md`가 미분석에 해당하지 않는 리포 → 동기화 대상
    - **미분석**: `.ai/60_codebase/index.md`가 없거나 비어 있거나 템플릿 골격만 있는 리포 → 건너뛰고 `[NOT-INDEXED]`로 표시
-5. `.ai/60_codebase/index.md`(건물 안내도)의 색인 생성 여부에 따라 모드를 결정한다.
+6. 각 리포 안내도(`.ai/AI-CONTEXT.md`)의 SSoT 선언을 읽어 SSoT 종류를 분류한다.
+   - **소스 코드**: 선언이 `소스 코드`이거나 선언을 찾지 못한 리포
+   - **원본 문서**: 선언이 `원본 문서`인 리포 → 문서 리포로 보고 건물 안내도 리포 목록 표의 `SSoT` 열에 `원본 문서`로 표시
+   - SSoT 종류는 5번 분석 상태와 별개의 축이다. 문서 리포 표시는 분석 상태를 대체하지 않으며, 문서 리포도 색인이 없으면 미분석이다.
+7. `.ai/60_codebase/index.md`(건물 안내도)의 색인 생성 여부에 따라 모드를 결정한다.
    - **미생성** → `build`(최초 생성) 실행. 파일이 비어 있거나 템플릿 골격만 있는 상태다.
    - **생성됨**(미생성이 아닌 모든 상태) → 사용자에게 선택 요청
      - `sync`: 각 리포의 변경분을 건물 안내도에 반영
@@ -77,12 +85,12 @@ ai-workspace init이 템플릿 골격을 `.ai/60_codebase/index.md`로 복사하
 
 ### 1단계: 수집 (floor → building)
 
-0단계에서 분석 완료로 분류된 리포만 대상으로 정보를 수집한다.
+0단계에서 분석 완료로 분류된 리포만(SSoT 종류 무관) 대상으로 정보를 수집한다.
 
-1. **리포 스캔** — 각 리포의 `.ai/60_codebase/index.md`와 상세 호출 흐름 문서를 읽는다.
+1. **리포 스캔** — 각 리포의 `.ai/60_codebase/index.md`와 상세 호출 흐름 문서를 읽는다. `원본 문서` 리포는 상세 호출 흐름 문서 대신 문서 지도(색인의 파일 목록)를 읽는다.
 2. **변경 감지** — 이전 동기화 이후 변경된 색인을 식별한다.
 3. **교차 참조 수집** — 각 리포 색인에 연결된 `.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 문서 목록을 수집한다.
-4. **서비스 간 호출 식별** — 각 리포의 호출 흐름에서 다른 리포의 API를 호출하는 지점을 식별한다.
+4. **서비스 간 호출 식별** — 각 리포의 호출 흐름에서 다른 리포의 API를 호출하는 지점을 식별한다. `원본 문서` 리포는 호출 흐름이 없으므로 이 식별에서 제외한다.
 
 ---
 
@@ -150,13 +158,16 @@ gateway#POST /api/login
 ```markdown
 # 건물 안내도
 
+> SSoT: 등록 리포의 소스 코드. 이 리포 안에는 SSoT가 없다.
+
 ## 리포 목록
 
-| 리포 | 요약 | URL | 상태 | 마지막 동기화 |
-|------|------|-----|------|---------------|
-| auth-service | 인증/인가 서비스 | https://github.com/our-org/auth-service | 분석 완료 | 2026-04-08 |
-| gateway | API 게이트웨이 | https://github.com/our-org/gateway | 분석 완료 | 2026-04-08 |
-| user-service | 사용자 관리 서비스 | https://github.com/our-org/user-service | [NOT-INDEXED] | - |
+| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |
+|------|------|-----|------|------|---------------|
+| auth-service | 인증/인가 서비스 | https://github.com/our-org/auth-service | 소스 코드 | 분석 완료 | 2026-04-08 |
+| gateway | API 게이트웨이 | https://github.com/our-org/gateway | 소스 코드 | 분석 완료 | 2026-04-08 |
+| policy-docs | 서비스 정책 문서 | https://github.com/our-org/policy-docs | 원본 문서 | 분석 완료 | 2026-04-08 |
+| user-service | 사용자 관리 서비스 | https://github.com/our-org/user-service | 소스 코드 | [NOT-INDEXED] | - |
 
 ## 아키텍처 문서
 
@@ -164,6 +175,9 @@ gateway#POST /api/login
 - [서비스 간 호출 흐름](../10_rules/service-call-flows.md)
 - [공통 인프라](../10_rules/infra.md)
 ```
+
+- 제목 아래 `> SSoT:` 인용 행은 `## 전제 조건`의 선언 규칙이다. 이 리포 안에는 SSoT가 없음을 안내도에서 바로 알린다.
+- `SSoT` 열은 0단계 6번의 SSoT 종류이며 `상태` 열(분석 상태)과 따로 적는다.
 
 ---
 

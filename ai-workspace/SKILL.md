@@ -26,7 +26,7 @@ description: 프로젝트의 .ai 디렉토리 구조와 repo 안내도 AI-CONTEX
 - **git-review-context**: 리뷰 전 변경사항 사전 분석 (`.ai/99_workspace/` 활용)
 - **git-review-quiz**: PR 변경에서 비즈니스·테크 문항을 만들어 대화형으로 풀거나 PR 댓글로 게시 (`.ai/30_contract/`, `.ai/40_domain/`, `.ai/99_workspace/` 활용)
 - **issue-audit**: 이슈 스펙 대비 구현 독립 감사 (`.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 활용). `--plan`은 구현 전 spec·plan을 이슈 본문·`.ai` 문서에 대조하는 계획 감사입니다. `.ai/70_ledger/`의 기등재 항목을 대조해 이미 수용한 발견을 신규로 재보고하지 않습니다.
-- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때 `.ai/70_ledger/`에 등재합니다. 원장 `index.md` 골격과 항목 템플릿(`ledger-entry-template.md`)은 둘 다 본 스킬이 배포합니다. 등재 주체가 issue-work·git-pr-feedback 둘이라 어느 한쪽 스킬에 두지 않습니다.
+- **issue-work**: 이슈 단위 스펙/계획/요약 관리 (`.ai/90_issues/` 활용). `--response`로 감사 발견을 수용할 때와 이슈 완료 시 spec 제외 `보류` 항목을 승인받을 때 `.ai/70_ledger/`에 등재합니다. 원장 `index.md` 골격과 항목 템플릿(`ledger-entry-template.md`)은 둘 다 본 스킬이 배포합니다. 등재 주체가 issue-work·git-pr-feedback 둘이라 어느 한쪽 스킬에 두지 않습니다.
 
 ## 사용법
 
@@ -99,7 +99,7 @@ cp -r "$SKILL_DIR/templates/$PROFILE/.ai/"* .ai/
 
 프로파일별 전용 파일 예시:
 - `dev` 전용: `.ai/10_rules/architecture.md`, `.ai/10_rules/coding-convention.md`
-- `doc` 전용: (없음)
+- `doc` 전용: `.ai/10_rules/document-convention.md`
 
 산출물 작성 원칙 두 파일도 위 일괄 복사에 포함됩니다. 아래 구분은 update 모드의 복사 정책이며, init은 기존 `.ai/`가 있어도 사용자 관리 파일까지 전체를 덮어씁니다 (2단계 모드 선택의 경고 참조):
 - `writing-principles.md`: 버전 고정 — `context-loading.md`와 동일하게 항상 최신본 덮어쓰기
@@ -131,7 +131,7 @@ sed -i.bak "s/> last updated: YYYY-MM-DD/> last updated: $(date +%Y-%m-%d)/" .ai
 ### update-1단계: 10_rules/ 정리
 
 이전 버전에서 설치된 파일 중 개별 skill로 분리된 파일을 제거하고, 새 규칙 파일을 복사합니다.
-사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `file-change-policy.md`, `writing-principles-local.md`)은 그대로 유지합니다.
+사용자가 작성한 파일(`architecture.md`, `coding-convention.md`, `document-convention.md`, `file-change-policy.md`, `writing-principles-local.md`)은 그대로 유지합니다.
 
 ```bash
 # 10_rules/ 디렉토리 보장 — 모드 결정은 .ai/ 존재만 확인하므로 10_rules/ 누락 상태로도 update에 진입할 수 있음
@@ -161,6 +161,12 @@ if [ "$PROFILE" = "dev" ]; then
     cp "$SKILL_DIR/templates/dev/.ai/10_rules/architecture.md" .ai/10_rules/architecture.md
   [ ! -f .ai/10_rules/coding-convention.md ] && \
     cp "$SKILL_DIR/templates/dev/.ai/10_rules/coding-convention.md" .ai/10_rules/coding-convention.md
+fi
+
+# doc 프로파일 전용 (없을 때만 빈 템플릿 복사)
+if [ "$PROFILE" = "doc" ]; then
+  [ ! -f .ai/10_rules/document-convention.md ] && \
+    cp "$SKILL_DIR/templates/doc/.ai/10_rules/document-convention.md" .ai/10_rules/document-convention.md
 fi
 
 # doc 프로파일: 기존 architecture.md가 있으면 삭제하지 않고 유지
@@ -240,12 +246,13 @@ check='<skill 디렉토리>/scripts/check-context.sh'
 ```
 
 출력된 항목만 조치 대상으로 삼습니다. `## 프로젝트 규칙` 표는 상태(섹션 부재 / 표 부재 / 구버전 열 부족)를 구분해 출력하므로 그에 맞는 조치를 고릅니다.
-헬퍼는 표의 10개 항목 중 8개를 판정합니다. `## 디렉토리 구조`의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은 트리 구조 해석이라 이 절차가 직접 판단합니다.
+헬퍼는 표의 11개 항목 중 9개를 판정합니다. `## 디렉토리 구조`의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은 트리 구조 해석이라 이 절차가 직접 판단합니다.
 
 | 항목 | 검사 | 누락 시 조치 |
 |------|------|-------------|
 | 본문 첫 줄 `> last updated: YYYY-MM-DD` | 본문 첫 줄이 `> last updated: <ISO 날짜>` 형식인가? | 누락이거나 형식 불일치이면 표준 형식으로 삽입·정정한다. 형식이 맞으면 매 `update` 실행 시 **스킬 실행 시점의 시스템 날짜**(`date +%Y-%m-%d`)로 갱신한다 (`ai-workspace-directory`와 동일 정책). |
-| 본문 두 번째 줄 SSoT 선언 | dev·doc 두 표준 문구 중 하나 존재? dev는 `> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.`, doc은 `> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.`이며 그 외 문구는 비표준이다. doc 문구이면 dev 표준 문구 4곳이 남아 있지 않은가? 대상은 `### 진입 절차`의 충돌 우선순위(`**소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**`)와 `60_codebase` 설명 3곳(`## .ai 디렉토리 구조` 트리 주석, `### 진입 절차` 2번의 `(코드 진입점)`, `### 작성 규칙`의 `코드 상세는`)이다. | 본문 첫 줄(`> last updated: ...`) 바로 아래에 선택한 프로파일의 표준 문구를 삽입한다. 비표준 문구이면 선택한 프로파일의 표준 문구로 교체한다. doc 문구를 삽입·교체했으면 `## 프로젝트 도메인` 표에 `ssot_dir` 행이 없을 때 템플릿과 같은 자리표시자 행도 함께 넣고, 위 4곳 중 dev 표준 문구로 남은 곳을 doc 템플릿의 같은 자리 문구로 바꾼다(헬퍼를 한 번만 실행하므로 이 실행에서는 `ssot_dir`·4곳 검사가 돌지 않는다). 이미 doc 문구인데 4곳 중 일부가 남았다고 보고되면 보고된 곳만 doc 템플릿 문구로 바꾼다. dev 표준 문구와 다른 사용자 작성분은 보존한다. 이미 표준 문구이면 다른 프로파일 문구로 자동 전환하지 않는다. |
+| 본문 두 번째 줄 SSoT 선언 | dev·doc 두 표준 문구 중 하나 존재? dev는 `> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.`, doc은 `> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.`이며 그 외 문구는 비표준이다. doc 문구이면 dev 표준 문구 4곳이 남아 있지 않은가? 대상은 `### 진입 절차`의 충돌 우선순위(`**소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**`)와 `60_codebase` 설명 3곳(`## .ai 디렉토리 구조` 트리 주석, `### 진입 절차` 2번의 `(코드 진입점)`, `### 작성 규칙`의 `코드 상세는`)이다. | 본문 첫 줄(`> last updated: ...`) 바로 아래에 선택한 프로파일의 표준 문구를 삽입한다. 비표준 문구이면 선택한 프로파일의 표준 문구로 교체한다. 건물 repo(`.ai/60_codebase/repository.yaml` 존재)이면 삽입·교체 모두 선택한 프로파일과 무관하게 dev 문구를 넣는다. doc 문구를 삽입·교체했으면 `## 프로젝트 도메인` 표에 `ssot_dir` 행이 없을 때 템플릿과 같은 자리표시자 행도 함께 넣고, 위 4곳 중 dev 표준 문구로 남은 곳을 doc 템플릿의 같은 자리 문구로 바꾼다(헬퍼를 한 번만 실행하므로 이 실행에서는 `ssot_dir`·4곳 검사가 돌지 않는다). 이미 doc 문구인데 4곳 중 일부가 남았다고 보고되면 보고된 곳만 doc 템플릿 문구로 바꾼다. dev 표준 문구와 다른 사용자 작성분은 보존한다. 이미 표준 문구이면 다른 프로파일 문구로 자동 전환하지 않는다. |
+| 건물 repo(`repository.yaml` 존재)의 SSoT 선언 | 안내도와 같은 `.ai/` 아래 `60_codebase/repository.yaml`이 있는데 본문 두 번째 줄이 doc 표준 문구인가? code-map 건물 repo는 SSoT가 등록 repo의 소스 코드라 dev 문구로 선언한다(code-map `references/global.md` `## 전제 조건`). 비표준 문구는 위 SSoT 선언 행이 보고하므로 이 행은 doc 표준 문구만 본다. | 보고하고 dev 문구로 바꿀지 사용자에게 묻는다. 자동 전환하지 않는다. 승인해 dev 문구로 바꾸면 위 SSoT 선언 행의 4곳 중 doc 템플릿 문구로 남은 곳을 dev 템플릿의 같은 자리 문구로 되돌린다(헬퍼는 dev 선언에서 doc 문구 잔존을 검사하지 않으므로 이 실행에서 함께 바꾼다). doc 템플릿 문구와 다른 사용자 작성분은 보존한다. |
 | `## 프로젝트 도메인` 섹션 | 섹션 존재? doc 선언이면 표에 첫 셀이 `ssot_dir`인 행 존재? | 헤더와 `## 프로젝트 목적` 사이에 2행 표(`domain` / `keywords`)를 빈 값(`<...>`) 골격으로 삽입한다. SSoT 선언이 doc 문구이면(이 실행에서 보존했거나 넣은 문구 기준, 선택한 프로파일과 무관) 골격에 `ssot_dir`(필수)·`publish`(선택) 행을 포함한다(템플릿과 같은 자리표시자). `ssot_dir` 행만 누락이면 표 끝에 템플릿과 같은 자리표시자 행을 삽입한 뒤 사용자 입력을 요청한다. `domain`/`keywords`는 사용자 입력을 요청하되, 멀티/단독 여부는 묻지 않는다 (CoC 자동 판정). |
 | `## 프로젝트 규칙` 섹션 + 3열 표 | `## 프로젝트 규칙` 섹션과 3열 표(파일·설명·사용 시점)가 존재? 앞 3열의 이름·순서만 판정하고 뒤에 붙은 사용자 확장 열은 허용한다(사용자 작성분 보존 원칙). | 상태별로 조치한다 — **섹션 부재**: `## 프로젝트 목적` 바로 다음에 프로파일별 템플릿 골격(인라인 규칙 안내 주석 + 선행 적용 문구 + 3열 표, 템플릿의 `## 프로젝트 규칙` 섹션과 동일)을 삽입한다. **섹션은 있고 표 부재**: 기존 인라인 본문을 그대로 둔 채 섹션 끝에 프로파일별 3열 표(템플릿의 표와 동일)를 삽입한다. **2열(파일·설명) 구버전 표**: 헤더·구분선에 `사용 시점` 열만 추가하고 기존 행의 해당 셀은 `<사용 시점>` placeholder로 두어 사용자가 채운다 — 이 검사는 **열 확장만** 수행하며 기존 표에 기본 행을 보충하지 않는다 (표준 2행은 아래 두 행 검사가, 구버전 기본 행 복원은 [구버전 구조 마이그레이션](#구버전-구조-마이그레이션)이 담당). 기존 인라인 규칙·사용자 작성 행은 보존한다. 아래 두 행 검사는 이 검사로 섹션·표 존재가 보장된 뒤에 수행한다. |
 | `## 프로젝트 규칙` 표의 `context-loading.md` 행 | `## 프로젝트 규칙` 표에 첫 번째 `파일` 셀이 `.ai/10_rules/context-loading.md`인 행이 존재? 행 인정은 `파일` 셀 정확 대조(백틱·양끝 공백 무시)이며, 경로가 설명·확장 열에만 있으면 인정하지 않는다. 행 탐색은 섹션의 첫 번째 표(위 검사에서 헤더를 검증한 그 표) 안에서만 하며, 같은 섹션의 두 번째 이후 표에 있는 동명 행은 인정하지 않는다 — 누락 시 조치가 이 표 끝에 삽입하는 것이므로 다른 표의 행은 조치 결과 상태가 아니다. | 표 끝에 표준 행을 삽입한다 — 파일 `.ai/10_rules/context-loading.md`, 설명 "작업 전 컨텍스트 확인 절차", 사용 시점은 프로파일별로 dev "코드·문서 작업 전" / doc "문서 작업 전" (AI-CONTEXT 템플릿의 해당 행과 동일). 기존 사용자 작성 행은 보존한다. 버전 고정 파일(update-1에서 무조건 덮어쓰기)은 이 행 검사로 안내도 참조까지 함께 보장한다. |

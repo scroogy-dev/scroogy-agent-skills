@@ -13,12 +13,13 @@ last_harvested: 2026-10-10
   - git-pr `문서 동기화 점검`의 원장 대조: diff가 재검토 조건이 가리키는 파일·규칙이나 항목 원인을 바꾸면 재검토 이력 기록 또는 종결을 권고한다.
   - issue-work 새 이슈 시작 3-1의 `함께 해소 후보`: 이슈 범위와 관련된 항목을 따로 표시해 포함 여부를 묻고, 포함하면 요구사항(R)에 `(함께 해소: K-<번호>)`로 넣는다. 포함하지 않은 후보는 기록하지 않는다.
 - 두 대조는 권고·질의까지만 한다. 원장 상태는 사용자 승인 없이 바꾸지 않으며, 재검토 조건이 자유 문장이라 판정 헬퍼를 두지 않고 AI가 조건 문장과 diff를 읽어 대조한다.
+- 등재 계기도 하나 더한다. issue-work 이슈 완료 시 spec 제외 목록의 `보류` 항목을 보여 주고 원장 등재 여부를 묻는다. 위 두 대조와 같이 질의까지만 하고 승인분만 등재하며, PR 번호가 필요 없어 아래 해소 시점 규칙의 대상이 아니다 (#118).
 - `해소(PR #N)`은 PR 번호를 알 때만 확정한다. 이 규칙은 `--clear`·`## 이슈 완료 시`·`--response` 원장 종결에 같이 적용한다.
   - PR이 이미 있으면 그 단계에서 기재 → `archive/` 이관 → index 갱신을 하고 머지 전 같은 PR에 포함한다.
   - PR이 없거나 확인할 수 없으면 확정하지 않고 `active/`에 둔다. git-pr이 PR 생성 후 4단계에서 원장 대조로 승인받은 종결 항목에 번호를 적고, 커밋·push는 별도 승인을 받는다.
 - 승격(이슈 #N)은 이슈 번호를 그 자리에서 얻으므로 시점 규칙의 대상이 아니다.
 - 절차 순서 `--clear → PR`은 바꾸지 않는다.
-- ADR 0007의 소비자 3종(issue-audit·issue-work `--response`·git-pr-feedback)과 상태 행렬·종결 독립은 그대로 두고, 이 ADR이 재검토·종결 계기만 확장한다.
+- ADR 0007의 소비자 3종(issue-audit·issue-work `--response`·git-pr-feedback)과 상태 행렬·종결 독립은 그대로 두고, 이 ADR이 재검토·종결 계기와 보류 항목 등재 계기(#118)만 확장한다.
 
 ## 근거
 
@@ -52,6 +53,7 @@ last_harvested: 2026-10-10
 <summary>출처 목록 펼치기</summary>
 
 - [Issue #110 git-pr·issue-work: 원장 재검토·해소 트리거 보강](https://github.com/scroogy-dev/scroogy-agent-skills/issues/110)
+- [Issue #118 doc 프로파일 운영 보강: 보류 항목 원장 등재 경로](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
 - 관련 결정: [ADR 0007 원장 위치와 구조](./0007-tech-debt-ledger-location-and-structure.md), [ADR 0011 git-pr 제출과 승인 게이트](./0011-git-pr-submission-and-approval-gate.md), [ADR 0016 요구사항 층과 계획 감사](./0016-spec-requirements-layer-and-plan-audit.md)
 - 수명 주기 표: [`.ai/70_ledger/index.md`](../../70_ledger/index.md)
 

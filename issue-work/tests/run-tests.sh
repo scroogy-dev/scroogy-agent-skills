@@ -815,6 +815,56 @@ assert_example "$sandbox/runners/pass-only.sh" fail "테스트 배치: 예시 �
 assert_example "$sandbox/runners/fail-only.sh" fail "테스트 배치: 예시 명령 반례 행만 있는 러너 격추"
 assert_example "$sandbox/runners/exit1.sh"   fail "테스트 배치: 예시 명령 종료 1 러너 격추"
 
+# --- 보류 항목 원장 등재 질의 (issue #118) ------------------------------------------
+#
+# 이슈 완료 시 spec 제외 `보류` 항목의 원장 등재 질의는 SKILL.md `## 이슈 완료 시` 3단계의 하위 항목과
+# `--clear` 4단계의 연결 문장이 계약이다. 질의 행은 절 안에서 정확히 1개로 세고, 하위 항목 범위
+# (질의 행부터 다음 형제 항목·번호 단계·최상위 행 전까지)에서 조항(질의 대상·승인분 등재·출처·필수 필드·
+# 보류 항목 단위 중복 판정과 그 예시)마다 앵커 문구를 판정한다 — `보류`·`원장`·`등재` 낱말만 보면
+# 조항 문구를 지워도 통과한다 (PR #113 리뷰 반례와 같은 취지).
+
+# check_deferred_ledger <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_deferred_ledger() {
+  awk '/^## 이슈 완료 시$/ { s = 1; next }
+       /^## / { s = 0; b = 0 }
+       s && /^   - \*\*보류 항목 원장 등재 질의\*\*: / { n++; b = 1; blk = blk $0 "\n"; next }
+       b && (/^   - / || /^[0-9]+\. / || /^[^[:space:]]/) { b = 0 }
+       b { blk = blk $0 "\n" }
+       /^### `--clear`$/ { c = 1; next }
+       c && /^#/ { c = 0 }
+       c && /^  [0-9]+\. / { st = substr($0, 3, 1) }
+       c && st == "4" && index($0, "**보류 항목 원장 등재 질의**") { m++ }
+       END {
+         if (n != 1) print "이슈 완료 시 절의 보류 항목 원장 등재 질의 행 " n + 0 "개 (기대 1개)"
+         if (!index(blk, "사유가 `보류`인 항목을 보여 주고 원장 등재 여부를 묻는다")) print "질의 대상(spec 제외 보류 항목) 문구 없음"
+         if (!index(blk, "승인한 항목만 등재한다")) print "승인분만 등재 문구 없음"
+         if (!index(blk, "`출처`는 `이슈 #N`")) print "출처 이슈 #N 문구 없음"
+         if (!index(blk, "**수용 사유**와 **재검토 조건**은 필수")) print "수용 사유·재검토 조건 필수 문구 없음"
+         if (!index(blk, "보류 항목 하나씩 판정한다")) print "보류 항목 단위 중복 판정 문구 없음"
+         if (!index(blk, "보류 A만 등재된 상태면 B는 질의하고, A·B가 모두 등재됐으면 둘 다 건너뛴다")) print "중복 판정 예시 문구 없음"
+         if (m != 1) print "--clear 4단계의 보류 항목 원장 등재 질의 문장 " m + 0 "개 (기대 1개)"
+       }' "$1"
+}
+
+awk '/^## 이슈 완료 시$/ { s = 1; print; next } /^## / { s = 0 } !(s && /보류/ && /원장/ && /등재/)' "$SKILL" > "$sandbox/dl-del.md"
+drop_literal "$SKILL" '사유가 `보류`인 항목을 보여 주고 원장 등재 여부를 묻는다' > "$sandbox/dl-no-target.md"
+drop_literal "$SKILL" '승인한 항목만 등재한다' > "$sandbox/dl-no-approval.md"
+drop_literal "$SKILL" '`출처`는 `이슈 #N`' > "$sandbox/dl-no-source.md"
+drop_literal "$SKILL" '**수용 사유**와 **재검토 조건**은 필수' > "$sandbox/dl-no-required.md"
+drop_literal "$SKILL" '보류 항목 하나씩 판정한다' > "$sandbox/dl-no-unit.md"
+drop_literal "$SKILL" '보류 A만 등재된 상태면 B는 질의하고, A·B가 모두 등재됐으면 둘 다 건너뛴다' > "$sandbox/dl-no-example.md"
+awk '!index($0, "같은 3단계의 **보류 항목 원장 등재 질의**")' "$SKILL" > "$sandbox/dl-no-clear.md"
+
+assert_structure check_deferred_ledger "$SKILL"                      pass "보류 등재: 실제 SKILL.md 이슈 완료 시·--clear 4단계 통과"
+assert_structure check_deferred_ledger "$sandbox/dl-del.md"          fail "보류 등재: 이슈 완료 시 절의 보류·원장·등재 행 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-target.md"    fail "보류 등재: 질의 대상 문구 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-approval.md"  fail "보류 등재: 승인분만 등재 문구 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-source.md"    fail "보류 등재: 출처 이슈 #N 문구 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-required.md"  fail "보류 등재: 수용 사유·재검토 조건 필수 문구 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-unit.md"      fail "보류 등재: 보류 항목 단위 중복 판정 문구 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-example.md"   fail "보류 등재: 중복 판정 예시 삭제 격추"
+assert_structure check_deferred_ledger "$sandbox/dl-no-clear.md"     fail "보류 등재: --clear 4단계 연결 문장 삭제 격추"
+
 # --- `--clear` 완료 확인 (check-clear.sh --completion) ---------------------------
 
 CLEAR="$HERE/../scripts/check-clear.sh"

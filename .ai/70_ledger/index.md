@@ -3,8 +3,8 @@
 이 디렉토리는 수용한 기술부채·known issue를 항목 단위로 보관합니다.
 AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으로 읽어옵니다.
 
-등재 주체는 issue-work `--response`(감사 리포트에서 이관으로 정한 발견)와 git-pr-feedback(수용 — 원장 등재)입니다.
-항목 파일 형식은 같은 디렉토리의 `ledger-entry-template.md`를 따릅니다. 등재 주체가 둘이라 어느 스킬에도 두지 않고 원장 골격과 함께 배포합니다.
+등재 주체는 issue-work `--response`(감사 리포트에서 이관으로 정한 발견), issue-work 이슈 완료 시(spec 제외 `보류` 항목), git-pr-feedback(수용 — 원장 등재)입니다.
+항목 파일 형식은 같은 디렉토리의 `ledger-entry-template.md`를 따릅니다. 등재 스킬이 둘(issue-work·git-pr-feedback)이라 어느 스킬에도 두지 않고 원장 골격과 함께 배포합니다.
 
 ## 파일 목록
 
@@ -31,6 +31,8 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0011](archive/K-0011-plan-audit-regression-exception-spec-only.md) | issue-audit 계획 감사의 회귀 방지 예외가 spec 본문 표기만 인정해 plan 전용 항목·템플릿 고정 블록을 예외로 읽지 못한다 | known issue | 낮음(LOW) | 승격(이슈 #108) | - |
 | [K-0012](active/K-0012-git-pr-push-url-unverified.md) | git-pr의 push 전 원격 대조가 fetch URL만 정규화해 push URL을 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 4단계 push 절차 또는 `verify-submit.sh` 원격 대조 모드 실질 변경 시, 또는 push URL이 fetch URL과 다른 원격으로 git-pr을 실행한 사례 관측 시 |
 | [K-0013](active/K-0013-issue-work-pr-lookup-fork-same-branch.md) | issue-work 원장 해소 기재의 PR 조회가 head 저장소를 대조하지 않아 같은 브랜치명의 포크 PR을 고를 수 있다 | known issue | 낮음(LOW) | 수용 | issue-work 이슈 완료 시 원장 해소 기재의 PR 유무 확인 절차 실질 변경 시, 또는 포크 PR 유입이나 원장 `해소(PR #N)`에 다른 저장소 PR 번호가 적힌 사례 관측 시 |
+| [K-0014](active/K-0014-publishing-skill-deferred.md) | 퍼블리싱 실행·기록과 위키 직접 수정 탐지가 스킬 범위 밖이라 프롬프트로만 수행된다 | 기술부채 | 중간(MEDIUM) | 수용 | 퍼블리싱을 스킬로 만들기로 결정할 때, 또는 위키 직접 수정이 SSoT(원본 문서)와 어긋난 사례 관측 시 |
+| [K-0015](active/K-0015-ssot-declaration-silent-fallback.md) | SSoT 선언이 표준 값이 아니면 선언을 읽는 스킬이 경고 없이 소스 코드로 폴백한다 | known issue | 낮음(LOW) | 수용 | 선언이 깨져 원본 문서 repo가 소스 코드로 폴백한 사례 관측 시, 또는 선언 읽기 표준 문장(8곳 복제) 변경 시 |
 
 ## 수명 주기
 
@@ -38,7 +40,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 
 | 단계 | 상태 값 | 위치 | 계기와 수행 주체 |
 |------|---------|------|------|
-| 등재 | `수용` | `active/` | issue-work `--response`의 이관, git-pr-feedback의 수용 — 원장 등재 |
+| 등재 | `수용` | `active/` | issue-work `--response`의 이관, issue-work 이슈 완료 시 spec 제외 `보류` 항목의 등재, git-pr-feedback의 수용 — 원장 등재 |
 | 재검토 | `수용` 유지 | `active/` | 항목의 `재검토 조건` 충족 — issue-audit이 `기등재 K-<번호> 재제기`로 올리거나 git-pr-feedback이 같은 지적을 다시 받을 때, 또는 git-pr `문서 동기화 점검`의 원장 대조가 diff에서 재검토 조건의 대상 변경이나 원인이 남은 상태의 항목 원인 파일 변경을 감지해 권고하고 작성자가 승인할 때. 재제기·권고를 처리한 스킬이 판단 결과를 항목의 `재검토 이력` 표에 남긴다 |
 | 종결(승격) | `승격(이슈 #N)` | `archive/` | 재검토 결과 지금 고쳐야 한다고 판단 — 재제기·권고를 처리한 스킬(issue-work `--response` / git-pr-feedback / git-pr `문서 동기화 점검`)이 이슈를 만들고 그 번호를 상태에 적는다 |
 | 종결(해소) | `해소(PR #N)` | `archive/` | 원인이 사라짐 — 원인을 고친 작업의 스킬이 해소한 PR 번호를 상태에 적는다. issue-work 새 이슈 시작에서 `함께 해소` 후보로 범위에 넣은 항목은 이슈 완료 시(`--clear`) 적고, git-pr `문서 동기화 점검`의 원장 대조가 종결을 권고해 승인된 항목은 PR 생성 후 git-pr이 적는다. PR 번호를 알기 전에는 확정하지 않는다 |

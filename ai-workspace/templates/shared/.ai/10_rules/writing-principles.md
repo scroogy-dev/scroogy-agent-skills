@@ -1,5 +1,5 @@
 <!-- SYNCED by ai-workspace — 원본: ai-workspace/templates/shared/.ai/10_rules/writing-principles.md, DO NOT EDIT -->
-<!-- 버전: 1.1.1 -->
+<!-- 버전: 1.2.0 -->
 
 # 산출물 작성 원칙
 
@@ -10,7 +10,7 @@
 ## 적용 범위
 
 - **적용**: AI 생성 산출 문서인 `.ai/` 하위 md(스펙·계획·리뷰·QA), PR 본문, 이슈 본문·댓글, 리뷰 코멘트
-- **제외**: 소스·테스트 코드, 설정 파일, 코드 주석·Javadoc, README 등 코드베이스 내 문서, 커밋 메시지(`git-commit` 스킬 규칙 우선)
+- **제외**: 소스·테스트 코드, 설정 파일, 코드 주석·Javadoc, README 등 코드베이스 내 문서, 커밋 메시지(`git-commit` 스킬 규칙 우선). doc 프로파일의 `ssot_dir` 문서는 `document-convention.md`를 따른다.
 
 ## 제약 규칙 (모든 산출물에 적용, 템플릿 구조와 직교)
 

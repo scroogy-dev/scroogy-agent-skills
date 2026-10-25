@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-09
-source_hash: 5ab2b67
+last_synced: 2026-10-24
+source_hash: b7fccef
 status: current
 ---
 
@@ -18,15 +18,16 @@ ai-workspace-directory/SKILL.md
 ├── init-1단계: 입력 수집             # 대화형, references/examples.md
 ├── init-2단계: 디스크 스캔           # floor 별 status 결정
 ├── init-3단계: .ai/ 디렉토리 준비
-├── init-4단계: AI-CONTEXT.md 작성    # references/standard-structure.md 의 표준 6개 H2
+├── init-4단계: AI-CONTEXT.md 작성    # references/standard-structure.md 의 표준 6개 H2, 2번째 줄은 repo 안내도 선언을 따른다는 고정 문구, 진입 절차의 placeholder 분기는 소스 코드 폴백
 ├── init-5단계: 분량 가드레일         # scripts/check-lobby.sh --lines <파일>: "<판정> (<줄 수>줄)" 출력, 150~250줄 권고, exit 0
 └── init-6단계: 보고
 ```
 
 ## Why
 
-- 설계 근거는 `ai-workspace-directory/SKILL.md` `### 산출물의 본질`(라우팅·색인만), `### 대전제 (절대 위배 금지)`(소스 코드 SSoT, 우선순위 소스 > repo 안내도 > 로비, CoC·YAGNI), `### 파일 경로 규약`에 있다.
+- 설계 근거는 `ai-workspace-directory/SKILL.md` `### 산출물의 본질`(라우팅·색인만), `### 대전제 (절대 위배 금지)`(각 repo의 SSoT는 그 repo 안내도의 선언이 정하고 로비는 SSoT 값을 선언하지 않음, 우선순위 각 repo의 SSoT > repo 안내도 > 로비, CoC·YAGNI), `### 파일 경로 규약`에 있다.
 - repo 쪽 `## 프로젝트 도메인` 표와 로비 `Repos` 행의 1:1 동기화는 `## 관련 skill`에 있다. 역참조는 CoC로 대신한다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(모드 자동 판정, 표준 섹션 구조·분량 가드레일, git 미의존).
 - 정책: [SSoT 원칙과 안내도 라우터](../../40_domain/policies/local/ssot-and-router-principle.md)(로비는 라우터, 150~250줄, 판정 결과를 git 추적 파일에 기재하지 않음).
+- 로비가 SSoT 값을 선언하지 않고 repo 안내도의 선언을 따르는 결정은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).

@@ -14,7 +14,7 @@
 이 repo의 도메인을 한 줄로, 키워드를 콤마로 나열하세요.
 멀티 워크스페이스의 일부라면 상위 안내도(`../.ai/AI-CONTEXT.md`)의 `Repos` 표 동일 path 행과 1:1 일치시켜야 합니다 (CoC).
 단독 repo여도 에이전트 진입 단서로 유지합니다.
-`ssot_dir`은 필수입니다. SSoT 선언이 원본 문서인 repo의 색인 루트이며, 이 아래 문서 파일이 SSoT입니다.
+`ssot_dir`은 필수입니다. SSoT 선언이 원본 문서인 repo의 색인 루트이며, 이 아래 `.md` 파일이 SSoT입니다. 다른 확장자·첨부의 분류는 `10_rules/document-convention.md`가 정합니다.
 `publish`는 선택입니다. context-harvest가 이 아래 자료를 출처에서 제외합니다. 쓰지 않으면 행을 지웁니다.
 -->
 
@@ -42,6 +42,7 @@
 | 파일 | 설명 | 사용 시점 |
 |------|------|----------|
 | `.ai/10_rules/context-loading.md`    | 작업 전 컨텍스트 확인 절차 | 문서 작업 전      |
+| `.ai/10_rules/document-convention.md` | 문서 규약 (SSoT 대상 확장자·첨부 분류·우선순위·명명) | 원본 문서 작성·리뷰 시 |
 | `.ai/10_rules/file-change-policy.md` | 파일 변경 규칙             | 파일 추가·삭제 시 |
 | `.ai/10_rules/writing-principles.md` | 산출물 작성 원칙 (소스 코드 미적용) | 산출 문서·PR·이슈·리뷰 코멘트 작성 시 |
 
