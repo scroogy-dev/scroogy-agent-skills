@@ -869,8 +869,9 @@ assert_structure check_deferred_ledger "$sandbox/dl-no-clear.md"     fail "보�
 
 CLEAR="$HERE/../scripts/check-clear.sh"
 METRICS="$HERE/../scripts/summarize-metrics.sh"
+LEDGER="$HERE/../scripts/check-ledger-links.sh"
 
-for s in "$CLEAR" "$METRICS"; do
+for s in "$CLEAR" "$METRICS" "$LEDGER"; do
   [ -x "$s" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $s"; fail=$((fail + 1)); }
 done
 
@@ -1092,6 +1093,77 @@ assert_metrics_fail '보정률 집계: 한 Task 만 필드 누락 격추' \
 [ $? -eq 2 ] && ok "사용오류: 인자 없음 (exit 2)" || ng "사용오류: 인자 없음 — exit 2 기대"
 "$METRICS" "$sandbox/absent.md" >/dev/null 2>&1
 [ $? -eq 2 ] && ok "사용오류: 읽을 수 없는 파일 (exit 2)" || ng "사용오류: 읽을 수 없는 파일 — exit 2 기대"
+
+# --- 원장 링크 검사 (check-ledger-links.sh, issue #120) -----------------------------
+#
+# 케이스마다 새 `.ai` 트리를 만든다. 기본 트리는 K-0001 을 archive/ 로 옮기고 링크를 다 고친 상태이며,
+# K-0001 과 active/ 에 남은 K-0002 가 서로를 가리킨다. 격추 케이스는 그 트리에서 한 곳만 바꾼다.
+
+# ledger_tree <이름> — 기본 트리를 "$sandbox/ledger-<이름>" 에 만들고 그 경로를 LT 에 둔다.
+ledger_tree() {
+  LT="$sandbox/ledger-$1"
+  local A="$LT/.ai"
+  mkdir -p "$A/70_ledger/active" "$A/70_ledger/archive" "$A/60_codebase/x"
+  cat > "$A/70_ledger/index.md" <<'EOF'
+# 원장
+
+| [K-0002](active/K-0002-b.md) | 수용 |
+| [K-0001](archive/K-0001-a.md#상태) | 해소 |
+EOF
+  printf '# K-0002\n\n관련: [K-0001](../archive/K-0001-a.md)\n' > "$A/70_ledger/active/K-0002-b.md"
+  printf '# K-0001\n\n관련: [K-0002](../active/K-0002-b.md)\n' > "$A/70_ledger/archive/K-0001-a.md"
+  printf '[K-0001](../../70_ledger/archive/K-0001-a.md#상태) [외부](https://example.com/70_ledger/active/K-0009-z.md)\n' \
+    > "$A/60_codebase/x/flow.md"
+}
+
+# assert_ledger <기대: pass|fail|usage> <설명> <기대 출력> <인자...>
+# 트리 루트(LT)에서 실행한다. fail 은 출력 전체가 기대 출력 1행과 같아야 한다
+# — 기본 트리의 살아 있는 링크(앵커·외부 URL·상호 링크)가 오탐으로 섞이면 실패한다.
+assert_ledger() {
+  local want="$1" desc="$2" hit="$3"; shift 3
+  local out rc
+  out="$(cd "$LT" && "$LEDGER" "$@" 2>&1)"; rc=$?
+  case "$want" in
+    pass)  { [ "$rc" -eq 0 ] && [ -z "$out" ]; } && ok "$desc" \
+             || ng "$desc (기대 exit 0·무출력, 실제 exit $rc — $(printf '%s' "$out" | tr '\n' ' '))" ;;
+    fail)  { [ "$rc" -eq 1 ] && [ "$out" = "$hit" ]; } && ok "$desc" \
+             || ng "$desc (기대 exit 1·[$hit], 실제 exit $rc — $(printf '%s' "$out" | tr '\n' ' '))" ;;
+    usage) [ "$rc" -eq 2 ] && ok "$desc" || ng "$desc (기대 exit 2, 실제 $rc)" ;;
+  esac
+}
+
+ledger_tree ok
+assert_ledger pass "원장 링크: 옮긴 뒤 링크를 다 고친 트리 통과 (앵커·외부 URL·인자 생략)" ''
+
+ledger_tree issue-archive
+mkdir -p "$LT/.ai/90_issues/archive/issue-0001"
+printf '[K-0001](../../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/90_issues/archive/issue-0001/r.md"
+assert_ledger pass "원장 링크: 90_issues/archive 아래 옛 경로만 남은 트리 통과" '' .ai
+
+# 앵커를 붙인다 — 앵커를 떼지 못하면 파일 이름이 `.md` 로 끝나지 않아 후보에서 조용히 빠진다.
+ledger_tree old-path
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md#상태)\n' > "$LT/.ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: 옛 경로 링크 격추 (앵커 포함)" \
+  '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md#상태' .ai
+
+ledger_tree incoming
+printf '# K-0002\n\n관련: [K-0001](K-0001-a.md)\n' > "$LT/.ai/70_ledger/active/K-0002-b.md"
+assert_ledger fail "원장 링크: 같은 디렉토리 들어오는 링크(남은 항목 → 옮긴 항목) 격추" \
+  '.ai/70_ledger/active/K-0002-b.md:3: K-0001-a.md' .ai
+
+ledger_tree outgoing
+printf '# K-0001\n\n관련: [K-0002](K-0002-b.md)\n' > "$LT/.ai/70_ledger/archive/K-0001-a.md"
+assert_ledger fail "원장 링크: 옮긴 항목에서 나가는 링크(옮긴 항목 → 남은 항목) 격추" \
+  '.ai/70_ledger/archive/K-0001-a.md:3: K-0002-b.md' .ai
+
+ledger_tree depth
+printf '[K-0001](../70_ledger/archive/K-0001-a.md)\n' > "$LT/.ai/60_codebase/x/depth.md"
+assert_ledger fail "원장 링크: 깊이 오계산 격추" \
+  '.ai/60_codebase/x/depth.md:1: ../70_ledger/archive/K-0001-a.md' .ai
+
+ledger_tree usage
+assert_ledger usage "원장 링크: 없는 디렉토리 사용오류 격추" '' no-such-dir
+assert_ledger usage "원장 링크: 인자 2개 사용오류 격추" '' .ai .ai
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
