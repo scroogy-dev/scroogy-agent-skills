@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 2 — git-pr·git-pr-feedback 헬퍼 사본과 테스트
+> ▶️ 다음 작업: Task 3 — issue-work SKILL.md 규칙 정의와 적용 지점
 
 ## 모델 기록
 
@@ -131,14 +131,14 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 2: git-pr·git-pr-feedback 헬퍼 사본과 테스트
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 헬퍼를 `git-pr/scripts/`·`git-pr-feedback/scripts/`에 그대로 복사하고(세 사본 `cmp` 동일), 두 러너에 issue-work와 같은 `원장 링크:` 케이스(통과 2·격추 6)를 더했다. 임시 디렉토리는 두 러너 관례대로 `$TMP`를 쓰고, 헬퍼 실행 권한 검사에 `$LEDGER`를 넣었다. git-pr 67건·git-pr-feedback 32건 0 실패, Task 2 완료 기준(R6 사본·권한·동일, R6·R11 수용 세 사본, 두 러너 케이스 수)과 spec 공통(전체 테스트·끊긴 원장 링크 0건) 위반 0건이다.
+- **특이 사항**: 세 러너의 `원장 링크` 블록은 임시 디렉토리 변수(`$sandbox`/`$TMP`)만 다르고 같다. 블록 머리 주석에 "세 러너에 같은 케이스를 두고 한쪽을 고치면 나머지도 고친다"를 적었고(issue-work 러너 포함), 두 러너 머리 주석에 `check-ledger-links.sh` 검증 한 줄을 더했다. Task 1에서 미뤄 둔 issue-work 헬퍼의 git index 모드는 커밋 `8adbec4`에서 100755로 확인했다.
 
 ---
 
