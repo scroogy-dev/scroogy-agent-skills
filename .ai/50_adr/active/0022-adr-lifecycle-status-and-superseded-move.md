@@ -85,6 +85,6 @@ last_harvested: 2026-10-25
 - [Issue #121 ai-workspace·context-harvest: ADR 처리 규칙 도입 (일부 변경·대체·폐기 구분, superseded 이동 기준, 상태 표기)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/121)
 - 규칙: [ADR index `## 수명 주기`](../index.md), [`context-loading.md`](../../10_rules/context-loading.md)
 - 관련 결정: [ADR 0002 스킬 독립성과 의도적 중복](./0002-skill-independence-intentional-duplication.md), [ADR 0007 원장 위치와 구조](./0007-tech-debt-ledger-location-and-structure.md), [ADR 0018 원장 재검토·해소 계기](./0018-ledger-proactive-review-and-resolve-timing.md), [ADR 0021 원장 archive 이동 시 들어오는 링크 갱신](./0021-ledger-archive-move-link-update.md)
-- 원장 항목: [K-0001 update-3 회귀 fixture 부재](../../70_ledger/active/K-0001-update3-fixture-absent.md) (이 결정의 fixture로 해소)
+- 원장 항목: [K-0001 update-3 회귀 fixture 부재](../../70_ledger/archive/K-0001-update3-fixture-absent.md) (이 결정의 fixture로 해소)
 
 </details>

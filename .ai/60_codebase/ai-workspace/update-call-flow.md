@@ -36,8 +36,8 @@ ai-workspace/SKILL.md
 
 - 설계 근거는 `ai-workspace/SKILL.md` `### 설계 원칙`과 `## 디렉토리 트리 정렬 규칙`에 있다. 버전 고정 파일과 사용자 관리 파일을 나눈 이유는 update-1단계 주석에 있다.
 - `check-context.sh`가 판정만 맡고 조치를 SKILL.md에 남긴 것은 [architecture.md 디자인 원칙](../../10_rules/architecture.md)의 역할 분담을 따른 것이다. 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
-- 원장 [K-0001](../../70_ledger/active/K-0001-update3-fixture-absent.md): update-3 파일 정리에 회귀 fixture가 없다(수용).
-- update-3 `50_adr/` 판정을 본문 키워드 대신 상태 줄 값으로 하고 상태 줄 없는 ADR을 `active/`로 두는 결정은 [ADR 0022](../../50_adr/active/0022-adr-lifecycle-status-and-superseded-move.md). 판단 기준 표 5행·루트 상주 파일·`legacy/`는 회귀 fixture `ai-workspace/tests/fixtures/update3-file-cleanup/`(모의 실행 `[QD]`)가 덮으며, 원장 K-0001의 해소 대상이다.
+- 원장 [K-0001](../../70_ledger/archive/K-0001-update3-fixture-absent.md): update-3 파일 정리에 회귀 fixture가 없었다(해소(PR #124)).
+- update-3 `50_adr/` 판정을 본문 키워드 대신 상태 줄 값으로 하고 상태 줄 없는 ADR을 `active/`로 두는 결정은 [ADR 0022](../../50_adr/active/0022-adr-lifecycle-status-and-superseded-move.md). 판단 기준 표 5행·루트 상주 파일·`legacy/`는 회귀 fixture `ai-workspace/tests/fixtures/update3-file-cleanup/`(모의 실행 `[QD]`)가 덮으며, 이 fixture로 원장 K-0001을 해소했다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(update 구조 정합, 멱등 보강 검사 9종 + AI 판정 2종, 루트 상주 파일 제외, `## Git 정책` 표 미검사).
 - 정책: [SSoT 원칙과 안내도 라우터](../../40_domain/policies/local/ssot-and-router-principle.md).
 - 버전 고정 파일(`context-loading.md`·`writing-principles.md`)만 덮어쓰고 AI-CONTEXT 규칙 표 행을 멱등 보강으로 전파하는 결정은 [ADR 0008](../../50_adr/active/0008-writing-principles-ssot-distribution.md). `70_ledger/` 신규 디렉토리·골격 index 전파는 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md). 트리 해석 2종을 헬퍼 밖에 둔 판단은 [ADR 0003](../../50_adr/active/0003-verification-levels-and-determinization.md) 대안 절(#90 당시 10종 중 8종). 건물 repo 선언 검사와 doc 전용 `document-convention.md`는 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md).

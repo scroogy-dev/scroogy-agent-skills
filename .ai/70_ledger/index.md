@@ -18,7 +18,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 
 | 번호 | 제목 | 유형 | 위험도 | 상태 | 재검토 조건 |
 |------|------|------|--------|------|-------------|
-| [K-0001](active/K-0001-update3-fixture-absent.md) | ai-workspace update-3 "기존 파일 정리"에 회귀 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | update-3 이동 판단 기준·루트 상주 파일 제외 규칙 재수정 시, 또는 update-3 전체 fixture 도입 착수 시 |
+| [K-0001](archive/K-0001-update3-fixture-absent.md) | ai-workspace update-3 "기존 파일 정리"에 회귀 fixture가 없다 | 기술부채 | 낮음(LOW) | 해소(PR #124) | - |
 | [K-0002](active/K-0002-audit-axis-tiebreak-absent.md) | issue-audit 영향·발생확률 축에 경계 판정 우선 규칙이 없다 | 기술부채 | 낮음(LOW) | 수용 | 교차모델 audit 2회 이상에서 같은 발견의 축 판정이 갈린 사례 관측 시, 또는 위험도 분류 소절의 축 값·정의·매트릭스 실질 변경 시 |
 | [K-0003](active/K-0003-approved-file-content-unverified.md) | 승인한 제목·본문 파일의 내용 동일성이 제출 직전에 검증되지 않는다 | known issue | 낮음(LOW) | 수용 | git-pr 3·4단계 승인 게이트의 승인 대상·검증 값·절차 순서 실질 변경 시, 또는 승인 후 파일 변조로 미승인 내용이 게시된 사례 관측 시 |
 | [K-0004](active/K-0004-clear-preserve-destination-mismatch.md) | --clear 5단계 보존 목적지가 파일명의 이슈 번호를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | issue-work --clear 5단계 보존 목적지를 정하는 문장 실질 변경 시, 또는 이전 이슈 PR 파일이 다른 이슈 archive로 이관된 사례 관측 시 |
