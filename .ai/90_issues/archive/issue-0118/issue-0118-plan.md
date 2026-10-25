@@ -343,8 +343,8 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    P=.ai/90_issues/active/issue-0118/issue-0118-plan.md
-    S=.ai/90_issues/active/issue-0118/issue-0118-summary.md
+    P=.ai/90_issues/archive/issue-0118/issue-0118-plan.md
+    S=.ai/90_issues/archive/issue-0118/issue-0118-summary.md
     { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
       && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
       || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
@@ -358,7 +358,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0118/issue-0118-summary.md
+    S=.ai/90_issues/archive/issue-0118/issue-0118-summary.md
     awk '
       /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*:/ {
@@ -377,7 +377,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0118/issue-0118-summary.md
+    S=.ai/90_issues/archive/issue-0118/issue-0118-summary.md
     awk '
       /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }
