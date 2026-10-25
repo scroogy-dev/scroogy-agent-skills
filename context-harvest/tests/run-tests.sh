@@ -171,6 +171,8 @@ assert_reject '템플릿 frontmatter 키 변경 격추' '템플릿 frontmatter 3
 # 결정 변경을 ADR index `## 수명 주기`로 처리하게 한다 (#121).
 # 수명 주기 섹션이 없는 설치본에서는 이동만이 아니라 내용·상태 줄·`last_harvested` 갱신도 보류해야
 # 다음 증분 수집이 같은 결정 변경을 다시 판정한다 (#121 계획 감사 F-1).
+# 재판정 기준 시각은 보류한 ADR 자신의 `last_harvested`다. 같은 소스의 다른 문서 시각으로 바꾸면
+# 그 사이에 생긴 결정 변경 후보가 다음 수집에서 빠진다 (#121 최종 감사 F-1).
 
 # adr_violations <SKILL.md> <ADR 템플릿> — 어긋난 규칙을 1행씩 출력한다. 무출력이면 통과.
 adr_violations() {
@@ -185,6 +187,7 @@ adr_violations() {
   has "$s" '`.ai/50_adr/index.md`의 `## 수명 주기`' || echo '5단계 수명 주기 참조'
   has "$s" '섹션이 없으면 기존 ADR은 옮기지 않고' || echo '5단계 섹션 부재 대비'
   has "$s" '내용·상태 줄·`last_harvested`도 바꾸지 않으며' || echo '5단계 섹션 부재 보류 범위'
+  has "$s" '같은 소스는 이 ADR의 `last_harvested` 이후 변경분부터 다시 판정한다' || echo '5단계 재판정 기준 시각'
 }
 
 out="$(adr_violations "$SKILL" "$ADR_TPL")"
@@ -228,6 +231,10 @@ assert_adr_reject 'ADR 상태 줄 5단계 섹션 부재 대비 삭제 격추' '5
   cut_str "$C_SKILL" ' 섹션이 없으면 기존 ADR은 옮기지 않고 내용·상태 줄·`last_harvested`도 바꾸지 않으며 새 ADR도 만들지 않는다.'
 assert_adr_reject 'ADR 상태 줄 5단계 보류 범위 축소 격추'     '5단계 섹션 부재 보류 범위' \
   sub_str "$C_SKILL" '옮기지 않고 내용·상태 줄·`last_harvested`도 바꾸지 않으며 새 ADR도 만들지 않는다' '옮기지 않는다'
+assert_adr_reject 'ADR 상태 줄 5단계 재판정 문장 삭제 격추'   '5단계 재판정 기준 시각' \
+  cut_str "$C_SKILL" ' 다음 증분 수집에서 같은 소스는 이 ADR의 `last_harvested` 이후 변경분부터 다시 판정한다.'
+assert_adr_reject 'ADR 상태 줄 5단계 재판정 기준 시각 변경 격추' '5단계 재판정 기준 시각' \
+  sub_str "$C_SKILL" '이 ADR의 `last_harvested` 이후 변경분부터 다시 판정한다' '최신 문서의 `last_harvested` 이후 변경분부터 판정한다'
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 
