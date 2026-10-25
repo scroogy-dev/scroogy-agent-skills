@@ -25,7 +25,7 @@ ai-workspace/SKILL.md
 ├── update-4단계: AI-CONTEXT.md 갱신
 │   ├── scripts/check-context.sh <AI-CONTEXT.md>   # 9항목 판정, 누락 1행씩·exit 1, 조치는 SKILL.md
 │   │   ├── SSoT 선언 행                # dev·doc 두 표준 문구 인정, doc 선언이면 ssot_dir 행·dev 표준 문구 4곳(우선순위·60_codebase 설명 3곳) 잔존도 검사. doc 문구를 넣은 실행은 ssot_dir 자리표시자 행 보강·4곳 doc 문구 교체 동시 수행(헬퍼 1회 실행이라 같은 실행에서 재검사 없음). 건물 repo면 프로파일과 무관하게 dev 문구로 삽입·교체
-│   │   └── 건물 repo 선언 행           # 같은 .ai/ 아래 60_codebase/repository.yaml 존재 + doc 표준 문구면 보고, dev 문구로 바꿀지 질의(자동 전환 없음)
+│   │   └── 건물 repo 선언 행           # 같은 .ai/ 아래 60_codebase/repository.yaml 존재 + doc 표준 문구면 보고, dev 문구로 바꿀지 질의(자동 전환 없음). 승인 시 4곳 doc 템플릿 문구도 dev 문구로 되돌림
 │   ├── .ai/ 한 줄 압축·트리 정렬 판단   # 헬퍼 밖 2항목, 트리 구조 해석
 │   ├── last updated 를 실행일로 갱신
 │   └── references/legacy-migration.md  # 구버전 구조 발견 시에만
