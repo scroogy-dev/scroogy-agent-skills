@@ -1200,6 +1200,15 @@ assert_ledger fail "원장 링크: 심볼릭 링크 루트의 옛 경로 격추 
 assert_ledger fail "원장 링크: 심볼릭 링크 루트의 옛 경로 격추 (.ai/)" \
   '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' .ai/
 
+# glob 문자가 든 루트 (PR #123 리뷰). find -path 가 제외 경로를 glob 으로 읽어 루트의 [1] 이 문자 1 로 풀리면 90_issues/archive 가 빠지지 않았다.
+# archive 의 옛 경로는 빠지고 그 밖의 옛 경로 1행만 나와야 한다.
+ledger_tree 'glob[1]'
+mkdir -p "$LT/.ai/90_issues/archive/issue-0001"
+printf '[K-0001](../../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/90_issues/archive/issue-0001/r.md"
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: glob 문자가 든 루트에서 90_issues/archive 제외·옛 경로 격추" \
+  "$LT/.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md" "$LT/.ai"
+
 # --- 링크 갱신 규칙 (issue #120) --------------------------------------------------
 #
 # 원장 항목을 archive/ 로 옮긴 뒤의 링크 갱신은 SKILL.md `## 이슈 완료 시` 3단계 원장 해소 기재의 정의 행

@@ -33,10 +33,13 @@ dir="${1:-.ai}"
 # 끝의 / 를 떼어 find 출력 경로와 제외 경로의 표기를 맞춘다 (BSD find 는 `.ai/` 를 `.ai//…` 로 잇는다).
 while [ "$dir" != / ] && [ "${dir%/}" != "$dir" ]; do dir="${dir%/}"; done
 
+# find -path 는 제외 경로를 glob 으로 읽는다. 루트 경로의 glob 문자([ ] * ? \)를 이스케이프해야 `repo[1]/.ai` 같은 루트에서도 90_issues/archive 가 빠진다.
+pat="$(printf '%s' "$dir" | sed 's/[][*?\\]/\\&/g')"
+
 # 후보: <파일>\t<줄>\t<대상> — 대상은 링크에 적힌 그대로, 경로는 앵커를 뗀 값이다.
 # find -H 는 인자로 준 디렉토리가 심볼릭 링크여도 그 대상을 검사한다 (하위 심볼릭 링크는 따라가지 않는다).
 # 한 파일이라도 읽지 못하면 그 자리에서 2 로 끝낸다. while 의 종료 상태는 마지막 awk 만 반영해 앞 파일의 실패가 가려진다.
-cands="$(find -H "$dir" -path "$dir/90_issues/archive" -prune -o -type f -name '*.md' -print \
+cands="$(find -H "$dir" -path "$pat/90_issues/archive" -prune -o -type f -name '*.md' -print \
   | LC_ALL=C sort \
   | while IFS= read -r f; do
       awk '
