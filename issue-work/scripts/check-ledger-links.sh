@@ -39,10 +39,11 @@ pat="$(printf '%s' "$dir" | sed 's/[][*?\\]/\\&/g')"
 # 후보: <파일>\t<줄>\t<대상> — 대상은 링크에 적힌 그대로, 경로는 앵커를 뗀 값이다.
 # find -H 는 인자로 준 디렉토리가 심볼릭 링크여도 그 대상을 검사한다 (하위 심볼릭 링크는 따라가지 않는다).
 # 한 파일이라도 읽지 못하면 그 자리에서 2 로 끝낸다. while 의 종료 상태는 마지막 awk 만 반영해 앞 파일의 실패가 가려진다.
+# awk 는 `이름=값` 꼴 인자를 변수 대입으로 읽는다. 파일은 표준 입력으로 주고 경로는 ENVIRON 으로 넘겨야 `scan=x/.ai` 같은 상대 루트에서도 검사한다.
 cands="$(find -H "$dir" -path "$pat/90_issues/archive" -prune -o -type f -name '*.md' -print \
   | LC_ALL=C sort \
   | while IFS= read -r f; do
-      awk '
+      F="$f" awk '
         {
           s = $0
           while ((i = index(s, "](")) > 0) {
@@ -54,10 +55,10 @@ cands="$(find -H "$dir" -path "$pat/90_issues/archive" -prune -o -type f -name '
             if (index(t, "://")) continue
             p = t; sub(/#.*/, "", p)
             b = p; sub(/.*\//, "", b)
-            if (b ~ /^K-[0-9][0-9][0-9][0-9]-.*\.md$/) print FILENAME "\t" FNR "\t" t "\t" p
+            if (b ~ /^K-[0-9][0-9][0-9][0-9]-.*\.md$/) print ENVIRON["F"] "\t" FNR "\t" t "\t" p
           }
         }
-      ' "$f" || exit 2
+      ' < "$f" || exit 2
     done)" || { echo "error: 검사 대상을 읽지 못했습니다 — $dir" >&2; exit 2; }
 
 broken=0

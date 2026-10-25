@@ -363,6 +363,13 @@ printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/60_cod
 assert_ledger fail "원장 링크: glob 문자가 든 루트에서 90_issues/archive 제외·옛 경로 격추" \
   "$LT/.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md" "$LT/.ai"
 
+# `이름=값` 꼴 상대 루트 (PR #123 리뷰). awk 가 `scan=ledger/.ai/…` 인자를 변수 대입으로 읽어 파일을 검사하지 않고 0 으로 끝났다.
+ledger_tree assign
+mkdir "$LT/scan=ledger" && mv "$LT/.ai" "$LT/scan=ledger/.ai"
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/scan=ledger/.ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: 이름=값 꼴 상대 루트의 옛 경로 격추" \
+  'scan=ledger/.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' scan=ledger/.ai
+
 # --- 링크 갱신 규칙 (issue #120) --------------------------------------------------
 #
 # 원장 항목을 archive/ 로 옮긴 뒤의 링크 갱신은 SKILL.md "PR 제출" 4단계 원장 해소 기재의 번호 단계 정의 행
