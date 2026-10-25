@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 7 — 도메인 명세·호출 흐름·코드 색인 정합
+> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 ## 모델 기록
 
@@ -214,14 +214,18 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 7: 도메인 명세·호출 흐름·코드 색인 정합
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: plan 문장대로 세 문서를 고쳤다.
+  - `.ai/40_domain/specs/ai-workspace.md`: `- update 구조 정합:` 행 끝에 ADR 상태 줄 판정 문장, `## 관련 결정`에 ADR 0022 링크를 더했다. 원본 출처 이슈 목록에 #121도 더했다.
+  - `.ai/60_codebase/ai-workspace/update-call-flow.md`: `루트 파일 이동` 행 주석에 `ADR 상태 줄·원장 상태 값`을 넣고, `## Why`에 ADR 0022와 update-3 fixture(K-0001 해소 대상) 한 줄을 더했다. frontmatter는 `last_synced: 2026-10-25`, `source_hash: d368084`(Task 5 구현 커밋, 이 이슈의 마지막 ai-workspace 소스 커밋)로 갱신했다.
+  - `.ai/60_codebase/index.md`: ai-workspace·context-harvest 행에 ADR 0022 링크, 태그 현황 끝에 `#121 부분 반영(2026-10-25)` 한 줄을 더했다. index frontmatter는 유지했다.
+  - spec R10·R12 `[D]` 명령 출력 0건, 원장 링크 검사 0건, 세 문서의 상대 링크 대상 전부 실재. spec 완료의 정의 `[D]` 명령 19개 전체도 출력 0건이다.
+- **특이 사항**: ai-workspace init 흐름은 템플릿 복사 트리가 바뀌지 않아 고치지 않았다(`source_hash: b7fccef` 유지). `update-call-flow.md`의 K-0001 줄 "(수용)"과 두 문서의 K-0001 링크는 spec 전제 "K-0001 해소 시점"대로 이슈 완료 시 고친다. Task 완료 기준의 `[QD]`(세 문서 서술 정합)는 교차모델 audit 몫이다.
 
 ---
 
