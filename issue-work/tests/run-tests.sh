@@ -1098,6 +1098,7 @@ assert_metrics_fail '보정률 집계: 한 Task 만 필드 누락 격추' \
 #
 # 케이스마다 새 `.ai` 트리를 만든다. 기본 트리는 K-0001 을 archive/ 로 옮기고 링크를 다 고친 상태이며,
 # K-0001 과 active/ 에 남은 K-0002 가 서로를 가리킨다. 격추 케이스는 그 트리에서 한 곳만 바꾼다.
+# 헬퍼 사본을 둔 issue-work·git-pr·git-pr-feedback 러너에 같은 케이스를 둔다. 한쪽을 고치면 나머지도 고친다.
 
 # ledger_tree <이름> — 기본 트리를 "$sandbox/ledger-<이름>" 에 만들고 그 경로를 LT 에 둔다.
 ledger_tree() {
