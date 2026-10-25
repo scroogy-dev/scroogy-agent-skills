@@ -137,6 +137,7 @@ status: current
 | 루트 불일치 | 안내도 `ssot_dir`이 frontmatter `ssot_dir`과 다르면 색인 전체를 `[UPDATE-NEEDED]`로 보고하고 rebuild를 권고한다. 색인을 최신으로 보고하지 않는다. |
 | stale 탐지 | `source_hash` 이후 `ssot_dir` 아래에서 변경된 `.md` 파일 목록을 조회하여, 해당 파일의 행이 미반영이면 → `[UPDATE-NEEDED]` |
 | 파일 유효성 | 색인 행의 파일이 실제로 존재하는지. build·sync·rebuild는 1~2단계에서 삭제·이름 변경을 반영한 뒤이므로 **존재하지 않는 행을 색인에서 자동 제거한다.** `check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.** 이름 변경 전 행을 먼저 지우면 이어지는 `sync`가 그 행의 Why 태깅을 새 행으로 옮기지 못한다. |
+| 범위 밖 행 | 색인 행의 파일 확장자가 `.md`인지. 색인 대상을 `.md`로 좁히기 전 버전이 만든 다른 확장자 행은 sync 변경 목록에 잡히지 않아 남는다. build·sync·rebuild는 1~2단계 반영 뒤 **`.md`가 아닌 행을 색인에서 자동 제거한다.** `check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.** |
 | 교차참조 유효성 | `30_contract`, `40_domain`, `50_adr`로의 링크가 실제로 존재하는지 |
 | Why 미태깅 | `[WHY-NEEDED]` 태그가 있는 항목 목록 |
 | 문서 누락 | `[DOC-NEEDED]` 태그가 있는 항목 목록 |

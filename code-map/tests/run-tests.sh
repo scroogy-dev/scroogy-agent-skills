@@ -100,6 +100,10 @@ violations() {
     || echo 'stale 탐지 .md'
   has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 파일 유효성 \|')" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.**' \
     || echo '파일 유효성 check 보존'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 범위 밖 행 \|')" '**`.md`가 아닌 행을 색인에서 자동 제거한다.**' \
+    || echo '범위 밖 행 제거'
+  has "$(sec "$doc" '### 3단계: 정합성 점검' | grep -E '^\| 범위 밖 행 \|')" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.**' \
+    || echo '범위 밖 행 check 보존'
   has "$(sec "$doc" '### 4단계: 결과 보고')" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' || echo '보고 문서 색인 건수'
 
   has "$(sec "$skill" '### SSoT 원칙')" '선언을 찾지 못하면 소스 코드를 SSoT로 본다' || echo 'SKILL.md 선언 부재 폴백'
@@ -274,6 +278,9 @@ assert_reject 'stale 탐지 .md 원복 격추'      'stale 탐지 .md' \
   sub_str "$C_DOC" '아래에서 변경된 `.md` 파일 목록' '아래에서 변경된 파일 목록'
 assert_reject '파일 유효성 check 보존 삭제 격추' '파일 유효성 check 보존' \
   cut_str "$C_DOC" '`check`는 **행을 지우지 않고 `[UPDATE-NEEDED]`로 보고한다.** '
+assert_reject '범위 밖 행 점검 삭제 격추'     '범위 밖 행 제거'         drop_line "$C_DOC" '| 범위 밖 행 |'
+assert_reject '범위 밖 행 check 보존 삭제 격추' '범위 밖 행 check 보존' \
+  sub_str "$C_DOC" '아닌 행을 색인에서 자동 제거한다.** `check`는 **행을 지우지 않고' '아닌 행을 색인에서 자동 제거한다.** `check`도 **행을 지우고'
 assert_reject '보고 건수 축소 격추'           '보고 문서 색인 건수' \
   sub_str "$C_DOC" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' '문서 색인: N건'
 assert_reject 'SKILL.md 폴백 삭제 격추'       'SKILL.md 선언 부재 폴백' cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
