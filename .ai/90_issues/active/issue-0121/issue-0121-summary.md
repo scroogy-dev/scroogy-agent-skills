@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 5 — context-loading 제약 문장에 superseded 제외
+> ▶️ 다음 작업: Task 6 — 새 ADR 0022 작성
 
 ## 모델 기록
 
@@ -183,14 +183,16 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 
 ### Task 5: context-loading 제약 문장에 superseded 제외
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5.5 (claude-opus-5-5)
+- **수행 effort**: xhigh
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `ai-workspace/templates/shared/.ai/10_rules/context-loading.md`의 제약 행 끝에 같은 행으로 `` 단, `50_adr/superseded/`의 ADR은 제약으로 쓰지 않고 이력 확인에만 읽는다. ``를 붙이고, 템플릿을 `.ai/10_rules/context-loading.md`로 복사해 바이트 단위로 같게 두었다.
+  - `ai-workspace/tests/run-tests.sh`에 `context-loading 제약 문장` 블록을 더했다. 통과 1·격추 2(plan의 `superseded/` 제외 문장 삭제에 사본 불일치를 더함)다.
+  - spec R9 `[D]` 명령 출력 0건, Task 5 게이트 통과, 전체 스킬 테스트 통과(ai-workspace 85건), 원장 링크 검사 0건.
+- **특이 사항**: 이 Task가 이 이슈에서 ai-workspace 소스를 마지막으로 바꾼다. Task 7의 `update-call-flow.md` `last_synced`·`source_hash`는 이 Task 구현 커밋으로 갱신한다.
 
 ---
 
