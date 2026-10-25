@@ -13,13 +13,13 @@ last_harvested: 2026-09-09
 - 분류·의견: 항목마다 의견 유형 5종(조치 필요 / 조치 불필요 / 수용(known issue) / 코멘트로 충분 / 확인 필요)과 근거·답글 초안. 의견은 제안이다.
 - 선택·승인: 항목별 처리 방식(코드 수정 / 답글 게시 / 수용 — 원장 등재 / 보류). 답글·resolve·push는 승인 게이트 필수.
 - 조치: 코드 수정 커밋은 git-commit 규칙을 따른다. 답글은 승인 본문 그대로 게시한다. resolve는 실행 직전 스레드 재조회·스냅샷 대조(코멘트 ID·본문·resolve 상태). push는 원격 fetch/push URL 전체가 head 저장소와 일치(정확히 1개), ref·조상 관계 대조, 커밋 목록·diffstat·최종 diff 제시, 기존 작업트리 변경 분리 확인, push 후 head SHA 일치 시에만 완료 보고(`verify-push.sh`).
-- 원장 연계: `수용 — 원장 등재` 선택 시 `K-<번호>` 등재(수용 사유·재검토 조건 필수, 출처 식별자만). 기등재면 새 번호를 따지 않고 재검토 이력에 기록하며 조건 충족 시 갱신·종결한다. 코드 수정으로 기존 K의 원인이 사라지면 선택과 무관하게 `해소(PR #N)`으로 종결한다.
+- 원장 연계: `수용 — 원장 등재` 선택 시 `K-<번호>` 등재(수용 사유·재검토 조건 필수, 출처 식별자만). 기등재면 새 번호를 따지 않고 재검토 이력에 기록하며 조건 충족 시 갱신·종결한다. 코드 수정으로 기존 K의 원인이 사라지면 선택과 무관하게 `해소(PR #N)`으로 종결한다. 종결해 `archive/`로 옮기면 들어오는 링크 갱신을 수행한다. 그 항목을 가리키는 `.ai/` 아래 문서(`.ai/90_issues/archive/` 제외, 같은 디렉토리의 원장 항목 링크 포함)의 링크를 새 경로로 고치고 `check-ledger-links.sh`로 끊긴 원장 링크 0건을 확인한다 (#120).
 - 결과 요약 표(항목 | 분류 | 사용자 선택 | 결과)를 제시한다.
 - 산출물 접기 기준과 writing-principles 참조를 포함한다.
 
 ## 관련 결정
 
-- [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), [ADR 0012](../../50_adr/active/0012-git-pr-feedback-separate-skill.md), 정책 [외부 공개 행위 승인 게이트](../policies/local/external-action-approval-gate.md), 계약 [GitHub 연동 수단](../../30_contract/github-integration.md)
+- [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), [ADR 0012](../../50_adr/active/0012-git-pr-feedback-separate-skill.md), [ADR 0021](../../50_adr/active/0021-ledger-archive-move-link-update.md), 정책 [외부 공개 행위 승인 게이트](../policies/local/external-action-approval-gate.md), 계약 [GitHub 연동 수단](../../30_contract/github-integration.md)
 - 절차 상세는 `git-pr-feedback/SKILL.md`가 SSoT다.
 
 ## 원본 출처
@@ -27,7 +27,7 @@ last_harvested: 2026-09-09
 <details>
 <summary>출처 목록 펼치기</summary>
 
-- [Issue #61](https://github.com/scroogy-dev/scroogy-agent-skills/issues/61), [#64](https://github.com/scroogy-dev/scroogy-agent-skills/issues/64), [#70](https://github.com/scroogy-dev/scroogy-agent-skills/issues/70), [#90](https://github.com/scroogy-dev/scroogy-agent-skills/issues/90)
+- [Issue #61](https://github.com/scroogy-dev/scroogy-agent-skills/issues/61), [#64](https://github.com/scroogy-dev/scroogy-agent-skills/issues/64), [#70](https://github.com/scroogy-dev/scroogy-agent-skills/issues/70), [#90](https://github.com/scroogy-dev/scroogy-agent-skills/issues/90), [#120](https://github.com/scroogy-dev/scroogy-agent-skills/issues/120)
 - [PR #65 리뷰](https://github.com/scroogy-dev/scroogy-agent-skills/pull/65)
 
 </details>

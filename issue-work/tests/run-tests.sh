@@ -869,8 +869,9 @@ assert_structure check_deferred_ledger "$sandbox/dl-no-clear.md"     fail "보�
 
 CLEAR="$HERE/../scripts/check-clear.sh"
 METRICS="$HERE/../scripts/summarize-metrics.sh"
+LEDGER="$HERE/../scripts/check-ledger-links.sh"
 
-for s in "$CLEAR" "$METRICS"; do
+for s in "$CLEAR" "$METRICS" "$LEDGER"; do
   [ -x "$s" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $s"; fail=$((fail + 1)); }
 done
 
@@ -1092,6 +1093,212 @@ assert_metrics_fail '보정률 집계: 한 Task 만 필드 누락 격추' \
 [ $? -eq 2 ] && ok "사용오류: 인자 없음 (exit 2)" || ng "사용오류: 인자 없음 — exit 2 기대"
 "$METRICS" "$sandbox/absent.md" >/dev/null 2>&1
 [ $? -eq 2 ] && ok "사용오류: 읽을 수 없는 파일 (exit 2)" || ng "사용오류: 읽을 수 없는 파일 — exit 2 기대"
+
+# --- 원장 링크 검사 (check-ledger-links.sh, issue #120) -----------------------------
+#
+# 케이스마다 새 `.ai` 트리를 만든다. 기본 트리는 K-0001 을 archive/ 로 옮기고 링크를 다 고친 상태이며,
+# K-0001 과 active/ 에 남은 K-0002 가 서로를 가리킨다. 격추 케이스는 그 트리에서 한 곳만 바꾼다.
+# 헬퍼 사본을 둔 issue-work·git-pr·git-pr-feedback 러너에 같은 케이스를 둔다. 한쪽을 고치면 나머지도 고친다.
+
+# ledger_tree <이름> — 기본 트리를 "$sandbox/ledger-<이름>" 에 만들고 그 경로를 LT 에 둔다.
+ledger_tree() {
+  LT="$sandbox/ledger-$1"
+  local A="$LT/.ai"
+  mkdir -p "$A/70_ledger/active" "$A/70_ledger/archive" "$A/60_codebase/x"
+  cat > "$A/70_ledger/index.md" <<'EOF'
+# 원장
+
+| [K-0002](active/K-0002-b.md) | 수용 |
+| [K-0001](archive/K-0001-a.md#상태) | 해소 |
+EOF
+  printf '# K-0002\n\n관련: [K-0001](../archive/K-0001-a.md)\n' > "$A/70_ledger/active/K-0002-b.md"
+  printf '# K-0001\n\n관련: [K-0002](../active/K-0002-b.md)\n' > "$A/70_ledger/archive/K-0001-a.md"
+  printf '[K-0001](../../70_ledger/archive/K-0001-a.md#상태) [외부](https://example.com/70_ledger/active/K-0009-z.md)\n' \
+    > "$A/60_codebase/x/flow.md"
+}
+
+# assert_ledger <기대: pass|fail|usage> <설명> <기대 출력> <인자...>
+# 트리 루트(LT)에서 실행한다. fail 은 출력 전체가 기대 출력 1행과 같아야 한다
+# — 기본 트리의 살아 있는 링크(앵커·외부 URL·상호 링크)가 오탐으로 섞이면 실패한다.
+assert_ledger() {
+  local want="$1" desc="$2" hit="$3"; shift 3
+  local out rc
+  out="$(cd "$LT" && "$LEDGER" "$@" 2>&1)"; rc=$?
+  case "$want" in
+    pass)  { [ "$rc" -eq 0 ] && [ -z "$out" ]; } && ok "$desc" \
+             || ng "$desc (기대 exit 0·무출력, 실제 exit $rc — $(printf '%s' "$out" | tr '\n' ' '))" ;;
+    fail)  { [ "$rc" -eq 1 ] && [ "$out" = "$hit" ]; } && ok "$desc" \
+             || ng "$desc (기대 exit 1·[$hit], 실제 exit $rc — $(printf '%s' "$out" | tr '\n' ' '))" ;;
+    usage) [ "$rc" -eq 2 ] && ok "$desc" || ng "$desc (기대 exit 2, 실제 $rc)" ;;
+  esac
+}
+
+ledger_tree ok
+assert_ledger pass "원장 링크: 옮긴 뒤 링크를 다 고친 트리 통과 (앵커·외부 URL·인자 생략)" ''
+
+ledger_tree issue-archive
+mkdir -p "$LT/.ai/90_issues/archive/issue-0001"
+printf '[K-0001](../../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/90_issues/archive/issue-0001/r.md"
+assert_ledger pass "원장 링크: 90_issues/archive 아래 옛 경로만 남은 트리 통과" '' .ai
+
+# 앵커를 붙인다 — 앵커를 떼지 못하면 파일 이름이 `.md` 로 끝나지 않아 후보에서 조용히 빠진다.
+ledger_tree old-path
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md#상태)\n' > "$LT/.ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: 옛 경로 링크 격추 (앵커 포함)" \
+  '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md#상태' .ai
+
+ledger_tree incoming
+printf '# K-0002\n\n관련: [K-0001](K-0001-a.md)\n' > "$LT/.ai/70_ledger/active/K-0002-b.md"
+assert_ledger fail "원장 링크: 같은 디렉토리 들어오는 링크(남은 항목 → 옮긴 항목) 격추" \
+  '.ai/70_ledger/active/K-0002-b.md:3: K-0001-a.md' .ai
+
+ledger_tree outgoing
+printf '# K-0001\n\n관련: [K-0002](K-0002-b.md)\n' > "$LT/.ai/70_ledger/archive/K-0001-a.md"
+assert_ledger fail "원장 링크: 옮긴 항목에서 나가는 링크(옮긴 항목 → 남은 항목) 격추" \
+  '.ai/70_ledger/archive/K-0001-a.md:3: K-0002-b.md' .ai
+
+ledger_tree depth
+printf '[K-0001](../70_ledger/archive/K-0001-a.md)\n' > "$LT/.ai/60_codebase/x/depth.md"
+assert_ledger fail "원장 링크: 깊이 오계산 격추" \
+  '.ai/60_codebase/x/depth.md:1: ../70_ledger/archive/K-0001-a.md' .ai
+
+ledger_tree usage
+assert_ledger usage "원장 링크: 없는 디렉토리 사용오류 격추" '' no-such-dir
+assert_ledger usage "원장 링크: 인자 2개 사용오류 격추" '' .ai .ai
+
+# 읽기 실패 (최종 감사 F-1). while 의 종료 상태가 마지막 awk 만 반영해, 앞 파일을 읽지 못해도 뒤 파일이 정상이면 0 이 나왔다.
+# 정렬 순서로 첫·중간·마지막 위치에 읽을 수 없는 파일을 둔다. root 는 chmod 000 이어도 읽을 수 있어 읽기가 막히지 않으면 건너뛴다.
+# ledger_unreadable <이름> <.ai 기준 파일> <위치> — 기본 트리에 읽을 수 없는 파일을 두고 종료 코드 2 를 기대한다.
+ledger_unreadable() {
+  ledger_tree "$1"
+  local u="$LT/.ai/$2"
+  printf '# 읽기 차단\n' > "$u"; chmod 000 "$u"
+  if [ -r "$u" ]; then echo "skip   - 원장 링크: $3 파일 읽기 실패 (읽기를 막을 수 없는 환경)"
+  else assert_ledger usage "원장 링크: $3 파일 읽기 실패 격추" '' .ai; fi
+  chmod 644 "$u"
+}
+ledger_unreadable unreadable-first 60_codebase/a.md 첫
+ledger_unreadable unreadable-mid   70_ledger/a.md   중간
+ledger_unreadable unreadable-last  z.md             마지막
+
+# 심볼릭 링크 루트 (최종 감사 F-2). find 가 명령행의 심볼릭 링크를 따라가지 않아 후보 0개로 통과했다.
+# ledger_symlink <이름> — 기본 트리의 .ai 를 real-ai 로 옮기고 .ai 를 그 심볼릭 링크로 둔다.
+ledger_symlink() {
+  ledger_tree "$1"
+  mv "$LT/.ai" "$LT/real-ai" && ln -s real-ai "$LT/.ai"
+}
+
+ledger_symlink symlink-ok
+mkdir -p "$LT/real-ai/90_issues/archive/issue-0001"
+printf '[K-0001](../../../70_ledger/active/K-0001-a.md)\n' > "$LT/real-ai/90_issues/archive/issue-0001/r.md"
+assert_ledger pass "원장 링크: 심볼릭 링크 루트의 고친 트리 통과 (90_issues/archive 옛 경로·인자 생략)" ''
+
+ledger_symlink symlink-old
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/real-ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: 심볼릭 링크 루트의 옛 경로 격추 (.ai)" \
+  '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' .ai
+assert_ledger fail "원장 링크: 심볼릭 링크 루트의 옛 경로 격추 (.ai/)" \
+  '.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' .ai/
+
+# glob 문자가 든 루트 (PR #123 리뷰). find -path 가 제외 경로를 glob 으로 읽어 루트의 [1] 이 문자 1 로 풀리면 90_issues/archive 가 빠지지 않았다.
+# archive 의 옛 경로는 빠지고 그 밖의 옛 경로 1행만 나와야 한다.
+ledger_tree 'glob[1]'
+mkdir -p "$LT/.ai/90_issues/archive/issue-0001"
+printf '[K-0001](../../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/90_issues/archive/issue-0001/r.md"
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/.ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: glob 문자가 든 루트에서 90_issues/archive 제외·옛 경로 격추" \
+  "$LT/.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md" "$LT/.ai"
+
+# `이름=값` 꼴 상대 루트 (PR #123 리뷰). awk 가 `scan=ledger/.ai/…` 인자를 변수 대입으로 읽어 파일을 검사하지 않고 0 으로 끝났다.
+ledger_tree assign
+mkdir "$LT/scan=ledger" && mv "$LT/.ai" "$LT/scan=ledger/.ai"
+printf '# old\n[K-0001](../../70_ledger/active/K-0001-a.md)\n' > "$LT/scan=ledger/.ai/60_codebase/x/old.md"
+assert_ledger fail "원장 링크: 이름=값 꼴 상대 루트의 옛 경로 격추" \
+  'scan=ledger/.ai/60_codebase/x/old.md:2: ../../70_ledger/active/K-0001-a.md' scan=ledger/.ai
+
+# --- 링크 갱신 규칙 (issue #120) --------------------------------------------------
+#
+# 원장 항목을 archive/ 로 옮긴 뒤의 링크 갱신은 SKILL.md `## 이슈 완료 시` 3단계 원장 해소 기재의 정의 행
+# (`**들어오는 링크 갱신**:`)과 그 아래 헬퍼 호출 블록, `--response` 5단계의 참조 행이 계약이다.
+# 정의 행은 파일 전체에서 정확히 1개로 세고 조각 8개를 그 행에서 판정한다. 위치·참조 판정은
+# issue-0120 spec R2 의 두 [D] 를 옮긴 것이다. 호출 블록은 정의 행 다음 행부터 보류 항목 질의 행 앞까지에서
+# 경로 설정 행과 호출 행을 본다 — 정의 행의 헬퍼 이름 조각으로는 경로 오타나 호출 행 누락을 잡지 못한다.
+# 위반 행은 판정 이름(정의·위치·참조·호출)으로 시작하고, 격추 케이스는 노린 판정이 위반을 냈는지 본다.
+# git-pr·git-pr-feedback 러너에도 같은 판정을 그 스킬의 적용 지점에 맞춰 둔다.
+
+# check_link_rule <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_link_rule() {
+  local re n line a cfg v blk
+  re='^ *([0-9]+\.|-) \*\*들어오는 링크 갱신\*\*: '
+  n=$(grep -cE "$re" "$1")
+  if [ "$n" = 1 ]; then
+    line=$(grep -E "$re" "$1")
+    for a in '`.ai/` 아래 문서' '`.ai/90_issues/archive/` 제외' '`70_ledger/active/K-<번호>-`' \
+             '링크가 있는 문서 위치에서 다시 계산' '`check-ledger-links.sh`' '0건' \
+             '같은 디렉토리 링크' '옮긴 항목 안에서'; do
+      case "$line" in *"$a"*) ;; *) echo "정의: 정의 행에 [$a] 없음" ;; esac
+    done
+  else
+    echo "정의: 정의 행 ${n}개 (기대 1개)"
+  fi
+  awk '/^## 이슈 완료 시$/ { s = 1; next } /^## / { s = 0 }
+       s && /\*\*원장 해소 기재\*\*/ && !a { a = NR }
+       s && /^ *- \*\*들어오는 링크 갱신\*\*: / { b = NR }
+       s && /\*\*보류 항목 원장 등재 질의\*\*/ { c = NR }
+       END { if (!(a && b && c && a < b && b < c)) print "위치: 원장 해소 기재 " a+0 ", 정의 " b+0 ", 보류 " c+0 }' "$1"
+  resp_section "$1" | awk '/^  5\. /{f=1} f && /^[^[:space:]]/ && !/^  5\. /{f=0} f' \
+    | grep -q '들어오는 링크 갱신' || echo '참조: --response 5단계에 들어오는 링크 갱신 참조 없음'
+  # 호출 블록: 정의 행 다음 행부터 보류 항목 질의 행(없으면 다음 `## ` 제목) 앞까지
+  blk=$(awk '/^ *([0-9]+\.|-) \*\*들어오는 링크 갱신\*\*: / { r = 1; next }
+             r && (/\*\*보류 항목 원장 등재 질의\*\*/ || /^## /) { r = 0 }
+             r' "$1")
+  n=$(grep -cE "^[[:space:]]*ledger_links='" "$1")
+  [ "$n" = 1 ] || echo "호출: 경로 설정 행 ${n}개 (기대 1개)"
+  cfg=$(printf '%s\n' "$blk" | grep -E "^[[:space:]]*ledger_links='")
+  if [ -z "$cfg" ]; then
+    echo '호출: 호출 블록에 경로 설정 행 없음'
+  else
+    v=${cfg#*\'}; v=${v%%\'*}
+    case "$v" in '<skill 디렉토리>/'*) v="$HERE/../${v#'<skill 디렉토리>/'}" ;; esac
+    { [ -f "$v" ] && [ -x "$v" ]; } || echo "호출: 경로 설정 값 [$v] 이 실행 가능한 파일이 아님"
+    printf '%s\n' "$blk" | awk '/^[[:space:]]*ledger_links=/ { p = 1; next } p && /^[[:space:]]*"\$ledger_links"/ { n++ }
+                                END { exit !n }' \
+      || echo '호출: 경로 설정 행 뒤에 "$ledger_links" 호출 행 없음'
+  fi
+}
+
+# assert_link_rule <파일> <기대: pass | 판정 이름> <설명>
+# 격추 케이스는 노린 판정 이름으로 시작하는 위반 행이 있어야 통과한다
+# — 변형이 다른 판정에만 걸리면 노린 판정이 깨져도 알 수 없다.
+assert_link_rule() {
+  local out
+  out="$(check_link_rule "$1")"
+  if [ "$2" = pass ]; then
+    if [ -z "$out" ]; then ok "$3 (위반 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi
+  elif printf '%s\n' "$out" | grep -q "^$2: "; then
+    ok "$3 ($2 위반 검출)"
+  else
+    ng "$3 (기대 [$2: …], 실제 [$out])"
+  fi
+}
+
+# 호출 블록의 두 변형(lr-bad-path·lr-no-call)은 그 블록 행만 바꿔 정의·위치·참조 판정은 그대로 둔다.
+awk '!/^ *([0-9]+\.|-) \*\*들어오는 링크 갱신\*\*: /' "$SKILL" > "$sandbox/lr-del.md"
+drop_literal "$SKILL" '링크가 있는 문서 위치에서 다시 계산' > "$sandbox/lr-no-depth.md"
+awk '/^ *- \*\*들어오는 링크 갱신\*\*: / { held = $0; next } { print }
+     /^   - \*\*보류 항목 원장 등재 질의\*\*: / { print held }' "$SKILL" > "$sandbox/lr-moved.md"
+awk '!/^ *- \*\*옮긴 뒤 링크 갱신\*\*: /' "$SKILL" > "$sandbox/lr-no-ref.md"
+awk '/^[[:space:]]*ledger_links=/ { sub(/check-ledger-links\.sh/, "missing-helper.sh") } { print }' \
+  "$SKILL" > "$sandbox/lr-bad-path.md"
+awk '!/^[[:space:]]*"\$ledger_links"/' "$SKILL" > "$sandbox/lr-no-call.md"
+
+assert_link_rule "$SKILL"                    pass "링크 갱신 규칙: 실제 SKILL.md 정의 행·적용 지점·호출 블록 통과"
+assert_link_rule "$sandbox/lr-del.md"        정의 "링크 갱신 규칙: 정의 행 삭제 격추"
+assert_link_rule "$sandbox/lr-no-depth.md"   정의 "링크 갱신 규칙: 정의 행의 깊이 재계산 조각 삭제 격추"
+assert_link_rule "$sandbox/lr-moved.md"      위치 "링크 갱신 규칙: 정의 행을 보류 항목 질의 행 뒤로 이동 격추"
+assert_link_rule "$sandbox/lr-no-ref.md"     참조 "링크 갱신 규칙: --response 5단계 옮긴 뒤 링크 갱신 참조 행 삭제 격추"
+assert_link_rule "$sandbox/lr-bad-path.md"   호출 "링크 갱신 규칙: 경로 설정 값을 없는 파일로 바꾼 호출 블록 격추"
+assert_link_rule "$sandbox/lr-no-call.md"    호출 "링크 갱신 규칙: 호출 행 삭제 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
