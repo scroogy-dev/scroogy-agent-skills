@@ -12,6 +12,7 @@
 set -o pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL="$HERE/../SKILL.md"
 VERIFY="$HERE/../scripts/verify-push.sh"
 LEDGER="$HERE/../scripts/check-ledger-links.sh"
 
@@ -253,6 +254,90 @@ assert_ledger fail "원장 링크: 깊이 오계산 격추" \
 ledger_tree usage
 assert_ledger usage "원장 링크: 없는 디렉토리 사용오류 격추" '' no-such-dir
 assert_ledger usage "원장 링크: 인자 2개 사용오류 격추" '' .ai .ai
+
+# --- 링크 갱신 규칙 (issue #120) --------------------------------------------------
+#
+# 원장 항목을 archive/ 로 옮긴 뒤의 링크 갱신은 SKILL.md `### 기존 원장 항목의 종결` 절의 정의 행
+# (`**들어오는 링크 갱신**:`)과 그 아래 헬퍼 호출 블록이 계약이다.
+# 정의 행은 파일 전체에서 정확히 1개로 세고 조각 8개를 그 행에서 판정한다. 위치 판정은
+# issue-0120 spec R4 의 [D] 를 옮긴 것이다. 호출 블록은 정의 행 다음 행부터 종결 절 다음의 `##` 이상 제목 앞까지에서
+# 경로 설정 행과 호출 행을 본다 — 정의 행의 헬퍼 이름 조각으로는 경로 오타나 호출 행 누락을 잡지 못한다.
+# 위반 행은 판정 이름(정의·위치·호출)으로 시작하고, 격추 케이스는 노린 판정이 위반을 냈는지 본다.
+# issue-work·git-pr 러너에도 같은 판정을 그 스킬의 적용 지점에 맞춰 둔다.
+
+# check_link_rule <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_link_rule() {
+  local re n line a cfg v blk
+  re='^ *([0-9]+\.|-) \*\*들어오는 링크 갱신\*\*: '
+  n=$(grep -cE "$re" "$1")
+  if [ "$n" = 1 ]; then
+    line=$(grep -E "$re" "$1")
+    for a in '`.ai/` 아래 문서' '`.ai/90_issues/archive/` 제외' '`70_ledger/active/K-<번호>-`' \
+             '링크가 있는 문서 위치에서 다시 계산' '`check-ledger-links.sh`' '0건' \
+             '같은 디렉토리 링크' '옮긴 항목 안에서'; do
+      case "$line" in *"$a"*) ;; *) echo "정의: 정의 행에 [$a] 없음" ;; esac
+    done
+  else
+    echo "정의: 정의 행 ${n}개 (기대 1개)"
+  fi
+  # 절 끝은 `^##+ ` 로 잡는다 — `^#` 로 잡으면 절 안 코드 블록의 `# 주석` 행에서 범위가 끊긴다.
+  awk '/^### 기존 원장 항목의 종결$/ { s = 1; next } /^##+ / { s = 0 }
+       s && /^ *- \*\*들어오는 링크 갱신\*\*: / { n++ }
+       END { if (n != 1) print "위치: 종결 절의 정의 행 " n+0 "개 (기대 1개)" }' "$1"
+  # 호출 블록: 정의 행 다음 행부터 다음 `##` 이상 제목 앞까지
+  blk=$(awk '/^ *([0-9]+\.|-) \*\*들어오는 링크 갱신\*\*: / { r = 1; next }
+             r && /^##+ / { r = 0 }
+             r' "$1")
+  n=$(grep -cE "^[[:space:]]*ledger_links='" "$1")
+  [ "$n" = 1 ] || echo "호출: 경로 설정 행 ${n}개 (기대 1개)"
+  cfg=$(printf '%s\n' "$blk" | grep -E "^[[:space:]]*ledger_links='")
+  if [ -z "$cfg" ]; then
+    echo '호출: 호출 블록에 경로 설정 행 없음'
+  else
+    v=${cfg#*\'}; v=${v%%\'*}
+    case "$v" in '<skill 디렉토리>/'*) v="$HERE/../${v#'<skill 디렉토리>/'}" ;; esac
+    { [ -f "$v" ] && [ -x "$v" ]; } || echo "호출: 경로 설정 값 [$v] 이 실행 가능한 파일이 아님"
+    printf '%s\n' "$blk" | awk '/^[[:space:]]*ledger_links=/ { p = 1; next } p && /^[[:space:]]*"\$ledger_links"/ { n++ }
+                                END { exit !n }' \
+      || echo '호출: 경로 설정 행 뒤에 "$ledger_links" 호출 행 없음'
+  fi
+}
+
+# assert_link_rule <파일> <기대: pass | 판정 이름> <설명>
+# 격추 케이스는 노린 판정 이름으로 시작하는 위반 행이 있어야 통과한다
+# — 변형이 다른 판정에만 걸리면 노린 판정이 깨져도 알 수 없다.
+assert_link_rule() {
+  local out
+  out="$(check_link_rule "$1")"
+  if [ "$2" = pass ]; then
+    if [ -z "$out" ]; then ok "$3 (위반 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi
+  elif printf '%s\n' "$out" | grep -q "^$2: "; then
+    ok "$3 ($2 위반 검출)"
+  else
+    ng "$3 (기대 [$2: …], 실제 [$out])"
+  fi
+}
+
+# drop_literal <파일> <문자열> → 문자열을 정규식 해석 없이 지운 사본을 표준 출력으로
+drop_literal() {
+  awk -v s="$2" '{ while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)); print }' "$1"
+}
+
+# 호출 블록의 두 변형(lr-bad-path·lr-no-call)은 그 블록 행만 바꿔 정의·위치 판정은 그대로 둔다.
+awk '!/^ *([0-9]+\.|-) \*\*들어오는 링크 갱신\*\*: /' "$SKILL" > "$TMP/lr-del.md"
+drop_literal "$SKILL" '링크가 있는 문서 위치에서 다시 계산' > "$TMP/lr-no-depth.md"
+awk '/^ *- \*\*들어오는 링크 갱신\*\*: / { held = $0; next } { print }
+     held != "" && !done && /^##+ / { print held; done = 1 }' "$SKILL" > "$TMP/lr-moved.md"
+awk '/^[[:space:]]*ledger_links=/ { sub(/check-ledger-links\.sh/, "missing-helper.sh") } { print }' \
+  "$SKILL" > "$TMP/lr-bad-path.md"
+awk '!/^[[:space:]]*"\$ledger_links"/' "$SKILL" > "$TMP/lr-no-call.md"
+
+assert_link_rule "$SKILL"                 pass "링크 갱신 규칙: 실제 SKILL.md 정의 행·적용 지점·호출 블록 통과"
+assert_link_rule "$TMP/lr-del.md"         정의 "링크 갱신 규칙: 정의 행 삭제 격추"
+assert_link_rule "$TMP/lr-no-depth.md"    정의 "링크 갱신 규칙: 정의 행의 깊이 재계산 조각 삭제 격추"
+assert_link_rule "$TMP/lr-moved.md"       위치 "링크 갱신 규칙: 정의 행을 종결 절 밖(다음 제목 뒤)으로 이동 격추"
+assert_link_rule "$TMP/lr-bad-path.md"    호출 "링크 갱신 규칙: 경로 설정 값을 없는 파일로 바꾼 호출 블록 격추"
+assert_link_rule "$TMP/lr-no-call.md"     호출 "링크 갱신 규칙: 호출 행 삭제 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
