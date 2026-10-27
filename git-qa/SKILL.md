@@ -88,10 +88,11 @@ repo-B
 **자동 테스트 표시**: PR이 속한 repo에 `.ai/10_rules/testing-principles-local.md`가 있으면 그 파일의 테스트 층 표로 자동 테스트가 덮는 항목을 수동 확인 항목과 구분합니다.
 
 - **읽기**: repo 그룹마다 1단계에서 수집한 대상 브랜치의 파일을 `gh api`로 읽습니다. 호스트와 저장소는 PR URL에서 읽어 명시합니다.
+  대상 브랜치는 경로의 쿼리 문자열에 직접 붙이지 않고 `-f ref=`로 넘겨 gh가 URL 인코딩하게 합니다. 직접 붙이면 브랜치 이름의 `+`는 공백으로, `&`는 다음 매개변수의 시작으로 해석되어 다른 ref를 조회합니다.
 
   ```bash
-  gh api --hostname '<호스트>' -H 'Accept: application/vnd.github.raw+json' \
-    'repos/<소유자>/<저장소>/contents/.ai/10_rules/testing-principles-local.md?ref=<대상 브랜치>'
+  gh api --method GET --hostname '<호스트>' -H 'Accept: application/vnd.github.raw+json' \
+    'repos/<소유자>/<저장소>/contents/.ai/10_rules/testing-principles-local.md' -f ref='<대상 브랜치>'
   ```
 
 - **덮음 판정**: 그 항목의 동작을 검사하는 테스트를 PR 변경이나 대상 repo에서 찾았고, 그 테스트가 층 표의 러너로 실행될 때만 덮음으로 봅니다. 층 유형만 맞는 항목은 덮음으로 보지 않습니다. 테스트를 찾지 못하면 표시하지 않고 수동 확인 항목으로 둡니다.
