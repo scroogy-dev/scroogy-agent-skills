@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ▶️ 다음 작업: 이슈 완료 (`--clear`로 archive 이관·99_workspace 정리)
 
 ## 모델 기록
 
@@ -33,7 +33,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명 (모델 ID). 마지막 교차모델 audit Task에서 사용자가 기록 --> | <!-- 최종 감사 리포트의 감사 effort 줄 값. 사용자가 기록. 확인 불가면 - --> |
+| 최종 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 
 - **계획 감사**: 수행 · 발견 2건 · 보정 2건
 
@@ -284,6 +284,6 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 수행 effort도 같은 행의 `effort` 열이 SSoT다.
 -->
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: spec `완료의 정의`의 bash 검증 블록 19개를 HEAD `40d59b8`에서 다시 실행했고 모두 무출력이다. R4-2 블록은 마지막 `grep -q ... && echo`가 정상일 때 불일치로 끝나 종료 코드가 1이며, 판정 기준은 출력 0건이다. 최종 감사는 1회 수행했다. [리포트](../../../99_workspace/issue-0122-audit-report.md)는 적합(PASS)이며 1단계 충족(PASS) 37건, 2단계 발견 0건이다. `--response` 검토에서 보정 대상이 없어 Task 블록의 `audit 발견`·`보정 반영`은 모두 0건이다. K-0015는 기등재 참조라 발견으로 세지 않았다.
+- **특이 사항**: Task 0~8의 `수행 모델`은 모두 Anthropic이라 감사 벤더 OpenAI와 겹치지 않는다. 감사 effort는 high다. K-0015는 원인이 사라졌지만 작업 브랜치에 원격 추적 설정이 없어 PR 번호를 확인하지 못했다. 항목은 `active/`에 두고 PR 생성 후 git-pr 4단계에서 종결한다. 이 블록과 `최종 audit 모델` 행은 사용자 지시에 따라 구현 AI가 리포트 값을 옮겨 적었다.
