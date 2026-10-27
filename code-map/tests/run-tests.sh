@@ -10,6 +10,7 @@
 # fixtures/doc-index/ 의 입력·기대 쌍으로 [QD] 모의 실행한다. 여기서는 그 쌍이 빠짐없이 있는지만 본다.
 # local.md·global.md(소스 코드·건물 색인 절차)는 0단계 골격 판정 문장만 같은 방식으로 검사한다 (#116).
 # 건물 리포 규칙(SKILL.md 의 `--local` 중단, global.md 의 선언 규칙·SSoT 종류 분류·호출 식별 제외)도 같은 방식으로 본다 (#118).
+# SKILL.md 의 선언 부재 폴백 알림(안내도가 있을 때만 알림)도 같은 방식으로 본다 (#122).
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -107,6 +108,8 @@ violations() {
   has "$(sec "$doc" '### 4단계: 결과 보고')" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' || echo '보고 문서 색인 건수'
 
   has "$(sec "$skill" '### SSoT 원칙')" '선언을 찾지 못하면 소스 코드를 SSoT로 본다' || echo 'SKILL.md 선언 부재 폴백'
+  has "$(sec "$skill" '### SSoT 원칙')" '`AI-CONTEXT.md`는 있는데 선언을 찾지 못해 소스 코드로 진행하면' || echo 'SKILL.md 선언 부재 알림'
+  has "$(sec "$skill" '### SSoT 원칙')" '`AI-CONTEXT.md`가 없으면 알리지 않는다' || echo 'SKILL.md 안내도 부재 무알림'
   has "$(sec "$skill" '## 모드별 실행 절차')" '| `--local` (floor, 원본 문서) | [references/doc.md](references/doc.md) |' \
     || echo 'SKILL.md 모드 표 doc.md 행'
   has "$(sec "$skill" '## 적용 대상')" '**원본 문서 저장소**' || echo 'SKILL.md 적용 대상'
@@ -284,6 +287,9 @@ assert_reject '범위 밖 행 check 보존 삭제 격추' '범위 밖 행 check 
 assert_reject '보고 건수 축소 격추'           '보고 문서 색인 건수' \
   sub_str "$C_DOC" '문서 색인: N건 (신규 N / 갱신 N / 삭제 N)' '문서 색인: N건'
 assert_reject 'SKILL.md 폴백 삭제 격추'       'SKILL.md 선언 부재 폴백' cut_str "$C_SKILL" '선언을 찾지 못하면 소스 코드를 SSoT로 본다.'
+assert_reject 'SKILL.md 폴백 알림 삭제 격추'  'SKILL.md 선언 부재 알림' \
+  cut_str "$C_SKILL" ' `AI-CONTEXT.md`는 있는데 선언을 찾지 못해 소스 코드로 진행하면 그 사실을 사용자에게 한 줄로 알리고, `ai-workspace` update로 선언을 보강할 수 있다고 안내한다.'
+assert_reject 'SKILL.md 안내도 부재 무알림 삭제 격추' 'SKILL.md 안내도 부재 무알림' cut_str "$C_SKILL" ' `AI-CONTEXT.md`가 없으면 알리지 않는다.'
 assert_reject 'SKILL.md 모드 표 doc.md 행 삭제 격추' 'SKILL.md 모드 표 doc.md 행' drop_line "$C_SKILL" '| `--local` (floor, 원본 문서) |'
 assert_reject 'SKILL.md 적용 대상 삭제 격추'  'SKILL.md 적용 대상'      drop_line "$C_SKILL" '**원본 문서 저장소**'
 assert_reject 'local 0단계 골격 판정 삭제 격추' 'local 골격 미생성 판정' cut_str "$C_LOCAL" '파일이 비어 있거나 템플릿 골격만 있는 상태다. '

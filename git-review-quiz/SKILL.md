@@ -26,7 +26,7 @@ PR(pull request) 리뷰나 셀프 리뷰에 들어가기 전에 변경을 얼마
 - **스킬 고유 추가 참조**:
   - `.ai/30_contract/index.md`, `.ai/40_domain/index.md` (비즈니스 문항의 근거 문서 목차. index를 먼저 읽고 변경과 관련 있는 파일만 선택적으로 읽습니다)
   - `.ai/60_codebase/index.md` (변경 지점의 호출 흐름 파악. 색인을 신뢰하지 않고 SSoT를 직접 확인합니다)
-    - SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따릅니다. 값은 `소스 코드` 또는 `원본 문서`이며 그 외 값은 선언으로 보지 않습니다. 선언을 찾지 못하면 소스 코드를 SSoT로 봅니다.
+    - SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따릅니다. 값은 `소스 코드` 또는 `원본 문서`이며 그 외 값은 선언으로 보지 않습니다. 선언을 찾지 못하면 소스 코드를 SSoT로 봅니다. `AI-CONTEXT.md`는 있는데 선언을 찾지 못해 소스 코드로 진행하면 그 사실을 사용자에게 한 줄로 알리고, `ai-workspace` update로 선언을 보강할 수 있다고 안내합니다. `AI-CONTEXT.md`가 없으면 알리지 않습니다.
   - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` (있으면 산출물 작성 원칙으로 참조. 충돌 시 local 우선이고, 없으면 본문의 "산출물 접기 기준"이 기본값입니다)
 
 ---

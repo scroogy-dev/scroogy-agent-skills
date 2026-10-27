@@ -41,6 +41,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `.ai/10_rules/architecture.md`       | 프로젝트 아키텍처 방향     | 코드 작성·리뷰·아키텍처 변경 시 |
 | `.ai/10_rules/context-loading.md`    | 작업 전 컨텍스트 확인 절차 | 코드·문서 작업 전 |
 | `.ai/10_rules/file-change-policy.md` | 파일 변경 규칙             | 파일 추가·삭제 시 |
+| `.ai/10_rules/testing-principles.md` | 테스트 실행 원칙 (층·수단·환경) | 테스트 작성·실행 시 |
 | `.ai/10_rules/writing-principles.md` | 산출물 작성 원칙 (소스 코드 미적용) | 산출 문서·PR·이슈·리뷰 코멘트 작성 시 |
 
 ---
@@ -85,7 +86,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── scripts/                # push 직전 가드·원장 링크 검사 헬퍼 (verify-push.sh, check-ledger-links.sh)
 │   └── tests/                  # 가드 헬퍼 테스트 (배포 제외)
 ├── git-qa/                     # 배포 QA 체크리스트 생성 스킬
-│   └── templates/              # QA 체크리스트 템플릿
+│   ├── templates/              # QA 체크리스트 템플릿
+│   └── tests/                  # 4단계 자동 테스트 표시 조항 구조 검사 (배포 제외)
 ├── git-review/                 # 리뷰 수행 스킬
 │   ├── scripts/                # 위험도·상태·판정 산출 헬퍼 (classify-risk.sh)
 │   ├── templates/              # 리뷰 결과 템플릿

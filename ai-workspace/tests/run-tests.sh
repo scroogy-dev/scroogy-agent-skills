@@ -9,7 +9,7 @@
 # 같은 저장소의 `.ai/AI-CONTEXT.md` 도 검사해 이 repo 안내도가 표준을 유지하는지 함께 본다
 # (파일이 없으면 건너뛴다 — tests/ 는 배포 제외라 통상 저장소 안에서만 실행된다).
 #
-# update-4 멱등 보강 검사의 `## 프로젝트 규칙` 3개 항목에는 fixtures/update4-idempotent/ 의
+# update-4 멱등 보강 검사의 `## 프로젝트 규칙` 4개 항목에는 fixtures/update4-idempotent/ 의
 # 입력·기대 쌍이 따로 있다. 그쪽은 조치(삽입) 결과까지 보는 [QD] 모의 실행이고,
 # 여기서는 그 입력들이 검사 단계에서 실제로 누락으로 잡히는지를 [D] 로 판정한다.
 #
@@ -180,11 +180,12 @@ update1_violations() {
   [ ! -e "$w/$CONV" ] || echo 'dev 미복사'
 }
 
-# assert_update1_reject <설명> <위반 행> <awk 변형 프로그램> — 변형 대상이 없으면 "변형 실패"로 떨어진다.
+# assert_update1_reject <설명> <위반 행> <awk 변형 프로그램> [<위반 함수>] — 변형 대상이 없으면 "변형 실패"로 떨어진다.
+# 위반 함수를 생략하면 update1_violations로 판정한다.
 assert_update1_reject() {
   local f="$TMP/update1-case.sh" out
   awk "$3" "$U1_BLOCK" > "$f" || { ng "$1 — 변형 실패"; return; }
-  out="$(update1_violations "$f")"
+  out="$("${4:-update1_violations}" "$f")"
   if printf '%s\n' "$out" | grep -qxF "$2"; then
     ok "$1"
   else
@@ -205,6 +206,49 @@ assert_update1_reject '문서 규약 update-1 보존 조건 삭제 격추' 'doc 
   'index($0, "[ ! -f .ai/10_rules/document-convention.md ] && \\") { hit = 1; next } { print } END { exit !hit }'
 assert_update1_reject '문서 규약 update-1 프로파일 조건 변경 격추' 'dev 미복사' \
   '/^# doc 프로파일 전용/ { d = 1 } d && /^if \[ "\$PROFILE" = "doc" \]; then$/ { sub(/"doc"/, "\"dev\""); d = 0; hit = 1 } { print } END { exit !hit }'
+
+# --- update-1 테스트 원칙 복사 (SKILL.md 코드 블록 실행) --------------------------
+#
+# 테스트 실행 원칙 쌍은 dev 전용이다 (#122). 공통 파일은 버전 고정이라 update-1이 늘 덮어쓰고,
+# local은 사용자 관리라 없을 때만 복사한다. 위 문서 규약 절과 같은 코드 블록 실행으로 판정한다.
+
+TP_COMMON='.ai/10_rules/testing-principles.md'
+TP_LOCAL='.ai/10_rules/testing-principles-local.md'
+
+# testing_update1_violations <코드 블록 파일> — 어긋난 동작을 1행씩 출력한다. 무출력이면 통과.
+# doc 실행은 문서 규약 파일 생성으로 블록이 실제로 돌았는지 먼저 본다. 실행이 실패하면 미복사 검사가 그대로 통과하기 때문이다.
+testing_update1_violations() {
+  local w
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai"
+  run_update1 "$1" dev "$w"
+  cmp -s "$w/$TP_COMMON" "$TPL_DIR/dev/$TP_COMMON" || echo 'dev 공통 신규 복사'
+  cmp -s "$w/$TP_LOCAL" "$TPL_DIR/dev/$TP_LOCAL" || echo 'dev local 신규 복사'
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai/10_rules"
+  echo '구버전' > "$w/$TP_COMMON"; echo '사용자 내용' > "$w/$TP_LOCAL"
+  run_update1 "$1" dev "$w"
+  cmp -s "$w/$TP_COMMON" "$TPL_DIR/dev/$TP_COMMON" || echo 'dev 공통 덮어쓰기'
+  [ "$(cat "$w/$TP_LOCAL" 2>/dev/null)" = '사용자 내용' ] || echo 'dev local 보존'
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai"
+  run_update1 "$1" doc "$w"
+  [ -e "$w/$CONV" ] || echo 'doc 실행 실패'
+  { [ ! -e "$w/$TP_COMMON" ] && [ ! -e "$w/$TP_LOCAL" ]; } || echo 'doc 미복사'
+}
+
+out="$(testing_update1_violations "$U1_BLOCK")"
+if [ -z "$out" ]; then
+  ok "테스트 원칙 update-1 복사(dev 신규·공통 덮어쓰기·local 보존·doc 미복사) 통과"
+else
+  ng "테스트 원칙 update-1 복사(dev 신규·공통 덮어쓰기·local 보존·doc 미복사) 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+assert_update1_reject '테스트 원칙 update-1 공통 파일 복사 삭제 격추' 'dev 공통 신규 복사' \
+  'index($0, "10_rules/testing-principles.md\" .ai/") { hit = 1; next } { print } END { exit !hit }' \
+  testing_update1_violations
+assert_update1_reject '테스트 원칙 update-1 local 보존 조건 삭제 격추' 'dev local 보존' \
+  'index($0, "[ ! -f .ai/10_rules/testing-principles-local.md ] && \\") { hit = 1; next } { print } END { exit !hit }' \
+  testing_update1_violations
+assert_update1_reject '테스트 원칙 update-1 공통 파일 덮어쓰기 조건 추가 격추' 'dev 공통 덮어쓰기' \
+  'index($0, "10_rules/testing-principles.md\" .ai/") { print "  [ ! -f .ai/10_rules/testing-principles.md ] && \\"; hit = 1 } { print } END { exit !hit }' \
+  testing_update1_violations
 
 # --- 이 저장소 안내도 -----------------------------------------------------------
 
@@ -251,6 +295,7 @@ m_no_premise() { sed -i.bak '/^> 전제: 상위 디렉토리에/d' "$1" && rm -f
 m_no_agent()  { sed -i.bak 's/^## 에이전트 운영 지침$/## 운영/' "$1" && rm -f "$1.bak"; }
 m_ctxrow()    { sed -i.bak '/`\.ai\/10_rules\/context-loading\.md`/d' "$1" && rm -f "$1.bak"; }
 m_wrrow()     { sed -i.bak '/`\.ai\/10_rules\/writing-principles\.md`/d' "$1" && rm -f "$1.bak"; }
+m_tprow()     { grep -qF '`.ai/10_rules/testing-principles.md`' "$1" && sed -i.bak '/`\.ai\/10_rules\/testing-principles\.md`/d' "$1" && rm -f "$1.bak"; }
 m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|------|----|\n| building | ws |\n' >> "$1"; }
 # 5차 audit F-5 반례: 열 수는 3이지만 헤더 이름이 표준과 다른 표.
 m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
@@ -321,6 +366,12 @@ m_row_in_ext() {
 }
 m_ctx_in_ext() { m_row_in_ext '.ai/10_rules/context-loading.md' "$1"; }
 m_wr_in_ext()  { m_row_in_ext '.ai/10_rules/writing-principles.md' "$1"; }
+m_tp_in_ext()  { m_row_in_ext '.ai/10_rules/testing-principles.md' "$1"; }
+
+# `testing-principles.md` 행은 dev 선언일 때만 검사한다 (#122). 행을 지운 같은 입력에서 선언만 바꿔
+# 선언과 무관하게 늘 보고하는 구현을 걸러낸다. doc 선언은 doc 전환을 마친 상태라 헬퍼 전체가 통과해야 한다.
+m_tp_doc()  { m_doc_root "$1" && m_tprow "$1"; }
+m_tp_odd()  { m_tprow "$1" && m_ssot "$1"; }
 
 # 4차 audit F-9 반례: 두 필수 행을 첫 번째 표에서 빼 같은 H2의 두 번째 표로 옮긴다.
 # 탐색이 첫 번째 표 블록에서 멈추지 않으면 이 입력이 통과한다.
@@ -366,6 +417,25 @@ assert_pass() {
   fi
 }
 
+# assert_not_reported <설명> <보고 기대 조각> <보고 금지 조각> <변형 명령...>
+#
+# 다른 누락은 보고되지만 특정 항목은 보고되지 않아야 하는 변형이다. 보고 기대 조각으로
+# 헬퍼가 실제로 돌았는지를 먼저 확인한다. 실행이 실패해 출력이 비면 보고 금지 검사가 그대로 통과하기 때문이다.
+assert_not_reported() {
+  local desc="$1" want="$2" deny="$3"; shift 3
+  local f="$TMP/case.md" out
+  cp "$BASE" "$f"
+  "$@" "$f" || { ng "$desc — 변형 실패"; return; }
+  out="$("$CHECK" "$f" 2>&1)"
+  if ! printf '%s\n' "$out" | grep -qF "$want"; then
+    ng "$desc — 출력에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  elif printf '%s\n' "$out" | grep -qF "$deny"; then
+    ng "$desc — 출력에 '$deny' 있음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  else
+    ok "$desc"
+  fi
+}
+
 assert_missing '본문 첫 줄 last updated'     "본문 첫 줄"                        m_date
 assert_missing '본문 두 번째 줄 SSoT'         "본문 두 번째 줄 SSoT"              m_ssot
 assert_missing '프로젝트 도메인 섹션'          "'## 프로젝트 도메인' 섹션"          m_no_domain
@@ -383,6 +453,11 @@ assert_missing 'context-loading.md 경로가 확장 열에만 있음(3차 audit 
 assert_missing 'writing-principles.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'writing-principles.md` 행' m_wr_in_ext
 assert_missing 'context-loading.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'context-loading.md` 행' m_rows_in_2nd
 assert_missing 'writing-principles.md 행이 두 번째 표에만 있음(4차 audit F-9 반례)' 'writing-principles.md` 행' m_rows_in_2nd
+assert_missing 'testing-principles 행 누락(dev 선언) 격추'               'testing-principles.md` 행' m_tprow
+assert_missing 'testing-principles 행 경로가 확장 열에만 있음(dev 선언) 격추' 'testing-principles.md` 행' m_tp_in_ext
+assert_pass    'testing-principles 행 누락이어도 doc 선언이면 무보고 통과'                          m_tp_doc
+assert_not_reported 'testing-principles 행 누락이어도 비표준 선언이면 이 행 무보고 통과' \
+  '본문 두 번째 줄 SSoT' 'testing-principles.md' m_tp_odd
 assert_missing 'SSoT 선언 doc ssot_dir 행 없음 격추' 'ssot_dir` 행'           m_doc_noroot
 assert_pass    'SSoT 선언 doc 문구 통과'                                      m_doc_root
 assert_missing 'SSoT 선언 doc 전환 전 dev 표준 문구 잔존 격추(PR #115 리뷰 반례)' 'doc 선언의 충돌 우선순위' m_doc_dev_text
@@ -449,7 +524,7 @@ assert_fixture 'legacy-two-col'   '구버전 표 — 열 확장 대상'
 assert_fixture 'missing-rows'     'context-loading.md` 행'
 assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 
-# 표가 없는 상태에서는 표준 2행 검사를 수행하지 않는다 — 같은 결함을 세 번 세지 않기 위함이다.
+# 표가 없는 상태에서는 표준 행 검사를 수행하지 않는다 — 같은 결함을 세 번 세지 않기 위함이다.
 {
   out="$("$CHECK" "$FIX/no-rules-section.input.md" 2>&1)"
   if printf '%s\n' "$out" | grep -qF 'context-loading.md` 행'; then
@@ -461,7 +536,7 @@ assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 
 # --- 검사 표 행 수 (SKILL.md 대조) -------------------------------------------------
 #
-# 헬퍼가 다루는 9종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
+# 헬퍼가 다루는 10종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
 # SKILL.md 표가 늘면 이 검사가 걸려 제외 범위를 다시 판단하게 한다.
 
 rows="$(awk '
@@ -472,8 +547,8 @@ rows="$(awk '
 ' "$SKILL")"
 # 헤더·구분선 2행을 뺀 항목 수
 items=$((rows - 2))
-[ "$items" -eq 11 ] \
-  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 9종 + 트리 관련 2종 제외)" \
+[ "$items" -eq 12 ] \
+  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 10종 + 트리 관련 2종 제외)" \
   || ng "SKILL.md 멱등 보강 검사 표가 ${items}행입니다 — 헬퍼의 제외 범위를 다시 판단하세요"
 
 # --- 사용오류 ------------------------------------------------------------------
@@ -759,15 +834,25 @@ fi
 # 1순위 규칙 문서의 "정책·ADR은 코드와 동등한 제약" 문장이 ADR index 수명 주기의 `superseded/` 읽기 규칙과
 # 어긋나지 않게 `50_adr/superseded/` 제외를 담는지 본다 (#121). `context-loading.md`는 update-1이 항상 덮어쓰는
 # 파일이라 이 저장소 사본(`.ai/10_rules/context-loading.md`)은 템플릿과 바이트 단위로 같아야 한다 (파일이 없으면 건너뛴다).
+#
+# 테스트 라우팅(#122): "테스트 작성·실행 시" 섹션이 하나 있고 테스트 원칙 두 파일을 순서대로 가리키는 항목 2개만 갖는지 본다.
+# 섹션이 "존재하면 읽는다" 안내 아래에 있어야 파일이 없는 doc repo에서 건너뛰므로 그 안내와 SSoT 문장 사이에 있는지도 본다.
 
 CTX_TPL="$TPL_DIR/shared/.ai/10_rules/context-loading.md"
 REPO_CTX="$HERE/../../.ai/10_rules/context-loading.md"
 
 # ctx_violations <템플릿> [<사본>] — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
 ctx_violations() {
-  local l
+  local l s p e
   l="$(grep -F '정책·ADR은 코드와 동등한 제약' "$1")"
   { [ "$(printf '%s\n' "$l" | grep -c .)" -eq 1 ] && printf '%s' "$l" | grep -qF '`50_adr/superseded/`'; } || echo '제약 문장'
+  s="$(grep -nE '^## 테스트 작성·실행 시[[:space:]]*$' "$1" | cut -d: -f1)"
+  p="$(grep -nF '작업 유형에 따라 아래 문서가 **존재하면** 먼저 읽는다' "$1" | head -1 | cut -d: -f1)"
+  e="$(grep -nF '**SSoT는 `AI-CONTEXT.md`' "$1" | head -1 | cut -d: -f1)"
+  { [ "$(printf '%s\n' "$s" | grep -c .)" -eq 1 ] && [ -n "$p" ] && [ -n "$e" ] && [ "$s" -gt "$p" ] && [ "$s" -lt "$e" ] \
+    && [ "$(awk '/^## 테스트 작성·실행 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit } f && /^- / { sub(/ —.*/, ""); print }' "$1")" \
+         = "$(printf '%s\n' '- `.ai/10_rules/testing-principles.md`' '- `.ai/10_rules/testing-principles-local.md`')" ]; } \
+    || echo '테스트 라우팅'
   [ -z "${2:-}" ] || cmp -s "$1" "$2" || echo '사본 불일치'
 }
 
@@ -789,9 +874,9 @@ assert_ctx_reject() {
 
 if [ -r "$CTX_TPL" ]; then
   if [ -r "$REPO_CTX" ]; then
-    desc='context-loading 제약 문장·저장소 사본 일치 통과'; out="$(ctx_violations "$CTX_TPL" "$REPO_CTX")"
+    desc='context-loading 제약 문장·테스트 라우팅·저장소 사본 일치 통과'; out="$(ctx_violations "$CTX_TPL" "$REPO_CTX")"
   else
-    desc='context-loading 제약 문장(저장소 사본 없음, 대조 건너뜀) 통과'; out="$(ctx_violations "$CTX_TPL")"
+    desc='context-loading 제약 문장·테스트 라우팅(저장소 사본 없음, 대조 건너뜀) 통과'; out="$(ctx_violations "$CTX_TPL")"
   fi
   if [ -z "$out" ]; then
     ok "$desc"
@@ -802,6 +887,8 @@ if [ -r "$CTX_TPL" ]; then
     cut_str "$C_CTX" ' 단, `50_adr/superseded/`의 ADR은 제약으로 쓰지 않고 이력 확인에만 읽는다.'
   assert_ctx_reject 'context-loading 제약 사본 불일치 격추' '사본 불일치' \
     sub_str "$C_CTX_COPY" '이력 확인에만 읽는다.' '이력 확인에만 읽는다. 사본에만 있는 문장이다.'
+  assert_ctx_reject 'context-loading 테스트 라우팅 삭제 격추' '테스트 라우팅' \
+    drop_sec "$C_CTX" '## 테스트 작성·실행 시'
 else
   ng "context-loading 제약: 템플릿을 찾을 수 없습니다 — $CTX_TPL"
 fi
