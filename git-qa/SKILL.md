@@ -18,6 +18,7 @@ description: 배포 대상 PR 목록에서 관련 이슈를 수집하고 repo별
   - `.ai/40_domain/index.md` — 관련 도메인 spec·policy가 있으면 해당 기준을 테스트 항목에 반영 (index 먼저 → 관련 파일만 선택적으로)
   - `.ai/30_contract/index.md` — 외부 API 제공이 QA 대상에 포함되면 계약을 테스트 항목 기준으로 활용 (index 먼저 → 관련 파일만 선택적으로)
   - `.ai/10_rules/writing-principles.md`·`.ai/10_rules/writing-principles-local.md` — 있으면 산출물 작성 원칙으로 참조 (충돌 시 local 우선; 없으면 본문의 "산출물 접기 기준"이 기본값)
+  - `.ai/10_rules/testing-principles.md`·`.ai/10_rules/testing-principles-local.md` — 있으면 테스트 실행 원칙으로 참조. 4단계의 자동 테스트 표시는 PR이 속한 repo의 local 층 표를 기준으로 함 (우선순위는 local > `testing-principles.md` > 이 skill의 절차; 없으면 현재 절차 그대로)
 
 ---
 
@@ -83,6 +84,19 @@ repo-B
 - **회귀 확인**: 기존 기능이 영향받지 않는지 주요 시나리오 재검증
 
 각 항목은 체크박스(`- [ ]`) 형태로 작성하며, 검증 방법을 구체적으로 명시합니다.
+
+**자동 테스트 표시**: PR이 속한 repo에 `.ai/10_rules/testing-principles-local.md`가 있으면 그 파일의 테스트 층 표로 자동 테스트가 덮는 항목을 수동 확인 항목과 구분합니다.
+
+- **읽기**: repo 그룹마다 1단계에서 수집한 대상 브랜치의 파일을 `gh api`로 읽습니다. 호스트와 저장소는 PR URL에서 읽어 명시합니다.
+
+  ```bash
+  gh api --hostname '<호스트>' -H 'Accept: application/vnd.github.raw+json' \
+    'repos/<소유자>/<저장소>/contents/.ai/10_rules/testing-principles-local.md?ref=<대상 브랜치>'
+  ```
+
+- **덮음 판정**: 그 항목의 동작을 검사하는 테스트를 PR 변경이나 대상 repo에서 찾았고, 그 테스트가 층 표의 러너로 실행될 때만 덮음으로 봅니다. 층 유형만 맞는 항목은 덮음으로 보지 않습니다. 테스트를 찾지 못하면 표시하지 않고 수동 확인 항목으로 둡니다.
+- **표시 형식**: 덮는 항목은 체크박스를 유지하고, 항목 끝의 증빙 방법 문구(`— 응답 body 캡처` 등) 대신 `— 자동 테스트로 덮음(<러너>)`을 붙입니다. 같은 동작을 수동으로 다시 확인하는 항목은 따로 만들지 않습니다.
+- **폴백**: 파일이 없거나 읽지 못하면 표시 없이 지금 방식으로 작성합니다.
 
 ---
 
