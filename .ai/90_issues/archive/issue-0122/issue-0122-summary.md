@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: 이슈 완료 (`--clear`로 archive 이관·99_workspace 정리)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -112,7 +112,7 @@ plan 템플릿의 첫 고정 Task에 대응하는 블록이다. 삭제하지 말
 - **보정 반영**: 0건
 - **재시도**: 0회
 - **수행 내용 요약**: 전제·모호점 2건을 질의해 해소했다(2026-10-26). git-qa 덮음 판정은 그 동작을 검사하는 테스트를 찾은 항목만 표시하고, 표시는 항목 끝의 증빙 방법 문구를 대체한다. 두 답변은 spec 전제 "git-qa 덮음 판정·표시 형식"에 남겼고, plan Task 6의 2번 규칙 문단·4번 조항 검사 앵커(`테스트를 찾지 못하면 표시하지 않고`, 격추 6개)·완료 기준(격추 6 이상)에 반영했다.
-- **특이 사항**: Task 1~5·7·8은 spec·plan이 가리키는 소스 위치(ai-workspace SKILL.md init-1·update-1·update-4 검사 표, `check-context.sh`, ai-workspace·issue-work·issue-audit 러너 함수, 소비 스킬 3종 참조 목록, SSoT 표준 문장 8곳)와 대조해 문서만으로 구현할 수 있음을 확인했다. GitHub 이슈 본문과 `.ai/99_workspace/issue-0122-body.md`는 끝 줄바꿈 하나만 다르다.
+- **특이 사항**: Task 1~5·7·8은 spec·plan이 가리키는 소스 위치(ai-workspace SKILL.md init-1·update-1·update-4 검사 표, `check-context.sh`, ai-workspace·issue-work·issue-audit 러너 함수, 소비 스킬 3종 참조 목록, SSoT 표준 문장 8곳)와 대조해 문서만으로 구현할 수 있음을 확인했다. GitHub 이슈 본문과 본문 사본(작성 시점 경로는 `.ai/99_workspace/issue-0122-body.md`, --clear로 정리)은 끝 줄바꿈 하나만 다르다.
 
 ---
 
@@ -285,5 +285,5 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 -->
 
 - **결과**: 완료
-- **수행 내용 요약**: spec `완료의 정의`의 bash 검증 블록 19개를 HEAD `40d59b8`에서 다시 실행했고 모두 무출력이다. R4-2 블록은 마지막 `grep -q ... && echo`가 정상일 때 불일치로 끝나 종료 코드가 1이며, 판정 기준은 출력 0건이다. 최종 감사는 1회 수행했다. [리포트](../../../99_workspace/issue-0122-audit-report.md)는 적합(PASS)이며 1단계 충족(PASS) 37건, 2단계 발견 0건이다. `--response` 검토에서 보정 대상이 없어 Task 블록의 `audit 발견`·`보정 반영`은 모두 0건이다. K-0015는 기등재 참조라 발견으로 세지 않았다.
+- **수행 내용 요약**: spec `완료의 정의`의 bash 검증 블록 19개를 HEAD `40d59b8`에서 다시 실행했고 모두 무출력이다. R4-2 블록은 마지막 `grep -q ... && echo`가 정상일 때 불일치로 끝나 종료 코드가 1이며, 판정 기준은 출력 0건이다. 최종 감사는 1회 수행했다. [리포트](./issue-0122-audit-report.md)(작성 시점 경로는 `.ai/99_workspace/issue-0122-audit-report.md`, --clear로 이관)는 적합(PASS)이며 1단계 충족(PASS) 37건, 2단계 발견 0건이다. `--response` 검토에서 보정 대상이 없어 Task 블록의 `audit 발견`·`보정 반영`은 모두 0건이다. K-0015는 기등재 참조라 발견으로 세지 않았다.
 - **특이 사항**: Task 0~8의 `수행 모델`은 모두 Anthropic이라 감사 벤더 OpenAI와 겹치지 않는다. 감사 effort는 high다. K-0015는 원인이 사라졌지만 작업 브랜치에 원격 추적 설정이 없어 PR 번호를 확인하지 못했다. 항목은 `active/`에 두고 PR 생성 후 git-pr 4단계에서 종결한다. 이 블록과 `최종 audit 모델` 행은 사용자 지시에 따라 구현 AI가 리포트 값을 옮겨 적었다.
