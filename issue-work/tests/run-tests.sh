@@ -1300,6 +1300,55 @@ assert_link_rule "$sandbox/lr-no-ref.md"     참조 "링크 갱신 규칙: --res
 assert_link_rule "$sandbox/lr-bad-path.md"   호출 "링크 갱신 규칙: 경로 설정 값을 없는 파일로 바꾼 호출 블록 격추"
 assert_link_rule "$sandbox/lr-no-call.md"    호출 "링크 갱신 규칙: 호출 행 삭제 격추"
 
+# --- 테스트 원칙 조항 (issue #122) --------------------------------------------------
+#
+# `testing-principles` 파일 쌍을 조건부로 참조하는 조항은 문장이 곧 계약이다 (Task별 테스트 배치).
+# SKILL.md `## 참조 문서`의 두 파일 항목, "새 이슈 시작 시" 3-2 범위의 층 표 참조·기기 확인 Task 문장,
+# plan 템플릿 `**테스트 배치**` 문단의 local 파일 참조를 앵커로 판정하고, 앵커마다 지운 사본과 범위 밖으로 옮긴 사본을 격추한다.
+# 조건·우선순위의 뜻은 판정하지 않는다 (이슈 spec 의 [QD] 몫).
+
+# check_testing_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_testing_skill() {
+  awk '/^## 참조 문서/ { r = 1; next } r && /^## / { r = 0 }
+       r && /^  - `\.ai\/10_rules\/testing-principles\.md`·`\.ai\/10_rules\/testing-principles-local\.md` — / { n++ }
+       /^   - \*\*3-2\. 승인 후\*\*/ { s = 1 } s && /^4\. / { s = 0 }
+       s && index($0, "testing-principles-local.md") { l++ }
+       s && index($0, "기기 확인 Task는 두지 않는다") { d++ }
+       END { if (n != 1) print "참조 문서의 테스트 원칙 항목 " n + 0 "개 (기대 1개)"
+             if (l < 1) print "3-2 범위에 testing-principles-local.md 참조 없음"
+             if (d < 1) print "3-2 범위에 기기 확인 Task 문장 없음" }' "$1"
+}
+
+# check_testing_plan <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 문단 범위는 위 check_placement_header 와 같다. 빈 `>` 행 뒤로 밀린 줄은 별도 문단이라 세지 않는다.
+check_testing_plan() {
+  awk '/^## Tasks$/ { s = 1 } /^### Task 0/ { s = 0 }
+       s && /^> \*\*테스트 배치\*\*/ { p = 1; n++ }
+       p && (/^>[[:space:]]*$/ || !/^>/) { p = 0 }
+       p && index($0, "testing-principles-local.md") { l++ }
+       END { if (n != 1) print "테스트 배치 문단 " n + 0 "개 (기대 1개)"
+             else if (l < 1) print "테스트 배치 문단에 testing-principles-local.md 참조 없음" }' "$1"
+}
+
+awk '!index($0, "  - `.ai/10_rules/testing-principles.md`·`.ai/10_rules/testing-principles-local.md` — ")' \
+  "$SKILL" > "$sandbox/tr-ref-del.md"
+drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 plan Task' > "$sandbox/tr-32-no-local.md"
+drop_literal "$SKILL" '기기 확인 Task는 두지 않는다' > "$sandbox/tr-32-no-device.md"
+awk '/^     - \*\*테스트 층 표\*\*: / { held = $0; next } { print } /^4\. / && held { print held; held = "" }' \
+  "$SKILL" > "$sandbox/tr-32-moved.md"
+awk '!index($0, "> `.ai/10_rules/testing-principles-local.md`가 있으면")' "$TEMPLATE" > "$sandbox/tr-plan-del.md"
+awk 'index($0, "> `.ai/10_rules/testing-principles-local.md`가 있으면") { held = $0; next }
+     { print } held && /^>[[:space:]]*$/ { print held; held = "" }' "$TEMPLATE" > "$sandbox/tr-plan-split.md"
+
+assert_structure check_testing_skill "$SKILL"                      pass "테스트 원칙 조항: SKILL.md 참조 항목·3-2 층 표 문장 통과"
+assert_structure check_testing_plan  "$TEMPLATE"                   pass "테스트 원칙 조항: plan 템플릿 테스트 배치 문단 통과"
+assert_structure check_testing_skill "$sandbox/tr-ref-del.md"      fail "테스트 원칙 조항: SKILL.md 참조 항목 삭제 격추"
+assert_structure check_testing_skill "$sandbox/tr-32-no-local.md"  fail "테스트 원칙 조항: 3-2 local 층 표 참조 삭제 격추"
+assert_structure check_testing_skill "$sandbox/tr-32-no-device.md" fail "테스트 원칙 조항: 3-2 기기 확인 Task 문장 삭제 격추"
+assert_structure check_testing_skill "$sandbox/tr-32-moved.md"     fail "테스트 원칙 조항: 3-2 층 표 항목의 4단계 이동 격추"
+assert_structure check_testing_plan  "$sandbox/tr-plan-del.md"     fail "테스트 원칙 조항: 테스트 배치 문단 local 참조 삭제 격추"
+assert_structure check_testing_plan  "$sandbox/tr-plan-split.md"   fail "테스트 원칙 조항: 테스트 배치 local 참조의 다음 문단 이동 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
