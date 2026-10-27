@@ -20,6 +20,7 @@ last_harvested: 2026-10-24
   - **건물 repo**: code-map `--global`의 건물 repo(`.ai/60_codebase/repository.yaml`이 있는 repo)는 `소스 코드`로 선언한다. SSoT는 등록한 대상 repo의 소스 코드이며 건물 repo 안에는 없다. ai-workspace update는 건물 repo에 doc 표준 문구가 있으면 보고만 하고 자동 전환하지 않는다.
   - **건물 안내도**: `--global`은 대상 repo의 선언을 읽어 `원본 문서` repo를 서비스 간 호출 식별에서 빼고 건물 안내도 리포 목록에 SSoT 종류로 표시한다. 건물 repo에서 `--local`을 실행하면 건물 안내도를 덮어쓰지 않도록 멈추고 `--global`을 안내한다.
   - **리뷰 카테고리**: 선언이 `원본 문서`이면 git-review·issue-audit·git-review-quiz가 doc 카테고리 세트를 쓴다. 이름·순서와 사본 동기화는 ADR 0014가 정한다.
+- 선언을 읽는 표준 문장(8곳 복제)은 `AI-CONTEXT.md`는 있는데 선언을 찾지 못해 소스 코드로 진행하면 그 사실을 사용자에게 알리고 `ai-workspace` update로 선언을 보강하도록 안내한다. 안내도가 없는 repo에서는 알리지 않는다 (#122).
 - 이슈 spec에서 `보류`로 뺀 항목은 이슈 완료 시 원장 등재 여부를 묻고 승인분만 등재한다. 등재 계기의 상세는 ADR 0018이 정한다 (#118).
 
 ## 근거
@@ -35,6 +36,7 @@ last_harvested: 2026-10-24
 - 건물 repo의 문서는 대상 repo의 코드 색인에서 만든 것이라 SSoT는 대상 repo의 소스 코드다. doc 프로파일로 init하면 `원본 문서` 선언이 들어가 실제와 어긋난다. 선언은 허용 값 안에서 정했다. 새 값을 두면 선언을 읽는 문구 8곳(ADR 0002의 의도적 중복)과 `check-context.sh`를 함께 바꿔야 한다.
 - 코드 카테고리 7종은 문서 변경에서 성능·테스트에 해당하는 대상이 없고, 내용 정확성·근거 최신성처럼 문서에 필요한 축이 빠져 있다. 개수와 순서를 맞춰 결과 템플릿과 집계 줄 구조를 그대로 쓰게 했다.
 - 기존 ADR 0007·0014·0018은 결정은 그대로이고 범위만 넓어졌으므로 본문을 제자리에서 보정했다. ADR 0008은 배포 구조가 그대로라 고치지 않고, 이 ADR이 writing-principles 1.2.0 변경을 기록한다.
+- 2026-10-27 일부 변경(#122): 원장 K-0015를 함께 해소하며 결정에 폴백 알림을 더했다. 선언이 깨진 doc repo에서 리뷰·감사·색인이 코드 기준으로 동작해도 알림이 없으면 사용자가 알아채기 어렵다. 안내도가 없는 repo는 선언을 둘 곳이 없어 소스 코드 폴백이 정상 동작이므로 알리지 않는다. 결정 항목은 모두 유효해 ADR index `## 수명 주기`의 일부 변경으로 제자리에서 고쳤다.
 
 </details>
 
@@ -49,7 +51,7 @@ last_harvested: 2026-10-24
 - 건물 repo용 선언 값 신설: 뜻은 정확하지만 선언을 읽는 8곳과 `check-context.sh`를 바꿔야 해 `소스 코드` 선언으로 대체.
 - 로비 `Repos` 표에 repo별 SSoT 종류 열 추가: repo 안내도의 선언과 중복돼 어긋날 수 있어 불필요. 에이전트는 repo에 진입할 때 repo 안내도에서 선언을 읽는다.
 - doc용 결과 템플릿을 따로 두는 안: 개수·순서를 맞추면 행 이름만 바뀌므로 배제.
-- 선언이 깨졌을 때 경고를 더하는 안: 선언을 읽는 8곳의 문구를 바꿔야 하는데 발생 확률이 낮아 보류. 2026-10-24 등재 질의에서는 등재하지 않았고, 2026-10-25 이슈 완료 시 질의에서 [K-0015](../../70_ledger/active/K-0015-ssot-declaration-silent-fallback.md)로 등재했다.
+- 선언이 깨졌을 때 경고를 더하는 안: #118에서는 선언을 읽는 8곳의 문구를 바꿔야 하는데 발생 확률이 낮아 보류했다. 2026-10-24 등재 질의에서는 등재하지 않았고, 2026-10-25 이슈 완료 시 질의에서 [K-0015](../../70_ledger/active/K-0015-ssot-declaration-silent-fallback.md)로 등재했다. 2026-10-27 #122에서 K-0015를 함께 해소하며 채택해 결정에 넣었다.
 
 </details>
 
@@ -60,6 +62,7 @@ last_harvested: 2026-10-24
 
 - [Issue #114 doc 프로파일에서 SSoT를 원본 문서(repo 지정 디렉토리)로 선언하고 스킬이 그 선언을 따르게 한다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/114)
 - [Issue #118 doc 프로파일 운영 보강: 문서 규약 파일·SSoT 대상 범위·로비와 건물 repo의 SSoT 선언·리뷰 카테고리 doc 세트·보류 항목 원장 등재](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
+- 일부 변경: [Issue #122 ai-workspace: 테스트 원칙 파일 쌍(testing-principles·local) 도입과 안내도·context-loading 라우팅 연결](https://github.com/scroogy-dev/scroogy-agent-skills/issues/122)
 - 방향 전환 이력: [`.ai/90_issues/archive/issue-0114/issue-0114-spec.md`](../../90_issues/archive/issue-0114/issue-0114-spec.md) `## 전제 (Assumptions)`
 - 정책: [SSoT 원칙과 안내도 라우터 정책](../../40_domain/policies/local/ssot-and-router-principle.md)
 - 관련 결정: [ADR 0002 스킬 독립성과 의도적 중복](./0002-skill-independence-intentional-duplication.md), [ADR 0007 원장 위치와 구조](./0007-tech-debt-ledger-location-and-structure.md), [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0014 역피라미드와 카테고리](./0014-inverted-pyramid-and-verdict-derivation.md), [ADR 0018 원장 재검토·해소 계기](./0018-ledger-proactive-review-and-resolve-timing.md)

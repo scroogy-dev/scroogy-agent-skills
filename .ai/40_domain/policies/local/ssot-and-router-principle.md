@@ -8,7 +8,7 @@ last_harvested: 2026-09-09
 
 ## 원칙
 
-- SSoT(Single Source of Truth, 단일 진실 원천)는 repo 안내도의 SSoT 선언이 정한다. 선언은 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 행이며, dev 프로파일은 소스 코드, doc 프로파일은 원본 문서(`## 프로젝트 도메인` 표 `ssot_dir` 아래 `.md` 파일)다. 다른 확장자와 첨부(이미지·PDF 등)의 분류는 repo 문서 규약 파일(`10_rules/document-convention.md`)이 정한다. 선언을 찾지 못하면 소스 코드를 SSoT로 본다. 안내도 마크다운은 SSoT를 가리키는 지도이지 SSoT의 사본이 아니다.
+- SSoT(Single Source of Truth, 단일 진실 원천)는 repo 안내도의 SSoT 선언이 정한다. 선언은 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 행이며, dev 프로파일은 소스 코드, doc 프로파일은 원본 문서(`## 프로젝트 도메인` 표 `ssot_dir` 아래 `.md` 파일)다. 다른 확장자와 첨부(이미지·PDF 등)의 분류는 repo 문서 규약 파일(`10_rules/document-convention.md`)이 정한다. 선언을 찾지 못하면 소스 코드를 SSoT로 본다. 안내도는 있는데 선언을 찾지 못해 소스 코드로 진행하면 선언을 읽는 스킬이 그 사실을 사용자에게 알리고 `ai-workspace` update로 선언을 보강하도록 안내하며, 안내도가 없는 repo에서는 알리지 않는다. 안내도 마크다운은 SSoT를 가리키는 지도이지 SSoT의 사본이 아니다.
 - 퍼블리싱은 SSoT에서 파생해 밖으로 내보낸 사본(위키·블로그·PDF 등 형태 불문)이며 SSoT도 출처도 아니다. 위치는 `## 프로젝트 도메인` 표 `publish` 행으로 선언할 수 있다.
 - 출처는 SSoT에서 파생되지 않은 외부 자료이며 `40_domain/`·`50_adr/`가 근거로 인용한다. 퍼블리싱과 출처는 매체로 가르지 않고 SSoT에서 파생했는지로 가른다.
 - 정보 충돌 시 우선순위는 SSoT(소스 코드 또는 원본 문서) > repo 안내도(`.ai/AI-CONTEXT.md`) > 상위 워크스페이스 로비 안내도다. 근거 출처와 원본 문서 사이 같은 세부 우선순위는 repo 문서 규약 파일(`10_rules/document-convention.md`)이 정하며 스킬 표준에 넣지 않는다.
