@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-10
-source_hash: 0aa3038
+last_synced: 2026-10-27
+source_hash: 5fc095f
 status: current
 ---
 
@@ -14,11 +14,11 @@ status: current
 
 ```
 issue-audit/SKILL.md `### --plan`
-├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger, summary는 모델 기록 표의 계획 모델 행만 (Task 결과·구현 diff 제외)
+├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger, testing-principles 쌍(있으면, 7항), summary는 모델 기록 표의 계획 모델 행만 (Task 결과·구현 diff 제외)
 ├── 1단계: 적합성 검증            # 행 = 이슈 본문 요구 항목 ↔ spec 포함·제외 (PASS/FAIL/PARTIAL/N/A), DoD 표는 포함 R ↔ `### R<n>` 그룹
 ├── 2단계: 비판적 검증 5관점
 │   ├── 추적성 [D]                # scripts/check-plan.sh --trace <spec> <plan>
-│   ├── 가짜 [D] 사전 판별 [D]    # 구현 전 트리에서 [D] 명령 실행, 정상 명령은 실패해야 함, 고정 블록(Task 0·N) 완료 기준은 제외, 회귀 방지 항목은 spec 본문 `(회귀 방지 항목)` 표시로 예외 (수동)
+│   ├── 가짜 [D] 사전 판별 [D]    # 구현 전 트리에서 [D] 명령 실행, 정상 명령은 실패해야 함, 고정 블록(Task 0·N) 완료 기준은 제외, 회귀 방지 항목은 spec 본문 `(회귀 방지 항목)` 표시로 예외 (수동). local 파일이 있으면 그 실행 셸로 실행하고 전제 조건이 없으면 판정 불가(N/A)로 두어 후보·정상 실패 어느 쪽으로도 세지 않음
 │   └── 범위·모호성·과잉 설계 [QD]
 ├── 공통 규칙                     # classify-risk.sh 등급·처리·상태·판정, 원장 대조, next-finding-number.sh 는 최종 감사와 동일
 └── 결과 기록                     # .ai/99_workspace/issue-<번호>-plan-audit-report.md, 회차 보존·--clear 이관 동일, F- 번호 축은 최종 감사와 분리, 감사 모델·effort 줄 값은 summary 계획 audit 모델 행에 사용자가 기록
@@ -44,4 +44,5 @@ check-plan.sh --trace <spec> <plan>
 - 원장 [K-0009](../../70_ledger/active/K-0009-plan-audit-fake-d-check-manual.md): 가짜 `[D]` 사전 판별의 헬퍼 결정화 보류(기술부채). [K-0010](../../70_ledger/active/K-0010-check-plan-line-based-markdown-boundary.md): 행 단위 파서라 여러 행 코드 스팬 등은 구분하지 않음(known issue).
 - 계획 감사 리포트의 보정은 issue-work `--response`가 spec·plan에 반영하고 건수를 summary `계획 감사` 줄에 적는다([--response 흐름](../issue-work/response-call-flow.md)).
 - 명세: [이슈 감사 요건](../../40_domain/specs/issue-audit.md) `--plan` 항목. 요구사항 층·계획 감사 모드·수행 여부 사용자 선택은 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md). 가짜 `[D]` 함정("틀렸을 때 검사가 실제로 실패하나")은 [ADR 0003](../../50_adr/active/0003-verification-levels-and-determinization.md) 근거 절.
+- 0단계 7항의 테스트 실행 원칙 파일 쌍 참조와 가짜 `[D]` 판별의 실행 셸·판정 불가(N/A)는 [ADR 0023](../../50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).

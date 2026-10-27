@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-24
-source_hash: b7fccef
+last_synced: 2026-10-27
+source_hash: 5fc095f
 status: current
 ---
 
@@ -16,11 +16,12 @@ status: current
 issue-audit/SKILL.md (기본 모드: 최종 감사)
 ├── 0단계: 컨텍스트 수집
 │   ├── .ai/90_issues/active|archive/issue-<번호>/ spec·plan·summary
-│   ├── .ai/60_codebase/index.md, .ai/30_contract·40_domain·50_adr index   # 색인은 참고만, SSoT는 AI-CONTEXT.md 본문 2번째 줄 선언으로 직접 확인(선언 없으면 소스 코드)
+│   ├── .ai/60_codebase/index.md, .ai/30_contract·40_domain·50_adr index   # 색인은 참고만, SSoT는 AI-CONTEXT.md 본문 2번째 줄 선언으로 직접 확인(선언 없으면 소스 코드, 안내도는 있는데 선언을 찾지 못하면 사용자에게 알림)
 │   ├── .ai/70_ledger/index.md + active/K-*.md         # 기등재 대조로 반복 보고 차단
 │   ├── 구현 브랜치 diff
-│   └── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
-├── 1단계: 적합성 검증 (Compliance Check)            # DoD [D] 명령은 구현 후 트리에서 실제 실행해 판정
+│   ├── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
+│   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), [D] 재실행의 실행 셸·전제 조건 기준(local 우선)
+├── 1단계: 적합성 검증 (Compliance Check)            # DoD [D] 명령은 구현 후 트리에서 실제 실행해 판정. local 파일이 있으면 그 실행 셸로 실행하고 전제 조건이 없으면 판정 불가(N/A)
 │   └── scripts/classify-risk.sh --compliance <판정>…    # 1단계 상태 (최고값)
 ├── 2단계: 비판적 검증 (Critical Review)               # 5관점·7카테고리(선언이 원본 문서면 doc 카테고리 7종), 관점 5는 Task별 테스트 [D] 유무·변경 커버로 판정
 │   ├── scripts/classify-risk.sh --impact <축> --likelihood <축>   # 등급, 감사인이 직접 고르지 않음
@@ -41,5 +42,5 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
 - 사용자가 구현 모델과 다른 벤더 모델로 직접 수행하고 구현 AI가 자동 실행·종료하지 않는 원칙, 전체 재감사 유지, 종료 기준 유한 체크리스트는 [ADR 0004](../../50_adr/active/0004-cross-model-audit-and-response-gate.md).
 - 명세: [이슈 감사 요건](../../40_domain/specs/issue-audit.md)(0~3단계 요건, 번호 계승·계보, 리포트 구조·회차 보존).
 - 매트릭스·등급별 처리는 [ADR 0006](../../50_adr/active/0006-risk-matrix-and-treatment.md), 기등재 대조·상태 행렬은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), 역피라미드·상태·판정 산출은 [ADR 0014](../../50_adr/active/0014-inverted-pyramid-and-verdict-derivation.md). 카테고리 7종과 doc 카테고리 7종은 git-review 원본의 사본이다([ADR 0002](../../50_adr/active/0002-skill-independence-intentional-duplication.md)). doc 프로파일의 SSoT를 원본 문서로 둔 결정은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md).
-- 관점 5의 Task별 테스트 기준과 1단계 `[D]` 실행 지시는 [ADR 0019](../../50_adr/active/0019-test-perspectives-and-task-level-placement.md).
+- 관점 5의 Task별 테스트 기준과 1단계 `[D]` 실행 지시는 [ADR 0019](../../50_adr/active/0019-test-perspectives-and-task-level-placement.md). 0단계 7항의 테스트 실행 원칙 파일 쌍 참조와 `[D]` 재실행의 실행 셸·판정 불가(N/A)는 [ADR 0023](../../50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md). 선언을 찾지 못했을 때의 알림은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md) 일부 변경(#122).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md). 헬퍼 분리 판단은 [architecture.md 디자인 원칙](../../10_rules/architecture.md).
