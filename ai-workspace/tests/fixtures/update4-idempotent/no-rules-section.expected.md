@@ -30,6 +30,7 @@ update-4 멱등 보강 검사 fixture — `## 프로젝트 규칙` 섹션이 통
 | `.ai/10_rules/coding-convention.md`  | 코딩 컨벤션                | 코드 작성 시      |
 | `.ai/10_rules/context-loading.md`    | 작업 전 컨텍스트 확인 절차 | 코드·문서 작업 전 |
 | `.ai/10_rules/file-change-policy.md` | 파일 변경 규칙             | 파일 추가·삭제 시 |
+| `.ai/10_rules/testing-principles.md` | 테스트 실행 원칙 (층·수단·환경) | 테스트 작성·실행 시 |
 | `.ai/10_rules/writing-principles.md` | 산출물 작성 원칙 (소스 코드 미적용) | 산출 문서·PR·이슈·리뷰 코멘트 작성 시 |
 
 ---

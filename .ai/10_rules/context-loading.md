@@ -41,6 +41,11 @@ SSoT 선언이 원본 문서인 repo에서 문서를 작성·수정·리뷰·분
 
 - `.ai/30_contract/index.md`
 
+## 테스트 작성·실행 시
+
+- `.ai/10_rules/testing-principles.md` — 테스트 실행 원칙 (층·수단·환경)
+- `.ai/10_rules/testing-principles-local.md` — repo 고유 테스트 층 표·대상 환경·실행 셸 (원칙과 충돌하면 local 우선)
+
 ## 산출 문서·PR·이슈·리뷰 코멘트 작성 시
 
 - `.ai/10_rules/writing-principles.md` — 산출물 작성 원칙 (소스 코드 미적용)
