@@ -756,6 +756,64 @@ assert_clause check_dod_run_clause   "$sandbox/dr-no-summary.md" fail "DoD 대�
 assert_clause check_dod_run_clause   "$sandbox/dr-no-na.md"     fail "DoD 대조 조항: 실행 불가 환경 N/A 기준 삭제 격추"
 assert_clause check_dod_run_clause   "$sandbox/dr-no-role.md"   fail "DoD 대조 조항: --plan 관점 2 역할 구분 삭제 격추"
 
+# --- SKILL.md 테스트 원칙 조항 (issue #122) ----------------------------------------
+# `testing-principles` 파일 쌍을 조건부로 참조하는 조항도 감사인 절차라 문장이 곧 계약이다 (Task별 테스트 배치).
+# `## 참조 문서`의 두 파일 항목, 0단계 7항, DoD 대조 행·관점 2 행의 local 파일 참조와 전제 조건 N/A 구절,
+# `--plan` 대조 기준의 7항 수행을 앵커로 판정하고, 앵커마다 지운 사본과 7항을 0단계 밖으로 옮긴 사본을 격추한다.
+# DoD 대조 행에는 실행 불가 환경의 `판정 불가(N/A)`가 이미 있어 새 구절은 전제 조건 문구까지 묶어 판정한다.
+# 조건·우선순위의 뜻은 판정하지 않는다 (이슈 spec 의 [QD] 몫).
+
+# check_testing_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_testing_clause() {
+  awk '
+    /^## / { r = ($0 ~ /^## 참조 문서/) }
+    /^### / { z = ($0 ~ /^### 0단계/); c = ($0 ~ /^### 1단계/) }
+    r && /^  - `\.ai\/10_rules\/testing-principles\.md`·`\.ai\/10_rules\/testing-principles-local\.md` — / { ref++ }
+    z && /^7\. / && index($0, "testing-principles-local.md") { s7++ }
+    c && /^2\. \*\*완료의 정의\(DoD\) 대조\*\*/ {
+      dod++
+      if (!index($0, "testing-principles-local.md")) print "DoD 대조 행에 testing-principles-local.md 참조 없음"
+      if (!index($0, "전제 조건이 갖춰지지 않으면 판정 불가(N/A)")) print "DoD 대조 행에 전제 조건 N/A 구절 없음"
+    }
+    /^2\. \*\*가짜 `\[D\]` 사전 판별\*\*/ {
+      fd++
+      if (!index($0, "testing-principles-local.md")) print "관점 2 행에 testing-principles-local.md 참조 없음"
+      if (!index($0, "전제 조건이 갖춰지지 않으면 판정 불가(N/A)")) print "관점 2 행에 전제 조건 N/A 구절 없음"
+    }
+    /^- \*\*대조 기준\*\*:/ && index($0, "3·4·7항은 그대로 수행") { pl++ }
+    END {
+      if (ref != 1) print "참조 문서의 테스트 원칙 항목 " ref + 0 "개 (기대 1개)"
+      if (s7 != 1) print "0단계 7항 " s7 + 0 "개 (기대 1개)"
+      if (dod != 1) print "DoD 대조 행 " dod + 0 "개 (기대 1개)"
+      if (fd != 1) print "관점 2 행 " fd + 0 "개 (기대 1개)"
+      if (pl != 1) print "--plan 대조 기준의 3·4·7항 수행 " pl + 0 "개 (기대 1개)"
+    }
+  ' "$1"
+}
+
+awk '!index($0, "  - `.ai/10_rules/testing-principles.md`·`.ai/10_rules/testing-principles-local.md` — ")' \
+  "$SKILL" > "$sandbox/tc-ref-del.md"
+awk '!(/^7\. / && index($0, "testing-principles-local.md"))' "$SKILL" > "$sandbox/tc-s7-del.md"
+awk '/^7\. / && index($0, "testing-principles-local.md") { held = $0; next } { print } /^### 1단계/ && held { print held; held = "" }' \
+  "$SKILL" > "$sandbox/tc-s7-moved.md"
+drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 명령은 그 파일의 실행 셸로 실행하고 층 표의 전제 조건을 먼저 확인하며, 전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두고 사유를 적는다.' \
+  > "$sandbox/tc-dod-del.md"
+drop_literal "$SKILL" '전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두고 사유를 적는다' > "$sandbox/tc-dod-no-na.md"
+drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 명령은 그 파일의 실행 셸로 실행하고, 전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두어' \
+  > "$sandbox/tc-fd-del.md"
+drop_literal "$SKILL" '전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두어' > "$sandbox/tc-fd-no-na.md"
+drop_literal "$SKILL" '·7항' > "$sandbox/tc-plan-no7.md"
+
+assert_clause check_testing_clause "$SKILL"                    pass "테스트 원칙 조항: 실제 SKILL.md 통과"
+assert_clause check_testing_clause "$sandbox/tc-ref-del.md"    fail "테스트 원칙 조항: 참조 문서 항목 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-s7-del.md"     fail "테스트 원칙 조항: 0단계 7항 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-s7-moved.md"   fail "테스트 원칙 조항: 0단계 7항의 1단계 이동 격추"
+assert_clause check_testing_clause "$sandbox/tc-dod-del.md"    fail "테스트 원칙 조항: DoD 대조 행 새 문장 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-dod-no-na.md"  fail "테스트 원칙 조항: DoD 대조 행 전제 조건 N/A 구절 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-fd-del.md"     fail "테스트 원칙 조항: 관점 2 행 새 문장 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-fd-no-na.md"   fail "테스트 원칙 조항: 관점 2 행 전제 조건 N/A 구절 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-plan-no7.md"   fail "테스트 원칙 조항: --plan 대조 기준 7항 수행 삭제 격추"
+
 # --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
 #
 # spec 포함 R · DoD `### R<n>` 그룹 · plan 일반 Task `대상 요구사항` 필드의 삼자 대응 위반 4종을
