@@ -25,12 +25,42 @@
 * **구현 요약:** 재고 조회 쿼리를 Redis 캐시로 대체하고, 주문 유효성 검증 로직을 병렬 처리로 변경.
 * **호출 흐름:**
   - 주문 생성:
+
+    ```
     OrderController#create
     ├── OrderValidator#validate     # 필수 필드·재고 가용성 검증(병렬)
     └── OrderService#process        # 주문 생성 트랜잭션 관리
         ├── InventoryCache#get      # 재고 캐시 우선 조회
         │   └── InventoryRepository#findById (DB, 캐시 miss 시)
         └── OrderRepository#save (DB)
+    ```
+
+    ```mermaid
+    sequenceDiagram
+        participant OC as OrderController
+        participant OV as OrderValidator
+        participant OS as OrderService
+        participant IC as InventoryCache
+        participant IR as InventoryRepository
+        participant OR as OrderRepository
+
+        OC->>OV: validate
+        Note over OV: 필수 필드·재고 가용성 병렬 검증
+        OV-->>OC: 검증 통과
+        OC->>OS: process
+        rect rgba(128, 128, 128, 0.1)
+            Note over OS,OR: 주문 생성 트랜잭션
+            OS->>IC: get
+            opt 캐시 miss
+                IC->>IR: findById
+                IR-->>IC: 재고
+            end
+            IC-->>OS: 재고
+            OS->>OR: save
+            OR-->>OS: 저장된 주문
+            OS-->>OC: 생성된 주문
+        end
+    ```
 * **참고사항:** `.ai/50_adr/adr-cache-strategy.md`, DB 스키마 변경 없음
 
 </details>
