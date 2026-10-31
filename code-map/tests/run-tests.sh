@@ -229,6 +229,10 @@ sequence_violations() {
   s="$(awk '$0 == "## 디렉토리 트리 정렬 규칙" { f = 1; next } f && /^## / { exit } f' "$skill")"
   has "$s" '시퀀스 다이어그램의 참여자 순서에도 이 규칙을 적용하지 않습니다' || echo '시퀀스 SKILL.md 정렬 규칙 적용 제외'
   has "$s" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' || echo '시퀀스 SKILL.md 정렬 규칙 링크'
+  # 시퀀스 누락·불일치는 새 태그 없이 결과 보고 건수로 세므로, 태그 체계 표는 기존 5개 그대로다 (#126 최종 감사 F-1).
+  [ "$(awk '$0 == "## 태그 체계" { f = 1; next } f && /^## / { exit } f' "$skill" | grep -E '^\| [^|]+ \|' \
+       | sed -n '2,$p' | sed -E 's/^\| ([^|]+) \|.*/\1/' | tr '\n' '|')" \
+    = '`[WHY-NEEDED]`|`[DOC-NEEDED]`|`[UPDATE-NEEDED]`|`[NOT-INDEXED]`|`[REPO-NOT-FOUND]`|' ] || echo '시퀀스 SKILL.md 태그 체계 표'
 
   s="$(cut_sec "$lo" '### 1단계: 소스코드 색인' '### 2단계: 교차 참조 연결')"
   has "$s" '트리 다음에는 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리며, [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)을 따른다' \
@@ -352,6 +356,15 @@ drop_line() {
   awk -v s="$2" 'index($0, s) { hit = 1; next } { print } END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
+# swap_next <파일> <문자열> — 문자열을 포함한 첫 행과 그 다음 행의 순서를 바꾼다.
+swap_next() {
+  awk -v s="$2" '
+    held != "" { print; print held; held = ""; next }
+    !done && index($0, s) { held = $0; done = 1; next }
+    { print }
+    END { if (held != "") print held; exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
 # assert_reject <설명> <위반 행> <변형 명령...>
 assert_reject() {
   local desc="$1" want="$2" out; shift 2
@@ -456,6 +469,12 @@ assert_reject '시퀀스 SKILL.md 정렬 규칙 적용 제외 삭제 격추' '�
   cut_str "$C_SKILL" '시퀀스 다이어그램의 참여자 순서에도 이 규칙을 적용하지 않습니다. '
 assert_reject '시퀀스 SKILL.md 정렬 규칙 작성 규칙 링크 삭제 격추' '시퀀스 SKILL.md 정렬 규칙 링크' \
   sub_str "$C_SKILL" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' '시퀀스 다이어그램 작성 규칙'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 행 추가 격추' '시퀀스 SKILL.md 태그 체계 표' \
+  sub_str "$C_SKILL" '| `[REPO-NOT-FOUND]` |' '| `[SEQUENCE-NEEDED]` | 시퀀스 누락 | local check |\n| `[REPO-NOT-FOUND]` |'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 행 삭제 격추' '시퀀스 SKILL.md 태그 체계 표' drop_line "$C_SKILL" '| `[NOT-INDEXED]` |'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 태그 이름 변경 격추' '시퀀스 SKILL.md 태그 체계 표' \
+  sub_str "$C_SKILL" '| `[DOC-NEEDED]` |' '| `[DOCS-NEEDED]` |'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 행 순서 변경 격추' '시퀀스 SKILL.md 태그 체계 표' swap_next "$C_SKILL" '| `[WHY-NEEDED]` |'
 assert_reject '시퀀스 local 1-4 안내 문장 삭제 격추' '시퀀스 local 1-4 안내 문장' \
   cut_str "$C_LOCAL" ' 트리 다음에는 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리며, [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)을 따른다'
 assert_reject '시퀀스 local 예시 소제목 삭제 격추' '시퀀스 local 예시 트리·소제목·mermaid 순서' drop_line "$C_LOCAL" '### 시퀀스 다이어그램'
