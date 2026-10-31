@@ -221,7 +221,7 @@ code-map의 local 상세 흐름 문서와 global 서비스 간 흐름 문서가 
        <(printf '%s\n' '리포 접근성' '안내도 불일치' '아키텍처 문서 유효성' '교차참조 유효성') >/dev/null \
     || echo '위반: global 점검 표 행 집합·순서'
   r=$(printf '%s\n' "$t" | grep -E '^\| 아키텍처 문서 유효성 \|')
-  for p in '`service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' '`## How` 대신 흐름 섹션마다 따로' '흐름 단위로 센다'; do
+  for p in '`service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' '흐름 섹션마다 따로 판정해' '흐름 단위로 센다'; do
     printf '%s\n' "$r" | grep -qF -- "$p" || echo "위반: 아키텍처 문서 유효성 행에 '$p' 없음"
   done
   awk '$0 == "### 5단계: 결과 보고" { f = 1; next } f' "$G" | grep -qE '^[[:space:]]*- 서비스 간 시퀀스 다이어그램: N건 \(누락 N / 불일치 N\)$' \
