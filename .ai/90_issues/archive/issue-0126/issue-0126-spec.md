@@ -318,7 +318,7 @@ code-map의 local 상세 흐름 문서와 global 서비스 간 흐름 문서가 
   <summary>검증 명령 — 출력 0건이면 통과</summary>
 
   ```bash
-  S=.ai/90_issues/active/issue-0126/issue-0126-summary.md
+  S=.ai/90_issues/archive/issue-0126/issue-0126-summary.md
   awk '/^### Task 4:/ { f = 1; next } f && /^### / { exit } f' "$S" | grep -E '^- \*\*수행 내용 요약\*\*:' \
     | grep -F 'README' | grep -qF '60_codebase/index.md' || echo '위반: Task 4 판단 기록'
   ```
