@@ -51,7 +51,7 @@ org:
 ```
 
 - `architecture.md`: 서비스 목록과 리포 간 의존 관계를 기록한다. `service-call-flows.md`, `infra.md`로의 링크를 포함한다.
-- `service-call-flows.md`: 서비스 간 호출 흐름을 기록한다.
+- `service-call-flows.md`: 서비스 간 호출 흐름을 기록한다. 흐름별 섹션마다 트리 다음에 시퀀스 다이어그램을 함께 생성·갱신한다. 참여자는 서비스(리포) 단위이며 [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)을 따른다.
 - `infra.md`: 공통 인프라 정보(메시지 브로커, 서비스 디스커버리, DB 등)를 기록한다.
 - `60_codebase/index.md`(건물 안내도)는 리포 목록과 상태를 관리하며, 아키텍처 문서(`10_rules/`)로의 링크를 포함한다.
 
@@ -137,6 +137,24 @@ gateway#POST /api/login
 └── auth-service#AuthController#login
     └── user-service#UserController#findByEmail (내부 API)
 ```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant GW as gateway
+    participant AU as auth-service
+    participant US as user-service
+
+    GW->>AU: POST /api/login
+    AU->>US: findByEmail (내부 API)
+    US-->>AU: 사용자 정보
+    alt 인증 실패
+        AU-->>GW: 401 Unauthorized
+    else 인증 성공
+        AU-->>GW: 액세스 토큰
+    end
+```
 `````
 
 **infra.md** — 공통 인프라 정보:
@@ -189,7 +207,7 @@ gateway#POST /api/login
 |------|------|
 | 리포 접근성 | `repository.yaml`에 등록된 리포가 로컬에 clone되어 있고 `.ai/60_codebase/index.md`가 존재하는지 |
 | 안내도 불일치 | 건물 안내도의 리포 목록과 `repository.yaml`이 일치하는지 |
-| 아키텍처 문서 유효성 | `architecture.md`의 서비스·의존 관계, `service-call-flows.md`의 호출 흐름, `infra.md`의 인프라 정보가 각 리포의 현재 색인과 일치하는지 |
+| 아키텍처 문서 유효성 | `architecture.md`의 서비스·의존 관계, `service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램. 시퀀스 누락과 트리와의 불일치는 local 3단계 기준을 `## How` 대신 흐름 섹션마다 따로 적용해 흐름 단위로 센다), `infra.md`의 인프라 정보가 각 리포의 현재 색인과 일치하는지 |
 | 교차참조 유효성 | 각 리포 색인에 연결된 `.ai/30_contract/`, `.ai/40_domain/`, `.ai/50_adr/` 문서가 실제 존재하는지 |
 
 ---
@@ -206,6 +224,7 @@ gateway#POST /api/login
    - 아키텍처 문서: architecture.md (신규 생성 | 갱신 | 변경 없음)
    - 서비스 간 의존 관계: N건
    - 서비스 간 호출 흐름: N건
+   - 서비스 간 시퀀스 다이어그램: N건 (누락 N / 불일치 N)
    - 교차 참조 깨짐: N건
 
    > 아키텍처: .ai/10_rules/architecture.md
