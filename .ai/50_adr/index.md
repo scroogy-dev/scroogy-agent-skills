@@ -32,6 +32,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 ADR만 선택적으로 �
 | `active/0022-adr-lifecycle-status-and-superseded-move.md` | ADR 수명 주기(일부 변경·대체·폐기)를 index에 두고 경계는 결정 섹션, 상태 줄(`유효`·`대체`·`폐기`, 없으면 유효)과 `superseded/` 제약 제외(context-loading 명시), 이동 시 index 행·들어오는 링크 갱신(0021 복제, 파일명 검색 확인·헬퍼 보류), update-3 상태 줄 판정·회귀 fixture(K-0001 해소), context-harvest 상태 줄 유지·섹션 부재 보류 |
 | `active/0023-testing-principles-pair-and-consumer-skill-references.md` | 테스트 실행 원칙 파일 쌍(`testing-principles.md` 버전 고정·`testing-principles-local.md` 사용자 관리, dev 전용)으로 ADR 0008 쌍 구조 확장, context-loading 라우팅·dev 표준 선언 한정 규칙 표 행 검사, issue-work·issue-audit·git-qa 조건부 직접 참조(local > 공통 > 내장)와 러너 조항 검사 |
 | `active/0024-code-map-sequence-diagram-alongside-call-flow-tree.md` | code-map 호출 흐름 트리 다음 Mermaid 시퀀스 다이어그램(local `## How`·global 흐름별 섹션, global 참여자는 서비스), 트리·시퀀스 역할 분담과 SKILL.md 공통 작성 규칙(비동기 표기 정정·금지 문자·긴 흐름 생략 안내), 바뀐 기능만 반영, check 누락·불일치 건수 보고(새 태그 없음, global은 흐름 섹션 단위), K-0006 계속 수용 |
+| `active/0025-sequence-diagram-extended-to-git-pr-and-review-context.md` | 호출 흐름 트리 다음 시퀀스 다이어그램을 git-pr(기능별)·git-review-context(`## 호출 흐름` 접기 안)로 확장(소제목 없음, code-map 상세 흐름 작성 기준 해당 기능만, 의사코드 행 삭제), 작성 규칙 사본 3곳(원본 code-map, 위치·형식 행 스킬별·`--global` 구절 제외, 동기화 문구, 링크 대체 불가), code-map 러너의 `SEQ_ROWS` 사본 대조·배치 검사(문장 전체 일치는 K-0019 수용), ADR 0024 유지 |
 | `superseded/` | 대체·폐기된 결정 (상태 줄에 대체한 ADR 번호 또는 폐기 이슈 번호를 적음) |
 | (문서를 추가하면 이 목록에 함께 기재하세요) | |
 
