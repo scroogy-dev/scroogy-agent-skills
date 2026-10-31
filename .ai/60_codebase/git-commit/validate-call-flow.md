@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-09-09
-source_hash: 5ab2b67
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -20,6 +20,30 @@ git-commit/SKILL.md
     ├── [--allow-coauthor] <메시지 파일>   # 본문·꼬리말 포함, Co-Authored-By 는 명시 요청 시에만 허용
     ├── 판정: 타입·범위·설명·말미 " (#N)" 이슈 번호·빈 줄 규칙
     └── exit 0 통과(무출력) / 1 위반 사유 1행씩 / 2 사용오류
+```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as git-commit/SKILL.md
+    participant VM as validate-message.sh
+
+    Note over SK: 메시지 작성 (포맷, 타입 8종, 파괴적 변경)
+    opt 제목 초안만 확인
+        SK->>VM: --subject 제목 줄
+        VM-->>SK: exit 0 통과 / 1 위반 사유 1행씩
+    end
+    SK->>VM: [--allow-coauthor] 메시지 파일 (Co-Authored-By는 명시 요청 시에만)
+    alt 통과
+        VM-->>SK: exit 0 (무출력)
+        Note over SK: 커밋 진행
+    else 규격 위반
+        VM-->>SK: exit 1, 위반 사유 1행씩
+        Note over SK: 메시지 수정 후 다시 검사
+    else 인자 오류
+        VM-->>SK: exit 2 사용오류
+    end
 ```
 
 ## Why

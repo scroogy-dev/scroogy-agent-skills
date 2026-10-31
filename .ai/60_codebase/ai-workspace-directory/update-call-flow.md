@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-24
-source_hash: b7fccef
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -19,11 +19,44 @@ ai-workspace-directory/SKILL.md
 ├── update-1단계: 진단 리포트 출력
 │   ├── references/ssot-checklist.md   # SSoT 위배 항목
 │   ├── 로비 역할 위배 판정            # 정책 본문·도메인 본문 중복
-│   ├── drift·메타 일치 검사           # 각 repo `## 프로젝트 도메인` domain/keywords ↔ Repos 행
-│   └── scripts/check-lobby.sh <파일>  # 형식 위배 8종 1행씩·exit 1 (frontmatter·last updated·SSoT 문구·H2 순서·Repos 4열·status 열거값·진입 절차). SSoT 문구는 repo 안내도 선언을 따른다는 고정 문구만 인정하고 구 `소스 코드` 문구는 위배
+│   ├── drift·메타 일치 검사           # 로비 Repos ↔ 디스크 안내도 존재(archived 제외), 메타는 각 repo `## 프로젝트 도메인` domain/keywords ↔ Repos 행(메타 블록 없으면 스킵)
+│   └── scripts/check-lobby.sh <파일>  # 형식 위배 8종 1행씩·exit 1 (frontmatter·last updated·SSoT 문구·H2 존재·순서·Repos 섹션명(구 Floors)·Repos 4열·status 열거값·진입 절차). SSoT 문구는 repo 안내도 선언을 따른다는 고정 문구만 인정하고 구 `소스 코드` 문구는 위배
 ├── update-2단계: 재구성 로비 전문 출력   # "이대로 덮어쓸까요?" 승인 게이트, 비표준 SSoT 문구(구 `소스 코드` 문구 포함)는 표준 문구로 교체
+│   └── scripts/check-lobby.sh --lines <파일>   # 승인해 기록한 뒤에만, init-5단계와 같은 분량 가드레일. 거절이면 파일 미변경
 ├── update-3단계: floor 이동 후보 목록    # YAML, target_location_hint 로 repo `.ai/40_domain/…` 제안, 파일 미수정
 └── update-4단계: 보고
+```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as ai-workspace-directory/SKILL.md
+    participant CL as scripts/check-lobby.sh
+
+    Note over SK: 1단계 update 명시 또는 루트 .ai/AI-CONTEXT.md 존재로 자동 판정, 사용자 확인
+    opt 사용자가 init 요청
+        Note over SK: 기존 파일 덮어쓰기 명시·재확인, 수동 백업 안내 후 init 흐름으로
+    end
+    Note over SK: update-0단계 기존 로비 읽기, 1차 자식 디렉토리 안내도 스캔, archived 추출
+    Note over SK: update-1단계 ssot-checklist.md SSoT 위배, 로비 역할 위배, drift·메타 일치 진단
+    SK->>CL: check-lobby.sh 로비 파일
+    alt 통과
+        CL-->>SK: 무출력, exit 0
+    else 형식 위배
+        CL-->>SK: 위배 사유 1행씩, exit 1
+    end
+    Note over SK: 진단 리포트 출력
+    Note over SK: update-2단계 재구성 전문 출력, 비표준 SSoT 문구는 표준 문구로 교체
+    alt 덮어쓰기 승인
+        Note over SK: 로비 파일에 기록
+        SK->>CL: check-lobby.sh --lines 로비 파일
+        CL-->>SK: 정상·비대·짧음 (N줄), exit 0
+    else 거절
+        Note over SK: 파일 미변경, 리포트와 전문만 출력 상태로 둠
+    end
+    Note over SK: update-3단계 floor 이동 후보 YAML 출력, 파일 미수정
+    Note over SK: update-4단계 파일 변경 여부·분량 결과·placeholder 전환·이동 후보 수 보고
 ```
 
 ## Why

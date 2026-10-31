@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-27
-source_hash: 5fc095f
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -17,7 +17,7 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
 ├── 0단계: 컨텍스트 수집
 │   ├── .ai/90_issues/active|archive/issue-<번호>/ spec·plan·summary
 │   ├── .ai/60_codebase/index.md, .ai/30_contract·40_domain·50_adr index   # 색인은 참고만, SSoT는 AI-CONTEXT.md 본문 2번째 줄 선언으로 직접 확인(선언 없으면 소스 코드, 안내도는 있는데 선언을 찾지 못하면 사용자에게 알림)
-│   ├── .ai/70_ledger/index.md + active/K-*.md         # 기등재 대조로 반복 보고 차단
+│   ├── .ai/70_ledger/index.md + active/K-*.md (+ 관련 archive/ 승격·해소 항목)   # 기등재 대조로 반복 보고 차단, archive 는 재발 계보·승격 연결 이슈 확인용
 │   ├── 구현 브랜치 diff
 │   ├── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
 │   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), [D] 재실행의 실행 셸·전제 조건 기준(local 우선)
@@ -31,6 +31,39 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
     ├── templates/issue-audit-report-template.md     # 원본 문서 선언이면 카테고리 행·2단계 집계 줄 이름만 doc 카테고리로
     ├── scripts/classify-risk.sh --status [<위험도>…] / --verdict <상태> <상태>   # 2단계 상태·종합 판정 한 줄
     └── .ai/99_workspace/issue-<번호>-audit-report.md   # 직전 회차는 -<회차>.md 로 회전, 모델은 "벤더, 모델명 (모델 ID)"(확인 불가면 (-)), effort 는 별도 줄에 도구 표기 그대로
+```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as issue-audit/SKILL.md
+    participant CR as scripts/classify-risk.sh
+    participant NF as scripts/next-finding-number.sh
+
+    SK->>SK: 0단계 컨텍스트 수집(spec·plan·summary, 색인, 원장, 구현 브랜치 diff, 기존 리포트, testing-principles 쌍)
+    Note over SK: SSoT는 AI-CONTEXT.md 선언으로 직접 확인, 선언이 없으면 소스 코드
+    SK->>SK: 1단계 요구사항·DoD·경계·계약·ADR 대조, DoD [D] 명령은 구현 후 트리에서 실행
+    SK->>CR: --compliance 항목 판정 전부
+    CR-->>SK: 1단계 상태(최고값)
+    SK->>SK: 2단계 5관점 탐색, 원장 기등재 대조
+    loop 발견마다
+        SK->>CR: --impact 영향 축 --likelihood 발생확률 축
+        CR-->>SK: 위험도 등급
+        SK->>CR: --treatment 위험도
+        CR-->>SK: 등급별 기본 처리
+    end
+    SK->>NF: 보존된 리포트 글롭 issue-번호-audit-report*.md
+    NF-->>SK: 다음 발견 번호
+    SK->>CR: --status 위험도 목록
+    CR-->>SK: 2단계 상태
+    SK->>CR: --verdict 1단계 상태 2단계 상태
+    CR-->>SK: 판정 한 줄
+    opt 같은 경로에 이전 회차 리포트 있음
+        SK->>SK: 직전 리포트를 회차 번호 파일명으로 회전
+    end
+    SK->>SK: 템플릿으로 리포트 작성 후 .ai/99_workspace 에 저장
+    Note over SK: 사용자에게 판정 한 줄로 시작하는 요약 보고, 보정은 issue-work --response 몫
 ```
 
 리포트의 보정은 이 스킬이 하지 않는다. issue-work `--response`가 피드백·항목별 승인·승인분 보정을 맡는다([--response 흐름](../issue-work/response-call-flow.md)).

@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-25
-source_hash: bd9a683
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -13,14 +13,16 @@ status: current
 ## How
 
 ```
-issue-work/SKILL.md `### --clear`
+issue-work/SKILL.md `### --clear`   # active/ 이슈가 여럿이면 1~4단계는 이슈별 반복, 5단계 1회, 6단계는 이관한 디렉토리별
 ├── 1. 완료 확인
 │   └── scripts/check-clear.sh --completion <plan>   # 계획 종료 게이트 `점검 완료` + Task 체크박스, 미완료 1행씩·exit 1 → 계속 진행 질의
 ├── 2. summary 갱신           # 다음 작업을 `✅ 모든 작업이 완료되었습니다.` 또는 종료 사유로
 ├── 3. 이슈 댓글              # .ai/99_workspace/issue-<번호>-comment.md 1회 작성(요약 본문 + 결정·리스크·액션 승격 + Task 상세 접기)
-│   └── 승인 시 gh issue comment '<번호>' --body-file <파일>
+│   └── 승인 시 gh issue comment '<앞자리 0 제거한 번호>' --body-file <파일>   # 거절·gh 없으면 건너뜀, 초안은 5단계 정리 대상
 ├── 4. archive 이관           # active/issue-<번호>/ → archive/ 디렉토리 단위 (git 이동)
 │   ├── 원장 해소 기재        # spec `(함께 해소: K-<번호>)` 항목: PR 있으면 해소(PR #N) → 70_ledger archive/ → index, 없으면 미확정·git-pr 생성 후로
+│   │   ├── git config branch.<작업 브랜치>.remote   # 원격 URL을 [호스트/]소유자/저장소로 읽어 대상 저장소 확정
+│   │   ├── gh pr list --repo '<대상 저장소>' --head '<작업 브랜치>' --state open --json number   # 대상 저장소 확정·조회 실패나 PR 2개 이상이면 PR 없음 경로
 │   │   └── 들어오는 링크 갱신   # 옮긴 항목을 가리키는 .ai/ 링크(같은 디렉토리 원장 링크 포함, 90_issues/archive/ 제외)를 새 경로로, 깊이는 링크가 있는 문서 기준
 │   │       └── scripts/check-ledger-links.sh '.ai'   # 끊긴 원장 링크 `<파일>:<줄>: <대상>` 1행씩·exit 1, 이동과 무관한 기존 끊김은 목록으로 알리고 질의
 │   └── 보류 항목 원장 등재 질의   # spec 제외 `보류` 항목을 보여 주고 승인분만 70_ledger/active/K-<번호> 신설 → index (출처 `이슈 #N`, 수용 사유·재검토 조건 필수). 같은 대상의 항목이 이미 있는 보류 항목만 건너뜀, PR 번호 불필요
@@ -29,11 +31,73 @@ issue-work/SKILL.md `### --clear`
     └── scripts/check-clear.sh --refs <archive 디렉토리>   # 잔존 참조 1행씩·exit 1, 오탐(옵션 설명 서술)은 AI 판정
 ```
 
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as issue-work/SKILL.md
+    participant CC as check-clear.sh
+    participant GH as gh
+    participant GIT as git
+    participant CL as check-ledger-links.sh
+
+    loop active/ 이슈 디렉토리마다 (1~4단계)
+        SK->>CC: --completion plan 파일
+        alt 미완료 있음
+            CC-->>SK: exit 1, 미완료 항목 1행씩
+            Note over SK: 목록을 보여 주고 계속 진행 여부 질의
+        else 모두 완료
+            CC-->>SK: exit 0
+        end
+        Note over SK: 2. summary 다음 작업을 완료 문구 또는 종료 사유로 갱신
+        Note over SK: 3. 댓글 초안을 99_workspace 파일에 1회 작성, 경로·요약·승격 목록만 제시
+        alt 승인
+            SK->>GH: issue comment 앞자리 0 제거한 이슈 번호 --body-file 댓글 파일
+        else 거절 또는 gh 없음
+            Note over SK: 건너뜀 (초안은 5단계 정리 대상)
+        end
+        Note over SK: 4. 이슈 디렉토리를 active/에서 archive/로 이동
+        opt spec에 함께 해소 항목 있음
+            SK->>GIT: config branch.(작업 브랜치).remote
+            GIT-->>SK: 작업 브랜치의 원격
+            Note over SK: 원격 URL에서 대상 저장소 확정
+            SK->>GH: pr list --repo 대상 저장소 --head 작업 브랜치 --state open --json number
+            GH-->>SK: 열린 PR 번호 목록
+            alt PR 1개
+                Note over SK: 해소(PR 번호) 기재, 70_ledger archive/로 이동, index 갱신
+                Note over SK: 들어오는 링크 갱신
+                SK->>CL: .ai
+                alt 끊긴 원장 링크 있음
+                    CL-->>SK: exit 1, 파일·줄·대상 1행씩
+                else 0건
+                    CL-->>SK: exit 0
+                end
+            else PR 없음·확정 실패·조회 실패·2개 이상
+                Note over SK: 미확정, active/에 두고 git-pr 생성 후 처리로 안내
+            end
+        end
+        opt spec 제외에 보류 항목 있음
+            Note over SK: 원장 등재 질의, 승인분만 active/에 K 항목 신설·index 갱신
+        end
+    end
+    Note over SK: 5. 99_workspace 정리 1회 (.gitkeep·notes/ 보존, 보존 파일은 archive로)
+    loop 이관한 이슈 디렉토리마다
+        Note over SK: 6. 경로 참조 갱신
+        SK->>CC: --refs archive 이슈 디렉토리
+        alt 잔존 참조 있음
+            CC-->>SK: exit 1, 잔존 행 (진탐·오탐은 AI 판정)
+        else 0건
+            CC-->>SK: exit 0
+        end
+    end
+```
+
 ## Why
 
 - 머지 전에 실행하는 이유는 `### --clear` 시점 항목에 있다. 머지 후 이관은 `main` 직접 푸시가 된다.
 - 댓글 초안을 파일에 1회만 쓰고 대화에 전문을 출력하지 않는 이유는 3단계 본문에 있다(승인 대상은 파일, 같은 텍스트를 다시 만들면 응답만 늦어진다).
 - 원장 [K-0004](../../70_ledger/active/K-0004-clear-preserve-destination-mismatch.md): 5단계 보존 목적지가 파일명의 이슈 번호를 대조하지 않는다(수용).
+- 원장 [K-0013](../../70_ledger/active/K-0013-issue-work-pr-lookup-fork-same-branch.md): 4단계 원장 해소 기재의 PR 유무 조회가 head 저장소를 대조하지 않아 같은 브랜치명의 포크 PR을 고를 수 있다(수용).
 - 명세: [이슈 단위 작업 워크플로우 요건](../../40_domain/specs/issue-workflow.md)(게이트 요약 표 `--clear` 행). 머지 직전 시점·archive 이관·경로 참조 갱신·stale 0건 검사는 [ADR 0015](../../50_adr/active/0015-issue-clear-timing-and-archive-rules.md). 원장 해소 기재 시점(PR 번호를 알 때만 확정)과 보류 항목 등재 계기는 [ADR 0018](../../50_adr/active/0018-ledger-proactive-review-and-resolve-timing.md). 원장 항목을 옮긴 뒤 들어오는 링크 갱신과 끊긴 원장 링크 검사 헬퍼는 [ADR 0021](../../50_adr/active/0021-ledger-archive-move-link-update.md).
 - 댓글 파일 1회 생성과 5단계 잔존 파일 회수(정리 시점 B)는 [ADR 0013](../../50_adr/active/0013-long-output-single-file-generation.md). 이슈 댓글 등록의 승인은 [외부 공개 행위 승인 게이트](../../40_domain/policies/local/external-action-approval-gate.md), `--body-file`·이슈 번호 앞자리 0 제거는 [GitHub 연동 수단](../../30_contract/github-integration.md).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
