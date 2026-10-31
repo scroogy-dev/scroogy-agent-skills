@@ -13,7 +13,7 @@
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 |  |  |
+| 최종 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 
 - **계획 감사**: 수행 · 발견 2건 · 보정 2건
 
@@ -52,11 +52,11 @@
 - **결과**: 완료
 - **수행 모델**: claude-opus-5-5
 - **수행 effort**: xhigh
-- **audit 발견**: 0건
-- **보정 반영**: 0건
+- **audit 발견**: 1건
+- **보정 반영**: 1건
 - **재시도**: 0회
 - **수행 내용 요약**: `code-map/references/local.md` 1-4에 시퀀스 안내 문장과 build·rebuild·sync 행을 더하고, 주문 생성 예시 `## How`에 `### 시퀀스 다이어그램`과 mermaid 블록(참여자 5개, `rect`·`Note` 트랜잭션, `alt` 재고 부족·재고 있음)을 넣었다. 3단계 점검 표에 시퀀스 누락·트리·시퀀스 불일치 행을, 4단계 결과 보고에 시퀀스 건수 행을 더했다. 러너 `sequence_violations`에 local 검사와 격추 11개를 더했다. spec R1·R5·R6 첫 항목 출력 0건, R3 둘째·셋째 항목의 local 행 0건, 러너 98 통과 0 실패.
-- **특이 사항**: 예시 순서·참여자·금지 문자 판정은 global 검사(Task 3)에서도 쓰도록 보조 함수(`cut_sec`·`seq_order`·`seq_parts`·`seq_chars`)로 분리했다. 예시는 Mermaid 문법대로 썼지만 이 환경에 렌더러가 없어 `[QD]` 그림 표시 확인은 PR 화면에서 해야 한다(미확인).
+- **특이 사항**: 예시 순서·참여자·금지 문자 판정은 global 검사(Task 3)에서도 쓰도록 보조 함수(`cut_sec`·`seq_order`·`seq_parts`·`seq_chars`)로 분리했다. 예시는 Mermaid 문법대로 썼지만 이 환경에 렌더러가 없어 `[QD]` 그림 표시 확인은 PR 화면에서 해야 한다(미확인). 최종 감사 F-1(러너가 R6의 태그 체계 표 5개 유지를 검사하지 않아 R8 부분 충족)을 `--response`에서 반영했다. `sequence_violations`에 태그 표 정확 일치 검사와 격추 4개(행 추가·삭제·태그 이름 변경·순서 변경)를 더해 러너 113 통과 0 실패, 1회 실행 약 1분 30초.
 
 ---
 
