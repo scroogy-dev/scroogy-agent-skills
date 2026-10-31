@@ -88,7 +88,7 @@ status: current
 **1-4. 상세 호출 흐름 작성 (선택)**
 
 아래 기준에 해당하는 경우, 기능별 디렉토리(`<feature>/`) 아래에 엔트리포인트별 `<action>-call-flow.md` 파일을 만들어 상세 호출 흐름을 기록한다.
-호출 흐름은 **엔트리포인트 → 핵심 로직 → 외부 의존성(DB, 외부 API 등)** 순서로 추적하며, 디렉토리 트리 형태의 ASCII 다이어그램으로 시각화한다:
+호출 흐름은 **엔트리포인트 → 핵심 로직 → 외부 의존성(DB, 외부 API 등)** 순서로 추적하며, 디렉토리 트리 형태의 ASCII 다이어그램으로 시각화한다. 트리 다음에는 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리며, [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)을 따른다:
 
 `````markdown
 ---
@@ -113,6 +113,32 @@ OrderController#createOrder
 │   └── ApplicationEventPublisher#publishEvent(OrderCreatedEvent)  # 도메인 이벤트 발행
 ```
 
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant OC as OrderController
+    participant OS as OrderService
+    participant IC as InventoryClient
+    participant OR as OrderRepository
+    participant EP as ApplicationEventPublisher
+
+    OC->>OS: createOrder
+    rect rgba(128, 128, 128, 0.1)
+        Note over OS,EP: 주문 생성 트랜잭션
+        OS->>IC: reserve
+        IC-->>OS: 재고 확인 결과
+        alt 재고 부족
+            OS-->>OC: 재고 부족 예외
+        else 재고 있음
+            OS->>OR: save
+            OR-->>OS: 저장된 주문
+            OS->>EP: publishEvent(OrderCreatedEvent)
+            OS-->>OC: 생성된 주문
+        end
+    end
+```
+
 ## Why
 
 > 1차 참조는 `.ai/` 내부 문서만 사용한다. 외부 URL은 내부 문서 안에 원본 출처로 기재한다.
@@ -128,6 +154,7 @@ OrderController#createOrder
   - **외부 서비스 호출**(HTTP 클라이언트, 메시지 발행 등)이 포함된 경우
   - **트랜잭션 경계**, **이벤트 발행**, **비동기 처리** 등 흐름 분기가 있는 경우
 - 단순 CRUD라도 엔트리포인트마다 흐름이 다르면 각각 파일을 분리한다 (예: `board/create-call-flow.md`, `board/list-call-flow.md`).
+- build·rebuild는 상세 호출 흐름 문서마다 트리와 시퀀스 다이어그램을 함께 만든다. sync는 소스가 바뀐 기능의 문서에서 둘을 함께 갱신하고, 시퀀스 다이어그램이 없는 기존 문서에는 이때 추가한다.
 - 위 기준에 해당하지 않는 단순한 흐름은 index.md의 한 줄로 충분하므로 상세 문서를 생략한다.
 
 ---
@@ -158,6 +185,8 @@ OrderController#createOrder
 | stale 탐지 | `source_hash` 이후 변경된 파일 목록을 조회하여, 해당 파일이 관여하는 기능의 색인이 미반영이면 → `[UPDATE-NEEDED]` |
 | 엔트리포인트 유효성 | 색인에 기재된 컨트롤러·메서드·Job이 실제로 존재하는지. **존재하지 않으면 해당 항목을 색인과 상세 호출 흐름 파일에서 자동 제거한다.** |
 | 교차참조 유효성 | `30_contract`, `40_domain`, `50_adr`로의 링크가 실제로 존재하는지 |
+| 시퀀스 누락 | 상세 호출 흐름 문서의 `## How`에 `mermaid` 코드 블록이 없으면 목록으로 보고한다. 해당 기능의 sync 때 추가되며, 한꺼번에 채우려면 rebuild를 쓴다 |
+| 트리·시퀀스 불일치 | 시퀀스 다이어그램 참여자가 같은 문서 트리 노드의 호출 주체와 맞지 않으면 목록으로 보고한다. 트리에 없는 참여자가 있거나, `생략한 호출은 위 트리에서 확인한다.` 줄 없이 트리의 호출 주체가 참여자에서 빠진 경우다 |
 | Why 미태깅 | `[WHY-NEEDED]` 태그가 있는 항목 목록 |
 | 문서 누락 | `[DOC-NEEDED]` 태그가 있는 항목 목록 |
 
@@ -173,6 +202,7 @@ OrderController#createOrder
    - 모드: build | sync | check | rebuild
    - 기능 색인: N건 (신규 N / 갱신 N / 삭제 N)
    - 상세 호출 흐름: N건
+   - 시퀀스 다이어그램: N건 (누락 N / 불일치 N)
    - 교차 참조: 30_contract N건, 40_domain N건, 50_adr N건
    - [WHY-NEEDED]: N건
    - [DOC-NEEDED]: N건

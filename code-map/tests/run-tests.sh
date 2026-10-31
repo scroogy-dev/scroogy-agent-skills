@@ -11,6 +11,7 @@
 # local.md·global.md(소스 코드·건물 색인 절차)는 0단계 골격 판정 문장만 같은 방식으로 검사한다 (#116).
 # 건물 리포 규칙(SKILL.md 의 `--local` 중단, global.md 의 선언 규칙·SSoT 종류 분류·호출 식별 제외)도 같은 방식으로 본다 (#118).
 # SKILL.md 의 선언 부재 폴백 알림(안내도가 있을 때만 알림)도 같은 방식으로 본다 (#122).
+# SKILL.md 의 시퀀스 다이어그램 작성 규칙과 local.md·global.md 의 시퀀스 형식·갱신·점검 문장도 같은 방식으로 본다 (#126).
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -163,6 +164,130 @@ building_violations() {
   printf '%s\n' "$s" | grep -qxF '| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |' || echo '건물 안내도 SSoT 열'
 }
 
+# 작성 규칙 라벨 행과 그 행이 담아야 할 표기 리터럴(`<라벨>|<리터럴>`). 검사와 격추가 같은 목록을 쓴다.
+SEQ_LABELS=('위치·형식' '참여자' '응답' '동기·비동기' '분기·반복' '트랜잭션 경계' '금지 문자' '긴 흐름')
+SEQ_ROWS=(
+  '위치·형식|`### 시퀀스 다이어그램`' '위치·형식|`sequenceDiagram`'
+  '참여자|호출 주체' '참여자|`--global`은 서비스' '참여자|`participant`로 미리 선언' '참여자|처음 호출되는 순서'
+  '응답|`-->>`' '동기·비동기|`->>`' '동기·비동기|`-)`' '분기·반복|`alt`·`opt`·`loop`'
+  '트랜잭션 경계|`rect` 또는 `Note`' '금지 문자|`;`와 `#`'
+)
+
+# cut_sec <파일> <시작 행> <끝 행> — 두 행 사이를 출력한다.
+# 예시 펜스 안의 3백틱 블록이 sec 의 코드 상태를 뒤집으므로, 시퀀스 검사는 sec 대신 경계 행을 고정해 자른다.
+cut_sec() { awk -v a="$2" -v b="$3" '$0 == a { f = 1; next } $0 == b { exit } f' "$1"; }
+
+# seq_order <절 본문> <흐름 시작 행> <흐름 끝 행> — 흐름 안에서 트리 코드 블록, `### 시퀀스 다이어그램`,
+# `sequenceDiagram`으로 시작하는 mermaid 블록이 그 순서로 있으면 0.
+seq_order() {
+  printf '%s\n' "$1" | awk -v h="$2" -v e="$3" '
+    $0 == h { st = 1; next }
+    st == 1 && $0 == "```" { st = 2; next }
+    st == 2 && $0 == "```" { st = 3; next }
+    st == 3 && $0 == "### 시퀀스 다이어그램" { st = 4; next }
+    st == 4 && $0 == "```mermaid" { st = 5; next }
+    st == 5 { st = ($0 == "sequenceDiagram") ? 6 : -1; next }
+    st == 6 && $0 == "```" { st = 7; next }
+    st >= 1 && $0 == e { exit }
+    END { exit st != 7 }'
+}
+
+# seq_parts <절 본문> <흐름 시작 행> — 시퀀스 참여자(`participant <별칭> as <이름>`의 이름)가
+# 트리 노드의 호출 주체(`#` 앞 부분)와 첫 등장 순서까지 같으면 0. 시퀀스 블록이 없으면 1.
+seq_parts() {
+  local blk tree part
+  blk="$(printf '%s\n' "$1" | awk -v h="$2" '$0 == h { f = 1; next } f')"
+  tree="$(printf '%s\n' "$blk" | awk '$0 == "```" { n++; next } n == 1' | sed -E 's/^[^A-Za-z]*//; s/#.*//' | awk 'NF && !seen[$0]++')"
+  part="$(printf '%s\n' "$blk" | awk '$0 == "```mermaid" { f = 1; next } f && $0 == "```" { exit } f' \
+    | grep -E '^[[:space:]]*participant ' | sed -E 's/.* as //')"
+  [ -n "$tree" ] && [ "$tree" = "$part" ]
+}
+
+# seq_chars <파일> — mermaid 블록 메시지 문구(첫 `:` 뒤)에 `;`·`#`가 있는 행을 출력한다.
+seq_chars() {
+  awk '$0 == "```mermaid" { m = 1; next } m && $0 == "```" { m = 0 } m && /:/ { sub(/^[^:]*:/, ""); if ($0 ~ /[;#]/) print }' "$1"
+}
+
+# sequence_violations <SKILL.md> <references/local.md> <references/global.md>
+# — 시퀀스 다이어그램 규칙(#126)이 제자리에 있는지 본다. 무출력이면 통과.
+sequence_violations() {
+  local skill="$1" lo="$2" g="$3" s line pair lab p
+  s="$(awk '$0 == "## 시퀀스 다이어그램 작성 규칙" { f = 1; next } f && /^## / { exit } f' "$skill")"
+  [ -n "$s" ] || echo '시퀀스 SKILL.md 작성 규칙 섹션'
+  [ "$(printf '%s\n' "$s" | grep -E '^- \*\*[^*]+\*\*:' | sed -E 's/^- \*\*([^*]+)\*\*:.*/\1/' | tr '\n' '|')" \
+    = "$(printf '%s|' "${SEQ_LABELS[@]}")" ] || echo '시퀀스 SKILL.md 라벨 이름·순서'
+  for pair in "${SEQ_ROWS[@]}"; do
+    lab=${pair%%|*}; p=${pair#*|}
+    has "$(printf '%s\n' "$s" | grep -E "^- \*\*$lab\*\*:")" "$p" || echo "시퀀스 SKILL.md $lab 행 $p"
+  done
+  line="$(printf '%s\n' "$s" | grep -E '^- \*\*긴 흐름\*\*:')"
+  has "$line" '핵심 경로만' || echo '시퀀스 SKILL.md 긴 흐름 핵심 경로'
+  has "$line" '`생략한 호출은 위 트리에서 확인한다.`' || echo '시퀀스 SKILL.md 긴 흐름 생략 안내'
+  has "$(grep -E '^\| \*\*How\*\* \|' "$skill")" '(호출 흐름 트리와 시퀀스 다이어그램, 의존성, 설정)' || echo '시퀀스 SKILL.md How 행'
+  has "$(awk '$0 == "### .ai 디렉토리와의 관계" { f = 1; next } f && /^#{2,3} / { exit } f' "$skill" | grep -F '<action>-call-flow.md')" \
+    '# 엔트리포인트별 상세 호출 흐름 (트리 + 시퀀스 다이어그램)' || echo '시퀀스 SKILL.md 트리 주석'
+  s="$(awk '$0 == "## 디렉토리 트리 정렬 규칙" { f = 1; next } f && /^## / { exit } f' "$skill")"
+  has "$s" '시퀀스 다이어그램의 참여자 순서에도 이 규칙을 적용하지 않습니다' || echo '시퀀스 SKILL.md 정렬 규칙 적용 제외'
+  has "$s" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' || echo '시퀀스 SKILL.md 정렬 규칙 링크'
+  # 시퀀스 누락·불일치는 새 태그 없이 결과 보고 건수로 세므로, 태그 체계 표는 기존 5개 그대로다 (#126 최종 감사 F-1).
+  [ "$(awk '$0 == "## 태그 체계" { f = 1; next } f && /^## / { exit } f' "$skill" | grep -E '^\| [^|]+ \|' \
+       | sed -n '2,$p' | sed -E 's/^\| ([^|]+) \|.*/\1/' | tr '\n' '|')" \
+    = '`[WHY-NEEDED]`|`[DOC-NEEDED]`|`[UPDATE-NEEDED]`|`[NOT-INDEXED]`|`[REPO-NOT-FOUND]`|' ] || echo '시퀀스 SKILL.md 태그 체계 표'
+
+  s="$(cut_sec "$lo" '### 1단계: 소스코드 색인' '### 2단계: 교차 참조 연결')"
+  has "$s" '트리 다음에는 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리며, [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)을 따른다' \
+    || echo '시퀀스 local 1-4 안내 문장'
+  seq_order "$s" '## How' '## Why' || echo '시퀀스 local 예시 트리·소제목·mermaid 순서'
+  seq_parts "$s" '## How' || echo '시퀀스 local 예시 참여자'
+  grep -qxF '```mermaid' "$lo" || echo '시퀀스 local mermaid 블록'
+  [ -z "$(seq_chars "$lo")" ] || echo '시퀀스 local 메시지 금지 문자'
+  line="$(printf '%s\n' "$s" | grep -E '^- build·rebuild는')"
+  [ "$(printf '%s\n' "$line" | grep -c .)" -eq 1 ] || echo '시퀀스 local build·rebuild 행'
+  has "$line" '- build·rebuild는 상세 호출 흐름 문서마다 트리와 시퀀스 다이어그램을 함께 만든다.' || echo '시퀀스 local 함께 생성'
+  has "$line" 'sync는 소스가 바뀐 기능의 문서에서 둘을 함께 갱신하고, 시퀀스 다이어그램이 없는 기존 문서에는 이때 추가한다.' \
+    || echo '시퀀스 local sync 갱신·추가'
+
+  s="$(awk '$0 == "### 3단계: 정합성 점검" { f = 1; next } f && /^### / { exit } f' "$lo" | grep -E '^\| [^|]+ \|')"
+  [ "$(printf '%s\n' "$s" | sed -n '2,$p' | sed -E 's/^\| ([^|]+) \|.*/\1/' | tr '\n' '|')" \
+    = 'stale 탐지|엔트리포인트 유효성|교차참조 유효성|시퀀스 누락|트리·시퀀스 불일치|Why 미태깅|문서 누락|' ] \
+    || echo '시퀀스 local 점검 표 행'
+  line="$(printf '%s\n' "$s" | grep -E '^\| 시퀀스 누락 \|')"
+  for p in '`## How`에 `mermaid` 코드 블록이 없으면' '목록으로 보고한다'; do
+    has "$line" "$p" || echo "시퀀스 local 누락 행 $p"
+  done
+  line="$(printf '%s\n' "$s" | grep -E '^\| 트리·시퀀스 불일치 \|')"
+  for p in '호출 주체' '`생략한 호출은 위 트리에서 확인한다.`' '목록으로 보고한다'; do
+    has "$line" "$p" || echo "시퀀스 local 불일치 행 $p"
+  done
+  awk '$0 == "### 4단계: 결과 보고" { f = 1; next } f' "$lo" | grep -qE '^[[:space:]]*- 시퀀스 다이어그램: N건 \(누락 N / 불일치 N\)$' \
+    || echo '시퀀스 local 4단계 보고 행'
+
+  line="$(awk '$0 == "## 파일 구조" { f = 1; next } f && /^## / { exit } f' "$g" | grep -E '^- `service-call-flows\.md`:')"
+  [ "$(printf '%s\n' "$line" | grep -c .)" -eq 1 ] || echo '시퀀스 global 설명 줄'
+  for p in '흐름별 섹션마다 트리 다음에 시퀀스 다이어그램을 함께 생성·갱신한다' '참여자는 서비스(리포) 단위' \
+           '[시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)'; do
+    has "$line" "$p" || echo "시퀀스 global 설명 줄 $p"
+  done
+  s="$(cut_sec "$g" '### 2단계: 아키텍처 문서 생성/갱신' '### 3단계: 건물 안내도 갱신')"
+  seq_order "$s" '## 사용자 로그인' '`````' || echo '시퀀스 global 예시 트리·소제목·mermaid 순서'
+  seq_parts "$s" '## 사용자 로그인' || echo '시퀀스 global 예시 참여자'
+  grep -qxF '```mermaid' "$g" || echo '시퀀스 global mermaid 블록'
+  [ -z "$(seq_chars "$g")" ] || echo '시퀀스 global 메시지 금지 문자'
+
+  # global 은 한 파일에 흐름 섹션이 여럿이라, 판정 대상(흐름 섹션)과 집계 단위(흐름) 문장을 따로 본다.
+  # global 모드는 local.md 를 읽지 않으므로 누락·불일치 판정 기준도 이 행에서 직접 본다 (PR #127 리뷰).
+  s="$(awk '$0 == "### 4단계: 정합성 점검" { f = 1; next } f && /^### / { exit } f' "$g" | grep -E '^\| [^|]+ \|')"
+  [ "$(printf '%s\n' "$s" | sed -n '2,$p' | sed -E 's/^\| ([^|]+) \|.*/\1/' | tr '\n' '|')" \
+    = '리포 접근성|안내도 불일치|아키텍처 문서 유효성|교차참조 유효성|' ] || echo '시퀀스 global 점검 표 행'
+  line="$(printf '%s\n' "$s" | grep -E '^\| 아키텍처 문서 유효성 \|')"
+  for p in '`service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' '흐름 섹션마다 따로 판정해' '흐름 단위로 센다' \
+           '흐름 섹션에 `mermaid` 코드 블록이 없으면 누락이다' '호출 주체' '`생략한 호출은 위 트리에서 확인한다.` 줄 없이'; do
+    has "$line" "$p" || echo "시퀀스 global 아키텍처 문서 유효성 행 $p"
+  done
+  awk '$0 == "### 5단계: 결과 보고" { f = 1; next } f' "$g" | grep -qE '^[[:space:]]*- 서비스 간 시퀀스 다이어그램: N건 \(누락 N / 불일치 N\)$' \
+    || echo '시퀀스 global 5단계 보고 행'
+}
+
 # --- 현재 본문이 규칙을 모두 갖는다 ------------------------------------------------
 
 out="$(violations "$DOC" "$SKILL")"
@@ -191,6 +316,13 @@ if [ -z "$out" ]; then
   ok "건물 리포 규칙 통과"
 else
   ng "건물 리포 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(sequence_violations "$SKILL" "$LOCAL" "$GLOBAL")"
+if [ -z "$out" ]; then
+  ok "시퀀스 다이어그램 규칙 통과"
+else
+  ng "시퀀스 다이어그램 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
 # 골격 판정 기준이 실제 템플릿과 어긋나면 init 직후 색인을 생성됨으로 오판한다 (PR #115 리뷰).
@@ -226,12 +358,22 @@ drop_line() {
   awk -v s="$2" 'index($0, s) { hit = 1; next } { print } END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
+# swap_next <파일> <문자열> — 문자열을 포함한 첫 행과 그 다음 행의 순서를 바꾼다.
+swap_next() {
+  awk -v s="$2" '
+    held != "" { print; print held; held = ""; next }
+    !done && index($0, s) { held = $0; done = 1; next }
+    { print }
+    END { if (held != "") print held; exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
 # assert_reject <설명> <위반 행> <변형 명령...>
 assert_reject() {
   local desc="$1" want="$2" out; shift 2
   cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"
   "$@" || { ng "$desc — 변형 실패"; return; }
-  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL"; building_violations "$C_SKILL" "$C_GLOBAL")"
+  out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL"; building_violations "$C_SKILL" "$C_GLOBAL"
+         sequence_violations "$C_SKILL" "$C_LOCAL" "$C_GLOBAL")"
   if printf '%s\n' "$out" | grep -qxF "$want"; then
     ok "$desc"
   else
@@ -312,6 +454,78 @@ assert_reject '건물 1단계 원본 문서 제외 삭제 격추'     '건물 1�
 assert_reject '건물 안내도 SSoT 행 삭제 격추'           '건물 안내도 SSoT 행'    drop_line "$C_GLOBAL" '> SSoT: 등록 리포의 소스 코드.'
 assert_reject '건물 안내도 SSoT 열 삭제 격추'           '건물 안내도 SSoT 열' \
   sub_str "$C_GLOBAL" '| 리포 | 요약 | URL | SSoT | 상태 | 마지막 동기화 |' '| 리포 | 요약 | URL | 상태 | 마지막 동기화 |'
+assert_reject '시퀀스 SKILL.md 작성 규칙 섹션 제목 변경 격추' '시퀀스 SKILL.md 작성 규칙 섹션' \
+  sub_str "$C_SKILL" '## 시퀀스 다이어그램 작성 규칙' '## 시퀀스 다이어그램 규칙'
+assert_reject '시퀀스 SKILL.md 라벨 이름 변경 격추' '시퀀스 SKILL.md 라벨 이름·순서' sub_str "$C_SKILL" '- **응답**:' '- **응답 표기**:'
+# 각 리터럴은 SKILL.md 에서 해당 라벨 행에만 있어 첫 등장 삭제가 그 행을 겨눈다.
+for pair in "${SEQ_ROWS[@]}"; do
+  assert_reject "시퀀스 SKILL.md ${pair%%|*} 행 ${pair#*|} 삭제 격추" "시퀀스 SKILL.md ${pair%%|*} 행 ${pair#*|}" cut_str "$C_SKILL" "${pair#*|}"
+done
+assert_reject '시퀀스 SKILL.md 긴 흐름 핵심 경로 삭제 격추' '시퀀스 SKILL.md 긴 흐름 핵심 경로' cut_str "$C_SKILL" '핵심 경로만 '
+assert_reject '시퀀스 SKILL.md 긴 흐름 생략 안내 삭제 격추' '시퀀스 SKILL.md 긴 흐름 생략 안내' \
+  cut_str "$C_SKILL" '`생략한 호출은 위 트리에서 확인한다.` '
+assert_reject '시퀀스 SKILL.md How 행 원복 격추' '시퀀스 SKILL.md How 행' \
+  sub_str "$C_SKILL" '(호출 흐름 트리와 시퀀스 다이어그램, 의존성, 설정)' '(호출 흐름, 의존성, 설정)'
+assert_reject '시퀀스 SKILL.md 트리 주석 원복 격추' '시퀀스 SKILL.md 트리 주석' cut_str "$C_SKILL" ' (트리 + 시퀀스 다이어그램)'
+assert_reject '시퀀스 SKILL.md 정렬 규칙 적용 제외 삭제 격추' '시퀀스 SKILL.md 정렬 규칙 적용 제외' \
+  cut_str "$C_SKILL" '시퀀스 다이어그램의 참여자 순서에도 이 규칙을 적용하지 않습니다. '
+assert_reject '시퀀스 SKILL.md 정렬 규칙 작성 규칙 링크 삭제 격추' '시퀀스 SKILL.md 정렬 규칙 링크' \
+  sub_str "$C_SKILL" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' '시퀀스 다이어그램 작성 규칙'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 행 추가 격추' '시퀀스 SKILL.md 태그 체계 표' \
+  sub_str "$C_SKILL" '| `[REPO-NOT-FOUND]` |' '| `[SEQUENCE-NEEDED]` | 시퀀스 누락 | local check |\n| `[REPO-NOT-FOUND]` |'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 행 삭제 격추' '시퀀스 SKILL.md 태그 체계 표' drop_line "$C_SKILL" '| `[NOT-INDEXED]` |'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 태그 이름 변경 격추' '시퀀스 SKILL.md 태그 체계 표' \
+  sub_str "$C_SKILL" '| `[DOC-NEEDED]` |' '| `[DOCS-NEEDED]` |'
+assert_reject '시퀀스 SKILL.md 태그 체계 표 행 순서 변경 격추' '시퀀스 SKILL.md 태그 체계 표' swap_next "$C_SKILL" '| `[WHY-NEEDED]` |'
+assert_reject '시퀀스 local 1-4 안내 문장 삭제 격추' '시퀀스 local 1-4 안내 문장' \
+  cut_str "$C_LOCAL" ' 트리 다음에는 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리며, [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)을 따른다'
+assert_reject '시퀀스 local 예시 소제목 삭제 격추' '시퀀스 local 예시 트리·소제목·mermaid 순서' drop_line "$C_LOCAL" '### 시퀀스 다이어그램'
+assert_reject '시퀀스 local 예시 mermaid 블록 시작 행 변경 격추' '시퀀스 local 예시 트리·소제목·mermaid 순서' \
+  sub_str "$C_LOCAL" 'sequenceDiagram' 'flowchart TD'
+assert_reject '시퀀스 local 예시 참여자 이름 변경 격추' '시퀀스 local 예시 참여자' \
+  sub_str "$C_LOCAL" 'participant OR as OrderRepository' 'participant OR as OrderRepo'
+assert_reject '시퀀스 local 예시 메시지 세미콜론 삽입 격추' '시퀀스 local 메시지 금지 문자' \
+  sub_str "$C_LOCAL" 'OS->>IC: reserve' 'OS->>IC: reserve; 재고 확인'
+assert_reject '시퀀스 local build·rebuild 함께 생성 삭제 격추' '시퀀스 local 함께 생성' \
+  cut_str "$C_LOCAL" '상세 호출 흐름 문서마다 트리와 시퀀스 다이어그램을 함께 만든다. '
+assert_reject '시퀀스 local sync 갱신·추가 삭제 격추' '시퀀스 local sync 갱신·추가' \
+  cut_str "$C_LOCAL" ' sync는 소스가 바뀐 기능의 문서에서 둘을 함께 갱신하고, 시퀀스 다이어그램이 없는 기존 문서에는 이때 추가한다.'
+assert_reject '시퀀스 local 점검 표 누락 행 삭제 격추' '시퀀스 local 점검 표 행' drop_line "$C_LOCAL" '| 시퀀스 누락 |'
+assert_reject '시퀀스 local 누락 행 판정 기준 삭제 격추' '시퀀스 local 누락 행 `## How`에 `mermaid` 코드 블록이 없으면' \
+  cut_str "$C_LOCAL" '`## How`에 `mermaid` 코드 블록이 없으면 '
+assert_reject '시퀀스 local 불일치 행 생략 리터럴 삭제 격추' '시퀀스 local 불일치 행 `생략한 호출은 위 트리에서 확인한다.`' \
+  cut_str "$C_LOCAL" '`생략한 호출은 위 트리에서 확인한다.` 줄 없이 '
+assert_reject '시퀀스 local 4단계 보고 행 삭제 격추' '시퀀스 local 4단계 보고 행' drop_line "$C_LOCAL" '- 시퀀스 다이어그램: N건 (누락 N / 불일치 N)'
+assert_reject '시퀀스 global 설명 줄 생성·갱신 문장 삭제 격추' '시퀀스 global 설명 줄 흐름별 섹션마다 트리 다음에 시퀀스 다이어그램을 함께 생성·갱신한다' \
+  cut_str "$C_GLOBAL" ' 흐름별 섹션마다 트리 다음에 시퀀스 다이어그램을 함께 생성·갱신한다.'
+assert_reject '시퀀스 global 설명 줄 서비스 단위 삭제 격추' '시퀀스 global 설명 줄 참여자는 서비스(리포) 단위' \
+  cut_str "$C_GLOBAL" '참여자는 서비스(리포) 단위이며 '
+assert_reject '시퀀스 global 설명 줄 작성 규칙 링크 삭제 격추' \
+  '시퀀스 global 설명 줄 [시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)' \
+  sub_str "$C_GLOBAL" '[시퀀스 다이어그램 작성 규칙](../SKILL.md#시퀀스-다이어그램-작성-규칙)' '시퀀스 다이어그램 작성 규칙'
+assert_reject '시퀀스 global 예시 소제목 삭제 격추' '시퀀스 global 예시 트리·소제목·mermaid 순서' drop_line "$C_GLOBAL" '### 시퀀스 다이어그램'
+assert_reject '시퀀스 global 예시 mermaid 블록 시작 행 변경 격추' '시퀀스 global 예시 트리·소제목·mermaid 순서' \
+  sub_str "$C_GLOBAL" 'sequenceDiagram' 'flowchart TD'
+assert_reject '시퀀스 global 예시 참여자 이름 변경 격추' '시퀀스 global 예시 참여자' \
+  sub_str "$C_GLOBAL" 'participant US as user-service' 'participant US as users'
+assert_reject '시퀀스 global 예시 메시지 해시 삽입 격추' '시퀀스 global 메시지 금지 문자' \
+  sub_str "$C_GLOBAL" 'AU->>US: findByEmail' 'AU->>US: UserController#findByEmail'
+assert_reject '시퀀스 global 아키텍처 문서 유효성 행 시퀀스 문구 삭제 격추' \
+  '시퀀스 global 아키텍처 문서 유효성 행 `service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' \
+  sub_str "$C_GLOBAL" '호출 흐름(트리와 시퀀스 다이어그램. ' '호출 흐름('
+assert_reject '시퀀스 global 아키텍처 문서 유효성 행 흐름 섹션 판정 문장 삭제 격추' \
+  '시퀀스 global 아키텍처 문서 유효성 행 흐름 섹션마다 따로 판정해' \
+  cut_str "$C_GLOBAL" ' 시퀀스 누락과 트리·시퀀스 불일치는 흐름 섹션마다 따로 판정해 흐름 단위로 센다.'
+assert_reject '시퀀스 global 아키텍처 문서 유효성 행 누락 판정 기준 삭제 격추' \
+  '시퀀스 global 아키텍처 문서 유효성 행 흐름 섹션에 `mermaid` 코드 블록이 없으면 누락이다' \
+  cut_str "$C_GLOBAL" ' 흐름 섹션에 `mermaid` 코드 블록이 없으면 누락이다.'
+assert_reject '시퀀스 global 아키텍처 문서 유효성 행 생략 리터럴 삭제 격추' \
+  '시퀀스 global 아키텍처 문서 유효성 행 `생략한 호출은 위 트리에서 확인한다.` 줄 없이' \
+  cut_str "$C_GLOBAL" '`생략한 호출은 위 트리에서 확인한다.` 줄 없이 '
+assert_reject '시퀀스 global 점검 표 행 추가 격추' '시퀀스 global 점검 표 행' \
+  sub_str "$C_GLOBAL" '| 교차참조 유효성 | 각 리포 색인' '| 시퀀스 누락 | 흐름 섹션에 시퀀스 다이어그램이 없는지 |\n| 교차참조 유효성 | 각 리포 색인'
+assert_reject '시퀀스 global 5단계 보고 행 삭제 격추' '시퀀스 global 5단계 보고 행' \
+  drop_line "$C_GLOBAL" '- 서비스 간 시퀀스 다이어그램: N건 (누락 N / 불일치 N)'
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 
