@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-10-25
+> last updated: 2026-10-31
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -69,7 +69,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   └── tests/                  # 검사 헬퍼 테스트 + 정상 로비 fixture (배포 제외)
 ├── code-map/                   # 코드베이스 색인 스킬
 │   ├── references/             # 모드별(local/doc/global) 실행 절차
-│   └── tests/                  # 원본 문서 색인 절차·0단계 골격 판정 구조 검사 + 모의 실행 fixture (배포 제외)
+│   └── tests/                  # 원본 문서 색인 절차·0단계 골격 판정·시퀀스 다이어그램 규칙 구조 검사 + 모의 실행 fixture (배포 제외)
 ├── context-harvest/            # 외부 소스에서 What+Why 수집·증류 스킬
 │   ├── templates/              # 30_contract, 40_domain, 50_adr 템플릿
 │   └── tests/                  # 수집 필터·ADR 상태 줄 구조 검사 + 모의 실행 fixture (배포 제외)
