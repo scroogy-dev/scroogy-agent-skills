@@ -275,11 +275,13 @@ sequence_violations() {
   [ -z "$(seq_chars "$g")" ] || echo '시퀀스 global 메시지 금지 문자'
 
   # global 은 한 파일에 흐름 섹션이 여럿이라, 판정 대상(흐름 섹션)과 집계 단위(흐름) 문장을 따로 본다.
+  # global 모드는 local.md 를 읽지 않으므로 누락·불일치 판정 기준도 이 행에서 직접 본다 (PR #127 리뷰).
   s="$(awk '$0 == "### 4단계: 정합성 점검" { f = 1; next } f && /^### / { exit } f' "$g" | grep -E '^\| [^|]+ \|')"
   [ "$(printf '%s\n' "$s" | sed -n '2,$p' | sed -E 's/^\| ([^|]+) \|.*/\1/' | tr '\n' '|')" \
     = '리포 접근성|안내도 불일치|아키텍처 문서 유효성|교차참조 유효성|' ] || echo '시퀀스 global 점검 표 행'
   line="$(printf '%s\n' "$s" | grep -E '^\| 아키텍처 문서 유효성 \|')"
-  for p in '`service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' '`## How` 대신 흐름 섹션마다 따로' '흐름 단위로 센다'; do
+  for p in '`service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' '흐름 섹션마다 따로 판정해' '흐름 단위로 센다' \
+           '흐름 섹션에 `mermaid` 코드 블록이 없으면 누락이다' '호출 주체' '`생략한 호출은 위 트리에서 확인한다.` 줄 없이'; do
     has "$line" "$p" || echo "시퀀스 global 아키텍처 문서 유효성 행 $p"
   done
   awk '$0 == "### 5단계: 결과 보고" { f = 1; next } f' "$g" | grep -qE '^[[:space:]]*- 서비스 간 시퀀스 다이어그램: N건 \(누락 N / 불일치 N\)$' \
@@ -512,8 +514,14 @@ assert_reject '시퀀스 global 아키텍처 문서 유효성 행 시퀀스 문�
   '시퀀스 global 아키텍처 문서 유효성 행 `service-call-flows.md`의 호출 흐름(트리와 시퀀스 다이어그램' \
   sub_str "$C_GLOBAL" '호출 흐름(트리와 시퀀스 다이어그램. ' '호출 흐름('
 assert_reject '시퀀스 global 아키텍처 문서 유효성 행 흐름 섹션 판정 문장 삭제 격추' \
-  '시퀀스 global 아키텍처 문서 유효성 행 `## How` 대신 흐름 섹션마다 따로' \
-  cut_str "$C_GLOBAL" '. 시퀀스 누락과 트리와의 불일치는 local 3단계 기준을 `## How` 대신 흐름 섹션마다 따로 적용해 흐름 단위로 센다'
+  '시퀀스 global 아키텍처 문서 유효성 행 흐름 섹션마다 따로 판정해' \
+  cut_str "$C_GLOBAL" ' 시퀀스 누락과 트리·시퀀스 불일치는 흐름 섹션마다 따로 판정해 흐름 단위로 센다.'
+assert_reject '시퀀스 global 아키텍처 문서 유효성 행 누락 판정 기준 삭제 격추' \
+  '시퀀스 global 아키텍처 문서 유효성 행 흐름 섹션에 `mermaid` 코드 블록이 없으면 누락이다' \
+  cut_str "$C_GLOBAL" ' 흐름 섹션에 `mermaid` 코드 블록이 없으면 누락이다.'
+assert_reject '시퀀스 global 아키텍처 문서 유효성 행 생략 리터럴 삭제 격추' \
+  '시퀀스 global 아키텍처 문서 유효성 행 `생략한 호출은 위 트리에서 확인한다.` 줄 없이' \
+  cut_str "$C_GLOBAL" '`생략한 호출은 위 트리에서 확인한다.` 줄 없이 '
 assert_reject '시퀀스 global 점검 표 행 추가 격추' '시퀀스 global 점검 표 행' \
   sub_str "$C_GLOBAL" '| 교차참조 유효성 | 각 리포 색인' '| 시퀀스 누락 | 흐름 섹션에 시퀀스 다이어그램이 없는지 |\n| 교차참조 유효성 | 각 리포 색인'
 assert_reject '시퀀스 global 5단계 보고 행 삭제 격추' '시퀀스 global 5단계 보고 행' \
