@@ -1401,6 +1401,79 @@ assert_structure check_body_template "$sandbox/bt-no-ac.md"             fail "�
 assert_structure check_body_template "$sandbox/bt-no-rule.md"           fail "이슈 본문 템플릿: 포함 항목 AC 규칙 문장 삭제 격추"
 assert_structure check_body_template "$sandbox/bt-rule-in-scope.md"     fail "이슈 본문 템플릿: 포함 항목 AC 규칙 문장의 범위 섹션 이동 격추"
 
+# --- --create 절 (issue #130) -----------------------------------------------------
+#
+# 이슈 등록은 외부 공개 행위라 승인 게이트·대상 저장소 명시·작업 파일 1개가 절 문장으로 지켜진다.
+# `## 옵션` 아래 절 1개, 동작 단계 6개의 이름·순서(그 외 단계 0건), 절이 가리키는 작업 파일 집합,
+# 파일 전체의 `gh issue create --` 명령 행마다 `--repo '`·`--body-file`, 승인 전 미실행·active 무변경 문장을 판정한다.
+# 분할 권고와 AC 미대응 포함 항목 보고는 요약 제시 단계 범위(다음 번호 단계 전까지)로 판정해, 다른 단계로 옮긴 문장은 세지 않는다.
+
+# check_create_section <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_create_section() {
+  local n sec got st p
+  n="$(grep -c '^### `--create`$' "$1")"
+  [ "$n" -eq 1 ] || echo "옵션 절 개수 ${n}개 (기대 1개)"
+  awk '/^## 옵션$/ { o = NR } /^### `--create`$/ { c = NR }
+       END { if (!o || !c || c < o) print "--create 절이 옵션 섹션 밖" }' "$1"
+  sec="$(awk '/^### `--create`$/ { f = 1; next } f && /^#{2,3} / { exit } f' "$1")"
+  got="$(printf '%s\n' "$sec" | grep -oE '^  [0-9]+\. \*\*[^*]+\*\*' | sed -E 's/^  [0-9]+\. //' | tr '\n' '|')"
+  [ "$got" = '**초안 작성**|**요약 제시**|**승인**|**등록**|**번호 보고**|**시작 질의**|' ] || echo "동작 단계 구성·순서 [$got]"
+  got="$(printf '%s\n' "$sec" | grep -oE "\.ai/99_workspace/[^\`' )]+" | sort -u | tr '\n' '|')"
+  [ "$got" = '.ai/99_workspace/issue-create-body.md|' ] || echo "작업 파일 [$got]"
+  [ "$(grep -c 'gh issue create --' "$1")" -ge 1 ] || echo "gh issue create 명령 행 없음"
+  grep -n 'gh issue create --' "$1" | grep -vF -e "--repo '" | sed 's/^/명령 행에 --repo 없음: /'
+  grep -n 'gh issue create --' "$1" | grep -vF -e '--body-file' | sed 's/^/명령 행에 --body-file 없음: /'
+  for p in '승인 전에는 `gh issue create`를 실행하지 않는다' 'active 작업 파일을 옮기거나 지우지 않는다'; do
+    printf '%s\n' "$sec" | grep -qF -- "$p" || echo "절에 문장 없음 [$p]"
+  done
+  st="$(printf '%s\n' "$sec" | awk '/^  [0-9]+\. \*\*요약 제시\*\*/ { s = 1; print; next } s && /^  [0-9]+\. / { exit } s')"
+  for p in '서로 독립으로 머지할 수 있는' '분할을 권고' '수치 기준은 두지 않' '결정은 사용자' 'AC가 대응하지 않는 포함 항목'; do
+    printf '%s\n' "$st" | grep -qF -- "$p" || echo "요약 제시 단계에 [$p] 없음"
+  done
+}
+
+# 단계·명령 행 변형은 --create 절 범위(f)에서만 건다. 같은 모양의 행이 다른 절에 생겨도 사본이 어긋나지 않게 하기 위함이다.
+awk '!/^### `--create`$/' "$SKILL" > "$sandbox/cr-no-section.md"
+awk '/^### `--create`$/ { f = 1 } f && /^## / { f = 0 } f && /^### / && !/^### `--create`$/ { f = 0 }
+     f && /^  2\. \*\*요약 제시\*\*/ { sub(/\*\*요약 제시\*\*/, "**승인**"); print; next }
+     f && /^  3\. \*\*승인\*\*/ { sub(/\*\*승인\*\*/, "**요약 제시**"); print; next } { print }' \
+  "$SKILL" > "$sandbox/cr-swap-steps.md"
+awk '{ print } /^  6\. \*\*시작 질의\*\*/ { print "  7. **정리**: 초안 파일을 지운다." }' "$SKILL" > "$sandbox/cr-extra-step.md"
+drop_literal "$SKILL" '승인 전에는 `gh issue create`를 실행하지 않는다' > "$sandbox/cr-no-approval.md"
+drop_literal "$SKILL" 'active 작업 파일을 옮기거나 지우지 않는다' > "$sandbox/cr-no-active.md"
+awk -v r="--repo '[^']*' " '/gh issue create --/ { sub(r, "") } { print }' "$SKILL" > "$sandbox/cr-no-repo.md"
+awk -v r=" --body-file '[^']*'" '/gh issue create --/ { sub(r, "") } { print }' "$SKILL" > "$sandbox/cr-no-body-file.md"
+awk '{ print } /^  1\. \*\*초안 작성\*\*/ { print "     - 제목은 `.ai/99_workspace/issue-create-title.md`에 따로 쓴다." }' \
+  "$SKILL" > "$sandbox/cr-second-file.md"
+drop_literal "$SKILL" '서로 독립으로 머지할 수 있는' > "$sandbox/cr-no-split-indep.md"
+drop_literal "$SKILL" '분할을 권고' > "$sandbox/cr-no-split-advise.md"
+drop_literal "$SKILL" '수치 기준은 두지 않' > "$sandbox/cr-no-split-number.md"
+drop_literal "$SKILL" '결정은 사용자' > "$sandbox/cr-no-split-user.md"
+drop_literal "$SKILL" 'AC가 대응하지 않는 포함 항목' > "$sandbox/cr-no-ac-report.md"
+awk 'index($0, "AC가 대응하지 않는 포함 항목") { held = $0; next } { print }
+     /^  3\. \*\*승인\*\*/ && held { print held; held = "" }' "$SKILL" > "$sandbox/cr-ac-report-moved.md"
+awk '/^### `--create`$/ { f = 1 } f && /^### `--workflow-only`$/ { f = 0 }
+     f { buf = buf $0 "\n"; next } { line[++n] = $0 }
+     END { for (i = 1; i <= n; i++) { if (line[i] == "## 옵션") printf "%s", buf; print line[i] } }' \
+  "$SKILL" > "$sandbox/cr-before-options.md"
+
+assert_structure check_create_section "$SKILL"                          pass "--create 절: 실제 SKILL.md 통과"
+assert_structure check_create_section "$sandbox/cr-no-section.md"       fail "--create 절: 절 헤더 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-swap-steps.md"       fail "--create 절: 요약 제시·승인 단계 순서 바꿈 격추"
+assert_structure check_create_section "$sandbox/cr-extra-step.md"       fail "--create 절: 동작 단계 추가 격추"
+assert_structure check_create_section "$sandbox/cr-no-approval.md"      fail "--create 절: 승인 전 미실행 문장 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-active.md"        fail "--create 절: active 무변경 문장 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-repo.md"          fail "--create 절: --repo 없는 명령 행 격추"
+assert_structure check_create_section "$sandbox/cr-no-body-file.md"     fail "--create 절: --body-file 없는 명령 행 격추"
+assert_structure check_create_section "$sandbox/cr-second-file.md"      fail "--create 절: 두 번째 작업 파일 경로 추가 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-indep.md"   fail "--create 절: 분할 권고 조건 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-advise.md"  fail "--create 절: 분할 권고 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-number.md"  fail "--create 절: 분할 수치 기준 미사용 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-user.md"    fail "--create 절: 분할 결정 주체 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-ac-report.md"     fail "--create 절: AC 미대응 포함 항목 보고 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-ac-report-moved.md"  fail "--create 절: AC 미대응 포함 항목 보고의 승인 단계 이동 격추"
+assert_structure check_create_section "$sandbox/cr-before-options.md"   fail "--create 절: 절의 옵션 섹션 앞 이동 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
