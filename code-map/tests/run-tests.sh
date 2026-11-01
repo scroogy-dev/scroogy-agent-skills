@@ -322,7 +322,8 @@ seq_example_violations() {
   seq_follow "$s" || echo "$n 예시 트리·mermaid 순서"
   [ -z "$(printf '%s\n' "$s" | grep -E '^#+ 시퀀스 다이어그램')" ] || echo "$n 예시 소제목"
   seq_parts "$s" "$3" || echo "$n 예시 참여자"
-  printf '%s\n' "$s" | awk '$0 == "```mermaid" { m = 1; next } m && $0 == "```" { m = 0 } m && /:/ { c++ } END { exit !c }' \
+  # 첫 `:` 앞에 화살표가 있는 행만 메시지로 센다. `Note over …:`만 남은 시퀀스를 통과시키지 않는다 (PR #129 리뷰).
+  printf '%s\n' "$s" | awk '$0 == "```mermaid" { m = 1; next } m && $0 == "```" { m = 0 } m && /^[^:]*(->>|-\))[^:]*:/ { c++ } END { exit !c }' \
     || echo "$n 예시 메시지 행"
   [ -z "$(seq_chars <(printf '%s\n' "$s"))" ] || echo "$n 예시 메시지 금지 문자"
 }
@@ -370,7 +371,8 @@ rc_body_violations() {
 
 # rc_template_violations <git-review-context 템플릿> — `## 호출 흐름` 접기 안 주석 한 행이 트리와 시퀀스 다이어그램을 함께 안내하는지 본다.
 rc_template_violations() {
-  [ "$(awk '$0 == "## 호출 흐름" { f = 1; next } f && /^## / { exit } f && /<details>/ { d = 1 } f && d' "$1" \
+  # `</details>`에서 접기 상태를 해제해, 닫는 태그 뒤로 옮긴 주석을 세지 않는다 (PR #129 리뷰).
+  [ "$(awk '$0 == "## 호출 흐름" { f = 1; next } f && /^## / { exit } f && /<\/details>/ { d = 0 } f && /<details>/ { d = 1 } f && d' "$1" \
        | grep -cE '^<!-- .*트리.*시퀀스 다이어그램.* -->$')" -eq 1 ] || echo '시퀀스 배치 git-review-context 템플릿 접기 안 주석'
 }
 
@@ -707,6 +709,9 @@ assert_reject '시퀀스 배치 git-pr 템플릿 예시 참여자 이름 변경 
   sub_str "$C_PR_TEMPLATE" 'participant IC as InventoryCache' 'participant IC as Cache'
 assert_reject '시퀀스 배치 git-pr 템플릿 예시 메시지 해시 삽입 격추' '시퀀스 배치 git-pr 템플릿 예시 메시지 금지 문자' \
   sub_str "$C_PR_TEMPLATE" 'OS->>IC: get' 'OS->>IC: InventoryCache#get'
+# 호출·응답 행을 모두 지우고 `Note` 행만 남긴다 (PR #129 리뷰).
+assert_reject '시퀀스 배치 git-pr 템플릿 예시 호출·응답 행 전체 삭제 격추' '시퀀스 배치 git-pr 템플릿 예시 메시지 행' \
+  drop_line "$C_PR_TEMPLATE" '->>'
 assert_reject '시퀀스 배치 git-review-context 본문 안내 문장 링크 삭제 격추' '시퀀스 배치 git-review-context 본문 안내 문장' \
   sub_str "$C_RC_SKILL" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' '시퀀스 다이어그램 작성 규칙'
 assert_reject '시퀀스 배치 git-review-context 본문 작성 대상 기준 행 삭제 격추' '시퀀스 배치 git-review-context 본문 작성 대상 기준' \
@@ -729,6 +734,10 @@ assert_reject '시퀀스 배치 git-review-context 본문 의사코드 행 재�
 assert_reject '시퀀스 배치 git-review-context 템플릿 접기 안 주석 원복 격추' '시퀀스 배치 git-review-context 템플릿 접기 안 주석' \
   sub_str "$C_RC_TEMPLATE" '<!-- 엔트리 포인트별 호출 흐름 트리. 작성 대상이면 트리 코드 블록 바로 다음에 시퀀스 다이어그램 (SKILL.md "시퀀스 다이어그램 작성 규칙" 참조) -->' \
   '<!-- 엔트리 포인트별 호출 흐름 -->'
+# 주석을 빈 행·`</details>` 뒤로 두 번 내려 접기 밖에 둔다 (PR #129 리뷰).
+rc_comment_out() { swap_next "$1" '<!-- 엔트리 포인트별' && swap_next "$1" '<!-- 엔트리 포인트별'; }
+assert_reject '시퀀스 배치 git-review-context 템플릿 주석 접기 밖 이동 격추' '시퀀스 배치 git-review-context 템플릿 접기 안 주석' \
+  rc_comment_out "$C_RC_TEMPLATE"
 # 사본의 각 리터럴은 규칙 섹션 안에서 해당 라벨 행에만 있어, 섹션 제목 뒤 첫 등장 삭제가 그 행을 겨눈다.
 for copy in "git-pr|$C_PR_SKILL" "git-review-context|$C_RC_SKILL"; do
   nm=${copy%%|*}; cf=${copy#*|}
