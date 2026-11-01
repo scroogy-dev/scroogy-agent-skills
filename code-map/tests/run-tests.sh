@@ -12,6 +12,7 @@
 # 건물 리포 규칙(SKILL.md 의 `--local` 중단, global.md 의 선언 규칙·SSoT 종류 분류·호출 식별 제외)도 같은 방식으로 본다 (#118).
 # SKILL.md 의 선언 부재 폴백 알림(안내도가 있을 때만 알림)도 같은 방식으로 본다 (#122).
 # SKILL.md 의 시퀀스 다이어그램 작성 규칙과 local.md·global.md 의 시퀀스 형식·갱신·점검 문장도 같은 방식으로 본다 (#126).
+# git-pr·git-review-context 의 시퀀스 안내·예시·템플릿과 규칙 사본도 같은 방식으로 본다 (#128).
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -26,6 +27,11 @@ FIX="$HERE/fixtures/doc-index"
 # ai-workspace init 이 복사하는 색인 골격. doc.md·local.md·global.md 0단계가 이 골격을 미생성으로 판정한다.
 TEMPLATE="$HERE/../../ai-workspace/templates/shared/.ai/60_codebase/index.md"
 PLACEHOLDER='(문서를 추가하면 이 목록에 함께 기재하세요)'
+# 호출 흐름 트리 다음에 시퀀스 다이어그램을 두고 작성 규칙을 복사해 둔 다른 스킬 본문 (#128).
+PR_SKILL="$HERE/../../git-pr/SKILL.md"
+PR_TEMPLATE="$HERE/../../git-pr/templates/pr-body-template.md"
+RC_SKILL="$HERE/../../git-review-context/SKILL.md"
+RC_TEMPLATE="$HERE/../../git-review-context/templates/review-context-template.md"
 
 pass=0
 fail=0
@@ -33,7 +39,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for f in "$SKILL" "$DOC" "$LOCAL" "$GLOBAL" "$FIX/README.md" "$TEMPLATE"; do
+for f in "$SKILL" "$DOC" "$LOCAL" "$GLOBAL" "$FIX/README.md" "$TEMPLATE" "$PR_SKILL" "$PR_TEMPLATE" "$RC_SKILL" "$RC_TEMPLATE"; do
   [ -r "$f" ] || { echo "NOT OK - 파일을 찾을 수 없습니다 — $f"; exit 1; }
 done
 
@@ -172,6 +178,9 @@ SEQ_ROWS=(
   '응답|`-->>`' '동기·비동기|`->>`' '동기·비동기|`-)`' '분기·반복|`alt`·`opt`·`loop`'
   '트랜잭션 경계|`rect` 또는 `Note`' '금지 문자|`;`와 `#`'
 )
+# 다른 스킬 본문에 복사한 규칙의 대조에서 뺄 code-map 전용 항목 (#128).
+# 위치·형식 행은 스킬마다 배치가 다르고, `--global` 옵션은 code-map 에만 있다.
+SEQ_COPY_SKIP=('위치·형식|`### 시퀀스 다이어그램`' '참여자|`--global`은 서비스')
 
 # cut_sec <파일> <시작 행> <끝 행> — 두 행 사이를 출력한다.
 # 예시 펜스 안의 3백틱 블록이 sec 의 코드 상태를 뒤집으므로, 시퀀스 검사는 sec 대신 경계 행을 고정해 자른다.
@@ -288,6 +297,103 @@ sequence_violations() {
     || echo '시퀀스 global 5단계 보고 행'
 }
 
+# seq_follow <본문> — 첫 3백틱 블록(트리) 다음에 빈 행 말고는 다른 행 없이 첫 행이 `sequenceDiagram`인
+# mermaid 블록이 이어지면 0. 소제목 없이 트리에 바로 붙이는 배치용이다 (seq_order 는 소제목을 요구한다).
+seq_follow() {
+  printf '%s\n' "$1" | awk '
+    st == 0 && $0 == "```" { st = 1; next }
+    st == 1 && $0 == "```" { st = 2; next }
+    st == 2 && $0 == "" { next }
+    st == 2 { st = ($0 == "```mermaid") ? 3 : -1; next }
+    st == 3 { st = ($0 == "sequenceDiagram") ? 4 : -1; next }
+    st == 4 && $0 == "```" { st = 5; next }
+    END { exit st != 5 }'
+}
+
+# seq_span <파일> <구간 시작 행> <구간 끝 행 접두> — 시작 행부터 끝 접두로 시작하는 행 전까지를 행 앞 공백을 지워 출력한다.
+# 예시를 리스트 안에 들여 쓸 수 있어 공백을 지운 뒤 판정한다.
+seq_span() { awk -v a="$2" -v b="$3" '$0 == a { f = 1 } f && index($0, b) == 1 { exit } f' "$1" | sed -E 's/^[[:space:]]+//'; }
+
+# seq_example_violations <파일> <이름> <구간 시작 행> <구간 끝 행 접두> — 다른 스킬 본문·템플릿의 호출 흐름 구간 예시가
+# 트리 코드 블록 바로 다음에 소제목 없이 시퀀스 다이어그램을 잇고, 참여자·메시지가 규칙에 맞는지 본다 (#128). 무출력이면 통과.
+seq_example_violations() {
+  local n="시퀀스 배치 $2" s
+  s="$(seq_span "$1" "$3" "$4")"
+  seq_follow "$s" || echo "$n 예시 트리·mermaid 순서"
+  [ -z "$(printf '%s\n' "$s" | grep -E '^#+ 시퀀스 다이어그램')" ] || echo "$n 예시 소제목"
+  seq_parts "$s" "$3" || echo "$n 예시 참여자"
+  # 첫 `:` 앞에 화살표가 있는 행만 메시지로 센다. `Note over …:`만 남은 시퀀스를 통과시키지 않는다 (PR #129 리뷰).
+  printf '%s\n' "$s" | awk '$0 == "```mermaid" { m = 1; next } m && $0 == "```" { m = 0 } m && /^[^:]*(->>|-\))[^:]*:/ { c++ } END { exit !c }' \
+    || echo "$n 예시 메시지 행"
+  [ -z "$(seq_chars <(printf '%s\n' "$s"))" ] || echo "$n 예시 메시지 금지 문자"
+}
+
+# seq_body_violations <SKILL.md> <references/local.md> <이름> <구간 시작 행> <구간 끝 행 접두> <위치·형식 리터럴...>
+# — 다른 스킬 본문의 호출 흐름 구간에 시퀀스 안내 문장·작성 대상 기준·예시가 있고,
+# 같은 파일의 규칙 섹션에 위치·형식 행과 원본·동기화 문구가 있는지 본다 (#128). 무출력이면 통과.
+# 작성 대상 기준 원문은 local.md 1-4에서 읽는다.
+seq_body_violations() {
+  local f="$1" lo="$2" n="시퀀스 배치 $3" a="$4" b="$5" s crit line p
+  s="$(seq_span "$f" "$a" "$b")"
+  [ "$(printf '%s\n' "$s" | grep -F '트리 코드 블록 바로 다음' | grep -F '트리만' \
+       | grep -cF '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)')" -eq 1 ] || echo "$n 안내 문장"
+  crit="$(awk '$0 == "- 상세 호출 흐름은 다음 기준에 해당하면 작성한다:" { f = 1; next } f && /^- / { exit } f' "$lo" | sed -E 's/^[[:space:]]+//')"
+  [ "$(printf '%s\n' "$crit" | grep -c .)" -eq 3 ] && [ "$(printf '%s\n' "$s" | grep -xF -- "$crit")" = "$crit" ] \
+    || echo "$n 작성 대상 기준"
+  seq_example_violations "$f" "$3" "$a" "$b"
+  shift 5
+
+  s="$(awk '$0 == "## 시퀀스 다이어그램 작성 규칙" { f = 1; next } f && /^## / { exit } f' "$f")"
+  line="$(printf '%s\n' "$s" | grep -E '^- \*\*위치·형식\*\*:')"
+  [ "$(printf '%s\n' "$line" | grep -c .)" -eq 1 ] || echo "$n 위치·형식 행"
+  for p in "$@"; do
+    has "$line" "$p" || echo "$n 위치·형식 행 $p"
+  done
+  printf '%s\n' "$s" | awk '/^- \*\*/ { exit } 1' | grep -F '`code-map`' | grep -qF '한쪽 변경 시 양쪽 동기화' || echo "$n 동기화 문구"
+}
+
+# pr_body_violations <git-pr SKILL.md> <references/local.md> — git-pr 테크 관점 `호출 흐름`의 시퀀스 배치를 본다.
+pr_body_violations() {
+  seq_body_violations "$1" "$2" 'git-pr 본문' '* **호출 흐름:**' '* **참고사항:**' \
+    '`호출 흐름`' '트리 코드 블록 바로 다음' '`sequenceDiagram`' '`mermaid` 코드 블록' '소제목은 두지 않'
+}
+
+# pr_template_violations <git-pr 템플릿> — PR 본문 템플릿 `호출 흐름` 예시의 시퀀스 배치를 본다.
+pr_template_violations() { seq_example_violations "$1" 'git-pr 템플릿' '* **호출 흐름:**' '* **참고사항:**'; }
+
+# rc_body_violations <git-review-context SKILL.md> <references/local.md> — 5단계 호출 흐름 분석의 시퀀스 배치를 보고,
+# 시퀀스가 대신하는 의사코드·단계별 목록 행이 남지 않았는지 본다.
+rc_body_violations() {
+  seq_body_violations "$1" "$2" 'git-review-context 본문' '### 5단계: 호출 흐름 분석' '### 6단계' \
+    '`## 호출 흐름` 접기 안' '트리 코드 블록 바로 다음' '`sequenceDiagram`' '`mermaid` 코드 블록' '소제목은 두지 않'
+  ! grep -qF '의사코드 또는 단계별 목록' "$1" || echo '시퀀스 배치 git-review-context 본문 의사코드 행'
+}
+
+# rc_template_violations <git-review-context 템플릿> — `## 호출 흐름` 접기 안 주석 한 행이 트리와 시퀀스 다이어그램을 함께 안내하는지 본다.
+rc_template_violations() {
+  # `</details>`에서 접기 상태를 해제해, 닫는 태그 뒤로 옮긴 주석을 세지 않는다 (PR #129 리뷰).
+  [ "$(awk '$0 == "## 호출 흐름" { f = 1; next } f && /^## / { exit } f && /<\/details>/ { d = 0 } f && /<details>/ { d = 1 } f && d' "$1" \
+       | grep -cE '^<!-- .*트리.*시퀀스 다이어그램.* -->$')" -eq 1 ] || echo '시퀀스 배치 git-review-context 템플릿 접기 안 주석'
+}
+
+# seq_copy_violations <사본> <이름> — 다른 스킬 본문에 복사한 시퀀스 다이어그램 작성 규칙이 code-map 과 같은
+# 라벨 이름·순서(SEQ_LABELS)와 리터럴(SEQ_ROWS 에서 SEQ_COPY_SKIP 을 뺀 것)을 갖는지 본다 (#128). 무출력이면 통과.
+seq_copy_violations() {
+  local n="시퀀스 $2" s line pair lab p
+  s="$(awk '$0 == "## 시퀀스 다이어그램 작성 규칙" { f = 1; next } f && /^## / { exit } f' "$1")"
+  [ -n "$s" ] || echo "$n 작성 규칙 섹션"
+  [ "$(printf '%s\n' "$s" | grep -E '^- \*\*[^*]+\*\*:' | sed -E 's/^- \*\*([^*]+)\*\*:.*/\1/' | tr '\n' '|')" \
+    = "$(printf '%s|' "${SEQ_LABELS[@]}")" ] || echo "$n 라벨 이름·순서"
+  for pair in "${SEQ_ROWS[@]}"; do
+    printf '%s\n' "${SEQ_COPY_SKIP[@]}" | grep -qxF -- "$pair" && continue
+    lab=${pair%%|*}; p=${pair#*|}
+    has "$(printf '%s\n' "$s" | grep -E "^- \*\*$lab\*\*:")" "$p" || echo "$n $lab 행 $p"
+  done
+  line="$(printf '%s\n' "$s" | grep -E '^- \*\*긴 흐름\*\*:')"
+  has "$line" '핵심 경로만' || echo "$n 긴 흐름 핵심 경로"
+  has "$line" '`생략한 호출은 위 트리에서 확인한다.`' || echo "$n 긴 흐름 생략 안내"
+}
+
 # --- 현재 본문이 규칙을 모두 갖는다 ------------------------------------------------
 
 out="$(violations "$DOC" "$SKILL")"
@@ -325,6 +431,41 @@ else
   ng "시퀀스 다이어그램 규칙 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
+out="$(pr_body_violations "$PR_SKILL" "$LOCAL")"
+if [ -z "$out" ]; then
+  ok "시퀀스 배치 git-pr 본문 통과"
+else
+  ng "시퀀스 배치 git-pr 본문 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(pr_template_violations "$PR_TEMPLATE")"
+if [ -z "$out" ]; then
+  ok "시퀀스 배치 git-pr 템플릿 통과"
+else
+  ng "시퀀스 배치 git-pr 템플릿 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(rc_body_violations "$RC_SKILL" "$LOCAL")"
+if [ -z "$out" ]; then
+  ok "시퀀스 배치 git-review-context 본문 통과"
+else
+  ng "시퀀스 배치 git-review-context 본문 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(rc_template_violations "$RC_TEMPLATE")"
+if [ -z "$out" ]; then
+  ok "시퀀스 배치 git-review-context 템플릿 통과"
+else
+  ng "시퀀스 배치 git-review-context 템플릿 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+out="$(seq_copy_violations "$PR_SKILL" '규칙 사본 git-pr'; seq_copy_violations "$RC_SKILL" '규칙 사본 git-review-context')"
+if [ -z "$out" ]; then
+  ok "시퀀스 규칙 사본 통과"
+else
+  ng "시퀀스 규칙 사본 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
 # 골격 판정 기준이 실제 템플릿과 어긋나면 init 직후 색인을 생성됨으로 오판한다 (PR #115 리뷰).
 if [ "$(head -n 1 "$TEMPLATE")" != '---' ] && grep -qxF "| $PLACEHOLDER | |" "$TEMPLATE"; then
   ok "골격 판정 기준과 ai-workspace 템플릿 일치"
@@ -343,6 +484,10 @@ C_DOC="$TMP/case/doc.md"
 C_SKILL="$TMP/case/SKILL.md"
 C_LOCAL="$TMP/case/local.md"
 C_GLOBAL="$TMP/case/global.md"
+C_PR_SKILL="$TMP/case/git-pr-SKILL.md"
+C_PR_TEMPLATE="$TMP/case/pr-body-template.md"
+C_RC_SKILL="$TMP/case/git-review-context-SKILL.md"
+C_RC_TEMPLATE="$TMP/case/review-context-template.md"
 
 # sub_str <파일> <찾을 문자열> <바꿀 문자열> — 첫 등장 하나를 바꾼다(고정 문자열 대조).
 sub_str() {
@@ -367,13 +512,28 @@ swap_next() {
     END { if (held != "") print held; exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
+# seq_copy_sub <파일> <찾을 문자열> <바꿀 문자열> — `## 시퀀스 다이어그램 작성 규칙` 행 뒤의 첫 등장 하나를 바꾼다.
+# 사본은 규칙 섹션 앞 안내·예시에 같은 리터럴(메시지 화살표 등)이 나올 수 있어, 파일 첫 등장을 바꾸는 sub_str 로는 규칙 행을 겨누지 못할 수 있다 (#128).
+seq_copy_sub() {
+  awk -v s="$2" -v r="$3" '
+    $0 == "## 시퀀스 다이어그램 작성 규칙" { on = 1; print; next }
+    on && !done && (i = index($0, s)) { $0 = substr($0, 1, i - 1) r substr($0, i + length(s)); done = 1 }
+    { print }
+    END { exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+seq_copy_cut() { seq_copy_sub "$1" "$2" ''; }
+
 # assert_reject <설명> <위반 행> <변형 명령...>
 assert_reject() {
   local desc="$1" want="$2" out; shift 2
-  cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"
+  cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"; cp "$PR_SKILL" "$C_PR_SKILL"
+  cp "$PR_TEMPLATE" "$C_PR_TEMPLATE"; cp "$RC_SKILL" "$C_RC_SKILL"; cp "$RC_TEMPLATE" "$C_RC_TEMPLATE"
   "$@" || { ng "$desc — 변형 실패"; return; }
   out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL"; building_violations "$C_SKILL" "$C_GLOBAL"
-         sequence_violations "$C_SKILL" "$C_LOCAL" "$C_GLOBAL")"
+         sequence_violations "$C_SKILL" "$C_LOCAL" "$C_GLOBAL"; pr_body_violations "$C_PR_SKILL" "$C_LOCAL"
+         pr_template_violations "$C_PR_TEMPLATE"; rc_body_violations "$C_RC_SKILL" "$C_LOCAL"
+         rc_template_violations "$C_RC_TEMPLATE"; seq_copy_violations "$C_PR_SKILL" '규칙 사본 git-pr'
+         seq_copy_violations "$C_RC_SKILL" '규칙 사본 git-review-context')"
   if printf '%s\n' "$out" | grep -qxF "$want"; then
     ok "$desc"
   else
@@ -526,6 +686,73 @@ assert_reject '시퀀스 global 점검 표 행 추가 격추' '시퀀스 global 
   sub_str "$C_GLOBAL" '| 교차참조 유효성 | 각 리포 색인' '| 시퀀스 누락 | 흐름 섹션에 시퀀스 다이어그램이 없는지 |\n| 교차참조 유효성 | 각 리포 색인'
 assert_reject '시퀀스 global 5단계 보고 행 삭제 격추' '시퀀스 global 5단계 보고 행' \
   drop_line "$C_GLOBAL" '- 서비스 간 시퀀스 다이어그램: N건 (누락 N / 불일치 N)'
+assert_reject '시퀀스 배치 git-pr 본문 안내 문장 링크 삭제 격추' '시퀀스 배치 git-pr 본문 안내 문장' \
+  sub_str "$C_PR_SKILL" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' '시퀀스 다이어그램 작성 규칙'
+assert_reject '시퀀스 배치 git-pr 본문 작성 대상 기준 행 삭제 격추' '시퀀스 배치 git-pr 본문 작성 대상 기준' \
+  drop_line "$C_PR_SKILL" '**외부 서비스 호출**(HTTP 클라이언트, 메시지 발행 등)이 포함된 경우'
+assert_reject '시퀀스 배치 git-pr 본문 위치·형식 행 소제목 문구 삭제 격추' '시퀀스 배치 git-pr 본문 위치·형식 행 소제목은 두지 않' \
+  sub_str "$C_PR_SKILL" '같은 소제목은 두지 않고, ' '같은 소제목을 두고, '
+assert_reject '시퀀스 배치 git-pr 본문 예시 소제목 삽입 격추' '시퀀스 배치 git-pr 본문 예시 소제목' \
+  sub_str "$C_PR_SKILL" '```mermaid' '### 시퀀스 다이어그램\n\n    ```mermaid'
+assert_reject '시퀀스 배치 git-pr 본문 예시 mermaid 블록 시작 행 변경 격추' '시퀀스 배치 git-pr 본문 예시 트리·mermaid 순서' \
+  sub_str "$C_PR_SKILL" 'sequenceDiagram' 'flowchart TD'
+assert_reject '시퀀스 배치 git-pr 본문 예시 참여자 이름 변경 격추' '시퀀스 배치 git-pr 본문 예시 참여자' \
+  sub_str "$C_PR_SKILL" 'participant OR as OrderRepository' 'participant OR as OrderRepo'
+assert_reject '시퀀스 배치 git-pr 본문 예시 메시지 세미콜론 삽입 격추' '시퀀스 배치 git-pr 본문 예시 메시지 금지 문자' \
+  sub_str "$C_PR_SKILL" 'OC->>OV: validate' 'OC->>OV: validate; 필수 필드'
+assert_reject '시퀀스 배치 git-pr 본문 동기화 문구 삭제 격추' '시퀀스 배치 git-pr 본문 동기화 문구' \
+  cut_str "$C_PR_SKILL" ' (스킬 단독 실행을 위해 복사해 두었으므로 한쪽 변경 시 양쪽 동기화)'
+# 템플릿에서 3백틱의 첫 등장은 트리 코드 블록의 여는 펜스다.
+assert_reject '시퀀스 배치 git-pr 템플릿 트리 코드 블록 펜스 삭제 격추' '시퀀스 배치 git-pr 템플릿 예시 트리·mermaid 순서' \
+  cut_str "$C_PR_TEMPLATE" '```'
+assert_reject '시퀀스 배치 git-pr 템플릿 예시 참여자 이름 변경 격추' '시퀀스 배치 git-pr 템플릿 예시 참여자' \
+  sub_str "$C_PR_TEMPLATE" 'participant IC as InventoryCache' 'participant IC as Cache'
+assert_reject '시퀀스 배치 git-pr 템플릿 예시 메시지 해시 삽입 격추' '시퀀스 배치 git-pr 템플릿 예시 메시지 금지 문자' \
+  sub_str "$C_PR_TEMPLATE" 'OS->>IC: get' 'OS->>IC: InventoryCache#get'
+# 호출·응답 행을 모두 지우고 `Note` 행만 남긴다 (PR #129 리뷰).
+assert_reject '시퀀스 배치 git-pr 템플릿 예시 호출·응답 행 전체 삭제 격추' '시퀀스 배치 git-pr 템플릿 예시 메시지 행' \
+  drop_line "$C_PR_TEMPLATE" '->>'
+assert_reject '시퀀스 배치 git-review-context 본문 안내 문장 링크 삭제 격추' '시퀀스 배치 git-review-context 본문 안내 문장' \
+  sub_str "$C_RC_SKILL" '[시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)' '시퀀스 다이어그램 작성 규칙'
+assert_reject '시퀀스 배치 git-review-context 본문 작성 대상 기준 행 삭제 격추' '시퀀스 배치 git-review-context 본문 작성 대상 기준' \
+  drop_line "$C_RC_SKILL" '**외부 서비스 호출**(HTTP 클라이언트, 메시지 발행 등)이 포함된 경우'
+assert_reject '시퀀스 배치 git-review-context 본문 위치·형식 행 소제목 문구 삭제 격추' '시퀀스 배치 git-review-context 본문 위치·형식 행 소제목은 두지 않' \
+  sub_str "$C_RC_SKILL" '같은 소제목은 두지 않고, ' '같은 소제목을 두고, '
+assert_reject '시퀀스 배치 git-review-context 본문 예시 소제목 삽입 격추' '시퀀스 배치 git-review-context 본문 예시 소제목' \
+  sub_str "$C_RC_SKILL" '```mermaid' '### 시퀀스 다이어그램\n\n```mermaid'
+assert_reject '시퀀스 배치 git-review-context 본문 예시 mermaid 블록 시작 행 변경 격추' '시퀀스 배치 git-review-context 본문 예시 트리·mermaid 순서' \
+  sub_str "$C_RC_SKILL" 'sequenceDiagram' 'flowchart TD'
+assert_reject '시퀀스 배치 git-review-context 본문 예시 참여자 이름 변경 격추' '시퀀스 배치 git-review-context 본문 예시 참여자' \
+  sub_str "$C_RC_SKILL" 'participant PG as PaymentGatewayClient' 'participant PG as PgClient'
+assert_reject '시퀀스 배치 git-review-context 본문 예시 메시지 세미콜론 삽입 격추' '시퀀스 배치 git-review-context 본문 예시 메시지 금지 문자' \
+  sub_str "$C_RC_SKILL" 'OC->>OS: placeOrder' 'OC->>OS: placeOrder; 주문 생성'
+assert_reject '시퀀스 배치 git-review-context 본문 동기화 문구 삭제 격추' '시퀀스 배치 git-review-context 본문 동기화 문구' \
+  cut_str "$C_RC_SKILL" ' (스킬 단독 실행을 위해 복사해 두었으므로 한쪽 변경 시 양쪽 동기화)'
+assert_reject '시퀀스 배치 git-review-context 본문 의사코드 행 재삽입 격추' '시퀀스 배치 git-review-context 본문 의사코드 행' \
+  sub_str "$C_RC_SKILL" '- 변경된 파일이 흐름의 어느 지점에 위치하는지 명시합니다.' \
+  '- 변경된 파일이 흐름의 어느 지점에 위치하는지 명시합니다.\n- 흐름이 복잡한 경우 의사코드 또는 단계별 목록 형태로 표현합니다.'
+assert_reject '시퀀스 배치 git-review-context 템플릿 접기 안 주석 원복 격추' '시퀀스 배치 git-review-context 템플릿 접기 안 주석' \
+  sub_str "$C_RC_TEMPLATE" '<!-- 엔트리 포인트별 호출 흐름 트리. 작성 대상이면 트리 코드 블록 바로 다음에 시퀀스 다이어그램 (SKILL.md "시퀀스 다이어그램 작성 규칙" 참조) -->' \
+  '<!-- 엔트리 포인트별 호출 흐름 -->'
+# 주석을 빈 행·`</details>` 뒤로 두 번 내려 접기 밖에 둔다 (PR #129 리뷰).
+rc_comment_out() { swap_next "$1" '<!-- 엔트리 포인트별' && swap_next "$1" '<!-- 엔트리 포인트별'; }
+assert_reject '시퀀스 배치 git-review-context 템플릿 주석 접기 밖 이동 격추' '시퀀스 배치 git-review-context 템플릿 접기 안 주석' \
+  rc_comment_out "$C_RC_TEMPLATE"
+# 사본의 각 리터럴은 규칙 섹션 안에서 해당 라벨 행에만 있어, 섹션 제목 뒤 첫 등장 삭제가 그 행을 겨눈다.
+for copy in "git-pr|$C_PR_SKILL" "git-review-context|$C_RC_SKILL"; do
+  nm=${copy%%|*}; cf=${copy#*|}
+  assert_reject "시퀀스 규칙 사본 $nm 작성 규칙 섹션 제목 변경 격추" "시퀀스 규칙 사본 $nm 작성 규칙 섹션" \
+    sub_str "$cf" '## 시퀀스 다이어그램 작성 규칙' '## 시퀀스 다이어그램 규칙'
+  assert_reject "시퀀스 규칙 사본 $nm 라벨 이름 변경 격추" "시퀀스 규칙 사본 $nm 라벨 이름·순서" seq_copy_sub "$cf" '- **응답**:' '- **응답 표기**:'
+  for pair in "${SEQ_ROWS[@]}"; do
+    printf '%s\n' "${SEQ_COPY_SKIP[@]}" | grep -qxF -- "$pair" && continue
+    assert_reject "시퀀스 규칙 사본 $nm ${pair%%|*} 행 ${pair#*|} 삭제 격추" "시퀀스 규칙 사본 $nm ${pair%%|*} 행 ${pair#*|}" \
+      seq_copy_cut "$cf" "${pair#*|}"
+  done
+  assert_reject "시퀀스 규칙 사본 $nm 긴 흐름 핵심 경로 삭제 격추" "시퀀스 규칙 사본 $nm 긴 흐름 핵심 경로" seq_copy_cut "$cf" '핵심 경로만 '
+  assert_reject "시퀀스 규칙 사본 $nm 긴 흐름 생략 안내 삭제 격추" "시퀀스 규칙 사본 $nm 긴 흐름 생략 안내" \
+    seq_copy_cut "$cf" '`생략한 호출은 위 트리에서 확인한다.` '
+done
 
 # --- 모의 실행 fixture 쌍 -------------------------------------------------------
 

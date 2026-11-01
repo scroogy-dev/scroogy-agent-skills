@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-27
-source_hash: 5fc095f
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -14,7 +14,7 @@ status: current
 
 ```
 issue-audit/SKILL.md `### --plan`
-├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger, testing-principles 쌍(있으면, 7항), summary는 모델 기록 표의 계획 모델 행만 (Task 결과·구현 diff 제외)
+├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger, testing-principles 쌍(있으면, 7항), 이전 리포트 issue-<번호>-plan-audit-report*.md(6항), summary는 모델 기록 표의 계획 모델 행만 (Task 결과·구현 diff 제외)
 ├── 1단계: 적합성 검증            # 행 = 이슈 본문 요구 항목 ↔ spec 포함·제외 (PASS/FAIL/PARTIAL/N/A), DoD 표는 포함 R ↔ `### R<n>` 그룹
 ├── 2단계: 비판적 검증 5관점
 │   ├── 추적성 [D]                # scripts/check-plan.sh --trace <spec> <plan>
@@ -36,6 +36,50 @@ check-plan.sh --trace <spec> <plan>
 ├── spec 파서                     # `**포함**` 아래 `- R<n>: ` → INC, `## 완료의 정의` 안 `### R<n>: ` → DOD
 ├── plan 파서                     # `### Task ` 블록별 `대상 요구사항` 값의 R<n> → REF, 없으면 NOFIELD (고정 Task 0·N 제외)
 └── 대조                          # R 없는 DoD 그룹 / DoD 없는 R / Task 없는 R / 대상 요구사항 없는 일반 Task / 추적 불가 → 1행씩·exit 1
+```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as issue-audit/SKILL.md
+    participant CP as scripts/check-plan.sh
+    participant CR as scripts/classify-risk.sh
+    participant NF as scripts/next-finding-number.sh
+
+    SK->>SK: 0단계 컨텍스트 수집(이슈 본문, spec·plan, 30_contract·40_domain·50_adr·70_ledger, testing-principles 쌍, 이전 계획 감사 리포트, summary 계획 모델 행)
+    Note over SK: Task 결과와 구현 diff는 읽지 않음
+    SK->>SK: 1단계 이슈 본문 요구 항목과 spec 포함·제외 대조
+    SK->>CP: --trace spec plan
+    CP->>CP: 인자 검사, 코드 펜스·HTML 주석 건너뛰기, spec·plan 파싱, 삼자 대조
+    alt 입력 오류
+        CP-->>SK: exit 2
+        Note over SK: 감사를 멈추고 경로 확인
+    else 위반 있음
+        CP-->>SK: 위반 1행씩, exit 1
+    else 통과
+        CP-->>SK: 무출력, exit 0
+    end
+    Note over SK: 추적성 출력은 1단계 DoD 대조 근거로도 씀
+    SK->>SK: 가짜 [D] 사전 판별, 구현 전 트리에서 [D] 명령 실행
+    Note over SK: 정상 명령은 실패해야 함, 고정 블록 제외, 회귀 방지 항목 표시만 예외, 전제 조건이 없으면 판정 불가(N/A)
+    SK->>SK: 범위·모호성·과잉 설계 [QD] 검토, 원장 기등재 대조
+    SK->>CR: --compliance 항목 판정 전부
+    CR-->>SK: 1단계 상태(최고값)
+    loop 발견마다
+        SK->>CR: --impact 영향 축 --likelihood 발생확률 축
+        CR-->>SK: 위험도 등급
+        SK->>CR: --treatment 위험도
+        CR-->>SK: 등급별 기본 처리
+    end
+    SK->>NF: 보존된 리포트 글롭 issue-번호-plan-audit-report*.md
+    NF-->>SK: 다음 발견 번호(최종 감사와 축 분리)
+    SK->>CR: --status 위험도 목록
+    CR-->>SK: 2단계 상태
+    SK->>CR: --verdict 1단계 상태 2단계 상태
+    CR-->>SK: 판정 한 줄
+    SK->>SK: 리포트 작성 후 .ai/99_workspace 에 저장(회차 보존)
+    Note over SK: 감사 모델·effort 값은 사용자가 summary 계획 audit 모델 행에 기록
 ```
 
 ## Why

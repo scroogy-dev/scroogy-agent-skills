@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-27
-source_hash: 5fc095f
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -21,7 +21,7 @@ ai-workspace/SKILL.md
 │   └── 없을 때만 cp                    # file-change-policy·writing-principles-local, dev면 architecture·coding-convention·testing-principles-local, doc면 document-convention
 ├── update-2단계: 20_templates/ 정리    # rm -rf .ai/20_templates/* (issue-work로 이관된 구 템플릿 제거)
 ├── update-3단계: 콘텐츠 디렉토리 정비   # 30_contract~90_issues 하위 구조·.gitkeep, index.md·ledger-entry-template.md 없으면 배포
-│   └── 루트 파일 이동                  # 판단 기준 표(ADR 상태 줄·원장 상태 값)로 specs·policies/local·active·superseded·archive, 불가면 legacy/
+│   └── 루트 파일 이동                  # 판단 기준 표(ADR 상태 줄·원장 상태 값)로 specs·policies/local·active·superseded·archive, 불가면 legacy/. 루트 상주 파일(index.md·40_domain/glossary.md·ledger-entry-template.md)은 제외
 ├── update-4단계: AI-CONTEXT.md 갱신
 │   ├── scripts/check-context.sh <AI-CONTEXT.md>   # 10항목 판정, 누락 1행씩·exit 1, 조치는 SKILL.md
 │   │   ├── SSoT 선언 행                # dev·doc 두 표준 문구 인정, doc 선언이면 ssot_dir 행·dev 표준 문구 4곳(우선순위·60_codebase 설명 3곳) 잔존도 검사. doc 문구를 넣은 실행은 ssot_dir 자리표시자 행 보강·4곳 doc 문구 교체 동시 수행, dev 문구를 넣은 실행은 testing-principles.md 행 보강(헬퍼 1회 실행이라 같은 실행에서 재검사 없음). 건물 repo면 프로파일과 무관하게 dev 문구로 삽입·교체
@@ -33,11 +33,52 @@ ai-workspace/SKILL.md
 └── update-5단계: 완료 보고             # 생성·이동·legacy/ 목록, legacy/ 는 수동 분류 요청
 ```
 
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as ai-workspace/SKILL.md
+    participant RM as rm
+    participant CP as cp
+    participant CC as scripts/check-context.sh
+
+    Note over SK: 1·2단계 프로파일 확인, .ai/ 있음에서 update 선택
+    SK->>RM: update-1 구버전 정책 5종 rm -f
+    SK->>CP: context-loading.md·writing-principles.md 항상 덮어쓰기
+    SK->>CP: file-change-policy.md·writing-principles-local.md 없을 때만 복사
+    alt dev 프로파일
+        SK->>CP: testing-principles.md 항상 덮어쓰기
+        SK->>CP: architecture·coding-convention·testing-principles-local 없을 때만 복사
+    else doc 프로파일
+        SK->>CP: document-convention.md 없을 때만 복사
+    end
+    SK->>RM: update-2 rm -rf .ai/20_templates/*
+    Note over SK: update-3 하위 구조·.gitkeep 생성, 없는 index.md·ledger-entry-template.md 배포
+    Note over SK: 루트 파일을 판단 기준 표로 이동, 루트 상주 파일 제외, 판단 불가는 legacy/
+    SK->>CC: update-4 check-context.sh .ai/AI-CONTEXT.md
+    alt 누락 없음
+        CC-->>SK: 무출력, exit 0
+    else 누락 있음
+        CC-->>SK: 누락 항목 1행씩, exit 1
+        Note over SK: 보고된 항목만 표준 골격 삽입·정정·교체(조치는 SKILL.md)
+        opt 건물 repo 선언 보고
+            Note over SK: dev 문구로 바꿀지 질의, 자동 전환 없음
+        end
+    end
+    Note over SK: .ai/ 한 줄 압축·트리 정렬은 헬퍼 밖에서 직접 판단
+    Note over SK: last updated를 실행일로 갱신
+    opt 구버전 구조 발견
+        Note over SK: references/legacy-migration.md 절차 수행
+    end
+    Note over SK: update-5 생성·이동·legacy/ 목록 보고, legacy/는 수동 분류 요청
+```
+
 ## Why
 
 - 설계 근거는 `ai-workspace/SKILL.md` `### 설계 원칙`과 `## 디렉토리 트리 정렬 규칙`에 있다. 버전 고정 파일과 사용자 관리 파일을 나눈 이유는 update-1단계 주석에 있다.
 - `check-context.sh`가 판정만 맡고 조치를 SKILL.md에 남긴 것은 [architecture.md 디자인 원칙](../../10_rules/architecture.md)의 역할 분담을 따른 것이다. 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
 - 원장 [K-0001](../../70_ledger/archive/K-0001-update3-fixture-absent.md): update-3 파일 정리에 회귀 fixture가 없었다(해소(PR #124)).
+- 원장 [K-0018](../../70_ledger/active/K-0018-update4-rules-restore-profile-mismatch-row.md): update-4에서 `## 프로젝트 규칙` 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠진다(수용).
 - update-3 `50_adr/` 판정을 본문 키워드 대신 상태 줄 값으로 하고 상태 줄 없는 ADR을 `active/`로 두는 결정은 [ADR 0022](../../50_adr/active/0022-adr-lifecycle-status-and-superseded-move.md). 판단 기준 표 5행·루트 상주 파일·`legacy/`는 회귀 fixture `ai-workspace/tests/fixtures/update3-file-cleanup/`(모의 실행 `[QD]`)가 덮으며, 이 fixture로 원장 K-0001을 해소했다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(update 구조 정합, 멱등 보강 검사 10종 + AI 판정 2종, 루트 상주 파일 제외, `## Git 정책` 표 미검사).
 - 정책: [SSoT 원칙과 안내도 라우터](../../40_domain/policies/local/ssot-and-router-principle.md).

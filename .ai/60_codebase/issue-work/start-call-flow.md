@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-27
-source_hash: b81f01c
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -27,6 +27,39 @@ issue-work/SKILL.md `## 새 이슈 시작 시` → `## 작업 진행 중`
 ├── Task 1..N-1                         # 그 Task 기능의 테스트 작성과 테스트 `[D]`를 Task 안에 둠, 완료 시 plan 체크·summary 갱신
 │   └── scripts/summarize-metrics.sh <summary>   # 수치 지표 3종(audit 발견·보정 반영·재시도) 표기 검사·보정률 집계, 위반은 exit 1
 └── Task N: 교차모델 issue-audit         # 사용자 수동 (구현 AI 자동 실행·종료 금지), `최종 audit 모델` 행에 "벤더, 모델명 (모델 ID)"·effort, 리포트는 --response 로
+```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as issue-work/SKILL.md
+    participant SM as summarize-metrics.sh
+
+    Note over SK: 1. active/ 기존 이슈 디렉토리를 archive/로 이동
+    Note over SK: 2. issue-workflow.md를 템플릿과 비교해 다르면 덮어쓰기
+    Note over SK: 3-1. spec 목표·요구사항·연관 문서 후보 작성, 함께 해소 후보는 따로 표시
+    loop 수정 요청이 있는 동안
+        Note over SK: 요구사항 승인 게이트 (spec 경로와 목표 한 줄·포함·제외만 제시)
+    end
+    Note over SK: 3-2. 완료의 정의·전제, plan·summary 작성 (테스트 층 표가 있으면 따름)
+    Note over SK: 4. 계획 종료 게이트 (문서에 없는 전제를 spec 전제에 기록)
+    alt 계획 감사 수행
+        Note over SK: 사용자가 issue-audit --plan 실행, 리포트는 --response로 검토해 spec·plan 보정
+    else 건너뜀
+        Note over SK: summary 계획 audit 모델 행과 계획 감사 줄에 생략 기록
+    end
+    Note over SK: Task 0 구현 시작 게이트 (전제·모호점 질의 후 착수)
+    loop Task 1부터 N-1까지
+        Note over SK: 테스트 작성·구현, plan 체크·summary 갱신
+        SK->>SM: summary 파일
+        alt 표기 위반
+            SM-->>SK: exit 1, 위반 사유 1행씩
+        else 통과
+            SM-->>SK: exit 0, 지표 합계·보정률
+        end
+    end
+    Note over SK: Task N 교차모델 issue-audit는 사용자가 수동 수행, 리포트는 --response로
 ```
 
 ## Why

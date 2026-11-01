@@ -36,6 +36,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0016](active/K-0016-git-pr-adr-sync-check-absent.md) | git-pr 문서 동기화 점검이 변경과 ADR 결정의 어긋남을 대조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | ADR 결정과 어긋난 변경이 머지된 사례 관측 시, 또는 git-pr 문서 동기화 점검 표의 행 실질 변경 시 |
 | [K-0017](active/K-0017-adr-link-helper-absent.md) | ADR을 superseded/로 옮긴 뒤 끊긴 링크를 결정적 헬퍼로 검사하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 첫 `superseded/` 이동에서 링크 갱신 누락 관측 시, 또는 ADR index `## 수명 주기`의 들어오는 링크 갱신 행 실질 변경 시 |
 | [K-0018](active/K-0018-update4-rules-restore-profile-mismatch-row.md) | ai-workspace update-4에서 규칙 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠진다 | known issue | 낮음(LOW) | 수용 | update-4 `## 프로젝트 규칙` 섹션·표 복구 조치나 `testing-principles.md` 행 검사 조건 실질 변경 시, 또는 dev 선언 repo의 update 결과에서 이 행이 빠진 사례 관측 시 |
+| [K-0019](active/K-0019-seq-copy-literal-check-misses-meaning-change.md) | 시퀀스 규칙 사본 대조가 라벨·리터럴만 보아 리터럴을 남긴 의미 변경을 잡지 못한다 | 기술부채 | 낮음(LOW) | 수용 | git-pr·git-review-context 사본의 규칙 행이 code-map 원문과 뜻이 어긋난 사례 관측 시, 또는 세 사본의 규칙 유지 방식(`SEQ_ROWS` 대조)이나 code-map `## 시퀀스 다이어그램 작성 규칙` 행 실질 변경 시 |
 
 ## 수명 주기
 

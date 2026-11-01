@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-25
-source_hash: bd9a683
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -17,9 +17,10 @@ git-pr/SKILL.md `## PR 제출`
 ├── 1. PR 유형 확인                     # 정식 기본, 기본값도 확인 응답 필수 (--draft 면 이 질의만 생략)
 │   ├── 베이스 브랜치 자동 감지         # 원격 기본 브랜치
 │   └── scripts/verify-submit.sh --normalize <URL>   # 베이스·소스 저장소 대조, 포크면 제출 미지원 (메시지만 작성 여부 질의)
-├── 2. 메시지 작성                      # 기준 SHA 고정, 미커밋 변경 있으면 커밋·제외 질의
-│   ├── templates/pr-body-template.md   # 이슈 목록 → 이슈별 리스크·주의사항(접기 밖) + 비즈니스·테크 관점(접기)
+├── 2. 메시지 작성                      # 기준 SHA 고정, 미커밋 변경 있으면 커밋·제외 질의, 이후 PR 제목 → PR 메시지 구조 → 문서 동기화 점검 순
 │   ├── scripts/validate-title.sh --title '<제목>' | <제목 파일>   # exit 0/1/2
+│   ├── templates/pr-body-template.md   # 이슈 목록 → 이슈별 리스크·주의사항(접기 밖) + 비즈니스·테크 관점(접기)
+│   │   └── 테크 관점 호출 흐름         # 색인 대신 SSoT 직접 확인(AI-CONTEXT 선언, 선언이 없으면 소스 코드로 보고 AI-CONTEXT가 있을 때만 1줄 알림), 기능별 트리 → 작성 대상 기준 3행 해당 시 바로 다음 mermaid (소제목 없음, `## 시퀀스 다이어그램 작성 규칙`)
 │   ├── 문서 동기화 점검                # README·AI-CONTEXT·60_codebase 갱신 권고만, 실행 여부 질의
 │   │   └── 원장 대조                   # .ai/70_ledger/index.md active/ 항목의 재검토 조건·원인 vs diff → 재검토 이력·종결 권고, 승인분만 반영, 해소는 4단계로
 │   │       └── 승격 이관               # 이슈 생성 별도 승인 → 승격(이슈 #N) → archive/ → index 항목 목록 → 4단계 원장 해소 기재의 들어오는 링크 갱신
@@ -39,6 +40,68 @@ git-pr/SKILL.md `## PR 제출`
     └── 임시 파일 삭제 질의                                            # 대조 통과·보고 뒤에만
 ```
 
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as git-pr/SKILL.md
+    participant GIT as git
+    participant VS as verify-submit.sh
+    participant VT as validate-title.sh
+    participant GH as gh
+    participant MCP as GitHub MCP
+    participant CL as check-ledger-links.sh
+
+    Note over SK: 1단계 PR 유형 확인 (--draft면 질의 생략)
+    SK->>GIT: 원격 기본 브랜치, 베이스·소스 원격 URL 조회
+    GIT-->>SK: 베이스 브랜치, 원격 URL
+    SK->>VS: --normalize 베이스·소스 원격 URL
+    VS-->>SK: 호스트/소유자/저장소
+    opt 저장소가 다름 (포크)
+        Note over SK: 제출 미지원 안내, 메시지만 작성할지 질의
+    end
+    Note over SK: 2단계 기준 SHA 고정, 미커밋 변경은 커밋·제외 질의
+    SK->>VT: --title 제목 또는 제목 파일
+    VT-->>SK: exit 0 통과 / 1 위반 사유 / 2 사용오류
+    Note over SK: 본문은 템플릿 구조, 호출 흐름은 트리 다음 mermaid (작성 대상 기준 해당 시)
+    Note over SK: 문서 동기화 점검·원장 대조는 권고, 승인분만 반영
+    Note over SK: 제목·본문 파일을 1회만 쓰기
+    Note over SK: 3단계 최종 제시 및 승인 (생략 불가)
+    alt 거절
+        Note over SK: 제출 없이 종료, 제목·본문 파일 경로 안내
+    else 승인 (대상 저장소·SHA 불변 보관)
+        SK->>GIT: remote get-url 승인한 원격
+        GIT-->>SK: 현재 URL
+        SK->>VS: --normalize 현재 URL
+        VS-->>SK: 승인 저장소와 대조할 값
+        SK->>VS: --branch 소스 --expect 승인 SHA
+        VS-->>SK: exit 0 일치 / 1 불일치
+        opt push 승인
+            SK->>GIT: push -u 승인한 원격 소스
+        end
+        SK->>VS: --remote 원격 --branch 소스 --expect 승인 SHA
+        VS-->>SK: exit 0 일치 / 1 불일치·다중 ref
+        alt gh 사용 가능
+            SK->>GH: pr create [--draft] --repo --base --head --title --body-file
+            GH-->>SK: PR 번호·URL
+        else gh 없음·미인증 (github.com 한정)
+            SK->>MCP: create_pull_request (승인값 전부 명시)
+            MCP-->>SK: PR 번호·URL
+        end
+        SK->>GH: pr view PR 번호 --json headRefOid
+        GH-->>SK: head SHA (승인 SHA와 대조)
+        opt head SHA 일치, 종결 승인 항목 있음
+            Note over SK: 해소(PR 번호) 기재 → archive/ 이관 → index 갱신 → 들어오는 링크 갱신
+            SK->>CL: '.ai'
+            CL-->>SK: exit 0 무출력 / 1 끊긴 링크 1행씩
+            Note over SK: 커밋·push는 별도 승인
+        end
+        Note over SK: 대조 통과·보고 뒤 임시 파일 삭제 질의
+    end
+```
+
+생략한 호출은 위 트리에서 확인한다.
+
 ## Why
 
 - 각 가드의 근거는 `git-pr/SKILL.md` `## PR 제출` 1~4단계 본문에 작성자가 기재했다. 포크 미지원, 승인값 불변 보관, 원격 이름은 가변 별칭이라 URL 재정규화, `ls-remote` tail 패턴 위험, `--repo`·`--head` 생략 금지, 승인값 셸 보간 금지가 그것이다.
@@ -48,4 +111,5 @@ git-pr/SKILL.md `## PR 제출`
 - 계약: [GitHub 연동 수단](../../30_contract/github-integration.md)(gh 기본·MCP 폴백 github.com 한정, `refs/heads/` 완전 ref, 동적 인자 인용). 명세: [PR 제출 요건](../../40_domain/specs/git-pr-submission.md)(절차, 문서 동기화 점검 표).
 - 원장 대조와 PR 생성 후 해소 기재(PR 번호를 알 때만 확정)는 [ADR 0018](../../50_adr/active/0018-ledger-proactive-review-and-resolve-timing.md). 원장 항목을 옮긴 뒤 들어오는 링크 갱신과 끊긴 원장 링크 검사 헬퍼는 [ADR 0021](../../50_adr/active/0021-ledger-archive-move-link-update.md).
 - 제목·본문을 파일에 1회만 쓰고 삭제 질의를 SHA 대조 뒤에 두는 정리 시점(A+B)은 [ADR 0013](../../50_adr/active/0013-long-output-single-file-generation.md).
+- 테크 관점 호출 흐름의 트리 다음에 시퀀스 다이어그램을 두는 결정과 `## 시퀀스 다이어그램 작성 규칙` 사본 유지(원본 code-map)는 [ADR 0025](../../50_adr/active/0025-sequence-diagram-extended-to-git-pr-and-review-context.md). 사본 대조가 라벨·리터럴만 보는 한계는 원장 [K-0019](../../70_ledger/active/K-0019-seq-copy-literal-check-misses-meaning-change.md)(수용).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).

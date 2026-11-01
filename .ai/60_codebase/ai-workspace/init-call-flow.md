@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-27
-source_hash: 5fc095f
+last_synced: 2026-10-31
+source_hash: 552fe6a
 status: current
 ---
 
@@ -23,6 +23,33 @@ ai-workspace/SKILL.md
 │   ├── cp -r templates/<profile>/.ai/*   # AI-CONTEXT.md(dev는 규칙 표 testing-principles.md 행, doc은 원본 문서 선언·ssot_dir·publish 행), dev 전용 architecture.md·coding-convention.md·testing-principles.md(버전 고정)·testing-principles-local.md, doc 전용 document-convention.md(문서 규약 골격 H2 4칸)
 │   └── sed "> last updated: YYYY-MM-DD"  # date +%Y-%m-%d 로 치환
 └── init-2단계: 완료 보고              # 생성 트리, domain·keywords 입력 요청(doc은 ssot_dir도), multi면 상위 안내도 Repos 행 동기화 권유, solo면 단독 repo 명시
+```
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    participant SK as ai-workspace/SKILL.md
+    participant RM as rm
+    participant CP as cp
+    participant SED as sed
+
+    Note over SK: 1단계 프로파일 확인(dev·doc 인자, 없으면 질의)
+    alt .ai/ 없음
+        Note over SK: 2단계 init 모드로 진행
+    else .ai/ 있음
+        Note over SK: 2단계 init·update 선택 질의, init은 전체 덮어쓰기 경고
+    end
+    Note over SK: init-0단계 ../.ai/AI-CONTEXT.md 존재로 multi·solo 자동 판정(질의 없음)
+    SK->>RM: rm -rf .ai
+    SK->>CP: templates/shared/.ai/ 공통 골격 복사
+    SK->>CP: templates/프로파일/.ai/ 전용 파일 복사
+    SK->>SED: last updated 자리표시자를 실행일로 치환
+    alt multi
+        Note over SK: init-2단계 보고, 상위 안내도 Repos 행 동기화 권유
+    else solo
+        Note over SK: init-2단계 보고, 단독 repo 명시
+    end
 ```
 
 ## Why

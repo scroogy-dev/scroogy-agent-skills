@@ -272,11 +272,17 @@ PR에 포함된 이슈를 한눈에 파악할 수 있도록 상단에 목록으�
   - `.ai/60_codebase/index.md`에 내용이 있으면 참고하되, 색인을 신뢰하지 않고 SSoT를 직접 확인하여 작성합니다. SSoT는 `AI-CONTEXT.md` 본문 2번째 줄(H1 제목과 그 뒤 빈 줄 제외)의 `> SSoT: <값>.` 선언을 따릅니다. 값은 `소스 코드` 또는 `원본 문서`이며 그 외 값은 선언으로 보지 않습니다. 선언을 찾지 못하면 소스 코드를 SSoT로 봅니다. `AI-CONTEXT.md`는 있는데 선언을 찾지 못해 소스 코드로 진행하면 그 사실을 사용자에게 한 줄로 알리고, `ai-workspace` update로 선언을 보강할 수 있다고 안내합니다. `AI-CONTEXT.md`가 없으면 알리지 않습니다.
   - 기능(엔트리 포인트)별로 나누어, 주요 컴포넌트 간의 실행 흐름을 디렉토리 트리 형태의 ASCII 다이어그램으로 도식화합니다.
     - 각 노드에 `ClassName#methodName` 명시, 트리 기호(`├──`, `└──`)로 호출 계층 표현, 핵심 로직은 노드 옆 `# 설명` 주석.
+  - 아래 기준에 해당하는 기능은 트리 코드 블록 바로 다음에 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리고, 해당하지 않는 기능은 트리만 둡니다. 작성법은 [시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)을 따릅니다.
+    - 엔트리포인트 → 핵심 로직 → 외부 의존성(DB, 외부 API 등) 사이에 **2단계 이상의 호출 계층**이 존재하는 경우
+    - **외부 서비스 호출**(HTTP 클라이언트, 메시지 발행 등)이 포함된 경우
+    - **트랜잭션 경계**, **이벤트 발행**, **비동기 처리** 등 흐름 분기가 있는 경우
   - 하나의 이슈에 여러 기능이 있으면 기능별로 각각 작성합니다.
 
   *(예)*
-  ```
+
   - 주문 생성:
+
+    ```
     OrderController#create
     ├── OrderValidator#validate        # 필수 필드 및 재고 가용성 검증
     └── OrderService#process           # 주문 생성 트랜잭션 관리
@@ -285,11 +291,62 @@ PR에 포함된 이슈를 한눈에 파악할 수 있도록 상단에 목록으�
         ├── PaymentService#charge      # 결제 요청 및 실패 시 재고 롤백
         │   └── PgClient#requestPayment (외부 API)
         └── OrderRepository#save (DB)
-  ```
+    ```
+
+    ```mermaid
+    sequenceDiagram
+        participant OC as OrderController
+        participant OV as OrderValidator
+        participant OS as OrderService
+        participant IS as InventoryService
+        participant IR as InventoryRepository
+        participant PS as PaymentService
+        participant PG as PgClient
+        participant OR as OrderRepository
+
+        OC->>OV: validate
+        OV-->>OC: 검증 통과
+        OC->>OS: process
+        rect rgba(128, 128, 128, 0.1)
+            Note over OS,OR: 주문 생성 트랜잭션
+            OS->>IS: decrease
+            IS->>IR: update
+            IS-->>OS: 재고 차감 완료
+            OS->>PS: charge
+            PS->>PG: requestPayment
+            PG-->>PS: 결제 결과
+            alt 결제 실패
+                PS-->>OS: 결제 실패 예외
+                Note over OS,IR: 트랜잭션 롤백으로 재고 차감 취소
+                OS-->>OC: 주문 실패 예외
+            else 결제 성공
+                PS-->>OS: 결제 승인
+                OS->>OR: save
+                OR-->>OS: 저장된 주문
+                OS-->>OC: 생성된 주문
+            end
+        end
+    ```
 
 * **참고사항:** 구현 시 참고한 아키텍처 결정 기록(ADR), DB 스키마 변경 사항, 사내 가이드, 또는 보안/성능 측면의 특이사항을 명시합니다.
   관련 ADR·계약·도메인 문서가 있으면 해당 파일 경로를 함께 적습니다 (경로 안내는 위 "참조 문서" 참고).
   보안·성능 특이사항이 실제 리스크·주의사항이면 여기 두지 않고 접기 밖 `리스크·주의사항` 목록으로 승격합니다 (위 구조 설명 참조).
+
+---
+
+## 시퀀스 다이어그램 작성 규칙
+
+이슈별 테크 관점 `호출 흐름`에 그리는 시퀀스 다이어그램에 적용하는 규칙입니다. 트리는 누가 누구를 호출하는지 보여 주고, 시퀀스 다이어그램은 호출 순서·응답·동기와 비동기 구분·분기·트랜잭션 경계처럼 트리에 없는 정보를 보여 줍니다.
+규칙의 원본은 `code-map`이며, 위치·형식 행은 이 스킬의 배치에 맞춰 씁니다 (스킬 단독 실행을 위해 복사해 두었으므로 한쪽 변경 시 양쪽 동기화).
+
+- **위치·형식**: `호출 흐름`의 기능마다 트리 코드 블록 바로 다음에 Mermaid `sequenceDiagram`을 `mermaid` 코드 블록으로 씁니다. `### 시퀀스 다이어그램` 같은 소제목은 두지 않고, 기능 이름 줄이 구분을 맡습니다.
+- **참여자**: 트리 노드의 호출 주체(`OrderService#createOrder`이면 `OrderService`)를 참여자로 두고, `participant`로 미리 선언해 처음 호출되는 순서로 놓습니다.
+- **응답**: 반환 값과 예외는 `-->>`로 적고, 의미 없는 void 반환은 생략합니다.
+- **동기·비동기**: 동기 호출은 `->>`, 호출한 쪽이 응답을 기다리지 않는 호출(메시지 브로커 전송, `@Async` 메서드 등)은 `-)`로 적습니다.
+- **분기·반복**: 조건 분기와 반복은 `alt`·`opt`·`loop`로 적습니다.
+- **트랜잭션 경계**: 트랜잭션 범위는 `rect` 또는 `Note`로 표시합니다.
+- **금지 문자**: 메시지 문구에 `;`와 `#`를 쓰지 않습니다. Mermaid는 `;`를 문장 구분자로, `#`를 엔티티 코드(`#59;` 등)의 시작으로 해석합니다.
+- **긴 흐름**: 한 다이어그램으로 읽기 어려우면 핵심 경로만 그리고, 다이어그램 아래에 `생략한 호출은 위 트리에서 확인한다.` 한 줄을 적습니다.
 
 ---
 

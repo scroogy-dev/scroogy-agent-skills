@@ -69,13 +69,16 @@ AI가 변경 사항을 사전 분석하여 리뷰에 필요한 핵심 정보를 
 
 - 엔트리 포인트 → 핵심 로직 → 외부 의존성(DB, 외부 API 등) 순서로 흐름을 정리합니다.
 - 변경된 파일이 흐름의 어느 지점에 위치하는지 명시합니다.
-- 흐름이 복잡한 경우 의사코드 또는 단계별 목록 형태로 표현합니다.
 - 호출 흐름은 디렉토리 트리 형태의 ASCII 다이어그램으로 시각화하여 가시성을 높입니다.
   - 각 노드에 클래스명과 메서드명을 명시합니다(예: `ClassName#methodName`).
   - 들여쓰기와 트리 기호(`├──`, `└──`)로 호출 계층을 표현합니다.
   - 핵심 로직은 노드 옆에 `# 설명` 주석 형태로 간략히 기재합니다.
+- 아래 기준에 해당하는 엔트리 포인트는 트리 코드 블록 바로 다음에 같은 흐름을 Mermaid 시퀀스 다이어그램으로 그리고, 해당하지 않는 엔트리 포인트는 트리만 둡니다. 작성법은 [시퀀스 다이어그램 작성 규칙](#시퀀스-다이어그램-작성-규칙)을 따릅니다.
+  - 엔트리포인트 → 핵심 로직 → 외부 의존성(DB, 외부 API 등) 사이에 **2단계 이상의 호출 계층**이 존재하는 경우
+  - **외부 서비스 호출**(HTTP 클라이언트, 메시지 발행 등)이 포함된 경우
+  - **트랜잭션 경계**, **이벤트 발행**, **비동기 처리** 등 흐름 분기가 있는 경우
 
-호출 흐름 ASCII 다이어그램 예시:
+호출 흐름 예시 (트리와 시퀀스 다이어그램):
 
 ```
 OrderController#createOrder
@@ -85,6 +88,40 @@ OrderController#createOrder
 │   └── PaymentService#charge        # 결제 요청 및 실패 시 재고 롤백
 │       └── PaymentGatewayClient#requestPayment (외부 API)
 └── OrderEventPublisher#publish      # 주문 완료 이벤트 발행
+```
+
+```mermaid
+sequenceDiagram
+    participant OC as OrderController
+    participant OS as OrderService
+    participant IS as InventoryService
+    participant IR as InventoryRepository
+    participant PS as PaymentService
+    participant PG as PaymentGatewayClient
+    participant EP as OrderEventPublisher
+
+    OC->>OS: placeOrder
+    rect rgba(128, 128, 128, 0.1)
+        Note over OS,PG: 주문 생성 트랜잭션
+        OS->>IS: reserve
+        Note over IS: 재고 락 획득
+        IS->>IR: decreaseStock
+        IS-->>OS: 재고 차감 완료
+        OS->>PS: charge
+        PS->>PG: requestPayment
+        PG-->>PS: 결제 결과
+        alt 결제 실패
+            PS-->>OS: 결제 실패 예외
+            Note over OS,IR: 트랜잭션 롤백으로 재고 차감 취소
+            OS-->>OC: 주문 실패 예외
+        else 결제 성공
+            PS-->>OS: 결제 승인
+            OS-->>OC: 생성된 주문
+        end
+    end
+    opt 주문 생성 성공
+        OC->>EP: publish
+    end
 ```
 
 ### 6단계: 리뷰 포인트 도출
@@ -98,6 +135,22 @@ OrderController#createOrder
 - **의존성 영향**: 변경이 다른 모듈·서비스에 미치는 영향
 - **테스트 커버리지**: 변경된 로직에 대한 테스트가 존재하는가
 - **기타**: 성능, 보안, 코드 가독성 등 특이 사항
+
+---
+
+## 시퀀스 다이어그램 작성 규칙
+
+5단계 호출 흐름 분석의 결과를 적는 `## 호출 흐름`에 그리는 시퀀스 다이어그램에 적용하는 규칙입니다. 트리는 누가 누구를 호출하는지 보여 주고, 시퀀스 다이어그램은 호출 순서·응답·동기와 비동기 구분·분기·트랜잭션 경계처럼 트리에 없는 정보를 보여 줍니다.
+규칙의 원본은 `code-map`이며, 위치·형식 행은 이 스킬의 배치에 맞춰 씁니다 (스킬 단독 실행을 위해 복사해 두었으므로 한쪽 변경 시 양쪽 동기화).
+
+- **위치·형식**: `## 호출 흐름` 접기 안에서 엔트리 포인트마다 트리 코드 블록 바로 다음에 Mermaid `sequenceDiagram`을 `mermaid` 코드 블록으로 씁니다. `### 시퀀스 다이어그램` 같은 소제목은 두지 않고, 엔트리 포인트 이름 줄이 구분을 맡습니다.
+- **참여자**: 트리 노드의 호출 주체(`OrderService#createOrder`이면 `OrderService`)를 참여자로 두고, `participant`로 미리 선언해 처음 호출되는 순서로 놓습니다.
+- **응답**: 반환 값과 예외는 `-->>`로 적고, 의미 없는 void 반환은 생략합니다.
+- **동기·비동기**: 동기 호출은 `->>`, 호출한 쪽이 응답을 기다리지 않는 호출(메시지 브로커 전송, `@Async` 메서드 등)은 `-)`로 적습니다.
+- **분기·반복**: 조건 분기와 반복은 `alt`·`opt`·`loop`로 적습니다.
+- **트랜잭션 경계**: 트랜잭션 범위는 `rect` 또는 `Note`로 표시합니다.
+- **금지 문자**: 메시지 문구에 `;`와 `#`를 쓰지 않습니다. Mermaid는 `;`를 문장 구분자로, `#`를 엔티티 코드(`#59;` 등)의 시작으로 해석합니다.
+- **긴 흐름**: 한 다이어그램으로 읽기 어려우면 핵심 경로만 그리고, 다이어그램 아래에 `생략한 호출은 위 트리에서 확인한다.` 한 줄을 적습니다.
 
 ---
 
