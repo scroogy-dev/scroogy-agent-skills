@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N 교차모델 issue-audit 검증, 사용자 수동 수행 (Task 8 완료)
+> ▶️ 다음 작업: `--clear`로 이슈 정리 후 `/git-pr`로 PR 생성 (Task N 완료)
 
 ## 모델 기록
 
@@ -33,7 +33,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 | <!-- 구현 모델과 다른 벤더 모델. 형식: 벤더, 모델명 (모델 ID). 마지막 교차모델 audit Task에서 사용자가 기록 --> | <!-- 최종 감사 리포트의 감사 effort 줄 값. 사용자가 기록. 확인 불가면 - --> |
+| 최종 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
 
 - **계획 감사**: 수행 · 발견 2건 · 보정 2건
 
@@ -255,6 +255,9 @@ audit 발견·보정 반영은 이 Task가 만들어낸 값이라 각 대상 Tas
 수행 effort도 같은 행의 `effort` 열이 SSoT다.
 -->
 
-- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
-- **수행 내용 요약**: <!-- audit 리포트 위치, 발견사항 건수, `--response` 검토 결과 -->
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI, GPT-6 (gpt-6-astra), effort high로 `issue-audit`를 실행했다(리포트 `.ai/99_workspace/issue-0130-audit-report.md`, 1차). 종합 의견은 적합(PASS)이다. 1단계는 충족 72건(요구사항 14·완료의 정의 58)이고 미충족·부분 충족·판정 불가는 0건이다. 2단계 발견은 0건이다. spec `[D]` 명령 48개는 모두 종료 코드 0, 무출력이다. `--response` 검토에서 판정에 모두 동의했고 보정 대상이 없어 Task 블록의 `audit 발견`·`보정 반영`은 0 그대로다. 검토 때 스킬 러너 13개 통과, `git diff --check main...HEAD`·`check-plan.sh --trace` 무출력을 다시 확인했다.
 - **특이 사항**:
+  - 기등재 참조 2건(K-0003·K-0010)은 재검토 조건이 충족되지 않았다는 판단에 동의했다. 발견이 아니라 참조라 원장 파일은 고치지 않았다.
+  - 리포트의 코드 색인 갱신 권고(`60_codebase/`)는 spec 전제 15대로 PR 문서 동기화 점검에 맡긴다.
+  - 이 블록과 `모델 기록` 표 `최종 audit 모델` 행, plan Task N 체크박스는 사용자 지시로 구현 AI가 리포트 값을 옮겨 적었다.
