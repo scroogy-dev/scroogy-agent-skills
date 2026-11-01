@@ -1349,6 +1349,58 @@ assert_structure check_testing_skill "$sandbox/tr-32-moved.md"     fail "테스�
 assert_structure check_testing_plan  "$sandbox/tr-plan-del.md"     fail "테스트 원칙 조항: 테스트 배치 문단 local 참조 삭제 격추"
 assert_structure check_testing_plan  "$sandbox/tr-plan-split.md"   fail "테스트 원칙 조항: 테스트 배치 local 참조의 다음 문단 이동 격추"
 
+# --- 이슈 본문 템플릿 (issue #130) ------------------------------------------------
+#
+# `--create` 초안, 3-1 근거 판정, issue-audit `--plan` 1단계가 같은 이슈 본문 구조를 읽는다.
+# 본문 헤더 4개와 접기 제목 3개를 열거해 그 외 0건까지 판정하고(HTML 주석 안 안내문은 빼고 센다),
+# 접기 안 헤더와 `## 검토 필요` 앞 접기를 위반으로 센다.
+# 완료의 정의 섹션의 AC 행과 포함 항목 AC 규칙 문장은 섹션 범위로 판정한다.
+# 규칙 문장은 주석 안 안내라 주석 행도 세며, 다른 섹션으로 옮긴 문장은 세지 않는다.
+
+BODY_TPL="$HERE/../templates/issue-body-template.md"
+
+# check_body_template <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_body_template() {
+  awk '
+    sec == "완료의 정의" && index($0, "포함 항목마다 AC를 1개 이상") { rule++ }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    /^## / { h = h $0 "|"; sec = substr($0, 4); if (d > 0) print "접기 안 헤더 " $0 }
+    /^## 검토 필요$/ { k = 1 }
+    /^<details>/ { d++; if (!k) print "검토 필요 앞 접기" }
+    /^<\/details>/ { d-- }
+    { t = $0; while (match(t, /<summary>[^<]+<\/summary>/)) { s = s substr(t, RSTART, RLENGTH) "|"; t = substr(t, RSTART + RLENGTH) } }
+    sec == "완료의 정의" && /^- \[ \] AC[0-9]+: / { ac++ }
+    END {
+      if (h != "## 목표|## 범위|## 완료의 정의|## 검토 필요|") print "본문 헤더 구성 [" h "]"
+      if (s != "<summary>배경</summary>|<summary>현재 동작 → 기대 동작</summary>|<summary>연관 문서</summary>|")
+        print "접기 구성 [" s "]"
+      if (ac < 1) print "완료의 정의에 AC 행 없음"
+      if (rule < 1) print "완료의 정의 안내에 포함 항목 AC 규칙 없음"
+    }' "$1"
+}
+
+awk '!/^## 목표$/' "$BODY_TPL" > "$sandbox/bt-no-goal.md"
+awk '/^## 범위$/ { hold = 1 } /^## 완료의 정의$/ { hold = 0 } hold { buf = buf $0 "\n"; next }
+     /^## 검토 필요$/ { printf "%s", buf } { print }' "$BODY_TPL" > "$sandbox/bt-swap-order.md"
+awk '/^## 검토 필요$/ { hold = 1 } hold && /^<details>/ { hold = 0 } hold { buf = buf $0 "\n"; next }
+     { print } /^<summary>배경<\/summary>$/ { print ""; printf "%s", buf }' "$BODY_TPL" > "$sandbox/bt-review-folded.md"
+awk '{ sub(/<summary>배경<\/summary>/, "<summary>배경과 계기</summary>"); print }' "$BODY_TPL" > "$sandbox/bt-summary-renamed.md"
+awk '!/^- \[ \] AC[0-9]+: /' "$BODY_TPL" > "$sandbox/bt-no-ac.md"
+drop_literal "$BODY_TPL" '포함 항목마다 AC를 1개 이상' > "$sandbox/bt-no-rule.md"
+BT_RULE="$(grep -F '포함 항목마다 AC를 1개 이상' "$BODY_TPL")" \
+  awk 'index($0, "포함 항목마다 AC를 1개 이상") { next } /^## 완료의 정의$/ { print ENVIRON["BT_RULE"]; print "" } { print }' \
+  "$BODY_TPL" > "$sandbox/bt-rule-in-scope.md"
+
+assert_structure check_body_template "$BODY_TPL"                        pass "이슈 본문 템플릿: 실제 템플릿 통과"
+assert_structure check_body_template "$sandbox/bt-no-goal.md"           fail "이슈 본문 템플릿: 목표 헤더 삭제 격추"
+assert_structure check_body_template "$sandbox/bt-swap-order.md"        fail "이슈 본문 템플릿: 범위·완료의 정의 순서 바꿈 격추"
+assert_structure check_body_template "$sandbox/bt-review-folded.md"     fail "이슈 본문 템플릿: 검토 필요의 접기 안 이동 격추"
+assert_structure check_body_template "$sandbox/bt-summary-renamed.md"   fail "이슈 본문 템플릿: 접기 제목 변경 격추"
+assert_structure check_body_template "$sandbox/bt-no-ac.md"             fail "이슈 본문 템플릿: 완료의 정의 AC 행 삭제 격추"
+assert_structure check_body_template "$sandbox/bt-no-rule.md"           fail "이슈 본문 템플릿: 포함 항목 AC 규칙 문장 삭제 격추"
+assert_structure check_body_template "$sandbox/bt-rule-in-scope.md"     fail "이슈 본문 템플릿: 포함 항목 AC 규칙 문장의 범위 섹션 이동 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
