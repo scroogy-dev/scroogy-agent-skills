@@ -1112,6 +1112,7 @@ ac_swap "$aspec" "$sandbox/ac-inline-code.md" '가를 본다 (AC1)' '`(AC 없음
 ac_swap "$aspec" "$sandbox/ac-empty-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: )'
 ac_swap "$aspec" "$sandbox/ac-unclosed-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: 3-1 승인'
 ac_swap "$aspec" "$sandbox/ac-nested-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: 범위 항목 (3-1 승인))'
+ac_swap "$aspec" "$sandbox/ac-code-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: `3-1 승인`)'
 ac_swap "$aspec" "$sandbox/ac-common-comment.md" '### 공통' '### 공통 <!-- 메모 -->'
 ac_swap "$aspec" "$sandbox/ac-checked-item.md" '- [ ] [D]  가를 본다 (AC1)' '- [x] [D]  가를 본다'
 awk '{ print } $0 == "### R1: 가" { print ""; print "```markdown"; print "- [ ] [D] 예시 항목 (AC3)"; print "```" }' "$aspec" > "$sandbox/ac-fenced-item.md"
@@ -1125,6 +1126,7 @@ assert_ac fail 'AC 대조: 인라인 코드 안의 출처 표기는 세지 않�
 assert_ac fail 'AC 대조: 사유 없는 AC 없음 표기 격추'       "$aissue" "$sandbox/ac-empty-reason.md"   '출처 없는 항목: - [ ] [ND] 다를 본다 (AC 없음: )  (검증: 사람 리뷰)'
 assert_ac fail 'AC 대조: 닫는 괄호 없는 AC 없음 표기 격추'  "$aissue" "$sandbox/ac-unclosed-reason.md" '출처 없는 항목: - [ ] [ND] 다를 본다 (AC 없음: 3-1 승인  (검증: 사람 리뷰)'
 assert_ac pass 'AC 대조: 사유 안 괄호 한 겹은 출처로 셈 통과' "$aissue" "$sandbox/ac-nested-reason.md"
+assert_ac pass 'AC 대조: 사유 전체가 인라인 코드인 AC 없음 표기도 출처로 셈 통과' "$aissue" "$sandbox/ac-code-reason.md"
 assert_ac pass 'AC 대조: 헤더 끝 닫힌 주석이 있는 공통 그룹 인식 통과' "$aissue" "$sandbox/ac-common-comment.md"
 assert_ac fail 'AC 대조: 체크된 spec 항목도 항목으로 셈 격추' "$aissue" "$sandbox/ac-checked-item.md" '출처 없는 항목: - [x] [D]  가를 본다'
 assert_ac pass 'AC 대조: 펜스 안의 예시 항목은 항목으로 세지 않음 통과' "$aissue" "$sandbox/ac-fenced-item.md"
