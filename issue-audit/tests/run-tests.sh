@@ -1110,6 +1110,9 @@ ac_add "$aspec" "$sandbox/ac-regress-outside.md" '- [ ] [D]  가를 본다 (AC1)
 ac_add "$aspec" "$sandbox/ac-common-nomark.md" '- [ ] [D]  전체 테스트가 통과한다 (회귀 방지 항목)' '- [ ] [D]  문서 형식을 본다'
 ac_swap "$aspec" "$sandbox/ac-inline-code.md" '가를 본다 (AC1)' '`(AC 없음: <사유>)` 형식을 본다'
 ac_swap "$aspec" "$sandbox/ac-empty-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: )'
+ac_swap "$aspec" "$sandbox/ac-unclosed-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: 3-1 승인'
+ac_swap "$aspec" "$sandbox/ac-nested-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: 범위 항목 (3-1 승인))'
+ac_swap "$aspec" "$sandbox/ac-common-comment.md" '### 공통' '### 공통 <!-- 메모 -->'
 ac_swap "$aspec" "$sandbox/ac-checked-item.md" '- [ ] [D]  가를 본다 (AC1)' '- [x] [D]  가를 본다'
 awk '{ print } $0 == "### R1: 가" { print ""; print "```markdown"; print "- [ ] [D] 예시 항목 (AC3)"; print "```" }' "$aspec" > "$sandbox/ac-fenced-item.md"
 
@@ -1120,6 +1123,9 @@ assert_ac fail 'AC 대조: 공통 밖 회귀 방지 항목의 출처 누락 격�
 assert_ac fail 'AC 대조: 공통 안이라도 회귀 방지 표시 없는 항목의 출처 누락 격추' "$aissue" "$sandbox/ac-common-nomark.md" '출처 없는 항목: - [ ] [D]  문서 형식을 본다'
 assert_ac fail 'AC 대조: 인라인 코드 안의 출처 표기는 세지 않음 격추' "$aissue" "$sandbox/ac-inline-code.md" '출처 없는 항목: - [ ] [D]  `(AC 없음: <사유>)` 형식을 본다'
 assert_ac fail 'AC 대조: 사유 없는 AC 없음 표기 격추'       "$aissue" "$sandbox/ac-empty-reason.md"   '출처 없는 항목: - [ ] [ND] 다를 본다 (AC 없음: )  (검증: 사람 리뷰)'
+assert_ac fail 'AC 대조: 닫는 괄호 없는 AC 없음 표기 격추'  "$aissue" "$sandbox/ac-unclosed-reason.md" '출처 없는 항목: - [ ] [ND] 다를 본다 (AC 없음: 3-1 승인  (검증: 사람 리뷰)'
+assert_ac pass 'AC 대조: 사유 안 괄호 한 겹은 출처로 셈 통과' "$aissue" "$sandbox/ac-nested-reason.md"
+assert_ac pass 'AC 대조: 헤더 끝 닫힌 주석이 있는 공통 그룹 인식 통과' "$aissue" "$sandbox/ac-common-comment.md"
 assert_ac fail 'AC 대조: 체크된 spec 항목도 항목으로 셈 격추' "$aissue" "$sandbox/ac-checked-item.md" '출처 없는 항목: - [x] [D]  가를 본다'
 assert_ac pass 'AC 대조: 펜스 안의 예시 항목은 항목으로 세지 않음 통과' "$aissue" "$sandbox/ac-fenced-item.md"
 
@@ -1153,6 +1159,7 @@ assert_ac_usage 'AC 대조: 읽을 수 없는 spec 파일 격추'       --ac "$a
 # 관점 3 의 AC 대비 완화·확장 점검과 관점 1 의 AC 대조 실행 지시는 감사인 절차라 조항 문장이 곧 계약이다.
 # `--plan` 절 안에서 관점 범위를 번호 행으로 자르고(관점 n 행부터 다음 번호 행 앞까지), 앵커 문구마다 지운 사본과
 # 관점 3 의 하위 행을 관점 4 로 옮긴 사본을 격추한다. 관점 1 은 본문을 프로세스 치환으로 받는 행을 위반으로 센다.
+# 관점 1 에 임시 파일을 지우는 행이 있으면 그 뒤에 --ac 종료 코드를 돌려주는 `(exit "$rc")` 행도 있어야 한다.
 # 기준의 충분성은 판정하지 않는다 (이슈 spec 의 [QD] 몫).
 
 # check_scope_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
@@ -1171,6 +1178,7 @@ check_scope_clause() {
       n = split("\"$check_plan\" --ac @대조 불가: 이슈 본문에 AC 없음@발견으로 세지 않는다@조회가 실패하면", v, "@")
       for (k = 1; k <= n; k++) if (!index(a1, v[k])) print "관점 1에 [" v[k] "] 없음"
       if (index(a1, "<(gh issue view")) print "관점 1에 프로세스 치환 조회 행"
+      if (index(a1, "rm -f \"$body\"") && !index(a1, "(exit \"$rc\")")) print "관점 1에 임시 파일 정리 뒤 --ac 종료 코드 반환 없음"
     }
   ' "$1"
 }
@@ -1187,6 +1195,7 @@ awk '!index($0, "발견으로 세지 않는다")' "$SKILL" > "$sandbox/sc-no-noa
 awk '!index($0, "조회가 실패하면")' "$SKILL" > "$sandbox/sc-no-fetchfail.md"
 psub='     "$check_plan" --ac <(gh issue view 1 --json body -q .body) spec.md'
 awk -v l="$psub" '{ print } index($0, "\"$check_plan\" --ac ") { print l }' "$SKILL" > "$sandbox/sc-psub.md"
+awk '!index($0, "(exit \"$rc\")")' "$SKILL" > "$sandbox/sc-no-rc.md"
 
 assert_clause check_scope_clause "$SKILL"                    pass '관점 3 범위: 실제 SKILL.md 통과'
 assert_clause check_scope_clause "$sandbox/sc-drop-1.md"     fail '관점 3 범위: 관점 3의 이슈 AC 문구 삭제 격추'
@@ -1201,6 +1210,7 @@ assert_clause check_scope_clause "$sandbox/sc-no-ac-cmd.md"  fail '관점 3 범�
 assert_clause check_scope_clause "$sandbox/sc-no-noac.md"    fail '관점 3 범위: 관점 1의 대조 불가 미집계 문장 삭제 격추'
 assert_clause check_scope_clause "$sandbox/sc-no-fetchfail.md" fail '관점 3 범위: 관점 1의 조회 실패 문장 삭제 격추'
 assert_clause check_scope_clause "$sandbox/sc-psub.md"       fail '관점 3 범위: 관점 1의 프로세스 치환 조회 행 추가 격추'
+assert_clause check_scope_clause "$sandbox/sc-no-rc.md"      fail '관점 3 범위: 관점 1의 임시 파일 정리 뒤 종료 코드 반환 삭제 격추'
 
 # --- doc 카테고리 표 (issue #118) -----------------------------------------------
 # SSoT 선언이 `원본 문서`일 때 쓰는 doc 카테고리 세트는 git-review 원본의 사본이고 이름·순서가

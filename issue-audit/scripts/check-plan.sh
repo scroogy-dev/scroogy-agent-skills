@@ -122,6 +122,9 @@ skip='
 # --ac — 이슈 본문의 AC 번호와 spec 항목의 출처 표기를 대조한다. 행 읽기 규칙(펜스·주석·인라인 코드)은 --trace 와 같다.
 # 출처 표기는 주석을 지운 행에서 인라인 코드까지 지우고 찾는다. 항목 설명이 `(AC 없음: <사유>)` 같은 형식을
 # 인라인 코드로 인용해도 출처 표기로 세지 않기 위해서다. 코드 구간 판정은 scan 과 같다(백틱 n개로 열어 같은 개수에서 닫힘).
+# `(AC 없음: <사유>)` 는 `(AC<n>)` 처럼 닫는 괄호까지 있어야 출처로 센다. 사유 안의 괄호는 한 겹까지 받는다.
+# 닫는 괄호가 빠진 표기가 뒤따르는 `(검증: …)` 의 괄호로 닫힌 것처럼 읽히지 않게 한다.
+# `### 공통` 헤더도 scan 결과로 판정해, 헤더 끝의 닫힌 주석이 공통 그룹을 가리지 않게 한다.
 # AC 가 없는 이슈 본문은 `대조 불가` 1행만 낸다. AC 없는 이슈의 spec 은 출처 표기 없이 쓰므로(issue-work 3-2),
 # 대조를 이어 가면 항목마다 `출처 없는 항목` 이 나와 정상 경로가 위반 목록처럼 보인다.
 if [ "$mode" = 'ac' ]; then
@@ -146,14 +149,14 @@ if [ "$mode" = 'ac' ]; then
       return out s
     }
     /^## / { dod = ($0 ~ /^## 완료의 정의/); common = 0 }
-    dod && /^### / { common = ($0 ~ /^### 공통[[:space:]]*$/) }
+    dod && /^### / { common = (scan($0) ~ /^### 공통[[:space:]]*$/) }
     dod && /^- \[[ xX]\] \[(D|QD|ND)\]/ {
       v = nocode(scan($0)); t = v; has = 0
       while (match(t, /\(AC[0-9]+(, AC[0-9]+)*\)/)) {
         has = 1; g = substr(t, RSTART + 1, RLENGTH - 2); t = substr(t, RSTART + RLENGTH)
         while (match(g, /[0-9]+/)) { print "REF " substr(g, RSTART, RLENGTH) + 0; g = substr(g, RSTART + RLENGTH) }
       }
-      if (v ~ /\(AC 없음: *[^ )]/) has = 1
+      if (v ~ /\(AC 없음: *([^ ()]|\([^()]*\))([^()]|\([^()]*\))*\)/) has = 1
       if (!has && !(common && index(v, "(회귀 방지 항목)"))) print "NOSRC " $0
     }
   ' "$spec")"
