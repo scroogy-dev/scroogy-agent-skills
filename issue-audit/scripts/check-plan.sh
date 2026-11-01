@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
 #
-# check-plan.sh — issue-audit 계획 감사(`--plan`) 2단계 "추적성" 관점을 결정적으로 판정한다.
+# check-plan.sh — issue-audit 계획 감사(`--plan`) 2단계 관점 1 "추적성"을 결정적으로 판정한다.
 #
-# SKILL.md `--plan` 소절이 판정 4종의 SSoT 이며 이 스크립트는 그 사본이다.
+# SKILL.md `--plan` 소절이 판정의 SSoT 이며 이 스크립트는 그 사본이다.
 # 규격이 바뀌면 이 스크립트와 tests/ 의 기대값을 함께 갱신한다.
 #
-# spec 포함 목록의 R<n>, spec 완료의 정의의 `### R<n>` 그룹, plan 일반 Task 의 `대상 요구사항` 필드
-# 세 축의 대응이 끊긴 자리를 센다. 감사인이 눈으로 대조하면 모델·회차마다 결과가 갈린다.
+# --trace: spec 포함 목록의 R<n>, spec 완료의 정의의 `### R<n>` 그룹, plan 일반 Task 의 `대상 요구사항` 필드
+#   세 축의 대응이 끊긴 자리를 센다. 감사인이 눈으로 대조하면 모델·회차마다 결과가 갈린다.
+# --ac: 이슈 본문의 AC 와 spec 완료의 정의 항목의 출처 표기 `(AC<n>[, AC<m>])` 의 대응이 끊긴 자리를 센다.
 #
 # 읽는 앵커 (issue-work 템플릿 계약):
-#   spec — `**포함**` 아래 `- R<n>: ` 항목, `## 완료의 정의` 절 안의 `### R<n>: ` DoD 그룹 (`### 공통` 은 R 이 아니다)
-#   plan — `### Task ` 블록, `- **대상 요구사항**: R<n>[, R<m>]` 필드. 값에 R<n> 이 하나도 없으면 필드가 없는 것과 같다.
+#   spec (--trace) — `**포함**` 아래 `- R<n>: ` 항목, `## 완료의 정의` 절 안의 `### R<n>: ` DoD 그룹 (`### 공통` 은 R 이 아니다)
+#   plan (--trace) — `### Task ` 블록, `- **대상 요구사항**: R<n>[, R<m>]` 필드. 값에 R<n> 이 하나도 없으면 필드가 없는 것과 같다.
 #          같은 행에서 닫힌 주석(<!-- … -->) 안의 R<n> 은 값으로 세지 않는다.
 #          고정 Task 는 `### Task 0 (고정)`·`### Task N (고정)` 두 헤더만이며 필드 검사·참조 집계에서 제외한다.
-#   두 파일 모두 코드 펜스(``` 또는 ~~~. 여는 펜스와 같은 문자를 같은 개수 이상 쓴 행에서 닫힌다)·HTML 블록 주석(<!-- … -->)
+#   이슈 본문 (--ac) — `- [ ] AC<n>: `·`- [x] AC<n>: ` 행 (issue-work 3-2 `AC 정제`의 AC 유무 판정과 같다)
+#   spec (--ac) — `## 완료의 정의` 절 안의 `- [ ] [D|QD|ND]` 항목 행(`[x]` 포함, 들여쓴 하위 행 제외).
+#          출처 표기는 행 안의 `(AC<n>)`·`(AC<n>, AC<m>)` 와 `(AC 없음: <사유>)` 이며, 인라인 코드 안의 표기는 세지 않는다.
+#          출처 표기 없이 두어도 되는 항목은 `### 공통` 그룹의 `(회귀 방지 항목)` 항목뿐이다.
+#   모든 파일에서 코드 펜스(``` 또는 ~~~. 여는 펜스와 같은 문자를 같은 개수 이상 쓴 행에서 닫힌다)·HTML 블록 주석(<!-- … -->)
 #   안의 행은 앵커로 읽지 않는다. 주석 안의 펜스 행은 펜스를 열거나 닫지 않고, 펜스 안의 `<!--` 는 주석을 열지 않는다.
 #   행 중간에서 시작한 여러 줄 주석은 `<!--` 앞의 본문만 읽고, 주석을 닫은 행의 나머지에서 다시 연 주석은 이어진다.
 #   인라인 코드(`…`)와 주석은 먼저 시작한 쪽이 이긴다. 코드 안의 `<!--`·`-->` 는 글자이고, 주석 안의 백틱도 글자다.
@@ -21,23 +26,31 @@
 #
 # 사용법:
 #   check-plan.sh --trace <spec 파일> <plan 파일>
+#   check-plan.sh --ac <이슈 본문 파일> <spec 파일>
 #
 # 출력 (위반 1건 1행):
+#   --trace
 #   R 없는 DoD 그룹: R<n>               — 포함 목록에 없는 번호의 DoD 그룹
 #   DoD 없는 R: R<n>                    — DoD 그룹이 없는 포함 요구사항
 #   Task 없는 R: R<n>                   — 어느 일반 Task 도 대상으로 삼지 않는 포함 요구사항
 #   대상 요구사항 없는 일반 Task: <헤더> — 필드가 없거나 값에 R<n> 이 없는 일반 Task
 #   추적 불가: …                         — 포함 목록이 비었거나 plan 에 Task 블록이 없음 (공집합을 통과로 보지 않는다)
+#   --ac
+#   연결 없는 AC: AC<n>                 — 어느 spec 항목의 출처 표기에도 없는 이슈 AC
+#   없는 AC 참조: AC<n>                 — 출처 표기가 가리키지만 이슈 본문에 없는 AC
+#   출처 없는 항목: <spec 행>           — 출처 표기가 없는 항목 (`### 공통` 의 회귀 방지 항목 제외)
+#   대조 불가: 이슈 본문에 AC 없음      — 이 행 1행만 내고 spec 항목은 대조하지 않는다 (공집합을 통과로 보지 않는다)
 #
-# 종료 코드: 0 통과(무출력) / 1 위반 있음 / 2 사용오류(모드 미지정·인자 부족·읽을 수 없는 파일·알 수 없는 옵션)
+# 종료 코드: 0 통과(무출력) / 1 위반 있음(대조 불가 포함) / 2 사용오류(모드 미지정·모드 중복·인자 부족·읽을 수 없는 파일·알 수 없는 옵션)
 
 set -o pipefail
 
-usage() { sed -n '3,32p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { awk 'NR > 2 { if (!/^#/) exit; sub(/^# ?/, ""); print }' "$0"; }
 
 mode=''
 spec=''
 plan=''
+issue=''
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -46,14 +59,20 @@ while [ $# -gt 0 ]; do
       mode='trace'
       [ $# -ge 3 ] || { echo "error: $1 에 <spec 파일> <plan 파일> 두 인자가 필요합니다" >&2; exit 2; }
       spec="$2"; plan="$3"; shift 3 ;;
+    --ac)
+      [ -z "$mode" ] || { echo "error: 모드는 하나만 지정합니다" >&2; exit 2; }
+      mode='ac'
+      [ $# -ge 3 ] || { echo "error: $1 에 <이슈 본문 파일> <spec 파일> 두 인자가 필요합니다" >&2; exit 2; }
+      issue="$2"; spec="$3"; shift 3 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "error: 알 수 없는 인자 — $1" >&2; exit 2 ;;
   esac
 done
 
-[ -n "$mode" ] || { echo "error: --trace 가 필요합니다" >&2; usage >&2; exit 2; }
+[ -n "$mode" ] || { echo "error: --trace 또는 --ac 가 필요합니다" >&2; usage >&2; exit 2; }
 
-for f in "$spec" "$plan"; do
+if [ "$mode" = 'ac' ]; then inputs=("$issue" "$spec"); else inputs=("$spec" "$plan"); fi
+for f in "${inputs[@]}"; do
   [ -r "$f" ] || { echo "error: 읽을 수 없는 파일 — $f" >&2; exit 2; }
 done
 
@@ -99,6 +118,61 @@ skip='
   /^[[:space:]]*(```|~~~)/ { s = $0; sub(/^[[:space:]]*/, "", s); fch = substr(s, 1, 1); flen = fence_run($0); fence = 1; next }
   { body = scan($0); if (left_open) { cm = 1; $0 = body } }
 '
+
+# --ac — 이슈 본문의 AC 번호와 spec 항목의 출처 표기를 대조한다. 행 읽기 규칙(펜스·주석·인라인 코드)은 --trace 와 같다.
+# 출처 표기는 주석을 지운 행에서 인라인 코드까지 지우고 찾는다. 항목 설명이 `(AC 없음: <사유>)` 같은 형식을
+# 인라인 코드로 인용해도 출처 표기로 세지 않기 위해서다. 코드 구간 판정은 scan 과 같다(백틱 n개로 열어 같은 개수에서 닫힘).
+# AC 가 없는 이슈 본문은 `대조 불가` 1행만 낸다. AC 없는 이슈의 spec 은 출처 표기 없이 쓰므로(issue-work 3-2),
+# 대조를 이어 가면 항목마다 `출처 없는 항목` 이 나와 정상 경로가 위반 목록처럼 보인다.
+if [ "$mode" = 'ac' ]; then
+  issue_out="$(awk "$skip"'
+    /^- \[[ x]\] AC[0-9]+: / { n = $0; sub(/^- \[[ x]\] AC/, "", n); sub(/:.*/, "", n); print "AC " n + 0 }
+  ' "$issue")"
+
+  spec_out="$(awk "$skip"'
+    function nocode(s,  out, bt, run, r, pos, m, k, j) {
+      out = ""
+      while ((bt = index(s, "`")) > 0) {
+        run = 0; while (substr(s, bt + run, 1) == "`") run++
+        r = substr(s, bt + run); pos = 1; j = 0
+        while ((m = index(substr(r, pos), "`")) > 0) {
+          k = 0; while (substr(r, pos + m - 1 + k, 1) == "`") k++
+          if (k == run) { j = pos + m - 1; break }
+          pos += m - 1 + k
+        }
+        if (j == 0) { out = out substr(s, 1, bt + run - 1); s = r; continue }
+        out = out substr(s, 1, bt - 1); s = substr(r, j + run)
+      }
+      return out s
+    }
+    /^## / { dod = ($0 ~ /^## 완료의 정의/); common = 0 }
+    dod && /^### / { common = ($0 ~ /^### 공통[[:space:]]*$/) }
+    dod && /^- \[[ xX]\] \[(D|QD|ND)\]/ {
+      v = nocode(scan($0)); t = v; has = 0
+      while (match(t, /\(AC[0-9]+(, AC[0-9]+)*\)/)) {
+        has = 1; g = substr(t, RSTART + 1, RLENGTH - 2); t = substr(t, RSTART + RLENGTH)
+        while (match(g, /[0-9]+/)) { print "REF " substr(g, RSTART, RLENGTH) + 0; g = substr(g, RSTART + RLENGTH) }
+      }
+      if (v ~ /\(AC 없음: *[^ )]/) has = 1
+      if (!has && !(common && index(v, "(회귀 방지 항목)"))) print "NOSRC " $0
+    }
+  ' "$spec")"
+
+  hits="$(printf '%s\n%s\n' "$issue_out" "$spec_out" | awk '
+    $1 == "AC"    { if (!($2 in ac))  { ac[$2] = 1;  ao[++na] = $2 } }
+    $1 == "REF"   { if (!($2 in ref)) { ref[$2] = 1; ro[++nr] = $2 } }
+    $1 == "NOSRC" { sub(/^NOSRC /, ""); ns[++nn] = $0 }
+    END {
+      if (na == 0) { print "대조 불가: 이슈 본문에 AC 없음"; exit }
+      for (k = 1; k <= na; k++) if (!(ao[k] in ref)) print "연결 없는 AC: AC" ao[k]
+      for (k = 1; k <= nr; k++) if (!(ro[k] in ac))  print "없는 AC 참조: AC" ro[k]
+      for (k = 1; k <= nn; k++) print "출처 없는 항목: " ns[k]
+    }
+  ')"
+
+  [ -z "$hits" ] || { printf '%s\n' "$hits"; exit 1; }
+  exit 0
+fi
 
 # spec — 포함 목록은 `**포함**` 다음 행부터 다음 굵은 라벨(`**제외**`)·`## ` 헤더·구분선 앞까지다.
 # DoD 그룹은 `## 완료의 정의` 절 안의 `### R<n>: ` 헤더만 센다. `### 공통` 은 R 이 아니라 여기 걸리지 않는다.
