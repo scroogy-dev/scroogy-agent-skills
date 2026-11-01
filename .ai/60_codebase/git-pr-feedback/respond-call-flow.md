@@ -63,14 +63,20 @@ sequenceDiagram
         MCP-->>SK: 리뷰·댓글·스레드
     end
     Note over SK: 분류·의견 제시 (5유형, 파일 수정·게시 없음)
-    Note over SK: 항목별 선택 (코드 수정, 답글, 보류, 수용 원장 등재)
-    opt 처리한 지적과 같은 기존 원장 항목
+    Note over SK: 항목별 선택 (코드 수정, 답글, 보류, 수용 원장 등재), 등재·코드 수정 선택 시 원장 index 대조
+    opt 코드 수정 선택 (포크 PR 판정 불가면 제외)
+        Note over SK: head 결속 확인, 기존 변경 고정, 변경 반영
+    end
+    opt 같은 기존 원장 항목의 원인이 이번 PR 코드 수정으로 사라짐 또는 별도 이슈로 승격
         Note over SK: 해소 또는 승격 기재 → archive/ 이관 → index 갱신 → 들어오는 링크 갱신
         SK->>CL: '.ai'
         CL-->>SK: exit 0 무출력 / 1 끊긴 링크 1행씩
     end
-    opt 코드 수정 선택 (포크 PR 판정 불가면 제외)
-        Note over SK: head 결속 확인, 기존 변경 고정, 명시 stage 커밋, 검증
+    opt 수용 원장 등재 선택
+        Note over SK: ledger-entry-template.md 형식으로 active/K-번호-slug.md 신설, index.md 갱신 (같은 항목이 수용 상태면 재검토 이력·조건만 갱신)
+    end
+    opt 커밋할 변경 있음 (코드 수정, 원장 등재·종결 파일)
+        Note over SK: 명시 stage 커밋, 검증
         SK->>VP: --normalize 원격 URL
         VP-->>SK: 호스트/소유자/저장소
         SK->>VP: --remote --repo --branch --head-oid --approved-sha
@@ -103,9 +109,6 @@ sequenceDiagram
         else MCP 폴백 (활성 스키마가 resolve_thread 지원 시만)
             SK->>MCP: pull_request_review_write resolve_thread
         end
-    end
-    opt 수용 원장 등재 선택
-        Note over SK: ledger-entry-template.md 형식으로 active/K-번호-slug.md 신설, index.md 갱신
     end
     Note over SK: 결과 요약 표
 ```
