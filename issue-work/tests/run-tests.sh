@@ -1645,7 +1645,8 @@ check_body_update_step() {
   six="$(printf '%s\n' "$sec" | awk '/^6\. / { s = 1; print; next } s && /^[^[:space:]]/ { exit } s')"
   for p in '완료의 정의가 없거나' '`(AC 없음: …)` 항목이 있는' 'Task 0 전에' '승인할 때만' "gh issue edit --repo '" \
            "--body-file '.ai/99_workspace/issue-<번호>-body.md'" '`- [ ] AC<n>: `' '레벨 태그와 검증 명령을 옮기지 않는다' \
-           '초안을 쓰기 직전에' '실행 직전에' '기준 본문과 다르면 실행하지 않' '.ai/99_workspace/issue-<번호>-body-base.md' 'cmp -s'; do
+           '초안을 쓰기 직전에' '실행 직전에' '기준 본문과 다르면 실행하지 않' '.ai/99_workspace/issue-<번호>-body-base.md' 'cmp -s' \
+           '본문 편집이 성공했을 때만' '(exit "$rc")'; do
     printf '%s\n' "$six" | grep -qF -- "$p" || echo "6단계에 [$p] 없음"
   done
   n="$(printf '%s\n' "$six" | grep -cF 'gh issue view ')"
@@ -1688,7 +1689,8 @@ awk '/^6\. / { s = 1; next } s && /^[^[:space:]]/ { s = 0 } s { next } 1' "$SKIL
 i=0
 for p in '완료의 정의가 없거나' '`(AC 없음: …)` 항목이 있는' 'Task 0 전에' '승인할 때만' "gh issue edit --repo '" \
          "--body-file '.ai/99_workspace/issue-<번호>-body.md'" '`- [ ] AC<n>: `' '레벨 태그와 검증 명령을 옮기지 않는다' \
-         '초안을 쓰기 직전에' '실행 직전에' '기준 본문과 다르면 실행하지 않' '.ai/99_workspace/issue-<번호>-body-base.md' 'cmp -s'; do
+         '초안을 쓰기 직전에' '실행 직전에' '기준 본문과 다르면 실행하지 않' '.ai/99_workspace/issue-<번호>-body-base.md' 'cmp -s' \
+         '본문 편집이 성공했을 때만' '(exit "$rc")'; do
   i=$((i + 1)); drop_literal "$SKILL" "$p" > "$sandbox/bu-drop-$i.md"
 done
 # 기존 명령 행은 그대로 두고 `--repo` 없는 명령 행을 6단계 안에 더한다("모두 `--repo`" 판정만 걸리게 한다).
@@ -1730,7 +1732,7 @@ assert_structure check_body_update_step       "$sandbox/bu-no-step6.md"         
 i=0
 for p in '대상 판정 완료의 정의 없음' '대상 판정 AC 없음 항목' 'Task 0 전 시점' '승인할 때만 실행' 'gh issue edit 명령' \
          '갱신 본문 파일' 'AC 행 형식' '레벨 태그·검증 명령 미이전' '초안 직전 조회' '실행 직전 재조회' \
-         '불일치 시 미실행' '기준 본문 파일' 'cmp -s 비교'; do
+         '불일치 시 미실행' '기준 본문 파일' 'cmp -s 비교' '편집 성공 시만 기록' '종료 코드 반환'; do
   i=$((i + 1))
   assert_structure check_body_update_step     "$sandbox/bu-drop-$i.md"            fail "본문 갱신 질의: 6단계 $p 문구 삭제 격추"
 done
