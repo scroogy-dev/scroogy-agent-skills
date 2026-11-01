@@ -1544,6 +1544,88 @@ assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-source-after.md"  fa
 assert_structure check_ac_refine_plan_tpl "$TEMPLATE"                         pass "AC 정제: 실제 plan 템플릿 Tasks 안내 통과"
 assert_structure check_ac_refine_plan_tpl "$sandbox/ar-plan-no-rule.md"       fail "AC 정제: plan 템플릿 진행만 판정 문장 삭제 격추"
 
+# --- 변경 통제 (issue #130) -------------------------------------------------------
+#
+# 3-2 정제와 작업 진행 중의 변경을 구체화·확장·완화로 나누고 확장·완화만 질의하는 규칙이 문장으로 지켜진다.
+# SKILL.md는 `## 작업 진행 중` 범위의 `- **변경 통제**:` 항목 1개(다음 `- ` 항목 전까지)와 하위 3종 각 1개,
+# 하위 행마다 정의·처리 문구, 3-2 범위(`3-2. 승인 후` 행부터 `4. ` 행 전까지)의 변경 통제 참조를 판정한다.
+# workflow 템플릿은 `active/issue-workflow.md`의 원본이라 `## 작업 진행 중`에 변경 통제가 있는지 본다.
+
+WORKFLOW_TPL="$HERE/../templates/issue-workflow-template.md"
+
+# check_change_control_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_change_control_skill() {
+  local b n k l p
+  b="$(awk '/^## 작업 진행 중$/ { w = 1; next } w && /^## / { exit }
+            w && /^- \*\*변경 통제\*\*:/ { s = 1; print; next } s && /^- / { s = 0 } s' "$1")"
+  n="$(printf '%s\n' "$b" | grep -c '^- \*\*변경 통제\*\*:')"
+  [ "$n" -eq 1 ] || echo "작업 진행 중의 변경 통제 항목 ${n}개 (기대 1개)"
+  for k in 구체화 확장 완화; do
+    n="$(printf '%s\n' "$b" | grep -cE "^  - \*\*$k\*\*: ")"
+    [ "$n" -eq 1 ] || echo "변경 통제의 $k 항목 ${n}개 (기대 1개)"
+  done
+  l="$(printf '%s\n' "$b" | grep -E '^  - \*\*구체화\*\*: ')"
+  for p in '판정 기준만 명확히' '질의 없이 반영'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "구체화 항목에 [$p] 없음"
+  done
+  l="$(printf '%s\n' "$b" | grep -E '^  - \*\*확장\*\*: ')"
+  for p in '범위 확장' '원장 등재' '새 이슈(`--create`)'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "확장 항목에 선택지 [$p] 없음"
+  done
+  l="$(printf '%s\n' "$b" | grep -E '^  - \*\*완화\*\*: ')"
+  for p in 'AC를 빼거나 제외로 옮기는' '재승인 없이 반영하지 않는다'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "완화 항목에 [$p] 없음"
+  done
+  awk '/^   - \*\*3-2\. 승인 후\*\*/ { s = 1 } s && /^4\. / { exit } s && index($0, "변경 통제") { n++ }
+       END { if (n < 1) print "3-2에 변경 통제 참조 없음" }' "$1"
+}
+
+# check_change_control_workflow <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_change_control_workflow() {
+  awk '/^## 작업 진행 중$/ { s = 1; next } s && /^## / { exit } s && index($0, "변경 통제") { n++ }
+       END { if (n < 1) print "작업 진행 중에 변경 통제 없음" }' "$1"
+}
+
+awk '!/^- \*\*변경 통제\*\*:/' "$SKILL" > "$sandbox/cc-no-item.md"
+for kv in 구체화:refine 확장:ext 완화:relax; do
+  k="${kv%%:*}"; v="${kv#*:}"
+  awk -v k="$k" '$0 ~ "^  - \\*\\*" k "\\*\\*: " { next } { print }' "$SKILL" > "$sandbox/cc-no-$v.md"
+  awk -v k="$k" '{ print } $0 ~ "^  - \\*\\*" k "\\*\\*: " { print }' "$SKILL" > "$sandbox/cc-dup-$v.md"
+done
+drop_literal "$SKILL" '판정 기준만 명확히' > "$sandbox/cc-no-refine-def.md"
+drop_literal "$SKILL" '질의 없이 반영' > "$sandbox/cc-no-refine-act.md"
+drop_literal "$SKILL" '범위 확장' > "$sandbox/cc-no-ext-scope.md"
+drop_literal "$SKILL" '원장 등재' > "$sandbox/cc-no-ext-ledger.md"
+drop_literal "$SKILL" '새 이슈(`--create`)' > "$sandbox/cc-no-ext-create.md"
+drop_literal "$SKILL" 'AC를 빼거나 제외로 옮기는' > "$sandbox/cc-no-relax-ac.md"
+drop_literal "$SKILL" '재승인 없이 반영하지 않는다' > "$sandbox/cc-no-relax-act.md"
+awk '!/^     - \*\*변경 통제\*\*: /' "$SKILL" > "$sandbox/cc-no-3-2-ref.md"
+# 변경 통제 항목(하위 행 포함)을 `## 작업 진행 중` 밖의 `## 이슈 완료 시` 아래로 옮긴다.
+awk '/^- \*\*변경 통제\*\*:/ { hold = 1; buf = $0 "\n"; next }
+     hold && /^  - / { buf = buf $0 "\n"; next } hold { hold = 0 }
+     { print } /^## 이슈 완료 시$/ { print ""; printf "%s", buf }' "$SKILL" > "$sandbox/cc-moved-out.md"
+awk '!index($0, "변경 통제")' "$WORKFLOW_TPL" > "$sandbox/cc-wf-no-item.md"
+
+assert_structure check_change_control_skill    "$SKILL"                          pass "변경 통제: 실제 SKILL.md 통과"
+assert_structure check_change_control_skill    "$sandbox/cc-no-item.md"          fail "변경 통제: 변경 통제 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-refine.md"        fail "변경 통제: 구체화 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext.md"           fail "변경 통제: 확장 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-relax.md"         fail "변경 통제: 완화 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-dup-refine.md"       fail "변경 통제: 구체화 항목 중복 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-dup-ext.md"          fail "변경 통제: 확장 항목 중복 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-dup-relax.md"        fail "변경 통제: 완화 항목 중복 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-refine-def.md"    fail "변경 통제: 구체화 정의 문구 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-refine-act.md"    fail "변경 통제: 구체화 처리 문구 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext-scope.md"     fail "변경 통제: 확장 선택지 범위 확장 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext-ledger.md"    fail "변경 통제: 확장 선택지 원장 등재 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext-create.md"    fail "변경 통제: 확장 선택지 새 이슈 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-relax-ac.md"      fail "변경 통제: 완화의 AC 삭제·제외 이동 문구 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-relax-act.md"     fail "변경 통제: 완화 처리 문장 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-3-2-ref.md"       fail "변경 통제: 3-2 참조 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-moved-out.md"        fail "변경 통제: 항목의 작업 진행 중 밖 이동 격추"
+assert_structure check_change_control_workflow "$WORKFLOW_TPL"                   pass "변경 통제: 실제 workflow 템플릿 통과"
+assert_structure check_change_control_workflow "$sandbox/cc-wf-no-item.md"       fail "변경 통제: workflow 템플릿 항목 삭제 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
