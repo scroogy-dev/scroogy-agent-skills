@@ -29,7 +29,7 @@ issue-work/SKILL.md `## 새 이슈 시작 시` → `## 작업 진행 중`
 │   ├── 대상 저장소                     # --create 3단계 규칙, 값은 작은따옴표 인용, gh 없으면 MCP 폴백(github.com 한정)
 │   ├── 기준 본문                       # 초안 직전 gh issue view --repo --json body > .ai/99_workspace/issue-<번호>-body-base.md, 조회 실패면 초안 안 씀
 │   ├── 초안                            # 기준 본문 + AC 행만 추가 → .ai/99_workspace/issue-<번호>-body.md 1회, 대화엔 경로·추가 AC 목록만
-│   ├── 실행 (승인 시만)                # 직전 재조회(mktemp) → cmp -s 기준 본문, 같을 때만 gh issue edit --repo --body-file, 다르거나 조회 실패면 미실행
+│   ├── 실행 (승인 시만)                # 직전 재조회(mktemp) → cmp -s 기준 본문, 같을 때만 gh issue edit --repo --body-file, 다르거나 조회 실패면 미실행. 분기 결과를 rc로 받아 rm -f 뒤 블록 종료 코드로 반환, 편집 실패면 기록 없이 오류 보고·재시도 질의
 │   └── 기록                            # 갱신 · <AC 번호>(spec 출처 표기 갱신) / 거절, 이후 Task 0
 ├── Task 0: 구현 시작 게이트            # summary `이슈 본문 갱신` 줄이 비어 있으면 6단계 먼저, 전제·모호점 질의 후 착수
 ├── 변경 통제 (`## 작업 진행 중`)       # 구체화: 질의 없이 반영 / 확장: 범위 확장(6단계 방식 본문 갱신+재승인)·원장 등재·새 이슈(--create) 중 선택 질의 / 완화: 재승인 없이 반영 안 함. 기준선은 이슈 AC, 없으면 3-1 승인 요구사항
@@ -75,7 +75,11 @@ sequenceDiagram
             GH-->>SK: 현재 본문
             alt 기준 본문과 같음
                 SK->>GH: issue edit --repo --body-file body.md
-                Note over SK: spec 출처 표기 갱신, summary에 갱신과 추가 AC 번호
+                alt 편집 성공 (블록 종료 코드 0)
+                    Note over SK: spec 출처 표기 갱신, summary에 갱신과 추가 AC 번호
+                else 편집 실패
+                    Note over SK: 기록하지 않고 오류 보고, 다시 시도할지 질의
+                end
             else 다르거나 조회 실패
                 Note over SK: 실행하지 않고 바뀐 본문으로 초안을 다시 만들어 다시 질의
             end
