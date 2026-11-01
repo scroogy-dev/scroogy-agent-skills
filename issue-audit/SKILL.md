@@ -1,6 +1,6 @@
 ---
 name: issue-audit
-description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관점에서 검증합니다(최종 감사). --plan 옵션은 구현 전 spec·plan을 GitHub 이슈 본문과 .ai 문서에 대조하는 계획 감사입니다. 이슈 감사, issue audit, 구현 검증, 계획 감사, plan audit, 크로스체크 시 사용합니다.
+description: 이슈 스펙 대비 구현 완료 여부를 독립 감사인 관점에서 검증합니다(최종 감사). --plan 옵션은 구현 전 spec·plan을 GitHub 이슈 본문(완료의 정의 AC 포함)과 .ai 문서에 대조하는 계획 감사입니다. 이슈 감사, issue audit, 구현 검증, 계획 감사, plan audit, 크로스체크 시 사용합니다.
 ---
 
 ## 개요

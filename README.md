@@ -16,14 +16,14 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [context-harvest](./context-harvest/) | 소스코드 바깥의 What+Why를 수집·증류하여 `.ai/30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
 | [context-save](./context-save/) | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | [git-commit](./git-commit/) | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
-| [git-pr](./git-pr/) | PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
+| [git-pr](./git-pr/) | PR 제목/메시지 작성 (첫 화면의 리뷰어 확인 요청·완료의 정의(AC) 대조, 비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
 | [git-pr-feedback](./git-pr-feedback/) | PR 리뷰 코멘트 수집·분류 후 항목별 의견 제시, 사용자 선택에 따라 답글 게시·코드 변경·원장 등재로 대응 |
 | [git-qa](./git-qa/) | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | [git-review](./git-review/) | 비즈니스/테크 리뷰 수행 |
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
 | [git-review-quiz](./git-review-quiz/) | PR 변경 이해도를 문항으로 점검 (대화형·PR 댓글 게시) |
 | [install-skills](./install-skills/) | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
-| [issue-audit](./issue-audit/) | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문·`.ai` 문서에 대조하는 계획 감사 |
+| [issue-audit](./issue-audit/) | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
 | [issue-work](./issue-work/) | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | [readme-sync](./readme-sync/) | 프로젝트 분석 후 README.md 생성/재작성 |
 
@@ -36,7 +36,7 @@ ai-workspace (디렉토리 스캐폴딩)
 ├── context-harvest     ← .ai/30_contract/, 40_domain/, 50_adr/ 활용, code-map과 쌍
 ├── context-save        ← .ai/99_workspace/notes/ 활용, issue-work --resume로 자동 로드
 ├── git-commit          ← 독립 사용 가능
-├── git-pr              ← git-commit 규칙 참조, .ai/ 문서 활용
+├── git-pr              ← git-commit 규칙 참조, .ai/ 문서 활용, issue-audit 최종 감사 리포트로 완료의 정의 대조
 ├── git-pr-feedback     ← git-pr 제출 후 단계, git-commit 규칙 참조, .ai/70_ledger/ 등재
 ├── git-qa              ← git-pr 참고, 독립 사용 가능
 ├── git-review          ← .ai/ 문서 활용
