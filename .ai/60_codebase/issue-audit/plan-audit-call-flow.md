@@ -1,6 +1,6 @@
 ---
 last_synced: 2026-11-01
-source_hash: 0844084
+source_hash: 6e0ddb3
 status: current
 ---
 
@@ -18,7 +18,7 @@ issue-audit/SKILL.md `### --plan`
 ├── 1단계: 적합성 검증            # 행 = 이슈 본문 요구 항목 ↔ spec 포함·제외 (PASS/FAIL/PARTIAL/N/A), DoD 표는 포함 R ↔ `### R<n>` 그룹
 ├── 2단계: 비판적 검증 5관점
 │   ├── 추적성 [D]                # scripts/check-plan.sh --trace <spec> <plan>
-│   │   └── AC 대조               # --trace와 블록 분리. gh issue view --repo --json body > mktemp 파일, 조회 성공 시만 check-plan.sh --ac <본문> <spec> (프로세스 치환 금지), --ac 종료 코드는 rm -f 뒤 블록 종료 코드로 반환. `대조 불가`는 AC 없는 이슈의 정상 경로라 발견 아님, 조회 실패는 판정 불가(N/A)
+│   │   └── AC 대조               # --trace와 블록 분리. gh issue view --repo --json body > mktemp 파일, 조회 성공 시만 check-plan.sh --ac <본문> <spec> (프로세스 치환 금지), --ac 종료 코드는 rm -f 뒤 블록 종료 코드로 반환. `대조 불가`는 AC 없는 이슈의 정상 경로라 발견 아님, 조회 실패는 `조회 실패` 행만 내고 판정 불가(N/A)·발견 아님
 │   ├── 가짜 [D] 사전 판별 [D]    # 구현 전 트리에서 [D] 명령 실행, 정상 명령은 실패해야 함, 고정 블록(Task 0·N) 완료 기준은 제외, 회귀 방지 항목은 spec 본문 `(회귀 방지 항목)` 표시로 예외 (수동). local 파일이 있으면 그 실행 셸로 실행하고 전제 조건이 없으면 판정 불가(N/A)로 두어 후보·정상 실패 어느 쪽으로도 세지 않음
 │   ├── 범위 [QD]                 # 이슈 AC 대비 spec 완료의 정의의 완화(오류 상황 제외·조건 약화·AC 삭제·제외 이동·연결 없는 AC)와 확장(AC에 없는 결과) 보고. 근거 있는 `(AC 없음: …)` 항목은 확장 아님, AC 없는 이슈는 건너뜀
 │   └── 모호성·과잉 설계 [QD]
@@ -41,7 +41,7 @@ check-plan.sh --trace <spec> <plan> | --ac <이슈 본문> <spec>
 │   └── 대조                      # R 없는 DoD 그룹 / DoD 없는 R / Task 없는 R / 대상 요구사항 없는 일반 Task / 추적 불가 → 1행씩·exit 1
 └── --ac
     ├── 이슈 본문 파서            # `- [ ] AC<n>: `·`- [x] AC<n>: ` 행 → AC 집합, 0개면 `대조 불가: 이슈 본문에 AC 없음` 1행만·exit 1
-    ├── spec 파서                 # `## 완료의 정의` 안 `- [ ] [D|QD|ND]` 항목 행(`[x]` 포함, 하위 행 제외)의 `(AC<n>[, AC<m>])`·`(AC 없음: <사유>)`, 인라인 코드 안 표기는 제외
+    ├── spec 파서                 # `## 완료의 정의` 안 `- [ ] [D|QD|ND]` 항목 행(`[x]` 포함, 하위 행 제외)의 `(AC<n>[, AC<m>])`·`(AC 없음: <사유>)`. `(AC 없음: …)`도 닫는 괄호까지 있어야 셈(사유 안 괄호는 한 겹까지). 인라인 코드 구간은 `_`로 바꿔 코드 안 표기는 세지 않고, 사유 전체가 코드인 표기는 출처로 셈. `### 공통` 헤더는 scan 결과로 판정
     └── 대조                      # 연결 없는 AC / 없는 AC 참조 / 출처 없는 항목(`### 공통` 회귀 방지 항목 제외) → 1행씩·exit 1
 ```
 
@@ -72,7 +72,7 @@ sequenceDiagram
     SK->>GH: issue view --repo --json body (임시 파일로 받기)
     alt 조회 실패
         GH-->>SK: 오류
-        Note over SK: --ac 미실행, AC 대조는 판정 불가(N/A)
+        Note over SK: 조회 실패 행만 출력, --ac 미실행, AC 대조는 판정 불가(N/A)
     else 조회 성공
         GH-->>SK: 이슈 본문
         SK->>CP: --ac 본문 파일 spec
@@ -109,7 +109,7 @@ sequenceDiagram
 ## Why
 
 - 근거는 `issue-audit/SKILL.md` `### --plan` 소절(시점·입력·대조 기준·판정 매핑·5관점)과 `check-plan.sh` 머리말(읽는 앵커, 판정 순서, 행 단위 경계)에 있다.
-- 원장 [K-0009](../../70_ledger/active/K-0009-plan-audit-fake-d-check-manual.md): 가짜 `[D]` 사전 판별의 헬퍼 결정화 보류(기술부채). [K-0010](../../70_ledger/active/K-0010-check-plan-line-based-markdown-boundary.md): 행 단위 파서라 여러 행 코드 스팬 등은 구분하지 않음(known issue, `--ac`도 같은 경계를 이어받음).
+- 원장 [K-0009](../../70_ledger/active/K-0009-plan-audit-fake-d-check-manual.md): 가짜 `[D]` 사전 판별의 헬퍼 결정화 보류(기술부채). [K-0010](../../70_ledger/active/K-0010-check-plan-line-based-markdown-boundary.md): 행 단위 파서라 여러 행 코드 스팬 등은 구분하지 않음(known issue, `--ac`도 같은 경계를 이어받음). [K-0023](../../70_ledger/active/K-0023-check-plan-include-label-trailing-comment.md): `--trace`가 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못함(known issue).
 - AC 대조(`--ac`)와 관점 3의 완화·확장 점검은 이슈 AC를 spec·PR까지 같은 번호로 잇는 결정의 일부다([ADR 0026](../../50_adr/active/0026-acceptance-criteria-across-issue-spec-pr.md)). AC 없는 이슈의 `대조 불가`를 발견으로 세지 않고 AC 보강을 issue-work 6단계에 맡기는 근거도 같은 ADR에 있다.
 - 계획 감사 리포트의 보정은 issue-work `--response`가 spec·plan에 반영하고 건수를 summary `계획 감사` 줄에 적는다([--response 흐름](../issue-work/response-call-flow.md)).
 - 명세: [이슈 감사 요건](../../40_domain/specs/issue-audit.md) `--plan` 항목. 요구사항 층·계획 감사 모드·수행 여부 사용자 선택은 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md). 가짜 `[D]` 함정("틀렸을 때 검사가 실제로 실패하나")은 [ADR 0003](../../50_adr/active/0003-verification-levels-and-determinization.md) 근거 절.
