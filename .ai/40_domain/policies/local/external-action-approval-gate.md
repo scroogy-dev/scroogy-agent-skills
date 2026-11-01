@@ -9,7 +9,7 @@ last_harvested: 2026-09-09
 ## 정책
 
 - 외부 공개 행위는 실행 전에 최종 내용을 그대로 제시하고 사용자 승인을 받는다. 승인 게이트는 옵션·유형과 무관하게 생략할 수 없다.
-- 대상: PR 생성(git-pr), 리뷰 답글 게시·스레드 resolve·push(git-pr-feedback), 이슈 댓글 등록(issue-work `--clear`), 퀴즈 댓글 게시(git-review-quiz `--comment`).
+- 대상: PR 생성(git-pr), 리뷰 답글 게시·스레드 resolve·push(git-pr-feedback), 이슈 등록(issue-work `--create`), 이슈 본문 갱신(issue-work "새 이슈 시작 시" 6단계, 변경 통제의 범위 확장), 이슈 댓글 등록(issue-work `--clear`), 퀴즈 댓글 게시(git-review-quiz `--comment`).
 - 승인 대상이 긴 산출물이면 파일 경로와 요약 제시가 "제시"에 해당한다 ([ADR 0013](../../../50_adr/active/0013-long-output-single-file-generation.md)).
 - 승인한 값(제목·본문 파일, 대상 저장소, 소스 브랜치, SHA)은 불변 보관하고 실행 직전에 재대조한다. 승인 후 원격 상태가 달라졌으면 실행하지 않고 중단해 다시 승인받는다.
 - 저장소는 현재 브랜치의 upstream 원격 URL에서 독립적으로 확정하고, `gh pr` 계열에는 `--repo`, `gh api` 계열에는 `--hostname`을 명시한다. 원격이 없거나 복수면 사용자에게 질의한다.
@@ -27,6 +27,8 @@ last_harvested: 2026-09-09
 - 유효한 Git ref는 작은따옴표와 셸 메타문자를 포함할 수 있어 단순 치환은 인용을 깨고 브랜치명 내용을 실행한다 (PR #65).
 - `git remote get-url`은 사용자명·토큰이 든 HTTPS URL을 반환할 수 있어 그대로 출력하면 대화·로그에 자격증명이 샌다 (PR #65).
 - 수집·승인 사이에 리뷰어가 남긴 새 피드백을 보지 못한 채 resolve로 닫는 것을 막기 위해 실행 직전 스냅샷 대조를 둔다 (PR #65).
+- 이슈 등록과 이슈 본문 갱신도 되돌리기 어려운 공개 행위라 대상에 넣었다 (#130).
+- 이슈 본문 갱신(`gh issue edit --body-file`)은 본문 전체를 바꾼다. 그래서 "실행 직전 재대조"를 기준 본문 비교로 적용한다. 초안 직전에 받은 기준 본문과 실행 직전에 다시 받은 본문이 다르면 실행하지 않고 다시 묻는다 (#130).
 
 </details>
 
@@ -39,6 +41,7 @@ last_harvested: 2026-09-09
 - [Issue #64 git-pr-feedback 스킬 신규 작성](https://github.com/scroogy-dev/scroogy-agent-skills/issues/64)
 - [Issue #74 긴 산출물 중복 생성 제거](https://github.com/scroogy-dev/scroogy-agent-skills/issues/74)
 - [Issue #92 git-review-quiz 스킬 신설](https://github.com/scroogy-dev/scroogy-agent-skills/issues/92)
+- [Issue #130 이슈 등록 옵션(--create)과 이슈 본문 템플릿, 완료의 정의를 이슈·spec·PR로 잇기](https://github.com/scroogy-dev/scroogy-agent-skills/issues/130)
 - [PR #65 리뷰 코멘트](https://github.com/scroogy-dev/scroogy-agent-skills/pull/65)
 
 </details>
