@@ -1474,6 +1474,76 @@ assert_structure check_create_section "$sandbox/cr-no-ac-report.md"     fail "--
 assert_structure check_create_section "$sandbox/cr-ac-report-moved.md"  fail "--create 절: AC 미대응 포함 항목 보고의 승인 단계 이동 격추"
 assert_structure check_create_section "$sandbox/cr-before-options.md"   fail "--create 절: 절의 옵션 섹션 앞 이동 격추"
 
+# --- AC 정제 (issue #130) ---------------------------------------------------------
+#
+# 이슈에 AC가 있으면 3-2가 완료의 정의를 새로 쓰지 않고 AC를 정제하며, spec 항목의 출처 표기로 AC와 잇는다.
+# SKILL.md는 3-2 범위(`3-2. 승인 후` 행부터 `4. ` 행 전까지)에 `AC 정제` 항목 1개와 조항 문구 6개가 있는지 본다.
+# 다른 단계로 옮긴 문장은 세지 않는다.
+# spec 템플릿은 완료의 정의 예시 항목에 `(AC<n>)` 출처 표기가 있고 `(회귀 방지 항목)`보다 앞에 오는지,
+# plan 템플릿은 `## Tasks` 안내(Task 0 전까지)에 진행만 판정한다는 문장이 있는지 본다.
+
+# check_ac_refine_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_refine_skill() {
+  local r n p
+  r="$(awk '/^   - \*\*3-2\. 승인 후\*\*/ { s = 1 } s && /^4\. / { exit } s' "$1")"
+  [ -n "$r" ] || echo "3-2 범위 없음"
+  n="$(printf '%s\n' "$r" | grep -c '^     - \*\*AC 정제\*\*: ')"
+  [ "$n" -eq 1 ] || echo "3-2의 AC 정제 항목 ${n}개 (기대 1개)"
+  for p in 'AC를 `[D]`/`[QD]`/`[ND]`로 정제' '출처 AC를 표기' '모든 AC가 1개 이상의 항목에 연결' \
+           '`공통` 회귀 방지 항목은 예외' '`(AC 없음: <사유>)`로 적고 6단계 질의 대상' \
+           'AC 번호는 뒤에만 추가하고 다시 매기지 않는다'; do
+    printf '%s\n' "$r" | grep -qF -- "$p" || echo "3-2에 [$p] 없음"
+  done
+}
+
+# check_ac_refine_spec_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_refine_spec_tpl() {
+  awk '/^## 완료의 정의/ { s = 1; next } /^## / { s = 0 }
+       s && /^- \[ \] \[(D|QD|ND)\]/ {
+         if ($0 ~ /\(AC[0-9]+(, AC[0-9]+)*\)/) n++
+         if ($0 ~ /\(회귀 방지 항목\).*\(AC[0-9]/) print "출처 표기가 회귀 방지 표시 뒤 (행 " NR ")"
+       }
+       END { if (n < 1) print "출처 AC 표기 예시 없음" }' "$1"
+}
+
+# check_ac_refine_plan_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_refine_plan_tpl() {
+  local r p
+  r="$(awk '/^## Tasks$/ { s = 1 } /^### Task 0/ { exit } s' "$1")"
+  for p in '진행만 판정' 'spec에 없는 결과를 더하지 않는다'; do
+    printf '%s\n' "$r" | grep -qF -- "$p" || echo "Tasks 안내에 [$p] 없음"
+  done
+}
+
+drop_literal "$SKILL" 'AC를 `[D]`/`[QD]`/`[ND]`로 정제' > "$sandbox/ar-no-refine.md"
+drop_literal "$SKILL" '출처 AC를 표기' > "$sandbox/ar-no-source.md"
+drop_literal "$SKILL" '모든 AC가 1개 이상의 항목에 연결' > "$sandbox/ar-no-link.md"
+drop_literal "$SKILL" '`공통` 회귀 방지 항목은 예외' > "$sandbox/ar-no-common.md"
+drop_literal "$SKILL" '`(AC 없음: <사유>)`로 적고 6단계 질의 대상' > "$sandbox/ar-no-ac-none.md"
+drop_literal "$SKILL" 'AC 번호는 뒤에만 추가하고 다시 매기지 않는다' > "$sandbox/ar-no-number.md"
+# AC 정제 항목(하위 행 포함)을 3-2 범위 밖의 4단계 아래로 옮긴다.
+awk '/^     - \*\*AC 정제\*\*: / { hold = 1 } hold && /^4\. / { hold = 0; print; printf "%s", buf; next }
+     hold && !/^       / && !/^     - \*\*AC 정제\*\*: / { hold = 0 }
+     hold { buf = buf $0 "\n"; next } { print }' "$SKILL" > "$sandbox/ar-moved-step4.md"
+awk '/^## 완료의 정의/ { s = 1 } s { gsub(/ \(AC[0-9]+(, AC[0-9]+)*\)/, "") } { print }' \
+  "$SPEC_TPL" > "$sandbox/ar-spec-no-source.md"
+awk '{ sub(/ \(AC1\) \(회귀 방지 항목\)/, " (회귀 방지 항목) (AC1)"); print }' "$SPEC_TPL" > "$sandbox/ar-spec-source-after.md"
+awk '!index($0, "spec에 없는 결과를 더하지 않는다")' "$TEMPLATE" > "$sandbox/ar-plan-no-rule.md"
+
+assert_structure check_ac_refine_skill    "$SKILL"                            pass "AC 정제: 실제 SKILL.md 3-2 통과"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-refine.md"          fail "AC 정제: 3-2 정제 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-source.md"          fail "AC 정제: 3-2 출처 표기 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-link.md"            fail "AC 정제: 3-2 모든 AC 연결 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-common.md"          fail "AC 정제: 3-2 공통 회귀 방지 예외 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-ac-none.md"         fail "AC 정제: 3-2 AC 없음 표기 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-number.md"          fail "AC 정제: 3-2 AC 번호 유지 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-moved-step4.md"        fail "AC 정제: AC 정제 항목의 4단계 이동 격추"
+assert_structure check_ac_refine_spec_tpl "$SPEC_TPL"                         pass "AC 정제: 실제 spec 템플릿 출처 표기 통과"
+assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-no-source.md"     fail "AC 정제: spec 템플릿 출처 표기 삭제 격추"
+assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-source-after.md"  fail "AC 정제: spec 템플릿 출처 표기의 회귀 방지 표시 뒤 이동 격추"
+assert_structure check_ac_refine_plan_tpl "$TEMPLATE"                         pass "AC 정제: 실제 plan 템플릿 Tasks 안내 통과"
+assert_structure check_ac_refine_plan_tpl "$sandbox/ar-plan-no-rule.md"       fail "AC 정제: plan 템플릿 진행만 판정 문장 삭제 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
