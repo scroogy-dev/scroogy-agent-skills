@@ -471,6 +471,190 @@ assert_link_rule "$TMP/lr-no-ref.md"      참조 "링크 갱신 규칙: 승격 �
 assert_link_rule "$TMP/lr-bad-path.md"    호출 "링크 갱신 규칙: 경로 설정 값을 없는 파일로 바꾼 호출 블록 격추"
 assert_link_rule "$TMP/lr-no-call.md"     호출 "링크 갱신 규칙: 호출 행 삭제 격추"
 
+# --- PR 본문 구성 (issue #130) -------------------------------------------------------
+#
+# 이슈 섹션의 첫 화면 5항목·접기 안 헤더 5개(템플릿), 테크 관점 항목 순서(SKILL.md·템플릿), SKILL.md 이슈 섹션 설명의
+# 라벨 순서·리뷰어 확인 요청 규칙·접기 안 `없음` 규칙이 계약이다. 판정은 issue-0130 spec R8 의 [D] 명령을 옮긴 것이다.
+# 위반 행은 판정 이름으로 시작하고, 격추 케이스는 노린 판정이 위반을 냈는지 본다 (assert_link_rule 과 같은 방식).
+# 첫 화면만 읽고 판단할 수 있는지는 판정하지 않는다 (이슈 spec 의 [QD] 몫).
+
+PR_TPL="$HERE/../templates/pr-body-template.md"
+P="$TMP/pr-body"
+mkdir -p "$P"
+
+# issue_sec <SKILL.md> → 이슈 섹션 설명 (`### Issue: #[이슈번호]` 다음 행부터 `#### 1. 비즈니스 관점` 앞까지)
+issue_sec() { awk '/^### Issue: #\[이슈번호\]/ { f = 1; next } f && /^#### 1\. 비즈니스 관점$/ { exit } f' "$1"; }
+
+# check_pr_body <SKILL.md> <템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_pr_body() {
+  local got f sec prev ln p
+  got=$(awk '/^### Issue: / { n++ } n == 1 && /^<details>/ { d++ } n == 1 && /^<\/details>/ { d-- }
+             n == 1 && d == 0 && /^\*\*[^*]+\*\*$/ { printf "%s|", $0 }' "$2")
+  [ "$got" = '**목적·범위**|**리뷰어 확인 요청**|**리스크·주의사항**|**완료의 정의 대조**|**이번 PR에서 하지 않는 것**|' ] \
+    || echo "첫 화면 라벨: [$got]"
+  got=$(awk '/^### Issue: / { n++ } n == 1 && /^<details>/ { d++ } n == 1 && /^<\/details>/ { d-- }
+             n == 1 && d > 0 && /^#### / { printf "%s|", $0 }' "$2")
+  [ "$got" = '#### 완료의 정의 대조 표|#### 전후 예시|#### 배경|#### 1. 비즈니스 관점|#### 2. 테크 관점|' ] \
+    || echo "접기 안 헤더: [$got]"
+  for f in "$1" "$2"; do
+    got=$(awk '/^#### 2\. 테크 관점$/ { s = 1; next } s && (/^## / || /^<\/details>/) { exit }
+               s && /^\* \*\*[^*]+:\*\*/ { match($0, /\*\*[^*]+:\*\*/); printf "%s|", substr($0, RSTART, RLENGTH) }' "$f")
+    [ "$got" = '**구현 요약:**|**호출 흐름:**|**실패 경로:**|**참고사항:**|' ] || echo "테크 관점: ${f##*/} [$got]"
+  done
+  sec=$(issue_sec "$1")
+  prev=0
+  for p in '**목적·범위**' '**리뷰어 확인 요청**' '**리스크·주의사항**' '**완료의 정의 대조**' '**이번 PR에서 하지 않는 것**'; do
+    ln=$(printf '%s\n' "$sec" | grep -nF -- "$p" | head -1 | cut -d: -f1)
+    if [ -z "$ln" ] || [ "$ln" -le "$prev" ]; then echo "라벨 순서: [$p]"; else prev=$ln; fi
+  done
+  for p in '질문으로' '`없음`'; do
+    printf '%s\n' "$sec" | grep -F '**리뷰어 확인 요청**' | grep -qF -- "$p" || echo "확인 요청 규칙: [$p] 없음"
+  done
+  for p in '접기 안 헤더 5개도 항상 두고' '동작 차이가 없는 변경이면 전후 예시는 `없음`'; do
+    printf '%s\n' "$sec" | grep -qF -- "$p" || echo "접기 안 규칙: [$p] 없음"
+  done
+}
+
+# assert_rule <검사 함수> <기대: pass | 판정 이름> <설명> <파일...>
+# 격추 케이스는 노린 판정 이름으로 시작하는 위반 행이 있어야 통과한다 — 변형이 다른 판정에만 걸리면 노린 판정이 깨져도 알 수 없다.
+assert_rule() {
+  local fn="$1" want="$2" desc="$3" out; shift 3
+  out="$("$fn" "$@")"
+  if [ "$want" = pass ]; then
+    if [ -z "$out" ]; then ok "$desc (위반 0건)"; else ng "$desc (기대 0건, 실제 [$out])"; fi
+  elif printf '%s\n' "$out" | grep -q "^$want: "; then
+    ok "$desc ($want 위반 검출)"
+  else
+    ng "$desc (기대 [$want: …], 실제 [$out])"
+  fi
+}
+
+assert_rule check_pr_body pass 'PR 본문 구성: 실제 SKILL.md·템플릿 통과' "$SKILL" "$PR_TPL"
+
+# 첫 화면 라벨: 템플릿에서 라벨 행 삭제·접기 안 이동, SKILL.md 에서 항목 행 삭제를 라벨마다 둔다.
+i=0
+for l in '**목적·범위**' '**리뷰어 확인 요청**' '**리스크·주의사항**' '**완료의 정의 대조**' '**이번 PR에서 하지 않는 것**'; do
+  i=$((i + 1))
+  L="$l" awk '$0 != ENVIRON["L"]' "$PR_TPL" > "$P/t-del-$i.md"
+  L="$l" awk '$0 == ENVIRON["L"] { held = $0; next } { print }
+              /^<summary>/ && held != "" { print ""; print held; held = "" }' "$PR_TPL" > "$P/t-in-$i.md"
+  L="- $l: " awk 'index($0, ENVIRON["L"]) != 1' "$SKILL" > "$P/s-del-$i.md"
+  assert_rule check_pr_body '첫 화면 라벨' "PR 본문 구성: 템플릿 첫 화면 라벨 $l 삭제 격추" "$SKILL" "$P/t-del-$i.md"
+  assert_rule check_pr_body '첫 화면 라벨' "PR 본문 구성: 템플릿 첫 화면 라벨 $l 접기 안 이동 격추" "$SKILL" "$P/t-in-$i.md"
+  assert_rule check_pr_body '라벨 순서' "PR 본문 구성: SKILL.md 첫 화면 항목 $l 삭제 격추" "$P/s-del-$i.md" "$PR_TPL"
+done
+
+A='**목적·범위**' B='**리뷰어 확인 요청**' awk '$0 == ENVIRON["A"] { print ENVIRON["B"]; next }
+     $0 == ENVIRON["B"] { print ENVIRON["A"]; next } { print }' "$PR_TPL" > "$P/t-swap.md"
+awk '/^- \*\*목적·범위\*\*: / { held = $0; next } { print }
+     held != "" && /^- \*\*리뷰어 확인 요청\*\*: / { print held; held = "" }' "$SKILL" > "$P/s-swap.md"
+assert_rule check_pr_body '첫 화면 라벨' 'PR 본문 구성: 템플릿 첫 화면 라벨 순서 바꿈 격추' "$SKILL" "$P/t-swap.md"
+assert_rule check_pr_body '라벨 순서'   'PR 본문 구성: SKILL.md 첫 화면 항목 순서 바꿈 격추' "$P/s-swap.md" "$PR_TPL"
+
+i=0
+for h in '#### 완료의 정의 대조 표' '#### 전후 예시' '#### 배경' '#### 1. 비즈니스 관점' '#### 2. 테크 관점'; do
+  i=$((i + 1))
+  H="$h" awk '$0 != ENVIRON["H"]' "$PR_TPL" > "$P/t-hdel-$i.md"
+  assert_rule check_pr_body '접기 안 헤더' "PR 본문 구성: 템플릿 접기 안 헤더 $h 삭제 격추" "$SKILL" "$P/t-hdel-$i.md"
+done
+
+# 실패 경로: 삭제와, 테크 관점 `참고사항` 뒤로 옮긴 사본. 비즈니스 관점 `참고사항`은 실패 경로보다 앞이라 옮길 자리가 되지 않는다.
+for w in skill tpl; do
+  if [ "$w" = skill ]; then src="$SKILL"; else src="$PR_TPL"; fi
+  awk '!/^\* \*\*실패 경로:\*\*/' "$src" > "$P/$w-fp-del.md"
+  awk '/^\* \*\*실패 경로:\*\*/ { held = $0; next } { print }
+       /^\* \*\*참고사항:\*\*/ && held != "" { print held; held = "" }' "$src" > "$P/$w-fp-moved.md"
+done
+assert_rule check_pr_body '테크 관점' 'PR 본문 구성: SKILL.md 실패 경로 삭제 격추'           "$P/skill-fp-del.md" "$PR_TPL"
+assert_rule check_pr_body '테크 관점' 'PR 본문 구성: SKILL.md 실패 경로를 참고사항 뒤로 이동 격추' "$P/skill-fp-moved.md" "$PR_TPL"
+assert_rule check_pr_body '테크 관점' 'PR 본문 구성: 템플릿 실패 경로 삭제 격추'             "$SKILL" "$P/tpl-fp-del.md"
+assert_rule check_pr_body '테크 관점' 'PR 본문 구성: 템플릿 실패 경로를 참고사항 뒤로 이동 격추'   "$SKILL" "$P/tpl-fp-moved.md"
+
+drop_literal "$SKILL" '질문으로' '^- [*][*]리뷰어 확인 요청' > "$P/s-rq-question.md"
+drop_literal "$SKILL" '`없음`'   '^- [*][*]리뷰어 확인 요청' > "$P/s-rq-none.md"
+drop_literal "$SKILL" '접기 안 헤더 5개도 항상 두고' > "$P/s-fold-none.md"
+drop_literal "$SKILL" '동작 차이가 없는 변경이면 전후 예시는 `없음`' > "$P/s-example-none.md"
+assert_rule check_pr_body '확인 요청 규칙' 'PR 본문 구성: 리뷰어 확인 요청의 질문 규칙 문구 삭제 격추' "$P/s-rq-question.md" "$PR_TPL"
+assert_rule check_pr_body '확인 요청 규칙' 'PR 본문 구성: 리뷰어 확인 요청의 없음 규칙 문구 삭제 격추' "$P/s-rq-none.md" "$PR_TPL"
+assert_rule check_pr_body '접기 안 규칙'   'PR 본문 구성: 접기 안 헤더 없음 규칙 문장 삭제 격추'     "$P/s-fold-none.md" "$PR_TPL"
+assert_rule check_pr_body '접기 안 규칙'   'PR 본문 구성: 전후 예시 없음 문장 삭제 격추'            "$P/s-example-none.md" "$PR_TPL"
+
+# --- 승인 요약 (issue #130) ---------------------------------------------------------
+#
+# 3단계 `최종 PR 본문` 요약 항목에 리뷰어 확인 요청과 미충족 완료 항목이 들어 있어야 한다 (issue-0130 spec R9).
+
+# check_approval <SKILL.md> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_approval() {
+  local l n p
+  l=$(awk '/^### 3\. 최종 제시 및 승인/ { f = 1; next } f && /^### / { exit } f && /^  - 최종 PR 본문 — / { print }' "$1")
+  n=$(printf '%s\n' "$l" | grep -c .)
+  [ "$n" -eq 1 ] || echo "항목 수: 최종 PR 본문 항목 ${n}개 (기대 1개)"
+  for p in '리뷰어 확인 요청' '미충족 완료 항목'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "요약 문구: [$p] 없음"
+  done
+}
+
+drop_literal "$SKILL" '리뷰어 확인 요청' '^  - 최종 PR 본문 — ' > "$P/ap-no-review.md"
+drop_literal "$SKILL" '미충족 완료 항목' '^  - 최종 PR 본문 — ' > "$P/ap-no-unmet.md"
+awk '{ print } /^  - 최종 PR 본문 — / { print }' "$SKILL" > "$P/ap-dup.md"
+assert_rule check_approval pass        '승인 요약: 실제 SKILL.md 통과' "$SKILL"
+assert_rule check_approval '요약 문구' '승인 요약: 리뷰어 확인 요청 문구 삭제 격추' "$P/ap-no-review.md"
+assert_rule check_approval '요약 문구' '승인 요약: 미충족 완료 항목 문구 삭제 격추' "$P/ap-no-unmet.md"
+assert_rule check_approval '항목 수'   '승인 요약: 최종 PR 본문 항목 중복 격추'     "$P/ap-dup.md"
+
+# --- 대조 근거 (issue #130) ---------------------------------------------------------
+#
+# SKILL.md 첫 화면 `완료의 정의 대조` 항목(하위 행 포함)의 대조 근거·상태 5종·체크박스 미사용·`(AC 없음: …)` 표시 문장,
+# 이슈 섹션 설명의 확인한 것만 적는다는 문장, 템플릿 대조 표의 머리 행·데이터 행·상태 값이 계약이다 (issue-0130 spec R14).
+# 문장 리터럴은 어간까지만 고정한다 (SKILL.md 가 합니다체다). 상태 집계 규칙의 경계 사례는 판정하지 않는다 ([QD] 몫).
+
+# check_dod_basis <SKILL.md> <템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_dod_basis() {
+  local sec blk p tbl rows
+  sec=$(issue_sec "$1")
+  blk=$(printf '%s\n' "$sec" | awk '/^- \*\*완료의 정의 대조\*\*/ { s = 1; print; next } s && /^[[:space:]]+[^[:space:]]/ { print; next } s { exit }')
+  [ -n "$blk" ] || echo '대조 항목: 항목 행 없음'
+  for p in '최종 감사 리포트' '`충족`·`부분 충족`·`미충족`·`미검증`·`이관`' '체크박스만으로 충족으로 세지 않' \
+           '`(AC 없음: …)` 항목은 R 그룹 단위로'; do
+    printf '%s\n' "$blk" | grep -qF -- "$p" || echo "대조 항목: [$p] 없음"
+  done
+  printf '%s\n' "$sec" | grep -qF 'diff·테스트·감사 리포트에서 확인한 것만 적' || echo '확인 문장: 없음'
+  tbl=$(awk '/^### Issue: / { n++ } n == 1 && /^#### / { s = ($0 == "#### 완료의 정의 대조 표"); next }
+             n == 1 && /^<\/details>/ { s = 0 } n == 1 && s && /^\|/' "$2")
+  [ "$(printf '%s\n' "$tbl" | head -1)" = '| AC | 상태 | 근거 |' ] || echo '대조 표: 머리 행'
+  rows=$(printf '%s\n' "$tbl" | tail -n +3)
+  [ -n "$rows" ] || echo '대조 표: 데이터 행 없음'
+  printf '%s\n' "$rows" | awk -F'|' 'NF { v = $3; gsub(/^ +| +$/, "", v)
+    if (v !~ /^(충족|부분 충족|미충족|미검증|이관)$/) print "대조 표: 상태 값 [" v "]" }'
+}
+
+i=0
+for w in '최종 감사 리포트' '`충족`·`부분 충족`·`미충족`·`미검증`·`이관`' '체크박스만으로 충족으로 세지 않' \
+         '`(AC 없음: …)` 항목은 R 그룹 단위로'; do
+  i=$((i + 1)); drop_literal "$SKILL" "$w" > "$P/db-drop-$i.md"
+done
+# 위 루프는 사본만 만든다. 케이스 설명에 지운 문구를 이름으로 붙여 아래에서 판정한다.
+assert_rule check_dod_basis pass        '대조 근거: 실제 SKILL.md·템플릿 통과'                   "$SKILL" "$PR_TPL"
+assert_rule check_dod_basis '대조 항목' '대조 근거: 최종 감사 리포트 문구 삭제 격추'             "$P/db-drop-1.md" "$PR_TPL"
+assert_rule check_dod_basis '대조 항목' '대조 근거: AC 상태 5종 문구 삭제 격추'                  "$P/db-drop-2.md" "$PR_TPL"
+assert_rule check_dod_basis '대조 항목' '대조 근거: 체크박스 미사용 문장 삭제 격추'              "$P/db-drop-3.md" "$PR_TPL"
+assert_rule check_dod_basis '대조 항목' '대조 근거: AC 없음 항목 표시 문장 삭제 격추'            "$P/db-drop-4.md" "$PR_TPL"
+
+# 체크박스 미사용 문장 행을 `리스크·주의사항` 항목 아래 하위 행으로 옮긴다 (항목 범위 밖 이동).
+M="$(grep -F '체크박스만으로 충족으로 세지 않' "$SKILL")" awk '$0 == ENVIRON["M"] { next } { print }
+     /^- \*\*리스크·주의사항\*\*: / { print ENVIRON["M"] }' "$SKILL" > "$P/db-moved.md"
+drop_literal "$SKILL" '·`이관`' > "$P/db-state4.md"
+drop_literal "$SKILL" 'diff·테스트·감사 리포트에서 확인한 것만 적' > "$P/db-no-confirm.md"
+awk '$0 == "| AC | 상태 | 근거 |" { $0 = "| AC | 판정 | 근거 |" } { print }' "$PR_TPL" > "$P/db-head.md"
+awk '!/^\| AC[0-9]/' "$PR_TPL" > "$P/db-no-rows.md"
+awk '!d && sub(/\| 충족 \|/, "| 완료 |") { d = 1 } { print }' "$PR_TPL" > "$P/db-bad-state.md"
+assert_rule check_dod_basis '대조 항목' '대조 근거: 체크박스 미사용 문장을 리스크·주의사항 항목으로 이동 격추' "$P/db-moved.md" "$PR_TPL"
+assert_rule check_dod_basis '대조 항목' '대조 근거: 상태 값 이관 빼기 격추'                     "$P/db-state4.md" "$PR_TPL"
+assert_rule check_dod_basis '확인 문장' '대조 근거: 확인한 것만 적는다 문장 삭제 격추'           "$P/db-no-confirm.md" "$PR_TPL"
+assert_rule check_dod_basis '대조 표'   '대조 근거: 대조 표 머리 행 변경 격추'                   "$SKILL" "$P/db-head.md"
+assert_rule check_dod_basis '대조 표'   '대조 근거: 대조 표 데이터 행 삭제 격추'                 "$SKILL" "$P/db-no-rows.md"
+assert_rule check_dod_basis '대조 표'   '대조 근거: 상태 열에 5종 밖 값 넣기 격추'               "$SKILL" "$P/db-bad-state.md"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

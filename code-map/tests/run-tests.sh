@@ -353,13 +353,14 @@ seq_body_violations() {
 }
 
 # pr_body_violations <git-pr SKILL.md> <references/local.md> — git-pr 테크 관점 `호출 흐름`의 시퀀스 배치를 본다.
+# 구간 끝은 `호출 흐름` 다음 항목인 `실패 경로`다 (#130).
 pr_body_violations() {
-  seq_body_violations "$1" "$2" 'git-pr 본문' '* **호출 흐름:**' '* **참고사항:**' \
+  seq_body_violations "$1" "$2" 'git-pr 본문' '* **호출 흐름:**' '* **실패 경로:**' \
     '`호출 흐름`' '트리 코드 블록 바로 다음' '`sequenceDiagram`' '`mermaid` 코드 블록' '소제목은 두지 않'
 }
 
 # pr_template_violations <git-pr 템플릿> — PR 본문 템플릿 `호출 흐름` 예시의 시퀀스 배치를 본다.
-pr_template_violations() { seq_example_violations "$1" 'git-pr 템플릿' '* **호출 흐름:**' '* **참고사항:**'; }
+pr_template_violations() { seq_example_violations "$1" 'git-pr 템플릿' '* **호출 흐름:**' '* **실패 경로:**'; }
 
 # rc_body_violations <git-review-context SKILL.md> <references/local.md> — 5단계 호출 흐름 분석의 시퀀스 배치를 보고,
 # 시퀀스가 대신하는 의사코드·단계별 목록 행이 남지 않았는지 본다.

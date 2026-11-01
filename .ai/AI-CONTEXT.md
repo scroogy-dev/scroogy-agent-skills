@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-10-31
+> last updated: 2026-11-01
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -81,7 +81,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── git-pr/                     # PR 제목/메시지 작성·제출 스킬
 │   ├── scripts/                # 제목 규격·제출 가드·원장 링크 검사 헬퍼 (validate-title.sh, verify-submit.sh, check-ledger-links.sh)
 │   ├── templates/              # PR 본문 템플릿
-│   └── tests/                  # 헬퍼 테스트 (배포 제외)
+│   └── tests/                  # 헬퍼 테스트 + PR 본문 구성·승인 요약·완료의 정의 대조 근거·원장 링크 갱신 조항 구조 검사 (배포 제외)
 ├── git-pr-feedback/            # PR 리뷰 코멘트 검토·대응 스킬
 │   ├── scripts/                # push 직전 가드·원장 링크 검사 헬퍼 (verify-push.sh, check-ledger-links.sh)
 │   └── tests/                  # 가드 헬퍼 테스트 (배포 제외)
@@ -104,13 +104,13 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 │   ├── templates/              # 설치 결과 보고 형식
 │   └── tests/                  # 검증 헬퍼 테스트 (배포 제외)
 ├── issue-audit/                # 이슈 감사 스킬
-│   ├── scripts/                # 위험도·상태·판정 산출·발견 번호 계승·계획 추적성 헬퍼 (classify-risk.sh, next-finding-number.sh, check-plan.sh)
+│   ├── scripts/                # 위험도·상태·판정 산출·발견 번호 계승·계획 추적성·AC 대조 헬퍼 (classify-risk.sh, next-finding-number.sh, check-plan.sh)
 │   ├── templates/              # 감사 리포트 템플릿
-│   └── tests/                  # 헬퍼 테스트 (배포 제외)
+│   └── tests/                  # 헬퍼 테스트 + 리포트 템플릿·`--plan` 조항(가짜 [D] 판별·관점 3 범위 등) 구조 검사 (배포 제외)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   ├── scripts/                # --clear 완료·경로 검사, 지표 집계, 원장 링크 검사 헬퍼 (check-clear.sh, summarize-metrics.sh, check-ledger-links.sh)
-│   ├── templates/              # 이슈 템플릿
-│   └── tests/                  # 헬퍼 테스트 + plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
+│   ├── templates/              # 이슈 작업 문서(spec·plan·summary·workflow)·이슈 본문 템플릿
+│   └── tests/                  # 헬퍼 테스트 + spec·plan·summary·이슈 본문 템플릿과 SKILL.md 조항(--create·AC 정제·변경 통제·본문 갱신 질의 등) 구조 검사 + plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
 ├── readme-sync/                # README.md 생성/갱신 스킬
 │   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)
 │   └── templates/              # README 템플릿
@@ -129,15 +129,15 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `context-harvest` | 소스코드 바깥의 What+Why를 수집·증류하여 `30_contract/`, `40_domain/`, `50_adr/` 문서 생성 |
 | `context-save` | 대화 맥락을 `.ai/99_workspace/notes/`에 임시 저장 (세션 간 맥락 전달용) |
 | `git-commit` | Conventional Commits 규칙에 따른 커밋 메시지 작성 |
-| `git-pr` | PR 제목/메시지 작성 (비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
+| `git-pr` | PR 제목/메시지 작성 (첫 화면의 리뷰어 확인 요청·완료의 정의(AC) 대조, 비즈니스+테크 관점) 후 승인 게이트를 거쳐 정식/드래프트 PR 생성 |
 | `git-pr-feedback` | PR 리뷰 코멘트를 수집·분류하고 항목별 의견 제시 후 사용자 선택에 따라 답글 게시·코드 변경·원장 등재로 대응 |
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `git-review-quiz` | PR 변경에서 비즈니스·테크 문항을 만들어 대화형으로 풀거나 PR 댓글로 게시 (문항별 변경 위치 표시, 힌트·정답 접기) |
 | `install-skills` | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
-| `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문·`.ai` 문서에 대조하는 계획 감사 |
-| `issue-work` | 이슈 단위 스펙/계획/요약 관리 워크플로우 |
+| `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
+| `issue-work` | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 워크플로우 |
 | `readme-sync` | 프로젝트를 분석하여 README.md 생성 또는 최신화 (init/update 모드, individual/business 프로파일) |
 
 ---
@@ -240,5 +240,5 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 | Skill | 설명 | 사용 시점 |
 |-------|------|----------|
-| `/issue-work` | 이슈 단위 스펙/계획/요약 관리 | 이슈 작업 시 |
+| `/issue-work` | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 | 이슈 등록·이슈 작업 시 |
 | `/issue-audit` | 이슈 스펙 대비 구현 독립 감사, `--plan` 계획 감사 | 계획·구현 검증 시 |

@@ -1349,6 +1349,415 @@ assert_structure check_testing_skill "$sandbox/tr-32-moved.md"     fail "테스�
 assert_structure check_testing_plan  "$sandbox/tr-plan-del.md"     fail "테스트 원칙 조항: 테스트 배치 문단 local 참조 삭제 격추"
 assert_structure check_testing_plan  "$sandbox/tr-plan-split.md"   fail "테스트 원칙 조항: 테스트 배치 local 참조의 다음 문단 이동 격추"
 
+# --- 이슈 본문 템플릿 (issue #130) ------------------------------------------------
+#
+# `--create` 초안, 3-1 근거 판정, issue-audit `--plan` 1단계가 같은 이슈 본문 구조를 읽는다.
+# 본문 헤더 4개와 접기 제목 3개를 열거해 그 외 0건까지 판정하고(HTML 주석 안 안내문은 빼고 센다),
+# 접기 안 헤더와 `## 검토 필요` 앞 접기를 위반으로 센다.
+# 완료의 정의 섹션의 AC 행과 포함 항목 AC 규칙 문장은 섹션 범위로 판정한다.
+# 규칙 문장은 주석 안 안내라 주석 행도 세며, 다른 섹션으로 옮긴 문장은 세지 않는다.
+
+BODY_TPL="$HERE/../templates/issue-body-template.md"
+
+# check_body_template <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_body_template() {
+  awk '
+    sec == "완료의 정의" && index($0, "포함 항목마다 AC를 1개 이상") { rule++ }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    /^## / { h = h $0 "|"; sec = substr($0, 4); if (d > 0) print "접기 안 헤더 " $0 }
+    /^## 검토 필요$/ { k = 1 }
+    /^<details>/ { d++; if (!k) print "검토 필요 앞 접기" }
+    /^<\/details>/ { d-- }
+    { t = $0; while (match(t, /<summary>[^<]+<\/summary>/)) { s = s substr(t, RSTART, RLENGTH) "|"; t = substr(t, RSTART + RLENGTH) } }
+    sec == "완료의 정의" && /^- \[ \] AC[0-9]+: / { ac++ }
+    END {
+      if (h != "## 목표|## 범위|## 완료의 정의|## 검토 필요|") print "본문 헤더 구성 [" h "]"
+      if (s != "<summary>배경</summary>|<summary>현재 동작 → 기대 동작</summary>|<summary>연관 문서</summary>|")
+        print "접기 구성 [" s "]"
+      if (ac < 1) print "완료의 정의에 AC 행 없음"
+      if (rule < 1) print "완료의 정의 안내에 포함 항목 AC 규칙 없음"
+    }' "$1"
+}
+
+awk '!/^## 목표$/' "$BODY_TPL" > "$sandbox/bt-no-goal.md"
+awk '/^## 범위$/ { hold = 1 } /^## 완료의 정의$/ { hold = 0 } hold { buf = buf $0 "\n"; next }
+     /^## 검토 필요$/ { printf "%s", buf } { print }' "$BODY_TPL" > "$sandbox/bt-swap-order.md"
+awk '/^## 검토 필요$/ { hold = 1 } hold && /^<details>/ { hold = 0 } hold { buf = buf $0 "\n"; next }
+     { print } /^<summary>배경<\/summary>$/ { print ""; printf "%s", buf }' "$BODY_TPL" > "$sandbox/bt-review-folded.md"
+awk '{ sub(/<summary>배경<\/summary>/, "<summary>배경과 계기</summary>"); print }' "$BODY_TPL" > "$sandbox/bt-summary-renamed.md"
+awk '!/^- \[ \] AC[0-9]+: /' "$BODY_TPL" > "$sandbox/bt-no-ac.md"
+drop_literal "$BODY_TPL" '포함 항목마다 AC를 1개 이상' > "$sandbox/bt-no-rule.md"
+BT_RULE="$(grep -F '포함 항목마다 AC를 1개 이상' "$BODY_TPL")" \
+  awk 'index($0, "포함 항목마다 AC를 1개 이상") { next } /^## 완료의 정의$/ { print ENVIRON["BT_RULE"]; print "" } { print }' \
+  "$BODY_TPL" > "$sandbox/bt-rule-in-scope.md"
+
+assert_structure check_body_template "$BODY_TPL"                        pass "이슈 본문 템플릿: 실제 템플릿 통과"
+assert_structure check_body_template "$sandbox/bt-no-goal.md"           fail "이슈 본문 템플릿: 목표 헤더 삭제 격추"
+assert_structure check_body_template "$sandbox/bt-swap-order.md"        fail "이슈 본문 템플릿: 범위·완료의 정의 순서 바꿈 격추"
+assert_structure check_body_template "$sandbox/bt-review-folded.md"     fail "이슈 본문 템플릿: 검토 필요의 접기 안 이동 격추"
+assert_structure check_body_template "$sandbox/bt-summary-renamed.md"   fail "이슈 본문 템플릿: 접기 제목 변경 격추"
+assert_structure check_body_template "$sandbox/bt-no-ac.md"             fail "이슈 본문 템플릿: 완료의 정의 AC 행 삭제 격추"
+assert_structure check_body_template "$sandbox/bt-no-rule.md"           fail "이슈 본문 템플릿: 포함 항목 AC 규칙 문장 삭제 격추"
+assert_structure check_body_template "$sandbox/bt-rule-in-scope.md"     fail "이슈 본문 템플릿: 포함 항목 AC 규칙 문장의 범위 섹션 이동 격추"
+
+# --- --create 절 (issue #130) -----------------------------------------------------
+#
+# 이슈 등록은 외부 공개 행위라 승인 게이트·대상 저장소 명시·작업 파일 1개가 절 문장으로 지켜진다.
+# `## 옵션` 아래 절 1개, 동작 단계 6개의 이름·순서(그 외 단계 0건), 절이 가리키는 작업 파일 집합,
+# 파일 전체의 `gh issue create --` 명령 행마다 `--repo '`·`--body-file`, 승인 전 미실행·active 무변경 문장을 판정한다.
+# 분할 권고와 AC 미대응 포함 항목 보고는 요약 제시 단계 범위(다음 번호 단계 전까지)로 판정해, 다른 단계로 옮긴 문장은 세지 않는다.
+
+# check_create_section <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_create_section() {
+  local n sec got st p
+  n="$(grep -c '^### `--create`$' "$1")"
+  [ "$n" -eq 1 ] || echo "옵션 절 개수 ${n}개 (기대 1개)"
+  awk '/^## 옵션$/ { o = NR } /^### `--create`$/ { c = NR }
+       END { if (!o || !c || c < o) print "--create 절이 옵션 섹션 밖" }' "$1"
+  sec="$(awk '/^### `--create`$/ { f = 1; next } f && /^#{2,3} / { exit } f' "$1")"
+  got="$(printf '%s\n' "$sec" | grep -oE '^  [0-9]+\. \*\*[^*]+\*\*' | sed -E 's/^  [0-9]+\. //' | tr '\n' '|')"
+  [ "$got" = '**초안 작성**|**요약 제시**|**승인**|**등록**|**번호 보고**|**시작 질의**|' ] || echo "동작 단계 구성·순서 [$got]"
+  got="$(printf '%s\n' "$sec" | grep -oE "\.ai/99_workspace/[^\`' )]+" | sort -u | tr '\n' '|')"
+  [ "$got" = '.ai/99_workspace/issue-create-body.md|' ] || echo "작업 파일 [$got]"
+  [ "$(grep -c 'gh issue create --' "$1")" -ge 1 ] || echo "gh issue create 명령 행 없음"
+  grep -n 'gh issue create --' "$1" | grep -vF -e "--repo '" | sed 's/^/명령 행에 --repo 없음: /'
+  grep -n 'gh issue create --' "$1" | grep -vF -e '--body-file' | sed 's/^/명령 행에 --body-file 없음: /'
+  for p in '승인 전에는 `gh issue create`를 실행하지 않는다' 'active 작업 파일을 옮기거나 지우지 않는다'; do
+    printf '%s\n' "$sec" | grep -qF -- "$p" || echo "절에 문장 없음 [$p]"
+  done
+  st="$(printf '%s\n' "$sec" | awk '/^  [0-9]+\. \*\*요약 제시\*\*/ { s = 1; print; next } s && /^  [0-9]+\. / { exit } s')"
+  for p in '서로 독립으로 머지할 수 있는' '분할을 권고' '수치 기준은 두지 않' '결정은 사용자' 'AC가 대응하지 않는 포함 항목'; do
+    printf '%s\n' "$st" | grep -qF -- "$p" || echo "요약 제시 단계에 [$p] 없음"
+  done
+}
+
+# 단계·명령 행 변형은 --create 절 범위(f)에서만 건다. 같은 모양의 행이 다른 절에 생겨도 사본이 어긋나지 않게 하기 위함이다.
+awk '!/^### `--create`$/' "$SKILL" > "$sandbox/cr-no-section.md"
+awk '/^### `--create`$/ { f = 1 } f && /^## / { f = 0 } f && /^### / && !/^### `--create`$/ { f = 0 }
+     f && /^  2\. \*\*요약 제시\*\*/ { sub(/\*\*요약 제시\*\*/, "**승인**"); print; next }
+     f && /^  3\. \*\*승인\*\*/ { sub(/\*\*승인\*\*/, "**요약 제시**"); print; next } { print }' \
+  "$SKILL" > "$sandbox/cr-swap-steps.md"
+awk '{ print } /^  6\. \*\*시작 질의\*\*/ { print "  7. **정리**: 초안 파일을 지운다." }' "$SKILL" > "$sandbox/cr-extra-step.md"
+drop_literal "$SKILL" '승인 전에는 `gh issue create`를 실행하지 않는다' > "$sandbox/cr-no-approval.md"
+drop_literal "$SKILL" 'active 작업 파일을 옮기거나 지우지 않는다' > "$sandbox/cr-no-active.md"
+awk -v r="--repo '[^']*' " '/gh issue create --/ { sub(r, "") } { print }' "$SKILL" > "$sandbox/cr-no-repo.md"
+awk -v r=" --body-file '[^']*'" '/gh issue create --/ { sub(r, "") } { print }' "$SKILL" > "$sandbox/cr-no-body-file.md"
+awk '{ print } /^  1\. \*\*초안 작성\*\*/ { print "     - 제목은 `.ai/99_workspace/issue-create-title.md`에 따로 쓴다." }' \
+  "$SKILL" > "$sandbox/cr-second-file.md"
+drop_literal "$SKILL" '서로 독립으로 머지할 수 있는' > "$sandbox/cr-no-split-indep.md"
+drop_literal "$SKILL" '분할을 권고' > "$sandbox/cr-no-split-advise.md"
+drop_literal "$SKILL" '수치 기준은 두지 않' > "$sandbox/cr-no-split-number.md"
+drop_literal "$SKILL" '결정은 사용자' > "$sandbox/cr-no-split-user.md"
+drop_literal "$SKILL" 'AC가 대응하지 않는 포함 항목' > "$sandbox/cr-no-ac-report.md"
+awk 'index($0, "AC가 대응하지 않는 포함 항목") { held = $0; next } { print }
+     /^  3\. \*\*승인\*\*/ && held { print held; held = "" }' "$SKILL" > "$sandbox/cr-ac-report-moved.md"
+awk '/^### `--create`$/ { f = 1 } f && /^### `--workflow-only`$/ { f = 0 }
+     f { buf = buf $0 "\n"; next } { line[++n] = $0 }
+     END { for (i = 1; i <= n; i++) { if (line[i] == "## 옵션") printf "%s", buf; print line[i] } }' \
+  "$SKILL" > "$sandbox/cr-before-options.md"
+
+assert_structure check_create_section "$SKILL"                          pass "--create 절: 실제 SKILL.md 통과"
+assert_structure check_create_section "$sandbox/cr-no-section.md"       fail "--create 절: 절 헤더 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-swap-steps.md"       fail "--create 절: 요약 제시·승인 단계 순서 바꿈 격추"
+assert_structure check_create_section "$sandbox/cr-extra-step.md"       fail "--create 절: 동작 단계 추가 격추"
+assert_structure check_create_section "$sandbox/cr-no-approval.md"      fail "--create 절: 승인 전 미실행 문장 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-active.md"        fail "--create 절: active 무변경 문장 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-repo.md"          fail "--create 절: --repo 없는 명령 행 격추"
+assert_structure check_create_section "$sandbox/cr-no-body-file.md"     fail "--create 절: --body-file 없는 명령 행 격추"
+assert_structure check_create_section "$sandbox/cr-second-file.md"      fail "--create 절: 두 번째 작업 파일 경로 추가 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-indep.md"   fail "--create 절: 분할 권고 조건 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-advise.md"  fail "--create 절: 분할 권고 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-number.md"  fail "--create 절: 분할 수치 기준 미사용 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-split-user.md"    fail "--create 절: 분할 결정 주체 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-no-ac-report.md"     fail "--create 절: AC 미대응 포함 항목 보고 문구 삭제 격추"
+assert_structure check_create_section "$sandbox/cr-ac-report-moved.md"  fail "--create 절: AC 미대응 포함 항목 보고의 승인 단계 이동 격추"
+assert_structure check_create_section "$sandbox/cr-before-options.md"   fail "--create 절: 절의 옵션 섹션 앞 이동 격추"
+
+# --- AC 정제 (issue #130) ---------------------------------------------------------
+#
+# 이슈에 AC가 있으면 3-2가 완료의 정의를 새로 쓰지 않고 AC를 정제하며, spec 항목의 출처 표기로 AC와 잇는다.
+# SKILL.md는 3-2 범위(`3-2. 승인 후` 행부터 `4. ` 행 전까지)에 `AC 정제` 항목 1개와 조항 문구 6개가 있는지 본다.
+# 다른 단계로 옮긴 문장은 세지 않는다.
+# spec 템플릿은 완료의 정의 예시 항목에 `(AC<n>)` 출처 표기가 있고 `(회귀 방지 항목)`보다 앞에 오는지,
+# plan 템플릿은 `## Tasks` 안내(Task 0 전까지)에 진행만 판정한다는 문장이 있는지 본다.
+
+# check_ac_refine_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_refine_skill() {
+  local r n p
+  r="$(awk '/^   - \*\*3-2\. 승인 후\*\*/ { s = 1 } s && /^4\. / { exit } s' "$1")"
+  [ -n "$r" ] || echo "3-2 범위 없음"
+  n="$(printf '%s\n' "$r" | grep -c '^     - \*\*AC 정제\*\*: ')"
+  [ "$n" -eq 1 ] || echo "3-2의 AC 정제 항목 ${n}개 (기대 1개)"
+  for p in 'AC를 `[D]`/`[QD]`/`[ND]`로 정제' '출처 AC를 표기' '모든 AC가 1개 이상의 항목에 연결' \
+           '`공통` 회귀 방지 항목은 예외' '`(AC 없음: <사유>)`로 적고 6단계 질의 대상' \
+           'AC 번호는 뒤에만 추가하고 다시 매기지 않는다'; do
+    printf '%s\n' "$r" | grep -qF -- "$p" || echo "3-2에 [$p] 없음"
+  done
+}
+
+# check_ac_refine_spec_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_refine_spec_tpl() {
+  awk '/^## 완료의 정의/ { s = 1; next } /^## / { s = 0 }
+       s && /^- \[ \] \[(D|QD|ND)\]/ {
+         if ($0 ~ /\(AC[0-9]+(, AC[0-9]+)*\)/) n++
+         if ($0 ~ /\(회귀 방지 항목\).*\(AC[0-9]/) print "출처 표기가 회귀 방지 표시 뒤 (행 " NR ")"
+       }
+       END { if (n < 1) print "출처 AC 표기 예시 없음" }' "$1"
+}
+
+# check_ac_refine_plan_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_refine_plan_tpl() {
+  local r p
+  r="$(awk '/^## Tasks$/ { s = 1 } /^### Task 0/ { exit } s' "$1")"
+  for p in '진행만 판정' 'spec에 없는 결과를 더하지 않는다'; do
+    printf '%s\n' "$r" | grep -qF -- "$p" || echo "Tasks 안내에 [$p] 없음"
+  done
+}
+
+drop_literal "$SKILL" 'AC를 `[D]`/`[QD]`/`[ND]`로 정제' > "$sandbox/ar-no-refine.md"
+drop_literal "$SKILL" '출처 AC를 표기' > "$sandbox/ar-no-source.md"
+drop_literal "$SKILL" '모든 AC가 1개 이상의 항목에 연결' > "$sandbox/ar-no-link.md"
+drop_literal "$SKILL" '`공통` 회귀 방지 항목은 예외' > "$sandbox/ar-no-common.md"
+drop_literal "$SKILL" '`(AC 없음: <사유>)`로 적고 6단계 질의 대상' > "$sandbox/ar-no-ac-none.md"
+drop_literal "$SKILL" 'AC 번호는 뒤에만 추가하고 다시 매기지 않는다' > "$sandbox/ar-no-number.md"
+# AC 정제 항목(하위 행 포함)을 3-2 범위 밖의 4단계 아래로 옮긴다.
+awk '/^     - \*\*AC 정제\*\*: / { hold = 1 } hold && /^4\. / { hold = 0; print; printf "%s", buf; next }
+     hold && !/^       / && !/^     - \*\*AC 정제\*\*: / { hold = 0 }
+     hold { buf = buf $0 "\n"; next } { print }' "$SKILL" > "$sandbox/ar-moved-step4.md"
+awk '/^## 완료의 정의/ { s = 1 } s { gsub(/ \(AC[0-9]+(, AC[0-9]+)*\)/, "") } { print }' \
+  "$SPEC_TPL" > "$sandbox/ar-spec-no-source.md"
+awk '{ sub(/ \(AC1\) \(회귀 방지 항목\)/, " (회귀 방지 항목) (AC1)"); print }' "$SPEC_TPL" > "$sandbox/ar-spec-source-after.md"
+awk '!index($0, "spec에 없는 결과를 더하지 않는다")' "$TEMPLATE" > "$sandbox/ar-plan-no-rule.md"
+
+assert_structure check_ac_refine_skill    "$SKILL"                            pass "AC 정제: 실제 SKILL.md 3-2 통과"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-refine.md"          fail "AC 정제: 3-2 정제 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-source.md"          fail "AC 정제: 3-2 출처 표기 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-link.md"            fail "AC 정제: 3-2 모든 AC 연결 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-common.md"          fail "AC 정제: 3-2 공통 회귀 방지 예외 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-ac-none.md"         fail "AC 정제: 3-2 AC 없음 표기 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-no-number.md"          fail "AC 정제: 3-2 AC 번호 유지 문구 삭제 격추"
+assert_structure check_ac_refine_skill    "$sandbox/ar-moved-step4.md"        fail "AC 정제: AC 정제 항목의 4단계 이동 격추"
+assert_structure check_ac_refine_spec_tpl "$SPEC_TPL"                         pass "AC 정제: 실제 spec 템플릿 출처 표기 통과"
+assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-no-source.md"     fail "AC 정제: spec 템플릿 출처 표기 삭제 격추"
+assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-source-after.md"  fail "AC 정제: spec 템플릿 출처 표기의 회귀 방지 표시 뒤 이동 격추"
+assert_structure check_ac_refine_plan_tpl "$TEMPLATE"                         pass "AC 정제: 실제 plan 템플릿 Tasks 안내 통과"
+assert_structure check_ac_refine_plan_tpl "$sandbox/ar-plan-no-rule.md"       fail "AC 정제: plan 템플릿 진행만 판정 문장 삭제 격추"
+
+# --- 변경 통제 (issue #130) -------------------------------------------------------
+#
+# 3-2 정제와 작업 진행 중의 변경을 구체화·확장·완화로 나누고 확장·완화만 질의하는 규칙이 문장으로 지켜진다.
+# SKILL.md는 `## 작업 진행 중` 범위의 `- **변경 통제**:` 항목 1개(다음 `- ` 항목 전까지)와 하위 3종 각 1개,
+# 하위 행마다 정의·처리 문구, 3-2 범위(`3-2. 승인 후` 행부터 `4. ` 행 전까지)의 변경 통제 참조를 판정한다.
+# workflow 템플릿은 `active/issue-workflow.md`의 원본이라 `## 작업 진행 중`에 변경 통제가 있는지 본다.
+
+WORKFLOW_TPL="$HERE/../templates/issue-workflow-template.md"
+
+# check_change_control_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_change_control_skill() {
+  local b n k l p
+  b="$(awk '/^## 작업 진행 중$/ { w = 1; next } w && /^## / { exit }
+            w && /^- \*\*변경 통제\*\*:/ { s = 1; print; next } s && /^- / { s = 0 } s' "$1")"
+  n="$(printf '%s\n' "$b" | grep -c '^- \*\*변경 통제\*\*:')"
+  [ "$n" -eq 1 ] || echo "작업 진행 중의 변경 통제 항목 ${n}개 (기대 1개)"
+  for k in 구체화 확장 완화; do
+    n="$(printf '%s\n' "$b" | grep -cE "^  - \*\*$k\*\*: ")"
+    [ "$n" -eq 1 ] || echo "변경 통제의 $k 항목 ${n}개 (기대 1개)"
+  done
+  l="$(printf '%s\n' "$b" | grep -E '^  - \*\*구체화\*\*: ')"
+  for p in '판정 기준만 명확히' '질의 없이 반영'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "구체화 항목에 [$p] 없음"
+  done
+  l="$(printf '%s\n' "$b" | grep -E '^  - \*\*확장\*\*: ')"
+  for p in '범위 확장' '원장 등재' '새 이슈(`--create`)'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "확장 항목에 선택지 [$p] 없음"
+  done
+  l="$(printf '%s\n' "$b" | grep -E '^  - \*\*완화\*\*: ')"
+  for p in 'AC를 빼거나 제외로 옮기는' '재승인 없이 반영하지 않는다'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "완화 항목에 [$p] 없음"
+  done
+  awk '/^   - \*\*3-2\. 승인 후\*\*/ { s = 1 } s && /^4\. / { exit } s && index($0, "변경 통제") { n++ }
+       END { if (n < 1) print "3-2에 변경 통제 참조 없음" }' "$1"
+}
+
+# check_change_control_workflow <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_change_control_workflow() {
+  awk '/^## 작업 진행 중$/ { s = 1; next } s && /^## / { exit } s && index($0, "변경 통제") { n++ }
+       END { if (n < 1) print "작업 진행 중에 변경 통제 없음" }' "$1"
+}
+
+awk '!/^- \*\*변경 통제\*\*:/' "$SKILL" > "$sandbox/cc-no-item.md"
+for kv in 구체화:refine 확장:ext 완화:relax; do
+  k="${kv%%:*}"; v="${kv#*:}"
+  awk -v k="$k" '$0 ~ "^  - \\*\\*" k "\\*\\*: " { next } { print }' "$SKILL" > "$sandbox/cc-no-$v.md"
+  awk -v k="$k" '{ print } $0 ~ "^  - \\*\\*" k "\\*\\*: " { print }' "$SKILL" > "$sandbox/cc-dup-$v.md"
+done
+drop_literal "$SKILL" '판정 기준만 명확히' > "$sandbox/cc-no-refine-def.md"
+drop_literal "$SKILL" '질의 없이 반영' > "$sandbox/cc-no-refine-act.md"
+drop_literal "$SKILL" '범위 확장' > "$sandbox/cc-no-ext-scope.md"
+drop_literal "$SKILL" '원장 등재' > "$sandbox/cc-no-ext-ledger.md"
+drop_literal "$SKILL" '새 이슈(`--create`)' > "$sandbox/cc-no-ext-create.md"
+drop_literal "$SKILL" 'AC를 빼거나 제외로 옮기는' > "$sandbox/cc-no-relax-ac.md"
+drop_literal "$SKILL" '재승인 없이 반영하지 않는다' > "$sandbox/cc-no-relax-act.md"
+awk '!/^     - \*\*변경 통제\*\*: /' "$SKILL" > "$sandbox/cc-no-3-2-ref.md"
+# 변경 통제 항목(하위 행 포함)을 `## 작업 진행 중` 밖의 `## 이슈 완료 시` 아래로 옮긴다.
+awk '/^- \*\*변경 통제\*\*:/ { hold = 1; buf = $0 "\n"; next }
+     hold && /^  - / { buf = buf $0 "\n"; next } hold { hold = 0 }
+     { print } /^## 이슈 완료 시$/ { print ""; printf "%s", buf }' "$SKILL" > "$sandbox/cc-moved-out.md"
+awk '!index($0, "변경 통제")' "$WORKFLOW_TPL" > "$sandbox/cc-wf-no-item.md"
+
+assert_structure check_change_control_skill    "$SKILL"                          pass "변경 통제: 실제 SKILL.md 통과"
+assert_structure check_change_control_skill    "$sandbox/cc-no-item.md"          fail "변경 통제: 변경 통제 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-refine.md"        fail "변경 통제: 구체화 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext.md"           fail "변경 통제: 확장 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-relax.md"         fail "변경 통제: 완화 항목 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-dup-refine.md"       fail "변경 통제: 구체화 항목 중복 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-dup-ext.md"          fail "변경 통제: 확장 항목 중복 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-dup-relax.md"        fail "변경 통제: 완화 항목 중복 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-refine-def.md"    fail "변경 통제: 구체화 정의 문구 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-refine-act.md"    fail "변경 통제: 구체화 처리 문구 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext-scope.md"     fail "변경 통제: 확장 선택지 범위 확장 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext-ledger.md"    fail "변경 통제: 확장 선택지 원장 등재 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-ext-create.md"    fail "변경 통제: 확장 선택지 새 이슈 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-relax-ac.md"      fail "변경 통제: 완화의 AC 삭제·제외 이동 문구 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-relax-act.md"     fail "변경 통제: 완화 처리 문장 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-no-3-2-ref.md"       fail "변경 통제: 3-2 참조 삭제 격추"
+assert_structure check_change_control_skill    "$sandbox/cc-moved-out.md"        fail "변경 통제: 항목의 작업 진행 중 밖 이동 격추"
+assert_structure check_change_control_workflow "$WORKFLOW_TPL"                   pass "변경 통제: 실제 workflow 템플릿 통과"
+assert_structure check_change_control_workflow "$sandbox/cc-wf-no-item.md"       fail "변경 통제: workflow 템플릿 항목 삭제 격추"
+
+# --- 본문 갱신 질의 (issue #130) ---------------------------------------------------
+#
+# AC가 없거나 AC가 대응하지 않는 R이 있는 기존 이슈가 계획 감사 뒤, Task 0 전에 이슈 본문 갱신 질의를 거친다.
+# SKILL.md는 "새 이슈 시작 시" 번호 단계 1~6, 6단계 범위(`6. ` 행부터 다음 들여쓰지 않은 행 전까지)의 조항 문구,
+# 6단계 `gh issue view` 명령 행 2개 이상·모두 `--repo '`, 파일 전체 `gh issue edit` 명령 행의 `--repo '`·`--body-file`,
+# 5단계 범위(`5. ` 행부터 `6. ` 행 전까지)의 `Task 0` 0건을 판정한다.
+# summary 템플릿은 `## 모델 기록`의 첫 `### Task ` 앞, `계획 감사` 줄 뒤에 `이슈 본문 갱신` 줄 1개와 값 3개를 본다.
+# 계획 감사 항목은 SKILL.md·workflow 템플릿의 `## 작업 진행 중`에서 `plan-audit-report.md`를 담은 `- ` 행 1개가
+# `6단계`와 `` `이슈 본문 갱신` 줄``을 언급하는지 본다. 세션이 바뀐 뒤 6단계를 건너뛰지 않게 하는 안내다.
+
+# check_body_update_step <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_body_update_step() {
+  local sec six p n
+  sec="$(awk '/^## 새 이슈 시작 시$/ { f = 1; next } f && /^## / { exit } f' "$1")"
+  [ "$(printf '%s\n' "$sec" | grep -oE '^[0-9]+\. ' | tr -d '. ' | tr '\n' '|')" = '1|2|3|4|5|6|' ] \
+    || echo "새 이슈 시작 시 단계 번호가 1~6 아님"
+  six="$(printf '%s\n' "$sec" | awk '/^6\. / { s = 1; print; next } s && /^[^[:space:]]/ { exit } s')"
+  for p in '완료의 정의가 없거나' '`(AC 없음: …)` 항목이 있는' 'Task 0 전에' '승인할 때만' "gh issue edit --repo '" \
+           "--body-file '.ai/99_workspace/issue-<번호>-body.md'" '`- [ ] AC<n>: `' '레벨 태그와 검증 명령을 옮기지 않는다' \
+           '초안을 쓰기 직전에' '실행 직전에' '기준 본문과 다르면 실행하지 않' '.ai/99_workspace/issue-<번호>-body-base.md' 'cmp -s' \
+           '본문 편집이 성공했을 때만' '(exit "$rc")'; do
+    printf '%s\n' "$six" | grep -qF -- "$p" || echo "6단계에 [$p] 없음"
+  done
+  n="$(printf '%s\n' "$six" | grep -cF 'gh issue view ')"
+  [ "$n" -ge 2 ] || echo "6단계 본문 조회 명령 ${n}개 (기대 2개 이상)"
+  printf '%s\n' "$six" | grep -F 'gh issue view ' | grep -vF -e "--repo '" | sed 's/^/6단계 --repo 없는 조회 명령: /'
+  n="$(grep -c 'gh issue edit --' "$1")"
+  [ "$n" -ge 1 ] || echo "gh issue edit 명령 행 없음"
+  grep -n 'gh issue edit --' "$1" | grep -vF -e "--repo '" | sed 's/^/--repo 없는 gh issue edit 행: /'
+  grep -n 'gh issue edit --' "$1" | grep -vF -e '--body-file' | sed 's/^/--body-file 없는 gh issue edit 행: /'
+  printf '%s\n' "$sec" | awk '/^5\. / { s = 1 } /^6\. / { s = 0 } s && /Task 0/ { print "5단계에 Task 0 직행: " $0 }'
+}
+
+# check_body_update_summary <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_body_update_summary() {
+  awk '/^## 모델 기록$/ { s = 1; next } /^### Task / || (s && /^## /) { exit }
+       s && /^- \*\*계획 감사\*\*: / { p = NR }
+       s && /^- \*\*이슈 본문 갱신\*\*: / { n++; if (!p) b = 1; l = $0 }
+       END {
+         if (n != 1) print "모델 기록의 이슈 본문 갱신 줄 " n + 0 "개 (기대 1개)"
+         if (b) print "이슈 본문 갱신 줄이 계획 감사 줄 앞"
+         if (n == 1) {
+           if (!index(l, "`갱신 · ")) print "이슈 본문 갱신 줄에 값 [`갱신 · ] 안내 없음"
+           if (!index(l, "`거절`")) print "이슈 본문 갱신 줄에 값 [`거절`] 안내 없음"
+           if (!index(l, "`대상 아님`")) print "이슈 본문 갱신 줄에 값 [`대상 아님`] 안내 없음"
+         }
+       }' "$1"
+}
+
+# check_body_update_audit_item <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_body_update_audit_item() {
+  awk '/^## 작업 진행 중$/ { s = 1; next } s && /^## / { s = 0 }
+       s && /^- / && /plan-audit-report\.md/ { n++
+         if (!index($0, "6단계")) print "계획 감사 항목에 6단계 없음"
+         if (!index($0, "`이슈 본문 갱신` 줄")) print "계획 감사 항목에 이슈 본문 갱신 줄 없음" }
+       END { if (n != 1) print "작업 진행 중의 계획 감사 항목 " n + 0 "개 (기대 1개)" }' "$1"
+}
+
+# 6단계 사본. 문구 삭제는 drop_literal로 파일 전체에서 지운다(6단계 밖에 같은 문구가 남아도 6단계 판정은 실패해야 한다).
+awk '/^6\. / { s = 1; next } s && /^[^[:space:]]/ { s = 0 } s { next } 1' "$SKILL" > "$sandbox/bu-no-step6.md"
+i=0
+for p in '완료의 정의가 없거나' '`(AC 없음: …)` 항목이 있는' 'Task 0 전에' '승인할 때만' "gh issue edit --repo '" \
+         "--body-file '.ai/99_workspace/issue-<번호>-body.md'" '`- [ ] AC<n>: `' '레벨 태그와 검증 명령을 옮기지 않는다' \
+         '초안을 쓰기 직전에' '실행 직전에' '기준 본문과 다르면 실행하지 않' '.ai/99_workspace/issue-<번호>-body-base.md' 'cmp -s' \
+         '본문 편집이 성공했을 때만' '(exit "$rc")'; do
+  i=$((i + 1)); drop_literal "$SKILL" "$p" > "$sandbox/bu-drop-$i.md"
+done
+# 기존 명령 행은 그대로 두고 `--repo` 없는 명령 행을 6단계 안에 더한다("모두 `--repo`" 판정만 걸리게 한다).
+awk '{ print } /gh issue edit --repo / { print "       gh issue edit --body-file '\''.ai/99_workspace/issue-<번호>-body.md'\'' '\''<번호>'\''" }' \
+  "$SKILL" > "$sandbox/bu-edit-no-repo.md"
+awk '{ print } /^     gh issue view .*body-base\.md/ { print "     gh issue view '\''<번호>'\'' --json body -q .body" }' \
+  "$SKILL" > "$sandbox/bu-view-no-repo.md"
+awk '!(/gh issue view / && /"\$now"/)' "$SKILL" > "$sandbox/bu-view-one.md"
+# 6단계 하위 행을 `6. ` 행 앞(5단계 하위)으로 옮긴다.
+awk '/^6\. / { head = $0; m = 1; next }
+     m && /^[^[:space:]]/ { printf "%s", buf; print head; print ""; m = 0 }
+     m { buf = buf $0 "\n"; next } { print }' "$SKILL" > "$sandbox/bu-moved-step5.md"
+awk '/^   - \*\*건너뜀\*\*: / { sub(/6단계로 진행한다/, "Task 0으로 진행한다") } { print }' "$SKILL" > "$sandbox/bu-step5-task0.md"
+
+# summary 템플릿 사본.
+awk '!/^- \*\*이슈 본문 갱신\*\*: /' "$SUMMARY_TPL" > "$sandbox/bu-sum-no-line.md"
+awk '{ print } /^- \*\*이슈 본문 갱신\*\*: / { print }' "$SUMMARY_TPL" > "$sandbox/bu-sum-dup.md"
+BU_LINE="$(grep -E '^- \*\*이슈 본문 갱신\*\*: ' "$SUMMARY_TPL")" \
+  awk '/^- \*\*이슈 본문 갱신\*\*: / { next } /^- \*\*계획 감사\*\*: / { print ENVIRON["BU_LINE"] } { print }' \
+  "$SUMMARY_TPL" > "$sandbox/bu-sum-before-audit.md"
+BU_LINE="$(grep -E '^- \*\*이슈 본문 갱신\*\*: ' "$SUMMARY_TPL")" \
+  awk '/^- \*\*이슈 본문 갱신\*\*: / { next } { print } /^### Task / && !d { print ""; print ENVIRON["BU_LINE"]; d = 1 }' \
+  "$SUMMARY_TPL" > "$sandbox/bu-sum-in-task.md"
+drop_literal "$SUMMARY_TPL" '`갱신 · ' > "$sandbox/bu-sum-no-update.md"
+drop_literal "$SUMMARY_TPL" '`거절`' > "$sandbox/bu-sum-no-reject.md"
+drop_literal "$SUMMARY_TPL" '`대상 아님`' > "$sandbox/bu-sum-no-na.md"
+
+# 계획 감사 항목 사본 (SKILL.md·workflow 템플릿 각각).
+for fv in "$SKILL:skill" "$WORKFLOW_TPL:wf"; do
+  f="${fv%:*}"; v="${fv##*:}"
+  awk '/^- / && /plan-audit-report\.md/ { gsub(/6단계/, "") } { print }' "$f" > "$sandbox/bu-$v-no-step6.md"
+  awk -v s='`이슈 본문 갱신` 줄' '/^- / && /plan-audit-report\.md/ { while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)) } { print }' \
+    "$f" > "$sandbox/bu-$v-no-line.md"
+  awk '{ print } /^- / && /plan-audit-report\.md/ { print }' "$f" > "$sandbox/bu-$v-dup.md"
+done
+
+assert_structure check_body_update_step       "$SKILL"                            pass "본문 갱신 질의: 실제 SKILL.md 6단계 통과"
+assert_structure check_body_update_step       "$sandbox/bu-no-step6.md"           fail "본문 갱신 질의: 6단계 삭제 격추"
+i=0
+for p in '대상 판정 완료의 정의 없음' '대상 판정 AC 없음 항목' 'Task 0 전 시점' '승인할 때만 실행' 'gh issue edit 명령' \
+         '갱신 본문 파일' 'AC 행 형식' '레벨 태그·검증 명령 미이전' '초안 직전 조회' '실행 직전 재조회' \
+         '불일치 시 미실행' '기준 본문 파일' 'cmp -s 비교' '편집 성공 시만 기록' '종료 코드 반환'; do
+  i=$((i + 1))
+  assert_structure check_body_update_step     "$sandbox/bu-drop-$i.md"            fail "본문 갱신 질의: 6단계 $p 문구 삭제 격추"
+done
+assert_structure check_body_update_step       "$sandbox/bu-edit-no-repo.md"       fail "본문 갱신 질의: --repo 없는 gh issue edit 행 격추"
+assert_structure check_body_update_step       "$sandbox/bu-view-no-repo.md"       fail "본문 갱신 질의: --repo 없는 gh issue view 행 격추"
+assert_structure check_body_update_step       "$sandbox/bu-view-one.md"           fail "본문 갱신 질의: 조회 명령 1개로 줄이기 격추"
+assert_structure check_body_update_step       "$sandbox/bu-moved-step5.md"        fail "본문 갱신 질의: 6단계 하위 행의 5단계 이동 격추"
+assert_structure check_body_update_step       "$sandbox/bu-step5-task0.md"        fail "본문 갱신 질의: 5단계 Task 0 직행 복원 격추"
+assert_structure check_body_update_summary    "$SUMMARY_TPL"                      pass "본문 갱신 질의: 실제 summary 템플릿 통과"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-no-line.md"        fail "본문 갱신 질의: summary 이슈 본문 갱신 줄 삭제 격추"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-dup.md"            fail "본문 갱신 질의: summary 이슈 본문 갱신 줄 중복 격추"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-before-audit.md"   fail "본문 갱신 질의: summary 줄의 계획 감사 줄 앞 이동 격추"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-in-task.md"        fail "본문 갱신 질의: summary 줄의 첫 Task 블록 안 이동 격추"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-no-update.md"      fail "본문 갱신 질의: summary 값 갱신 삭제 격추"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-no-reject.md"      fail "본문 갱신 질의: summary 값 거절 삭제 격추"
+assert_structure check_body_update_summary    "$sandbox/bu-sum-no-na.md"          fail "본문 갱신 질의: summary 값 대상 아님 삭제 격추"
+assert_structure check_body_update_audit_item "$SKILL"                            pass "본문 갱신 질의: 실제 SKILL.md 계획 감사 항목 통과"
+assert_structure check_body_update_audit_item "$sandbox/bu-skill-no-step6.md"     fail "본문 갱신 질의: SKILL.md 계획 감사 항목 6단계 삭제 격추"
+assert_structure check_body_update_audit_item "$sandbox/bu-skill-no-line.md"      fail "본문 갱신 질의: SKILL.md 계획 감사 항목 이슈 본문 갱신 줄 삭제 격추"
+assert_structure check_body_update_audit_item "$sandbox/bu-skill-dup.md"          fail "본문 갱신 질의: SKILL.md 계획 감사 항목 중복 격추"
+assert_structure check_body_update_audit_item "$WORKFLOW_TPL"                     pass "본문 갱신 질의: 실제 workflow 템플릿 계획 감사 항목 통과"
+assert_structure check_body_update_audit_item "$sandbox/bu-wf-no-step6.md"        fail "본문 갱신 질의: workflow 템플릿 계획 감사 항목 6단계 삭제 격추"
+assert_structure check_body_update_audit_item "$sandbox/bu-wf-no-line.md"         fail "본문 갱신 질의: workflow 템플릿 계획 감사 항목 이슈 본문 갱신 줄 삭제 격추"
+assert_structure check_body_update_audit_item "$sandbox/bu-wf-dup.md"             fail "본문 갱신 질의: workflow 템플릿 계획 감사 항목 중복 격추"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
