@@ -6,7 +6,10 @@
 아래 예시 문항 두 개는 형식 견본이다. 실제 산출에서는 지우고 생성한 문항으로 바꾼다.
 견본을 형식대로 유지해야 템플릿 자체가 check-quiz.sh 검사를 통과한다.
 
-`--comment` 게시 본문은 이 템플릿에서 `## 응답 기록`을 빼고 **모든** 위치 행에 permalink 를 병기한 형태다.
+대화형 산출은 `## 대상` 다음에 설명 절 `## 배경`·`## 목적`·`## 변경 설명`을 이 순서로 두고 `## 문항`으로 이어 간다.
+설명 절의 코드 블록 안에는 `## `·`### `로 시작하는 행을 두지 않는다.
+
+`--comment` 게시 본문은 이 템플릿에서 설명 절 3개와 `## 응답 기록`을 빼고 **모든** 위치 행에 permalink 를 병기한 형태다.
 그 본문은 `check-quiz.sh --comment --head <headRefOid> --base <baseRefOid>` 로 검사한다.
 아래 견본은 Q1 에 permalink 가 없어 대화형 산출 형태이며, 일반 모드로만 검사한다.
 -->
@@ -23,6 +26,99 @@
 | 관점 | 테크·비즈니스 (또는 테크만, 비즈니스만) |
 | 근거 문서 | `.ai/40_domain/policies/common/<문서>.md`, `.ai/30_contract/<문서>.md` (없으면 `없음 (테크 문항만)`) |
 | 문항 수 | 5 |
+
+## 배경
+
+주문 API가 결제 대행사의 일시 장애(503)를 그대로 오류로 돌려줘, 장애가 잠깐만 이어져도 주문이 실패한다는 문의가 이어졌다. 변경 전에는 `handleRequest`가 요청을 한 번만 보내고 응답 상태 코드와 관계없이 결과를 그대로 반환했다.
+
+<details>
+<summary>입문용 심화 설명</summary>
+
+5xx는 서버 쪽 일시 오류라 같은 요청을 다시 보내면 성공할 수 있다. 4xx는 요청 자체가 잘못된 것이라 다시 보내도 결과가 같다. 그래서 재시도는 5xx에만 걸고 횟수 상한을 둔다.
+
+</details>
+
+## 목적
+
+일시 장애로 실패한 주문 요청을 정해진 횟수 안에서 다시 보내 성공시킨다.
+
+- 결제 대행사 일시 장애에 따른 주문 실패 문의가 줄어든다.
+- 4xx는 즉시 반환해 잘못된 요청을 반복하지 않는다.
+
+## 변경 설명
+
+### 변경 개요
+
+| 묶음 | 위치 | 한 줄 요약 |
+|------|------|-----------|
+| 재시도 루프 | `src/api/handler.ts:88-104` | 5xx 응답에 `MAX_RETRY`회까지 다시 보낸다 |
+| 할인율 상한 | `src/billing/discount.ts:42-58` | 신규 고객 첫 결제 할인 상한을 30%로 올린다 |
+
+읽을 순서: 재시도 루프 → 할인율 상한
+
+기타 변경: `README.md`, `src/api/types.ts`
+
+### 호출 흐름
+
+**`POST /orders`**
+
+```
+OrderController#create
+└── OrderService#place
+    └── ApiClient#handleRequest (변경)   # 5xx면 MAX_RETRY회까지 다시 보냄
+        └── PaymentGateway#charge (외부 API)
+```
+
+```mermaid
+sequenceDiagram
+    participant OC as OrderController
+    participant OS as OrderService
+    participant AC as ApiClient
+    participant PG as PaymentGateway
+
+    OC->>OS: place
+    OS->>AC: handleRequest
+    loop 5xx이고 시도 횟수가 MAX_RETRY 미만
+        AC->>PG: charge
+        PG-->>AC: 503
+    end
+    AC-->>OS: 마지막 응답
+    OS-->>OC: 주문 결과
+```
+
+### 재시도 루프
+
+위치: `src/api/handler.ts:88-104`
+
+**무엇이 바뀌었나**: 요청을 한 번만 보내던 `handleRequest`가 5xx 응답이면 `MAX_RETRY`회까지 다시 보낸다. 4xx는 다시 보내지 않고 바로 반환한다.
+
+**전후 예시**
+
+| 입력 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| 503이 두 번 온 뒤 200 | 첫 503을 오류로 반환 | 세 번째 시도의 200을 반환 |
+| 400 | 400을 반환 | 다시 보내지 않고 400을 반환 |
+
+**핵심 코드 조각**
+
+```ts
+for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
+  res = await send(req);
+  if (res.ok || is4xx(res.status)) break;
+}
+```
+
+### 할인율 상한
+
+위치: `src/billing/discount.ts:42-58`
+
+**무엇이 바뀌었나**: 신규 고객 첫 결제의 할인 상한 상수가 25에서 30으로 바뀌었다.
+
+**전후 예시**
+
+| 입력 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| 신규 고객 첫 결제, 요청 할인율 35% | 25% 적용 | 30% 적용 |
 
 ## 문항
 

@@ -9,8 +9,9 @@
 # 같은 접두어로 fixture 집합을 전수로 훑으므로, 다른 접두어를 쓰면 검사에서 조용히 빠진다.
 # 반례 케이스 이름은 `R<n>: <설명>` 으로 고정한다. 규칙별 커버리지를 이름으로 센다.
 #
-# `invalid-comment-*` 는 `--comment` 모드 전용 반례다. 일반 모드에서는 통과하는 것이 정상이며,
+# `invalid-comment-*` 는 `--comment` 모드 전용 반례다. 일반 모드에서는 R2 위반이 없는 것이 정상이며,
 # 두 모드를 한 fixture 로 함께 확인해 모드 분기가 한쪽으로 붙어 버리는 회귀를 잡는다.
+# 댓글 본문(`valid-comment*`·`invalid-comment-*`)은 설명 절이 없어 일반 모드에서는 R7 설명 절 위반이 함께 나온다.
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -50,9 +51,11 @@ assert_valid() {
 
 assert_valid 'SSoT 정합: 템플릿이 형식 검사를 통과' "$TEMPLATE"
 
+# `valid-comment*` 는 댓글 모드 전용 정상 fixture 라 아래 댓글 모드 정상 케이스가 맡는다.
 n_valid=0
 for f in "$FIX"/valid-*.md; do
   [ -e "$f" ] || break
+  case "$(basename "$f")" in valid-comment*) continue ;; esac
   assert_valid "정상 fixture: $(basename "$f")" "$f"
   n_valid=$((n_valid + 1))
 done
@@ -97,15 +100,16 @@ assert_violation() {
     ng "$desc (exit 1 기대, 실제 $rc)"
   elif ! printf '%s\n' "$out" | grep -qF "$want"; then
     ng "$desc (사유에 [$want] 없음, 실제: $(flat "$out"))"
-  elif printf '%s\n' "$out" | grep -qvE '^위반 R[1-7]( Q[0-9]+)?: '; then
+  elif printf '%s\n' "$out" | grep -qvE '^위반 R[1-8]( Q[0-9]+)?: '; then
     ng "$desc (출력 규약 이탈: $(flat "$out"))"
   else
     ok "$desc"
   fi
 }
 
-# 댓글 모드 반례: `--comment` 로는 걸리고 일반 모드로는 통과해야 한다.
+# 댓글 모드 반례: `--comment` 로는 걸리고 일반 모드 출력에는 R2 위반이 없어야 한다.
 # 뒤쪽 확인이 없으면 모드 분기가 죽어 대화형 산출까지 permalink 를 요구해도 테스트가 초록으로 남는다.
+# 댓글 본문에는 설명 절이 없어 일반 모드에서 R7 설명 절 위반이 함께 나오므로, 종료 코드가 아니라 R2 행의 유무로 본다.
 #
 # assert_comment_violation <케이스 이름> <사유 조각> <fixture 파일명> [추가 인자...]
 assert_comment_violation() {
@@ -119,14 +123,14 @@ assert_comment_violation() {
     ng "$desc (exit 1 기대, 실제 $rc)"
   elif ! printf '%s\n' "$out" | grep -qF "$want"; then
     ng "$desc (사유에 [$want] 없음, 실제: $(flat "$out"))"
-  elif printf '%s\n' "$out" | grep -qvE '^위반 R[1-7]( Q[0-9]+)?: '; then
+  elif printf '%s\n' "$out" | grep -qvE '^위반 R[1-8]( Q[0-9]+)?: '; then
     ng "$desc (출력 규약 이탈: $(flat "$out"))"
   else
     out="$("$CHECK" "$f" 2>&1)"; rc=$?
-    if [ "$rc" -eq 0 ] && [ -z "$out" ]; then
+    if [ "$rc" -le 1 ] && ! printf '%s\n' "$out" | grep -qE '^위반 R2 '; then
       ok "$desc"
     else
-      ng "$desc (일반 모드에서도 걸림: rc=$rc, 출력: $(flat "$out"))"
+      ng "$desc (일반 모드에서도 R2 위반: rc=$rc, 출력: $(flat "$out"))"
     fi
   fi
 }
@@ -191,14 +195,36 @@ assert_comment_violation 'R2: permalink SHA 가 기준과 불일치' '기준 커
   --head 'ffffffffffffffffffffffffffffffffffffffff'
 assert_comment_violation 'R7: 댓글 본문에 응답 기록'       '`## 응답 기록` 을 두지 않습니다' invalid-comment-record.md
 
-# --- 커버리지: 규칙 7종과 fixture 전수 -------------------------------------------
+# 설명 절 (issue #132). 대화형 산출은 `## 대상` → `## 배경` → `## 목적` → `## 변경 설명` → `## 문항` 순서이고
+# `## 변경 설명` 의 첫 두 소절이 `### 변경 개요` → `### 호출 흐름` 이다. 댓글 본문을 일반 모드로 검사하면 설명 절이 없어 걸린다.
+assert_violation 'R7: 설명 절 누락'                 '`## 목적` 헤더가 0개입니다'      invalid-r7-explain-missing.md
+assert_violation 'R7: 설명 절 순서 어긋남'           '설명 절 순서가'                 invalid-r7-explain-order.md
+assert_violation 'R7: 호출 흐름 소절 누락'           '첫 두 소절이'                   invalid-r7-flow-missing.md
+assert_violation 'R7: 변경 개요·호출 흐름 순서 어긋남' '첫 두 소절이'                   invalid-r7-overview-order.md
+assert_violation 'R7: 일반 모드에서 설명 절 없는 본문' '`## 배경` 헤더가 0개입니다'      valid-comment.md
+
+# 정답 편향 (issue #132). 객관식이 2개 이상이고 정답 문자가 모두 같으면 위반이다.
+assert_violation 'R8: 객관식 정답 문자가 모두 같음'   '객관식 정답 문자가 모두 `(b)`'   invalid-r8-answer-letters-same.md
+
+# R8 은 두 모드 공통이다 (spec 전제). 댓글 모드에서 빠지면 게시 본문의 정답 편향이 그대로 나간다.
+out="$("$CHECK" --comment "$FIX/invalid-r8-answer-letters-same.md" 2>&1)"; rc=$?
+if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qE '^위반 R8: '; then
+  ok 'R8: 댓글 모드에서도 정답 문자 편향 격추'
+else
+  ng "R8: 댓글 모드에서도 정답 문자 편향 격추 (rc=$rc, 출력: $(flat "$out"))"
+fi
+
+# 형식 어휘 (K-0008). `<형식>` 자리가 `객관식`·`주관식` 밖이면 헤더 형식 위반이다.
+assert_violation 'R1: 지원하지 않는 형식 어휘'        '헤더 형식이'                    invalid-r1-format-vocab.md
+
+# --- 커버리지: 규칙 8종과 fixture 전수 -------------------------------------------
 
 missing_rule=''
-for r in R1 R2 R3 R4 R5 R6 R7; do
+for r in R1 R2 R3 R4 R5 R6 R7 R8; do
   case " $rules " in *" $r "*) ;; *) missing_rule="$missing_rule $r" ;; esac
 done
 [ -z "$missing_rule" ] \
-  && ok "규칙 커버리지: R1~R7 반례 전부 실행" \
+  && ok "규칙 커버리지: R1~R8 반례 전부 실행" \
   || ng "규칙 커버리지: 반례 없는 규칙$missing_rule"
 
 missing_fix=''
