@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-11-01
+> last updated: 2026-11-03
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -95,9 +95,9 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
 │   └── templates/              # 리뷰 컨텍스트 템플릿
 ├── git-review-quiz/            # 리뷰 퀴즈 생성·진행 스킬
-│   ├── scripts/                # 형식 검사 헬퍼 (check-quiz.sh)
-│   ├── templates/              # 퀴즈 산출 템플릿
-│   └── tests/                  # 헬퍼 테스트 + fixture (배포 제외)
+│   ├── scripts/                # 형식 검사·HTML 렌더 헬퍼 (check-quiz.sh, render-quiz-html.sh)
+│   ├── templates/              # 퀴즈 산출 md 템플릿·HTML 템플릿(CSS·JS 포함)
+│   └── tests/                  # 헬퍼 테스트(형식 검사·렌더·SKILL.md 조항 구조) + fixture (배포 제외)
 ├── install-skills/             # skill 선택 설치 스킬 (self-install형)
 │   ├── references/             # Antigravity 레거시 판정 상세
 │   ├── scripts/                # 결정적 설치 검증 헬퍼 (verify-install.sh)
@@ -134,7 +134,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 | `git-qa` | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | `git-review` | 비즈니스/테크 리뷰 수행 |
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
-| `git-review-quiz` | PR 변경에서 비즈니스·테크 문항을 만들어 대화형으로 풀거나 PR 댓글로 게시 (문항별 변경 위치 표시, 힌트·정답 접기) |
+| `git-review-quiz` | PR 변경의 배경·목적·변경 설명을 먼저 정리하고 비즈니스·테크 문항을 만들어 대화형으로 풀거나 PR 댓글로 게시 (대상별 로컬 md·HTML 산출, 문항별 변경 위치 표시, 힌트·정답 접기) |
 | `install-skills` | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
 | `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
 | `issue-work` | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 워크플로우 |

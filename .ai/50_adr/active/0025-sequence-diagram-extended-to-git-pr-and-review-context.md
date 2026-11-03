@@ -5,7 +5,7 @@ related_jira:
 last_harvested: 2026-10-31
 ---
 
-# ADR: 시퀀스 다이어그램을 git-pr·git-review-context로 넓히고 작성 규칙 사본 3곳을 같은 문장으로 유지하는 결정
+# ADR: 시퀀스 다이어그램을 git-pr·git-review-context로 넓히고 작성 규칙 사본을 같은 문장으로 유지하는 결정
 
 - **상태**: 유효
 
@@ -16,10 +16,10 @@ last_harvested: 2026-10-31
   - **git-review-context**: 결과 기록의 `## 호출 흐름` 접기 안에서 엔트리 포인트마다 트리 코드 블록 바로 다음에 `mermaid` 블록을 둔다. 템플릿의 접기 안 주석도 트리와 시퀀스 다이어그램을 함께 안내한다. 5단계의 "의사코드 또는 단계별 목록" 행은 시퀀스가 같은 역할을 맡으므로 지운다.
   - 두 스킬 모두 `### 시퀀스 다이어그램` 소제목을 두지 않는다. 한 섹션에 기능 여러 개를 나열하는 구조라 기능(엔트리 포인트) 이름 줄이 구분을 맡는다.
 - 시퀀스는 code-map 상세 흐름 작성 기준(2단계 이상의 호출 계층, 외부 서비스 호출, 트랜잭션·이벤트·비동기 분기 중 하나)에 해당하는 기능에만 그리고, 나머지 기능은 트리만 둔다. 기준 3행은 code-map `references/local.md`의 문장을 그대로 옮긴다.
-- 작성 규칙 사본은 code-map·git-pr·git-review-context 세 곳이고, 원본은 code-map `## 시퀀스 다이어그램 작성 규칙`이다. 두 사본은 같은 제목의 섹션에 규칙을 복제하며 code-map을 링크로 가리키지 않는다 (ADR 0002).
-  - 참여자·응답·동기·비동기·분기·반복·트랜잭션 경계·금지 문자·긴 흐름 행은 원본과 같은 문장이다. 위치·형식 행은 스킬별로 쓰고, 참여자 행에서는 두 스킬에 없는 옵션을 가리키는 `--global` 구절("`--global`은 서비스")만 뺀다.
+- 작성 규칙은 원본 code-map `## 시퀀스 다이어그램 작성 규칙`과 사본 git-pr·git-review-context·git-review-quiz 세 곳에 둔다(git-review-quiz 사본은 #132에서 추가, ADR 0027). 사본은 같은 제목의 섹션에 규칙을 복제하며 code-map을 링크로 가리키지 않는다 (ADR 0002).
+  - 참여자·응답·동기·비동기·분기·반복·트랜잭션 경계·금지 문자·긴 흐름 행은 원본과 같은 문장이다. 위치·형식 행은 스킬별로 쓰고, 참여자 행에서는 사본 스킬에 없는 옵션을 가리키는 `--global` 구절("`--global`은 서비스")만 뺀다.
   - 사본 도입 문단에는 원본이 `code-map`이라는 사실과 "한쪽 변경 시 양쪽 동기화" 문구를 링크 없이 적는다.
-- code-map 러너(`code-map/tests/run-tests.sh`)가 두 사본의 규칙 섹션을 `SEQ_ROWS`로 대조한다. 라벨 이름·순서와 리터럴을 보며, code-map 전용인 위치·형식 행의 소제목 리터럴과 참여자 행의 `--global` 구절 리터럴은 대조에서 뺀다. 같은 러너가 두 스킬의 안내 문장·작성 대상 기준·예시·템플릿 배치도 검사한다. git-review-context에는 `tests/`를 새로 만들지 않는다.
+- code-map 러너(`code-map/tests/run-tests.sh`)가 세 사본의 규칙 섹션을 `SEQ_ROWS`로 대조한다. 라벨 이름·순서와 리터럴을 보며, code-map 전용인 위치·형식 행의 소제목 리터럴과 참여자 행의 `--global` 구절 리터럴은 대조에서 뺀다. 같은 러너가 git-pr·git-review-context의 안내 문장·작성 대상 기준·예시·템플릿 배치도 검사한다. git-review-quiz는 규칙 사본 대조만 한다. git-review-context에는 `tests/`를 새로 만들지 않는다.
 - 러너는 규칙 행의 문장 전체 일치를 지속해서 검사하지 않는다. 일치는 이슈 완료 시점에 한 번 확인하고, 이후 리터럴을 남긴 채 뜻만 바꾼 수정을 잡지 못하는 범위는 원장 K-0019로 수용한다.
 - ADR 0024의 결정(code-map의 위치·형식, 작성 규칙 원본 위치, check 누락·불일치 보고)은 그대로 둔다. 이 ADR은 같은 규칙을 쓰는 스킬을 더할 뿐 ADR 0024를 바꾸지 않는다.
 
@@ -39,6 +39,7 @@ last_harvested: 2026-10-31
 - git-review-context 예시의 `OrderEventPublisher#publish`는 트리에 비동기 표시가 없어 `->>`로 그렸다. ADR 0024 근거의 비동기 표기 정정과 같은 기준이다.
 - 배치 검사를 code-map 러너에 모은 이유(계획 감사 F-1 검토, 2026-10-31 사용자 확정): ADR 0019에 따라 구현 테스트는 기능을 만드는 Task에 둔다. 이슈 본문이 git-review-context `tests/` 신설을 제외해, 두 스킬의 시퀀스 검사를 둘 수 있는 러너는 code-map 러너뿐이다.
 - 문장 전체 대조를 러너에 넣지 않은 범위는 계획 감사 F-2에서 원장 K-0019로 수용했다. 재검토 조건이 충족되면 K-0019의 채택하지 않은 대안(정규화한 전체 문장 대조)부터 검토한다.
+- 2026-11-03 일부 변경(#132): git-review-quiz가 문항 앞 설명 절 `### 호출 흐름`에 시퀀스 다이어그램을 그리게 되어 사본을 하나 더했다. 위치·형식 행은 설명 절 배치에 맞춰 쓰고 `### ` 소제목을 두지 않는다(묶음 소절로 읽혀 형식 검사 R7이 어긋남). 이슈 범위가 규칙 사본 대조라 배치 검사는 더하지 않았다. 결정 상세는 ADR 0027.
 
 </details>
 
@@ -62,7 +63,8 @@ last_harvested: 2026-10-31
 <summary>출처 목록 펼치기</summary>
 
 - [Issue #128 git-pr·git-review-context: 호출 흐름 트리 다음에 Mermaid 시퀀스 다이어그램을 추가한다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/128)
-- 규칙 본문: [`code-map/SKILL.md`](../../../code-map/SKILL.md), [`git-pr/SKILL.md`](../../../git-pr/SKILL.md), [`git-pr/templates/pr-body-template.md`](../../../git-pr/templates/pr-body-template.md), [`git-review-context/SKILL.md`](../../../git-review-context/SKILL.md), [`git-review-context/templates/review-context-template.md`](../../../git-review-context/templates/review-context-template.md)
+- 규칙 본문: [`code-map/SKILL.md`](../../../code-map/SKILL.md), [`git-pr/SKILL.md`](../../../git-pr/SKILL.md), [`git-pr/templates/pr-body-template.md`](../../../git-pr/templates/pr-body-template.md), [`git-review-context/SKILL.md`](../../../git-review-context/SKILL.md), [`git-review-context/templates/review-context-template.md`](../../../git-review-context/templates/review-context-template.md), [`git-review-quiz/SKILL.md`](../../../git-review-quiz/SKILL.md)
+- 일부 변경: [Issue #132](https://github.com/scroogy-dev/scroogy-agent-skills/issues/132), [ADR 0027](./0027-git-review-quiz-explanation-sections-and-html-output.md)
 - 검사: [`code-map/tests/run-tests.sh`](../../../code-map/tests/run-tests.sh)
 - 관련 결정: [ADR 0024 code-map 시퀀스 다이어그램](./0024-code-map-sequence-diagram-alongside-call-flow-tree.md), [ADR 0002 스킬 독립성과 의도적 중복](./0002-skill-independence-intentional-duplication.md), [ADR 0019 테스트 관점과 Task별 배치](./0019-test-perspectives-and-task-level-placement.md), [원장 K-0019](../../70_ledger/active/K-0019-seq-copy-literal-check-misses-meaning-change.md)
 - 외부 문서: [Mermaid sequenceDiagram](https://mermaid.js.org/syntax/sequenceDiagram.html), [GitHub 다이어그램 작성](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
