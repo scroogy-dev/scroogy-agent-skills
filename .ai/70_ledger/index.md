@@ -41,6 +41,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0021](active/K-0021-microworld-generation-deferred.md) | 변경 동작을 조작해 볼 축소 모형(마이크로월드) 생성 기능이 없다 | 기술부채 | 낮음(LOW) | 수용 | 서술·호출 흐름·시퀀스 다이어그램·전후 예시만으로 변경 동작을 이해하기 어려웠던 PR 사례가 반복될 때, 또는 마이크로월드 생성을 스킬로 만들기로 결정할 때 |
 | [K-0022](active/K-0022-doc-profile-flow-substitute-format-deferred.md) | doc 프로파일 저장소 PR에 호출 흐름·시퀀스를 대신할 형식이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | doc 저장소에서 git-pr로 PR을 여러 번 만들어 테크 관점 형식을 정할 수 있을 때, 또는 doc 저장소 PR의 테크 관점이 문서 구조 변경을 보여 주지 못해 리뷰에 지장이 생긴 사례 관측 시 |
 | [K-0023](active/K-0023-check-plan-include-label-trailing-comment.md) | issue-audit 추적성 헬퍼가 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못한다 | known issue | 낮음(LOW) | 수용 | 실제 spec에서 이 경계 때문에 `추적 불가`로 오판정된 사례 관측 시, 또는 `check-plan.sh --trace`의 spec 앵커 판정(`**포함**` 라벨·포함 목록 경계) 변경 시, 또는 issue-work spec 템플릿의 `**포함**` 행에 주석을 두는 구조가 도입될 때 |
+| [K-0024](active/K-0024-quiz-branch-name-sanitize-collision.md) | git-review-quiz 브랜치 모드 산출 파일 이름이 치환 뒤 같아지는 두 브랜치를 구분하지 못한다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드 산출물이 다른 브랜치의 산출물을 덮어쓴 사례 관측 시, 또는 git-review-quiz 산출 파일 이름 규칙(브랜치 이름 치환 문자 집합·접두어) 변경 시 |
 
 ## 수명 주기
 
