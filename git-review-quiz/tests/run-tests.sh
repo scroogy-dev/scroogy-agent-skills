@@ -344,13 +344,15 @@ HTML_TEMPLATE="$HERE/../templates/quiz-template.html"
 rd="$tmpdir/render"
 mkdir -p "$rd"
 
-# source_of <html> — 원문 영역(id quiz-source 인 pre)의 내용을 이스케이프를 풀어 바이트 그대로 출력한다.
+# source_of <html> — 원문 영역(id quiz-source 인 pre)의 내용을 브라우저가 읽는 글자 그대로 출력한다.
+# HTML 파서처럼 시작 태그 바로 뒤 LF 하나를 지우고 이스케이프를 푼다.
 source_of() {
   LC_ALL=C awk 'BEGIN { RS = "\001" }
     {
       s = $0; open = "<pre id=\"quiz-source\">"
       i = index(s, open); if (i == 0) exit 1
-      s = substr(s, i + length(open)); j = index(s, "</pre>"); if (j == 0) exit 1
+      s = substr(s, i + length(open)); if (substr(s, 1, 1) == "\n") s = substr(s, 2)
+      j = index(s, "</pre>"); if (j == 0) exit 1
       s = substr(s, 1, j - 1)
       gsub(/&lt;/, "<", s); gsub(/&gt;/, ">", s); gsub(/&amp;/, "\\&", s)
       printf "%s", s
@@ -412,6 +414,17 @@ else
     ok '렌더: 원문 영역 왕복 일치 통과'
   else
     ng '렌더: 원문 영역 왕복 일치 통과 (원문 영역이 md 와 다름)'
+  fi
+
+  # 빈 줄로 시작하는 md 도 원문 영역 글자가 md 와 같아야 한다 (issue #132 최종 감사 F-1).
+  { printf '\n'; cat "$rd/quiz.md"; } > "$rd/lf1.md"
+  { printf '\n\n'; cat "$rd/quiz.md"; } > "$rd/lf2.md"
+  "$RENDER" "$rd/lf1.md" >/dev/null 2>&1; "$RENDER" "$rd/lf2.md" >/dev/null 2>&1
+  if source_of "$rd/lf1.html" > "$rd/lf1.back" && source_of "$rd/lf2.html" > "$rd/lf2.back" \
+     && cmp -s "$rd/lf1.back" "$rd/lf1.md" && cmp -s "$rd/lf2.back" "$rd/lf2.md"; then
+    ok '렌더: 선행 개행 원문 보존 통과'
+  else
+    ng '렌더: 선행 개행 원문 보존 통과 (빈 줄로 시작하는 md 의 원문 영역이 md 와 다름)'
   fi
 
   printf '%s\n' '# A' > "$rd/a.md"

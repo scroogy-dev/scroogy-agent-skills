@@ -4,7 +4,8 @@
 #
 # `templates/quiz-template.html` 의 원문 자리 `<pre id="quiz-source">@@QUIZ_SOURCE@@</pre>` 에
 # md 를 HTML 이스케이프(`&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`)만 해서 넣는다.
-# md 바이트는 그대로 보존한다 (앞뒤 개행을 더하거나 지우지 않는다).
+# 시작 태그 바로 뒤에는 LF 하나를 더한다. HTML 파서가 `<pre>` 시작 태그 바로 뒤 LF 하나를 지우므로,
+# 빈 줄로 시작하는 md 도 원문 영역 글자가 md 와 같아진다. md 바이트는 그대로 넣는다.
 # 마크다운 변환·정화·도식 렌더는 HTML 안의 JS 가 브라우저에서 한다 (marked·DOMPurify·mermaid).
 # 같은 md 를 두 번 렌더하면 결과가 바이트 단위로 같다.
 #
@@ -23,7 +24,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE="$HERE/../templates/quiz-template.html"
 MARK='@@QUIZ_SOURCE@@'
 
-usage() { sed -n '3,15p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,16p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1-}" in -h|--help) usage; exit 0 ;; esac
 [ $# -eq 1 ] || { echo "error: md 파일 하나를 지정합니다" >&2; usage >&2; exit 2; }
@@ -53,7 +54,7 @@ dir="$(dirname "$out")"
 tmp="$(mktemp "$dir/.render-quiz-html.XXXXXX")" || { echo "error: 임시 파일을 만들지 못했습니다 ($dir)" >&2; exit 1; }
 trap 'rm -f "$tmp"' EXIT
 
-printf '%s%s%s' "$head" "$src" "$rest" > "$tmp" || { echo "error: 쓰지 못했습니다 ($tmp)" >&2; exit 1; }
+printf '%s\n%s%s' "$head" "$src" "$rest" > "$tmp" || { echo "error: 쓰지 못했습니다 ($tmp)" >&2; exit 1; }
 chmod 644 "$tmp" 2>/dev/null || true
 mv -f "$tmp" "$out" || { echo "error: 결과 파일을 만들지 못했습니다 ($out)" >&2; exit 1; }
 trap - EXIT
