@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N 마무리 (최종 감사 2차 `--response` 반영 완료. 사용자가 `최종 audit 모델` 행과 Task N 블록을 기록)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -13,7 +13,7 @@
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 |  |  |
+| 최종 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 
 - **계획 감사**: 수행 · 발견 5건 · 보정 4건
 
@@ -181,6 +181,11 @@
 사용자가 직접 수행하며, 구현 AI는 이 블록을 대신 채우지 않는다.
 -->
 
-- **결과**:
+- **결과**: 완료
 - **수행 내용 요약**:
+  - 1차(OpenAI, GPT-6.1 (gpt-6.1-sol), high): 조건부 적합(CONDITIONAL). 1단계 부분 충족(PARTIAL) 5건과 2단계 중간(MEDIUM) 1건은 같은 결함 F-1(빈 줄로 시작하는 md의 첫 개행이 폴백에서 사라짐)이다. `--response`에서 반영해 Task 2 블록에 귀속했다.
+  - 2차(같은 모델·effort): 적합(PASS). 1단계 충족(PASS) 47건이고 F-1은 닫혔다. 신규 F-6(낮음(LOW), 코드맵 index의 시퀀스 규칙 사본 목록 누락)은 사용자가 반영으로 승격해 Task 5 블록에 귀속했다.
+  - 2차 검증: 13개 러너 1,325건 통과·0건 실패, spec `[D]` 명령 27개와 plan 명령 블록 8개 통과.
 - **특이 사항**:
+  - 구현 모델(Anthropic)과 감사 모델(OpenAI)의 벤더가 다르다.
+  - 이 블록과 `최종 audit 모델` 행, plan Task N 체크박스는 사용자 지시(2026-11-03 `--clear` 1단계)로 구현 AI가 두 최종 감사 리포트(`issue-0132-audit-report-1.md`, `issue-0132-audit-report.md`)의 머리말·요약을 옮겨 적었다.
