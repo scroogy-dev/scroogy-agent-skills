@@ -335,6 +335,118 @@ assert_doc_branch "$SKILL"                      pass 'doc 카테고리 분기 �
 assert_doc_branch "$tmpdir/doc-branch-drop.md"  fail 'doc 카테고리 분기 문장: 행 삭제 격추'
 assert_doc_branch "$tmpdir/doc-branch-swap.md"  fail 'doc 카테고리 분기 문장: 두 조건 맞바꿈 격추'
 
+# --- HTML 렌더 (issue #132) -------------------------------------------------------
+# render-quiz-html.sh 는 md 를 이스케이프해 HTML 템플릿의 원문 자리에 넣는다. 브라우저 동작(변환·정화·도식)은
+# 러너 밖의 수용 테스트가 맡고, 여기서는 파일 계약(이름·결정성·원문 보존·버전 고정·원문 기본 표시)을 본다.
+
+RENDER="$HERE/../scripts/render-quiz-html.sh"
+HTML_TEMPLATE="$HERE/../templates/quiz-template.html"
+rd="$tmpdir/render"
+mkdir -p "$rd"
+
+# source_of <html> — 원문 영역(id quiz-source 인 pre)의 내용을 이스케이프를 풀어 바이트 그대로 출력한다.
+source_of() {
+  LC_ALL=C awk 'BEGIN { RS = "\001" }
+    {
+      s = $0; open = "<pre id=\"quiz-source\">"
+      i = index(s, open); if (i == 0) exit 1
+      s = substr(s, i + length(open)); j = index(s, "</pre>"); if (j == 0) exit 1
+      s = substr(s, 1, j - 1)
+      gsub(/&lt;/, "<", s); gsub(/&gt;/, ">", s); gsub(/&amp;/, "\\&", s)
+      printf "%s", s
+    }' "$1"
+}
+
+# pin_violations <템플릿> — 외부 script 가 정확한 버전으로 고정됐고 세 라이브러리가 하나씩 있는지 본다. 무출력이면 통과.
+pin_violations() {
+  local rows lib
+  rows="$(grep -E '<script src="https://' "$1")"
+  printf '%s\n' "$rows" | grep -E '<script src="https://' | grep -vE '@[0-9]+\.[0-9]+\.[0-9]+/' | sed 's/^/버전 미고정: /'
+  for lib in marked dompurify mermaid; do
+    [ "$(printf '%s\n' "$rows" | grep -c "/$lib@")" -eq 1 ] || echo "$lib script 1개 아님"
+  done
+}
+
+# source_shown_violations <템플릿> — 원문 영역이 처음부터 보이는지 본다. 무출력이면 통과.
+# 원문 자리 행에 다른 속성이 없어야 하고, 원문 영역을 숨기는 CSS 는 `[data-rendered]` 선택자 아래에만 둔다.
+source_shown_violations() {
+  [ "$(grep -cxF '<pre id="quiz-source">@@QUIZ_SOURCE@@</pre>' "$1")" -eq 1 ] || echo '원문 자리 행이 계약과 다름'
+  grep -n '#quiz-source' "$1" | grep -E 'display: *none|visibility: *hidden|opacity: *0' | grep -vF '[data-rendered]' \
+    | sed 's/^/숨김 규칙: /'
+}
+
+# assert_quiet <설명> <기대: pass|fail> <함수> <파일>
+assert_quiet() {
+  local desc="$1" want="$2" out
+  out="$("$3" "$4")"
+  case "$want" in
+    pass) if [ -z "$out" ]; then ok "$desc"; else ng "$desc (위반 [$(flat "$out")])"; fi ;;
+    fail) if [ -n "$out" ]; then ok "$desc"; else ng "$desc (변형이 그대로 통과)"; fi ;;
+  esac
+}
+
+if [ ! -x "$RENDER" ] || [ ! -r "$HTML_TEMPLATE" ]; then
+  ng "렌더: 스크립트 실행 권한 또는 HTML 템플릿 없음 ($RENDER, $HTML_TEMPLATE)"
+else
+  # 이스케이프 대상 문자, 닫는 pre, script, 원문 영역 여는 태그를 담고 끝 개행 없이 끝나는 md
+  printf '%s\n' '# 렌더 확인 & <제목>' '' '<script>document.title="x"</script>' '' \
+    '코드: a < b && c > d, 이미 이스케이프된 &lt;tag&gt;' '' '</pre>' '<pre id="quiz-source">' > "$rd/quiz.md"
+  printf '%s' '마지막 줄은 개행 없이 끝난다' >> "$rd/quiz.md"
+
+  out="$("$RENDER" "$rd/quiz.md" 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ] && [ "$out" = "$rd/quiz.html" ] && [ -f "$rd/quiz.html" ]; then
+    ok '렌더: 같은 이름 .html 생성 통과'
+  else
+    ng "렌더: 같은 이름 .html 생성 통과 (rc=$rc, 출력: $(flat "$out"))"
+  fi
+
+  cp "$rd/quiz.html" "$rd/first.html" 2>/dev/null
+  "$RENDER" "$rd/quiz.md" >/dev/null 2>&1
+  if cmp -s "$rd/first.html" "$rd/quiz.html"; then
+    ok '렌더: 두 번 렌더 결과 동일 통과'
+  else
+    ng '렌더: 두 번 렌더 결과 동일 통과 (두 결과가 다름)'
+  fi
+
+  if source_of "$rd/quiz.html" > "$rd/back.md" && cmp -s "$rd/back.md" "$rd/quiz.md"; then
+    ok '렌더: 원문 영역 왕복 일치 통과'
+  else
+    ng '렌더: 원문 영역 왕복 일치 통과 (원문 영역이 md 와 다름)'
+  fi
+
+  printf '%s\n' '# A' > "$rd/a.md"
+  printf '%s\n' '# B' > "$rd/b.md"
+  "$RENDER" "$rd/a.md" >/dev/null 2>&1; "$RENDER" "$rd/b.md" >/dev/null 2>&1
+  if source_of "$rd/a.html" > "$rd/a.back" && source_of "$rd/b.html" > "$rd/b.back" \
+     && cmp -s "$rd/a.back" "$rd/a.md" && cmp -s "$rd/b.back" "$rd/b.md"; then
+    ok '렌더: 대상별 이름 유지 통과'
+  else
+    ng '렌더: 대상별 이름 유지 통과 (a.html·b.html 이 각자의 md 를 담지 않음)'
+  fi
+
+  assert_quiet '렌더: 외부 라이브러리 버전 고정 통과' pass pin_violations "$HTML_TEMPLATE"
+  sed -E '/\/marked@/ s#@[0-9]+\.[0-9]+\.[0-9]+/#/#' "$HTML_TEMPLATE" > "$rd/unpinned.html"
+  assert_quiet '렌더: 버전 미고정 템플릿 격추' fail pin_violations "$rd/unpinned.html"
+  grep -v '/dompurify@' "$HTML_TEMPLATE" > "$rd/no-purify.html"
+  assert_quiet '렌더: 정화 라이브러리 누락 템플릿 격추' fail pin_violations "$rd/no-purify.html"
+
+  assert_quiet '렌더: 원문 영역 기본 표시 통과' pass source_shown_violations "$HTML_TEMPLATE"
+  sed 's|<pre id="quiz-source">|<pre id="quiz-source" hidden>|' "$HTML_TEMPLATE" > "$rd/hidden.html"
+  assert_quiet '렌더: 원문 영역 숨김 속성 격추' fail source_shown_violations "$rd/hidden.html"
+fi
+
+# assert_render_usage <설명> <인자...> — 사용오류는 종료 코드 2 다.
+assert_render_usage() {
+  local desc="$1" rc; shift
+  "$RENDER" "$@" >/dev/null 2>&1; rc=$?
+  if [ "$rc" -eq 2 ]; then ok "렌더 사용오류: $desc"; else ng "렌더 사용오류: $desc (exit 2 기대, 실제 $rc)"; fi
+}
+
+printf '%s\n' '# 텍스트' > "$rd/not-md.txt"
+assert_render_usage '인자 없음'
+assert_render_usage '없는 파일'      "$rd/absent.md"
+assert_render_usage '.md 아닌 파일'  "$rd/not-md.txt"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
