@@ -249,7 +249,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
   probe() { cat "$@"; printf '%s\n' '<script>setTimeout(function(){var e=document.getElementById("quiz-source");document.documentElement.setAttribute("data-probe",e&&e.checkVisibility({opacityProperty:true,visibilityProperty:true})?"shown":"hidden")},4000)</script>'; }
   seen() { grep -m1 -oE '<html( [^>]*)?>' "$1" | grep -oE 'data-probe="[a-z]+"'; }
   if [ ! -x "$CH" ]; then echo 'N/A: Chrome 없음'; else
-    d=$(mktemp -d); cp git-review-quiz/templates/quiz-template.md "$d/q.md"
+    d=$(mktemp -d); { printf '\n'; cat git-review-quiz/templates/quiz-template.md; } > "$d/q.md"
     if ! git-review-quiz/scripts/render-quiz-html.sh "$d/q.md" >/dev/null; then echo '위반: 렌더 스크립트 실패'
     elif ! { probe "$d/q.html" > "$d/p.html" && "$CH" --headless --disable-gpu --no-first-run --user-data-dir="$d/profile" \
         --host-resolver-rules='MAP * ~NOTFOUND' --virtual-time-budget=5000 \
@@ -277,6 +277,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
   - 설계 주의: `--dump-dom`은 DOM만 저장하고 적용된 CSS는 담지 않는다. 글자 비교만 하면 `hidden` 속성·인라인 `display:none`·CSS로 숨긴 원문도 통과한다(계획 감사 F-2 잔여). 그래서 Chrome으로 여는 사본 끝에 표시 판정 스크립트를 붙인다(`probe`). 이 스크립트가 가상 시간 4초 뒤 `#quiz-source`의 `checkVisibility()` 결과를 `<html data-probe>`에 기록한다(`seen`으로 읽음). `shown`이면 통과, `hidden`이면 위반이고, 값이 없으면 Chrome이 판정을 실행하지 못한 것으로 보고 N/A다.
   - `</html>` 뒤에 붙인 `<script>`는 HTML 파서가 `<body>` 끝으로 옮겨 실행한다. 4초는 가상 시간 예산(5초·8초) 안에 드는 값이다.
   - 렌더 스크립트 실패는 구현 결함이라 위반으로, Chrome 실행 실패는 환경 문제라 N/A로 나눈다.
+  - 설계 주의: 입력은 템플릿 md 앞에 LF 하나를 붙인 것이다. HTML 파서는 `<pre>` 시작 태그 바로 뒤 LF 하나를 지우므로, 렌더 스크립트가 그 자리를 채우지 않으면 원문 비교가 실패한다(최종 감사 F-1). LF로 시작하지 않는 md는 러너의 `렌더: 원문 영역 왕복 일치 통과`가 같은 파서 규칙으로 본다.
   - 의존: 원문 영역 id `quiz-source`와 렌더 완료 표시 `data-rendered`는 plan Task 2가 정한 계약이다. 이름이 바뀌면 이 명령은 첫 검사를 그대로 통과하고 둘째 검사에서만 실패하므로, 계약을 바꿀 때 이 명령도 함께 고친다.
   - 의존: `probe`·`seen`은 이 항목, 아래 marked·mermaid 항목, R14 둘째 항목, plan Task 2 반례 검증이 같은 문자열을 쓴다. 바꿀 때 네 곳을 함께 고친다. 판정이 숨김을 실제로 잡는지는 plan Task 2 반례 검증이 확인한다.
   </details>
@@ -290,7 +291,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
   probe() { cat "$@"; printf '%s\n' '<script>setTimeout(function(){var e=document.getElementById("quiz-source");document.documentElement.setAttribute("data-probe",e&&e.checkVisibility({opacityProperty:true,visibilityProperty:true})?"shown":"hidden")},4000)</script>'; }
   seen() { grep -m1 -oE '<html( [^>]*)?>' "$1" | grep -oE 'data-probe="[a-z]+"'; }
   if [ ! -x "$CH" ]; then echo 'N/A: Chrome 없음'; else
-    d=$(mktemp -d); cp git-review-quiz/templates/quiz-template.md "$d/q.md"
+    d=$(mktemp -d); { printf '\n'; cat git-review-quiz/templates/quiz-template.md; } > "$d/q.md"
     dump() { "$CH" --headless --disable-gpu --no-first-run --user-data-dir="$d/profile" --virtual-time-budget=8000 \
       --dump-dom "file://$1" > "$2" 2>/dev/null && [ -s "$2" ]; }
     src_ok() { python3 -I - "$1" "$2" <<'EOF'
@@ -327,6 +328,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
   - 설계 주의: 대조 실행(가리지 않은 HTML)이 렌더를 끝내야 나머지 라이브러리가 실제로 불렸다고 볼 수 있다. 대조가 렌더되지 않은 채 진행하면 모든 라이브러리가 함께 실패해 하나만 없는 경우를 검증하지 못하고 그대로 통과하므로 N/A로 낸다.
   - DOMPurify만 없는 경우는 R14 둘째 항목이 맡는다(계획 감사 F-3).
   - 원문 표시 판정(`probe`·`seen`)은 위 항목과 같다(계획 감사 F-2 잔여).
+  - 입력은 위 항목과 같이 LF로 시작하는 md다(최종 감사 F-1).
   </details>
 - [ ] [QD] HTML을 브라우저로 열면 목차가 보이고, 객관식 보기를 누르면 정답 여부와 해설이 나오며, 주관식은 모범 답안 보기로 정답·해설을 연다 (AC8)  (검증: AI가 Playwright MCP로 렌더한 템플릿·Task 6 산출 HTML을 열어 조작, 결과를 summary에 기록)  ← 강등 사유: 클릭 조작 확인은 테스트 원칙상 탐색 수단이고, repo 러너는 외부 의존성 없는 셸(ADR 0001)이라 브라우저 러너를 두지 않는다
 - [ ] [QD] HTML이 접기를 유지하고 mermaid 블록을 도식으로 그리며, 다크 모드와 너비 390px 화면에서 가로 스크롤 없이 읽힌다 (AC18)  (검증: AI가 Playwright MCP로 확인, 결과를 summary에 기록)  ← 강등 사유: 위 항목과 같다
@@ -529,7 +531,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
   probe() { cat "$@"; printf '%s\n' '<script>setTimeout(function(){var e=document.getElementById("quiz-source");document.documentElement.setAttribute("data-probe",e&&e.checkVisibility({opacityProperty:true,visibilityProperty:true})?"shown":"hidden")},4000)</script>'; }
   seen() { grep -m1 -oE '<html( [^>]*)?>' "$1" | grep -oE 'data-probe="[a-z]+"'; }
   if [ ! -x "$CH" ]; then echo 'N/A: Chrome 없음'; else
-    d=$(mktemp -d); cp git-review-quiz/templates/quiz-template.md "$d/q.md"
+    d=$(mktemp -d); { printf '\n'; cat git-review-quiz/templates/quiz-template.md; } > "$d/q.md"
     dump() { "$CH" --headless --disable-gpu --no-first-run --user-data-dir="$d/profile" --virtual-time-budget=8000 \
       --dump-dom "file://$1" > "$2" 2>/dev/null && [ -s "$2" ]; }
     if ! git-review-quiz/scripts/render-quiz-html.sh "$d/q.md" >/dev/null; then echo '위반: 렌더 스크립트 실패'
@@ -560,6 +562,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
 
   - 설계 주의: 대조 실행(가리지 않은 HTML)이 렌더되지 않으면 marked도 함께 못 불러온 상태라 DOMPurify만 없는 경우를 검증하지 못하고 그대로 통과하므로 N/A로 낸다.
   - 원문 표시 판정(`probe`·`seen`)은 R7 AC9 첫 항목과 같다(계획 감사 F-2 잔여).
+  - 입력은 R7 AC9 첫 항목과 같이 LF로 시작하는 md다(최종 감사 F-1).
   </details>
 
 ### 공통
@@ -593,7 +596,7 @@ git-review-quiz가 문항 앞에 변경의 배경·목적·변경 설명을 정�
   - `temp_` 접두어는 `99_workspace` 임시 산출물 관례(`temp_review_context.md`)를 따른 것이다. `pr-`·`branch-` 구분은 숫자로만 된 브랜치 이름과 PR 번호가 같은 파일이 되는 일을 막는다.
   - `--comment` 본문 이름 `temp_review_quiz_comment.md`는 바꾸지 않는다(제외 항목).
   - 알려진 한계: 치환 뒤 이름이 같아지는 두 브랜치(`feature/a`·`feature-a`)는 구분하지 못해, 뒤에 만든 쪽이 앞선 파일을 덮어쓴다. 계획 감사 F-4에서 원장 K-0024로 이관했고, AC10 보장에서 이 경우를 뺀다(2026-11-03 사용자 승인).
-- **HTML 구조**: 렌더 스크립트는 md를 HTML 이스케이프(`&`·`<`·`>`)만 해서 템플릿의 `<pre id="quiz-source">` 자리에 넣는다. 마크다운→HTML 변환은 브라우저에서 JS(marked)가 하고, 변환 결과는 DOMPurify로 거른 뒤에만 렌더 영역 `<main id="quiz-content">`에 넣는다(R14).
+- **HTML 구조**: 렌더 스크립트는 md를 HTML 이스케이프(`&`·`<`·`>`)만 해서 템플릿의 `<pre id="quiz-source">` 자리에 넣는다. 시작 태그 바로 뒤에는 LF 하나를 더한다. HTML 파서가 `<pre>` 시작 태그 바로 뒤 LF 하나를 지우므로, 빈 줄로 시작하는 md도 원문 영역 글자가 md와 같아진다(최종 감사 F-1, 2026-11-03 `--response` 승인). 마크다운→HTML 변환은 브라우저에서 JS(marked)가 하고, 변환 결과는 DOMPurify로 거른 뒤에만 렌더 영역 `<main id="quiz-content">`에 넣는다(R14).
   - 원문 영역은 처음부터 보이며, JS가 변환에 성공했을 때만 `<html>`에 `data-rendered`를 달아 CSS로 숨긴다. marked·mermaid·DOMPurify 중 하나라도 못 불러오면 JS가 아무것도 바꾸지 않아 원문이 그대로 남는다(AC9, AC17).
   - 버린 대안: mermaid만 없을 때 나머지를 렌더하고 도식 자리에 코드 블록을 남기는 안. AC9의 "원문 md를 그대로"를 약하게 바꾸는 변경이라 택하지 않았다(계획 감사 F-3).
   - 버린 대안: 셸에서 md를 HTML로 바꾸는 안(외부 의존성 없이 결정적으로 구현하기 어렵다), Python·Node 렌더(러너 무의존 원칙 ADR 0001과 도구 의존 추가).
