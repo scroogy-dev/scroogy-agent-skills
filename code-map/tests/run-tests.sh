@@ -13,6 +13,7 @@
 # SKILL.md 의 선언 부재 폴백 알림(안내도가 있을 때만 알림)도 같은 방식으로 본다 (#122).
 # SKILL.md 의 시퀀스 다이어그램 작성 규칙과 local.md·global.md 의 시퀀스 형식·갱신·점검 문장도 같은 방식으로 본다 (#126).
 # git-pr·git-review-context 의 시퀀스 안내·예시·템플릿과 규칙 사본도 같은 방식으로 본다 (#128).
+# git-review-quiz 의 규칙 사본(설명 절 호출 흐름용 네 번째 사본)도 같은 방식으로 대조한다 (#132). 안내·예시·템플릿 배치 검사는 하지 않는다.
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -32,6 +33,7 @@ PR_SKILL="$HERE/../../git-pr/SKILL.md"
 PR_TEMPLATE="$HERE/../../git-pr/templates/pr-body-template.md"
 RC_SKILL="$HERE/../../git-review-context/SKILL.md"
 RC_TEMPLATE="$HERE/../../git-review-context/templates/review-context-template.md"
+QZ_SKILL="$HERE/../../git-review-quiz/SKILL.md"
 
 pass=0
 fail=0
@@ -39,7 +41,7 @@ fail=0
 ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
-for f in "$SKILL" "$DOC" "$LOCAL" "$GLOBAL" "$FIX/README.md" "$TEMPLATE" "$PR_SKILL" "$PR_TEMPLATE" "$RC_SKILL" "$RC_TEMPLATE"; do
+for f in "$SKILL" "$DOC" "$LOCAL" "$GLOBAL" "$FIX/README.md" "$TEMPLATE" "$PR_SKILL" "$PR_TEMPLATE" "$RC_SKILL" "$RC_TEMPLATE" "$QZ_SKILL"; do
   [ -r "$f" ] || { echo "NOT OK - 파일을 찾을 수 없습니다 — $f"; exit 1; }
 done
 
@@ -460,7 +462,8 @@ else
   ng "시퀀스 배치 git-review-context 템플릿 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
-out="$(seq_copy_violations "$PR_SKILL" '규칙 사본 git-pr'; seq_copy_violations "$RC_SKILL" '규칙 사본 git-review-context')"
+out="$(seq_copy_violations "$PR_SKILL" '규칙 사본 git-pr'; seq_copy_violations "$RC_SKILL" '규칙 사본 git-review-context'
+       seq_copy_violations "$QZ_SKILL" '규칙 사본 git-review-quiz')"
 if [ -z "$out" ]; then
   ok "시퀀스 규칙 사본 통과"
 else
@@ -489,6 +492,7 @@ C_PR_SKILL="$TMP/case/git-pr-SKILL.md"
 C_PR_TEMPLATE="$TMP/case/pr-body-template.md"
 C_RC_SKILL="$TMP/case/git-review-context-SKILL.md"
 C_RC_TEMPLATE="$TMP/case/review-context-template.md"
+C_QZ_SKILL="$TMP/case/git-review-quiz-SKILL.md"
 
 # sub_str <파일> <찾을 문자열> <바꿀 문자열> — 첫 등장 하나를 바꾼다(고정 문자열 대조).
 sub_str() {
@@ -528,13 +532,14 @@ seq_copy_cut() { seq_copy_sub "$1" "$2" ''; }
 assert_reject() {
   local desc="$1" want="$2" out; shift 2
   cp "$DOC" "$C_DOC"; cp "$SKILL" "$C_SKILL"; cp "$LOCAL" "$C_LOCAL"; cp "$GLOBAL" "$C_GLOBAL"; cp "$PR_SKILL" "$C_PR_SKILL"
-  cp "$PR_TEMPLATE" "$C_PR_TEMPLATE"; cp "$RC_SKILL" "$C_RC_SKILL"; cp "$RC_TEMPLATE" "$C_RC_TEMPLATE"
+  cp "$PR_TEMPLATE" "$C_PR_TEMPLATE"; cp "$RC_SKILL" "$C_RC_SKILL"; cp "$RC_TEMPLATE" "$C_RC_TEMPLATE"; cp "$QZ_SKILL" "$C_QZ_SKILL"
   "$@" || { ng "$desc — 변형 실패"; return; }
   out="$(violations "$C_DOC" "$C_SKILL"; local_violations "$C_LOCAL"; global_violations "$C_GLOBAL"; building_violations "$C_SKILL" "$C_GLOBAL"
          sequence_violations "$C_SKILL" "$C_LOCAL" "$C_GLOBAL"; pr_body_violations "$C_PR_SKILL" "$C_LOCAL"
          pr_template_violations "$C_PR_TEMPLATE"; rc_body_violations "$C_RC_SKILL" "$C_LOCAL"
          rc_template_violations "$C_RC_TEMPLATE"; seq_copy_violations "$C_PR_SKILL" '규칙 사본 git-pr'
-         seq_copy_violations "$C_RC_SKILL" '규칙 사본 git-review-context')"
+         seq_copy_violations "$C_RC_SKILL" '규칙 사본 git-review-context'
+         seq_copy_violations "$C_QZ_SKILL" '규칙 사본 git-review-quiz')"
   if printf '%s\n' "$out" | grep -qxF "$want"; then
     ok "$desc"
   else
@@ -740,7 +745,7 @@ rc_comment_out() { swap_next "$1" '<!-- 엔트리 포인트별' && swap_next "$1
 assert_reject '시퀀스 배치 git-review-context 템플릿 주석 접기 밖 이동 격추' '시퀀스 배치 git-review-context 템플릿 접기 안 주석' \
   rc_comment_out "$C_RC_TEMPLATE"
 # 사본의 각 리터럴은 규칙 섹션 안에서 해당 라벨 행에만 있어, 섹션 제목 뒤 첫 등장 삭제가 그 행을 겨눈다.
-for copy in "git-pr|$C_PR_SKILL" "git-review-context|$C_RC_SKILL"; do
+for copy in "git-pr|$C_PR_SKILL" "git-review-context|$C_RC_SKILL" "git-review-quiz|$C_QZ_SKILL"; do
   nm=${copy%%|*}; cf=${copy#*|}
   assert_reject "시퀀스 규칙 사본 $nm 작성 규칙 섹션 제목 변경 격추" "시퀀스 규칙 사본 $nm 작성 규칙 섹션" \
     sub_str "$cf" '## 시퀀스 다이어그램 작성 규칙' '## 시퀀스 다이어그램 규칙'
