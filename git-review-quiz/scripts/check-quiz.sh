@@ -34,7 +34,7 @@
 # 전제: 문항 블록 안에 코드 블록을 두지 않는다. 블록 경계와 접기 판정이 행 접두어를 그대로 보므로
 #       코드 블록 안의 `### `·`<details>` 행도 문서 구조로 센다.
 #       `## 문항` 앞 구간(설명 절)은 트리·mermaid·코드 조각을 코드 블록에 담으므로,
-#       코드 펜스(``` 또는 ~~~. 여는 펜스와 같은 문자를 같은 개수 이상 쓰고 뒤에 공백만 있는 행에서 닫힌다) 안의 행은 헤더로 세지 않는다.
+#       코드 펜스(``` 또는 ~~~. 앞 공백은 3 칸까지 허용한다. 여는 펜스와 같은 문자를 같은 개수 이상 쓰고 뒤에 공백만 있는 행에서 닫힌다) 안의 행은 헤더로 세지 않는다.
 
 set -o pipefail
 
@@ -82,7 +82,7 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
   function qerr(rule, msg) { qn++; qmsg[qn] = "위반 " rule " Q" qid ": " msg }
   function derr(msg)       { dn++; dmsg[dn] = "위반 R7: " msg }
   function berr(msg)       { dn++; dmsg[dn] = "위반 R8: " msg }
-  function fence_run(s,  n) { n = 0; while (substr(s, n + 1, 1) == fence_ch) n++; fence_rest = substr(s, n + 1); return n }
+  function fence_run(s,  n) { sub(/^ ? ? ?/, "", s); n = 0; while (substr(s, n + 1, 1) == fence_ch) n++; fence_rest = substr(s, n + 1); return n }
 
   # permalink URL 이 `https://<호스트>/<소유자>/<저장소>/blob/<40자 SHA>/<경로>#L<n>[-L<m>]` 인지 본다.
   # 어긋난 첫 축의 이름을 돌려주고, 규격을 지키면 빈 문자열을 돌려준다.
@@ -186,7 +186,7 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
 
   # `## 문항` 앞 구간의 코드 블록 안 행은 헤더로 세지 않는다. 설명 절의 트리·mermaid·코드 조각에
   # `## `·`### ` 로 시작하는 행이 있어도 문서 골격 판정이 흔들리지 않게 한다.
-  n_quiz == 0 && !in_fence && /^(```|~~~)/ { fence_ch = substr($0, 1, 1); fence_len = fence_run($0); in_fence = 1; next }
+  n_quiz == 0 && !in_fence && /^ ? ? ?(```|~~~)/ { fence_ch = substr($0, match($0, /[`~]/), 1); fence_len = fence_run($0); in_fence = 1; next }
   n_quiz == 0 && in_fence { if (fence_run($0) >= fence_len && fence_rest ~ /^[[:space:]]*$/) in_fence = 0; next }
 
   /^## / {
