@@ -410,6 +410,20 @@ else
     ng '렌더: 두 번 렌더 결과 동일 통과 (두 결과가 다름)'
   fi
 
+  # 산출 HTML 은 새로 만들 때도 다시 렌더할 때도 그룹·기타 사용자에게 권한을 열지 않는다 (PR #133 리뷰 지적).
+  printf '%s\n' '# 권한' > "$rd/perm.md"
+  chmod 600 "$rd/perm.md"
+  "$RENDER" "$rd/perm.md" >/dev/null 2>&1
+  perm_new="$(ls -l "$rd/perm.html" | cut -c5-10)"
+  chmod 644 "$rd/perm.html"
+  "$RENDER" "$rd/perm.md" >/dev/null 2>&1
+  perm_again="$(ls -l "$rd/perm.html" | cut -c5-10)"
+  if [ "$perm_new" = '------' ] && [ "$perm_again" = '------' ]; then
+    ok '렌더: 그룹·기타 사용자 권한 닫힘 통과'
+  else
+    ng "렌더: 그룹·기타 사용자 권한 닫힘 통과 (새로 만듦 [$perm_new], 다시 렌더 [$perm_again])"
+  fi
+
   if source_of "$rd/quiz.html" > "$rd/back.md" && cmp -s "$rd/back.md" "$rd/quiz.md"; then
     ok '렌더: 원문 영역 왕복 일치 통과'
   else

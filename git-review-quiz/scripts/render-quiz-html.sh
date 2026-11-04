@@ -55,7 +55,6 @@ tmp="$(mktemp "$dir/.render-quiz-html.XXXXXX")" || { echo "error: 임시 파일�
 trap 'rm -f "$tmp"' EXIT
 
 printf '%s\n%s%s' "$head" "$src" "$rest" > "$tmp" || { echo "error: 쓰지 못했습니다 ($tmp)" >&2; exit 1; }
-chmod 644 "$tmp" 2>/dev/null || true
 mv -f "$tmp" "$out" || { echo "error: 결과 파일을 만들지 못했습니다 ($out)" >&2; exit 1; }
 trap - EXIT
 
