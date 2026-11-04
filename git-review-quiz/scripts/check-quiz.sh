@@ -16,6 +16,7 @@
 #       `--comment` 모드에서는 모든 위치 행에 규격에 맞는 permalink 를 필수로 요구한다)
 #   R3 힌트 접기 블록이 문항마다 정확히 1 개이고, 문항 종료 시 접기 깊이가 0 이다
 #   R4 정답 접기 블록이 문항마다 정확히 1 개이고 힌트 블록 뒤의 다른 접기 블록에 온다.
+#      `<summary>정답·해설</summary>` 바로 다음 행은 빈 행이다.
 #      블록 안 첫 내용 행이 객관식은 `(<문자>). <해설>`, 주관식은 모범 답안이고 `근거: <내용>` 행이 있다
 #      (비즈니스 문항은 `정책 근거: <내용>` 행도 둔다)
 #   R5 접기 밖 선택지는 첫 접기 앞에만 둔다. 객관식은 그것이 2 개 이상·라벨 `(a)` 부터 연속이고,
@@ -38,7 +39,7 @@
 
 set -o pipefail
 
-usage() { sed -n '3,37p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,38p' "$0" | sed 's/^# \{0,1\}//'; }
 
 target=''
 mode='plain'
@@ -146,6 +147,8 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       else if (qfmt == "주관식" && (ans_first ~ /^근거: / || ans_first ~ /^정책 근거: /))
         qerr("R4", "주관식 정답 블록에 모범 답안이 없습니다 (" ans_first_line "행)")
 
+      if (ans_first != "" && ans_no_blank_line)
+        qerr("R4", "`<summary>정답·해설</summary>` 바로 다음 행이 빈 행이 아닙니다 (" ans_no_blank_line "행)")
       if (ans_first != "" && basis_n == 0)
         qerr("R4", "정답 블록에 `근거: <내용>` 행이 없습니다")
       if (ans_first != "" && qpersp == "비즈니스" && pbasis_n == 0)
@@ -251,7 +254,7 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       depth = 0; seen_details = 0; blk = 0
       unbalanced = 0; unbalanced_line = 0
       hint_n = 0; hint_line = 0; hint_blk = 0
-      ans_n = 0; ans_line = 0; ans_blk = -1
+      ans_n = 0; ans_line = 0; ans_blk = -1; ans_no_blank_line = 0
       in_ans = 0; ans_first = ""; ans_first_line = 0; basis_n = 0; pbasis_n = 0
       opt_n = 0; opt_bad = ""; opt_late = 0; opt_late_line = 0; r6_list = ""
     }
@@ -306,6 +309,10 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
         opt_late++; if (opt_late_line == 0) opt_late_line = NR
       }
     }
+
+    # summary 바로 뒤에 빈 행이 없으면 마크다운이 해설 첫 행을 HTML 로 처리한다.
+    # 해설의 서식이 풀리지 않고, HTML 산출물이 정답 문자를 읽지 못해 선택지 버튼을 만들지 않는다.
+    if (ans_line && NR == ans_line + 1 && $0 !~ /^[[:space:]]*$/) ans_no_blank_line = NR
 
     # 정답 블록 안의 내용 행을 모은다. 태그 처리 전이라 `in_ans` 는 이전 행까지의 상태이며,
     # 여닫는 태그 행과 빈 행은 내용으로 세지 않는다. 한 행짜리 HTML 주석도 제외한다.

@@ -184,6 +184,8 @@ assert_violation 'R4: 근거 행 없음'              '`근거: <내용>` 행이
 assert_violation 'R4: 주관식 모범 답안 없음'      '모범 답안이 없습니다'            invalid-r4-open-answer-no-model.md
 assert_violation 'R4: 주관식 모범 답안이 주석뿐'   '모범 답안이 없습니다'            invalid-r4-open-answer-comment-only.md
 assert_violation 'R4: 비즈니스 정책 근거 행 없음'  '`정책 근거: <내용>` 행이 없습니다' invalid-r4-answer-no-policy-basis.md
+# 빈 행이 없으면 마크다운이 해설 첫 행을 HTML 로 처리해 서식이 풀리지 않고 HTML 산출물의 선택지 버튼이 생기지 않는다 (PR #133 리뷰 지적).
+assert_violation 'R4: 정답 summary 뒤 빈 행 없음'  '바로 다음 행이 빈 행이 아닙니다'  invalid-r4-answer-no-blank-line.md
 assert_violation 'R5: 정답 문자가 선택지에 없음'   '선택지 라벨에 없습니다'          invalid-r5-answer-letter-unknown.md
 
 # 댓글 모드 전용. 게시 본문의 permalink 계약을 문항 전수로 본다.
