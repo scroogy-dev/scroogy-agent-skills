@@ -13,7 +13,7 @@
 #   render-quiz-html.sh <md 파일>
 #
 # 출력: 만든 .html 경로 1 행
-# 종료 코드: 0 성공 / 1 실패(템플릿 이상·쓰기 실패) / 2 사용오류(인자 개수·읽을 수 없는 파일·.md 아닌 파일)
+# 종료 코드: 0 성공 / 1 실패(템플릿 이상·읽기·쓰기 실패) / 2 사용오류(인자 개수·읽을 수 없는 파일·.md 아닌 파일)
 
 set -o pipefail
 export LC_ALL=C
@@ -35,9 +35,9 @@ case "$md" in *.md) ;; *) echo "error: .md 파일만 렌더합니다 ($md)" >&2;
 [ -r "$TEMPLATE" ] || { echo "error: 템플릿이 없습니다 ($TEMPLATE)" >&2; exit 1; }
 
 # 명령 치환은 끝 개행을 지우므로 끝에 표지 문자를 붙였다가 떼어 바이트를 그대로 보존한다.
-tpl="$(cat "$TEMPLATE"; printf x)" || { echo "error: 템플릿을 읽지 못했습니다" >&2; exit 1; }
+tpl="$(cat "$TEMPLATE" && printf x)" || { echo "error: 템플릿을 읽지 못했습니다" >&2; exit 1; }
 tpl="${tpl%x}"
-src="$(cat "$md"; printf x)" || { echo "error: md 를 읽지 못했습니다 ($md)" >&2; exit 1; }
+src="$(cat "$md" && printf x)" || { echo "error: md 를 읽지 못했습니다 ($md)" >&2; exit 1; }
 src="${src%x}"
 
 rest="${tpl#*"$MARK"}"

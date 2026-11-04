@@ -424,6 +424,29 @@ else
     ng "렌더: 그룹·기타 사용자 권한 닫힘 통과 (새로 만듦 [$perm_new], 다시 렌더 [$perm_again])"
   fi
 
+  # 읽기 실패를 성공으로 보고하거나 기존 HTML 을 덮어쓰지 않는다 (PR #133 리뷰 지적).
+  # 존재 검사 뒤에 읽기가 실패하는 시점은 재현할 수 없어, 지정한 경로에서 마지막 행만 빼고 출력한 뒤 실패하는 cat 스텁을 쓴다.
+  # 템플릿의 원문 자리가 출력에 남아야 자리 개수 검사가 대신 걸리지 않고 읽기 실패 처리 자체를 판정한다.
+  stub="$rd/stub-bin"
+  mkdir -p "$stub"
+  printf '%s\n' '#!/bin/sh' 'case "$1" in *"$READ_FAIL") sed "\$d" "$1"; exit 1 ;; esac' 'exec /bin/cat "$@"' > "$stub/cat"
+  chmod +x "$stub/cat"
+
+  # assert_read_fail <설명> <실패시킬 경로 끝부분>
+  assert_read_fail() {
+    local desc="$1" suffix="$2" rc
+    cp "$rd/quiz.html" "$rd/before.html"
+    READ_FAIL="$suffix" PATH="$stub:$PATH" "$RENDER" "$rd/quiz.md" >/dev/null 2>&1; rc=$?
+    if [ "$rc" -eq 1 ] && cmp -s "$rd/before.html" "$rd/quiz.html"; then
+      ok "렌더: $desc 격추"
+    else
+      ng "렌더: $desc 격추 (exit 1·기존 HTML 유지 기대, 실제 rc=$rc)"
+      cp "$rd/before.html" "$rd/quiz.html"
+    fi
+  }
+  assert_read_fail 'md 읽기 실패' '/quiz.md'
+  assert_read_fail '템플릿 읽기 실패' '/quiz-template.html'
+
   if source_of "$rd/quiz.html" > "$rd/back.md" && cmp -s "$rd/back.md" "$rd/quiz.md"; then
     ok '렌더: 원문 영역 왕복 일치 통과'
   else
