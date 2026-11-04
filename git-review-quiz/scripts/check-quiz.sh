@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# check-quiz.sh - git-review-quiz 산출 파일의 형식 규칙 R1~R7 을 결정적으로 판정한다.
+# check-quiz.sh - git-review-quiz 산출 파일의 형식 규칙 R1~R8 을 결정적으로 판정한다.
 #
 # `git-review-quiz/SKILL.md` 와 `templates/quiz-template.md` 가 규격의 SSoT 이며
 # 이 스크립트는 그 규칙을 옮긴 사본이다. 한쪽을 고치면 나머지 둘과 `tests/` 의 기대값을 함께 갱신한다.
@@ -16,22 +16,30 @@
 #       `--comment` 모드에서는 모든 위치 행에 규격에 맞는 permalink 를 필수로 요구한다)
 #   R3 힌트 접기 블록이 문항마다 정확히 1 개이고, 문항 종료 시 접기 깊이가 0 이다
 #   R4 정답 접기 블록이 문항마다 정확히 1 개이고 힌트 블록 뒤의 다른 접기 블록에 온다.
+#      `<summary>정답·해설</summary>` 바로 다음 행은 빈 행이다.
 #      블록 안 첫 내용 행이 객관식은 `(<문자>). <해설>`, 주관식은 모범 답안이고 `근거: <내용>` 행이 있다
 #      (비즈니스 문항은 `정책 근거: <내용>` 행도 둔다)
 #   R5 접기 밖 선택지는 첫 접기 앞에만 둔다. 객관식은 그것이 2 개 이상·라벨 `(a)` 부터 연속이고,
 #      정답 문자가 그 라벨 중 하나다. 주관식은 0 개다
 #   R6 문항 블록의 접기 밖에 `정답` 으로 시작하는 행이 없다
 #   R7 문서 골격을 지킨다 (`## 대상`·`## 문항` 각 1 개, 문항은 `## 문항` 아래에만 1 개 이상,
-#      `## 응답 기록` 은 선택이며 마지막 문항 뒤. `--comment` 모드에서는 `## 응답 기록` 을 두지 않는다)
+#      `## 응답 기록` 은 선택이며 마지막 문항 뒤. `--comment` 모드에서는 `## 응답 기록` 을 두지 않는다).
+#      일반 모드는 설명 절 `## 배경`·`## 목적`·`## 변경 설명` 을 각 1 개 두고
+#      `## 대상` → `## 배경` → `## 목적` → `## 변경 설명` → `## 문항` 순서를 지키며,
+#      `## 변경 설명` 아래 첫 두 `### ` 소절이 `### 변경 개요` → `### 호출 흐름` 이다 (`--comment` 모드는 설명 절을 보지 않는다)
+#   R8 헤더가 R1 형식인 객관식 문항이 2 개 이상이면 정답 문자가 모두 같지 않다 (두 모드 공통).
+#      정답 블록 첫 행이 `(<문자>). <해설>` 형식이 아니라 문자를 읽지 못한 문항은 집계에서 뺀다 (R4 가 보고한다)
 #
 # 종료 코드: 0 통과(무출력) / 1 위반(`위반 R<n> [Q<m>]: <사유>` 를 1 행씩 출력) / 2 사용오류
 #
 # 전제: 문항 블록 안에 코드 블록을 두지 않는다. 블록 경계와 접기 판정이 행 접두어를 그대로 보므로
 #       코드 블록 안의 `### `·`<details>` 행도 문서 구조로 센다.
+#       `## 문항` 앞 구간(설명 절)은 트리·mermaid·코드 조각을 코드 블록에 담으므로,
+#       코드 펜스(``` 또는 ~~~. 앞 공백은 3 칸까지 허용한다. 여는 펜스와 같은 문자를 같은 개수 이상 쓰고 뒤에 공백만 있는 행에서 닫힌다) 안의 행은 헤더로 세지 않는다.
 
 set -o pipefail
 
-usage() { sed -n '3,30p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,38p' "$0" | sed 's/^# \{0,1\}//'; }
 
 target=''
 mode='plain'
@@ -74,6 +82,8 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
 
   function qerr(rule, msg) { qn++; qmsg[qn] = "위반 " rule " Q" qid ": " msg }
   function derr(msg)       { dn++; dmsg[dn] = "위반 R7: " msg }
+  function berr(msg)       { dn++; dmsg[dn] = "위반 R8: " msg }
+  function fence_run(s,  n) { sub(/^ ? ? ?/, "", s); n = 0; while (substr(s, n + 1, 1) == fence_ch) n++; fence_rest = substr(s, n + 1); return n }
 
   # permalink URL 이 `https://<호스트>/<소유자>/<저장소>/blob/<40자 SHA>/<경로>#L<n>[-L<m>]` 인지 본다.
   # 어긋난 첫 축의 이름을 돌려주고, 규격을 지키면 빈 문자열을 돌려준다.
@@ -137,6 +147,8 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       else if (qfmt == "주관식" && (ans_first ~ /^근거: / || ans_first ~ /^정책 근거: /))
         qerr("R4", "주관식 정답 블록에 모범 답안이 없습니다 (" ans_first_line "행)")
 
+      if (ans_first != "" && ans_no_blank_line)
+        qerr("R4", "`<summary>정답·해설</summary>` 바로 다음 행이 빈 행이 아닙니다 (" ans_no_blank_line "행)")
       if (ans_first != "" && basis_n == 0)
         qerr("R4", "정답 블록에 `근거: <내용>` 행이 없습니다")
       if (ans_first != "" && qpersp == "비즈니스" && pbasis_n == 0)
@@ -164,8 +176,21 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
     if (r6_list != "")
       qerr("R6", "접기 밖에 `정답` 으로 시작하는 행이 있습니다 (" r6_list ")")
 
+    # R8 정답 편향 집계. 정답 문자를 읽지 못한 문항은 R4 가 보고하므로 여기서는 뺀다.
+    if (qfmt == "객관식" && ans_first ~ /^\([a-z]\)\. [[:space:]]*[^[:space:]]/) {
+      mcq_read++
+      mcq_lab = substr(ans_first, 2, 1)
+      if (mcq_read == 1) mcq_first = mcq_lab
+      else if (mcq_lab != mcq_first) mcq_mixed = 1
+    }
+
     qid = ""
   }
+
+  # `## 문항` 앞 구간의 코드 블록 안 행은 헤더로 세지 않는다. 설명 절의 트리·mermaid·코드 조각에
+  # `## `·`### ` 로 시작하는 행이 있어도 문서 골격 판정이 흔들리지 않게 한다.
+  n_quiz == 0 && !in_fence && /^ ? ? ?(```|~~~)/ { fence_ch = substr($0, match($0, /[`~]/), 1); fence_len = fence_run($0); in_fence = 1; next }
+  n_quiz == 0 && in_fence { if (fence_run($0) >= fence_len && fence_rest ~ /^[[:space:]]*$/) in_fence = 0; next }
 
   /^## / {
     flush_q()
@@ -173,9 +198,12 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
     sub(/^## /, "", h2)
     sub(/[[:space:]]+$/, "", h2)
     cur = h2
-    if (h2 == "대상")           n_target++
-    else if (h2 == "문항")      n_quiz++
+    if (h2 == "대상")           { n_target++; if (pos_target == 0) pos_target = NR }
+    else if (h2 == "문항")      { n_quiz++; if (pos_quiz == 0) pos_quiz = NR }
     else if (h2 == "응답 기록") { n_record++; if (rec_line == 0) rec_line = NR }
+    else if (h2 == "배경")      { n_bg++; if (pos_bg == 0) pos_bg = NR }
+    else if (h2 == "목적")      { n_goal++; if (pos_goal == 0) pos_goal = NR }
+    else if (h2 == "변경 설명") { n_expl++; if (pos_expl == 0) pos_expl = NR }
     next
   }
 
@@ -183,6 +211,12 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
   # 그 블록의 R2~R6 검사가 통째로 빠지고, 마지막 문항이면 번호 연속성으로도 잡히지 않는다.
   /^### / {
     flush_q()
+    if (cur == "변경 설명" && n_quiz == 0 && $0 !~ /^### Q[0-9]+ \[/) {
+      h3 = $0
+      sub(/[[:space:]]+$/, "", h3)
+      n_sub++
+      if (n_sub <= 2) sub_h[n_sub] = h3
+    }
     if (cur == "문항" || $0 ~ /^### Q[0-9]+ \[/) {
       total_q++
       last_q_line = NR
@@ -220,7 +254,7 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       depth = 0; seen_details = 0; blk = 0
       unbalanced = 0; unbalanced_line = 0
       hint_n = 0; hint_line = 0; hint_blk = 0
-      ans_n = 0; ans_line = 0; ans_blk = -1
+      ans_n = 0; ans_line = 0; ans_blk = -1; ans_no_blank_line = 0
       in_ans = 0; ans_first = ""; ans_first_line = 0; basis_n = 0; pbasis_n = 0
       opt_n = 0; opt_bad = ""; opt_late = 0; opt_late_line = 0; r6_list = ""
     }
@@ -276,6 +310,10 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       }
     }
 
+    # summary 바로 뒤에 빈 행이 없으면 마크다운이 해설 첫 행을 HTML 로 처리한다.
+    # 해설의 서식이 풀리지 않고, HTML 산출물이 정답 문자를 읽지 못해 선택지 버튼을 만들지 않는다.
+    if (ans_line && NR == ans_line + 1 && $0 !~ /^[[:space:]]*$/) ans_no_blank_line = NR
+
     # 정답 블록 안의 내용 행을 모은다. 태그 처리 전이라 `in_ans` 는 이전 행까지의 상태이며,
     # 여닫는 태그 행과 빈 행은 내용으로 세지 않는다. 한 행짜리 HTML 주석도 제외한다.
     # 렌더링되지 않아 읽는 사람에게 해설·모범 답안으로 보이지 않기 때문이다.
@@ -325,6 +363,21 @@ violations="$(awk -v mode="$mode" -v head_sha="$head_sha" -v base_sha="$base_sha
       derr("`## 응답 기록` 이 마지막 문항 블록보다 앞에 있습니다")
     if (mode == "comment" && n_record >= 1)
       derr("댓글 본문에는 `## 응답 기록` 을 두지 않습니다 (" rec_line "행)")
+
+    # 설명 절은 대화형 산출 전용이다. 댓글 본문은 설명 절 없이 `## 대상` → `## 문항` 이다.
+    if (mode != "comment") {
+      if (n_bg != 1)   derr("`## 배경` 헤더가 " (n_bg + 0) "개입니다 (1개여야 합니다)")
+      if (n_goal != 1) derr("`## 목적` 헤더가 " (n_goal + 0) "개입니다 (1개여야 합니다)")
+      if (n_expl != 1) derr("`## 변경 설명` 헤더가 " (n_expl + 0) "개입니다 (1개여야 합니다)")
+      if (pos_target && pos_bg && pos_goal && pos_expl && pos_quiz \
+          && !(pos_target < pos_bg && pos_bg < pos_goal && pos_goal < pos_expl && pos_expl < pos_quiz))
+        derr("설명 절 순서가 `## 대상` → `## 배경` → `## 목적` → `## 변경 설명` → `## 문항` 이 아닙니다")
+      if (n_expl >= 1 && !(sub_h[1] == "### 변경 개요" && sub_h[2] == "### 호출 흐름"))
+        derr("`## 변경 설명` 의 첫 두 소절이 `### 변경 개요` → `### 호출 흐름` 이 아닙니다")
+    }
+
+    if (mcq_read >= 2 && !mcq_mixed)
+      berr("객관식 정답 문자가 모두 `(" mcq_first ")` 입니다 (객관식 " mcq_read "개)")
 
     for (i = 1; i <= dn; i++) print dmsg[i]
     for (i = 1; i <= qn; i++) print qmsg[i]

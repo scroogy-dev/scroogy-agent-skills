@@ -25,7 +25,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0005](active/K-0005-install-template-exclude-pattern-literal.md) | install-skills 설치 결과 템플릿이 배포 제외 패턴 리터럴을 복제한다 | 기술부채 | 낮음(LOW) | 수용 | install-skills SKILL.md 5단계 배포 제외 패턴 값 추가·변경·삭제 시, 또는 보고의 패턴 표기가 실제 배포와 다른 사례 관측 시 |
 | [K-0006](active/K-0006-code-map-check-not-deterministic.md) | code-map `check` 모드의 정합성 점검이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 중간(MEDIUM) | 수용 | code-map local/doc/global 참조 문서의 정합성 점검 표 항목 추가·변경·삭제 시, 또는 `check` 모드를 처음 실행할 때 |
 | [K-0007](active/K-0007-quiz-permalink-target-unverified.md) | git-review-quiz 댓글 permalink 검사가 확정 저장소·위치 행의 경로·줄 범위를 대조하지 않는다 | known issue | 낮음(LOW) | 수용 | `check-quiz.sh` `--comment` 모드의 인자·permalink 판정 규칙 실질 변경 시, 또는 게시된 퀴즈 댓글의 permalink가 다른 저장소·경로·줄 범위를 가리킨 사례 관측 시 |
-| [K-0008](active/K-0008-quiz-format-vocab-fixture-absent.md) | git-review-quiz 형식 검사에 지원하지 않는 형식 어휘 반례 fixture가 없다 | 기술부채 | 낮음(LOW) | 수용 | `check-quiz.sh` R1 헤더 정규식(관점·형식 어휘 집합) 변경 시, 또는 형식 어휘 추가 기능 착수 시 |
+| [K-0008](archive/K-0008-quiz-format-vocab-fixture-absent.md) | git-review-quiz 형식 검사에 지원하지 않는 형식 어휘 반례 fixture가 없다 | 기술부채 | 낮음(LOW) | 해소(PR #133) | - |
 | [K-0009](active/K-0009-plan-audit-fake-d-check-manual.md) | issue-audit 계획 감사의 가짜 `[D]` 사전 판별이 결정적 헬퍼로 분리되지 않았다 | 기술부채 | 낮음(LOW) | 수용 | 계획 감사 2회 이상에서 가짜 `[D]` 판별 결과가 감사 모델 간에 갈린 사례 관측 시, 또는 `(회귀 방지 항목)` 표시의 리터럴·위치 규칙 변경 시 |
 | [K-0010](active/K-0010-check-plan-line-based-markdown-boundary.md) | issue-audit 추적성 헬퍼가 행 단위 파서라 여러 행 코드 스팬 등 그 밖의 마크다운 구성을 구분하지 않는다 | known issue | 낮음(LOW) | 수용 | 실제 spec·plan이 이 경계 때문에 오판정된 사례 관측 시, 또는 issue-work spec·plan 템플릿에 여러 행 코드 스팬·들여쓰기 코드 블록을 쓰는 구조가 도입될 때 |
 | [K-0011](archive/K-0011-plan-audit-regression-exception-spec-only.md) | issue-audit 계획 감사의 회귀 방지 예외가 spec 본문 표기만 인정해 plan 전용 항목·템플릿 고정 블록을 예외로 읽지 못한다 | known issue | 낮음(LOW) | 승격(이슈 #108) | - |
@@ -36,11 +36,13 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0016](active/K-0016-git-pr-adr-sync-check-absent.md) | git-pr 문서 동기화 점검이 변경과 ADR 결정의 어긋남을 대조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | ADR 결정과 어긋난 변경이 머지된 사례 관측 시, 또는 git-pr 문서 동기화 점검 표의 행 실질 변경 시 |
 | [K-0017](active/K-0017-adr-link-helper-absent.md) | ADR을 superseded/로 옮긴 뒤 끊긴 링크를 결정적 헬퍼로 검사하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 첫 `superseded/` 이동에서 링크 갱신 누락 관측 시, 또는 ADR index `## 수명 주기`의 들어오는 링크 갱신 행 실질 변경 시 |
 | [K-0018](active/K-0018-update4-rules-restore-profile-mismatch-row.md) | ai-workspace update-4에서 규칙 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠진다 | known issue | 낮음(LOW) | 수용 | update-4 `## 프로젝트 규칙` 섹션·표 복구 조치나 `testing-principles.md` 행 검사 조건 실질 변경 시, 또는 dev 선언 repo의 update 결과에서 이 행이 빠진 사례 관측 시 |
-| [K-0019](active/K-0019-seq-copy-literal-check-misses-meaning-change.md) | 시퀀스 규칙 사본 대조가 라벨·리터럴만 보아 리터럴을 남긴 의미 변경을 잡지 못한다 | 기술부채 | 낮음(LOW) | 수용 | git-pr·git-review-context 사본의 규칙 행이 code-map 원문과 뜻이 어긋난 사례 관측 시, 또는 세 사본의 규칙 유지 방식(`SEQ_ROWS` 대조)이나 code-map `## 시퀀스 다이어그램 작성 규칙` 행 실질 변경 시 |
+| [K-0019](active/K-0019-seq-copy-literal-check-misses-meaning-change.md) | 시퀀스 규칙 사본 대조가 라벨·리터럴만 보아 리터럴을 남긴 의미 변경을 잡지 못한다 | 기술부채 | 낮음(LOW) | 수용 | git-pr·git-review-context·git-review-quiz 사본의 규칙 행이 code-map 원문과 뜻이 어긋난 사례 관측 시, 또는 사본의 규칙 유지 방식(`SEQ_ROWS` 대조)이나 code-map `## 시퀀스 다이어그램 작성 규칙` 행 실질 변경 시 |
 | [K-0020](active/K-0020-quiz-link-to-pr-and-task-deferred.md) | PR 안내와 Task 진행에 이해 점검 퀴즈 연결이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 퀴즈 운영 방식(풀 사람·시점)을 정할 때, 또는 PR 리뷰 전후로 `/git-review-quiz`를 따로 호출하는 사용이 반복될 때 |
 | [K-0021](active/K-0021-microworld-generation-deferred.md) | 변경 동작을 조작해 볼 축소 모형(마이크로월드) 생성 기능이 없다 | 기술부채 | 낮음(LOW) | 수용 | 서술·호출 흐름·시퀀스 다이어그램·전후 예시만으로 변경 동작을 이해하기 어려웠던 PR 사례가 반복될 때, 또는 마이크로월드 생성을 스킬로 만들기로 결정할 때 |
 | [K-0022](active/K-0022-doc-profile-flow-substitute-format-deferred.md) | doc 프로파일 저장소 PR에 호출 흐름·시퀀스를 대신할 형식이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | doc 저장소에서 git-pr로 PR을 여러 번 만들어 테크 관점 형식을 정할 수 있을 때, 또는 doc 저장소 PR의 테크 관점이 문서 구조 변경을 보여 주지 못해 리뷰에 지장이 생긴 사례 관측 시 |
 | [K-0023](active/K-0023-check-plan-include-label-trailing-comment.md) | issue-audit 추적성 헬퍼가 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못한다 | known issue | 낮음(LOW) | 수용 | 실제 spec에서 이 경계 때문에 `추적 불가`로 오판정된 사례 관측 시, 또는 `check-plan.sh --trace`의 spec 앵커 판정(`**포함**` 라벨·포함 목록 경계) 변경 시, 또는 issue-work spec 템플릿의 `**포함**` 행에 주석을 두는 구조가 도입될 때 |
+| [K-0024](active/K-0024-quiz-branch-name-sanitize-collision.md) | git-review-quiz 브랜치 모드 산출 파일 이름이 치환 뒤 같아지는 두 브랜치를 구분하지 못한다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드 산출물이 다른 브랜치의 산출물을 덮어쓴 사례 관측 시, 또는 git-review-quiz 산출 파일 이름 규칙(브랜치 이름 치환 문자 집합·접두어) 변경 시 |
+| [K-0025](active/K-0025-quiz-branch-mode-untracked-files-excluded.md) | git-review-quiz 브랜치 모드 diff가 미추적 새 파일을 빼는데 SKILL.md는 작업 트리 변경을 포함한다고 적는다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드에서 새 파일이 빠진 퀴즈가 다시 만들어진 사례 관측 시, 또는 git-review-quiz 2단계 diff 수집 절차(브랜치 모드 명령·작업 트리 안내 문장) 변경 시 |
 
 ## 수명 주기
 

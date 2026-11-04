@@ -1,0 +1,383 @@
+<!doctype html>
+<!--
+git-review-quiz HTML 산출 템플릿 (CSS·JS 포함 단일 파일).
+`scripts/render-quiz-html.sh` 가 대화형 산출 md 를 이스케이프해 원문 영역의 자리 표시자에 넣는다.
+작성 규칙은 `git-review-quiz/SKILL.md`, 원본 형식은 `templates/quiz-template.md` 에 있다.
+이 주석에는 아래 요소의 태그를 글자 그대로 적지 않는다. 검사가 문서에서 첫 태그를 찾으므로 주석 속 태그가 먼저 걸린다.
+
+계약 (러너와 수용 테스트가 이 이름으로 찾는다. 바꾸면 함께 고친다):
+- 원문 영역: id 가 quiz-source 인 pre 요소. 그 행은 자리 표시자 하나만 담고 다른 속성을 두지 않는다. 처음부터 보인다.
+- 렌더 영역: id 가 quiz-content 인 main 요소. 처음에 비어 있고, 정화(DOMPurify)를 거친 변환 결과만 넣는다.
+- 렌더 완료 표시: 변환에 성공했을 때만 html 요소에 data-rendered 속성을 달고, 그때만 CSS 가 원문 영역을 숨긴다.
+- 외부 라이브러리: marked·DOMPurify·mermaid 를 정확한 버전으로 고정해 불러온다. 하나라도 못 불러오면 아무것도 바꾸지 않아 원문 md 가 그대로 남는다.
+- mermaid 도식 하나가 문법 오류로 그려지지 않으면 그 자리의 코드 블록을 그대로 두고 나머지 렌더를 유지한다.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>리뷰 퀴즈</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --surface: #f6f8fa;
+  --accent: #0969da;
+  --ok: #1a7f37;
+  --ok-bg: #dafbe1;
+  --ng: #cf222e;
+  --ng-bg: #ffebe9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --muted: #9198a1;
+    --border: #3d444d;
+    --surface: #151b23;
+    --accent: #4493f8;
+    --ok: #3fb950;
+    --ok-bg: #12261e;
+    --ng: #f85149;
+    --ng-bg: #25171c;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body {
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  overflow-wrap: anywhere;
+}
+a { color: var(--accent); }
+#quiz-source {
+  margin: 0;
+  padding: 16px;
+  white-space: pre-wrap;
+  font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+[data-rendered] #quiz-source { display: none; }
+.quiz-layout {
+  display: flex;
+  gap: 32px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+#quiz-toc:empty, #quiz-content:empty { display: none; }
+#quiz-toc {
+  flex: 0 0 240px;
+  position: sticky;
+  top: 16px;
+  align-self: flex-start;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  font-size: 14px;
+}
+#quiz-toc .quiz-toc-title { margin: 0 0 8px; font-weight: 600; color: var(--muted); }
+#quiz-toc ul { list-style: none; margin: 0; padding: 0; }
+#quiz-toc ul ul { padding-left: 14px; }
+#quiz-toc li { margin: 4px 0; }
+#quiz-toc a { text-decoration: none; }
+#quiz-toc a:hover { text-decoration: underline; }
+#quiz-content { flex: 1 1 auto; min-width: 0; }
+#quiz-content h1 { font-size: 1.7em; line-height: 1.3; margin: 0 0 16px; }
+#quiz-content h2 { margin-top: 40px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+#quiz-content h3 { margin-top: 28px; }
+#quiz-content pre {
+  overflow-x: auto;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#quiz-content code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
+#quiz-content :not(pre) > code { padding: 1px 5px; background: var(--surface); border-radius: 4px; }
+#quiz-content table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+#quiz-content th, #quiz-content td { padding: 6px 12px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+#quiz-content th { background: var(--surface); }
+#quiz-content img, #quiz-content svg { max-width: 100%; height: auto; }
+#quiz-content details {
+  margin: 12px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+#quiz-content summary { cursor: pointer; font-weight: 600; }
+#quiz-content details[open] > summary { margin-bottom: 8px; }
+.quiz-diagram { overflow-x: auto; margin: 12px 0; text-align: center; }
+.quiz-diagram-error { border-color: var(--ng); }
+.quiz-options { list-style: none; padding: 0; }
+.quiz-options li { margin: 6px 0; }
+.quiz-option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.quiz-option:hover { border-color: var(--accent); }
+.quiz-option.is-correct, .quiz-option.is-answer { border-color: var(--ok); background: var(--ok-bg); }
+.quiz-option.is-wrong { border-color: var(--ng); background: var(--ng-bg); }
+.quiz-result { font-weight: 600; min-height: 1.65em; margin: 4px 0 8px; }
+.quiz-result.is-correct { color: var(--ok); }
+.quiz-result.is-wrong { color: var(--ng); }
+.quiz-open { margin: 12px 0; }
+.quiz-open label { display: block; font-weight: 600; margin-bottom: 4px; }
+.quiz-open textarea {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  resize: vertical;
+}
+.quiz-reveal {
+  margin-top: 8px;
+  padding: 6px 14px;
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .quiz-layout { flex-direction: column; gap: 16px; padding-top: 16px; }
+  #quiz-toc { position: static; flex: none; max-height: none; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<pre id="quiz-source">@@QUIZ_SOURCE@@</pre>
+<div class="quiz-layout">
+<nav id="quiz-toc" aria-label="목차"></nav>
+<main id="quiz-content"></main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/marked@18.1.1/lib/marked.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var w = window;
+  var root = document.documentElement;
+  var src = document.getElementById('quiz-source');
+  var main = document.getElementById('quiz-content');
+  var toc = document.getElementById('quiz-toc');
+
+  // 세 라이브러리 중 하나라도 없으면 아무것도 바꾸지 않는다. 원문 영역이 그대로 보인다.
+  if (!src || !main || !toc) return;
+  if (!w.marked || typeof w.marked.parse !== 'function') return;
+  if (!w.DOMPurify || typeof w.DOMPurify.sanitize !== 'function' || w.DOMPurify.isSupported === false) return;
+  if (!w.mermaid || typeof w.mermaid.render !== 'function' || typeof w.mermaid.initialize !== 'function') return;
+
+  var each = function (list, fn) { Array.prototype.forEach.call(list, fn); };
+  var textOf = function (el) { return (el.textContent || '').replace(/\s+/g, ' ').trim(); };
+
+  function reset() {
+    main.textContent = '';
+    toc.textContent = '';
+    root.removeAttribute('data-rendered');
+  }
+
+  function buildToc() {
+    var heads = main.querySelectorAll('h2, h3');
+    if (!heads.length) return;
+    var title = document.createElement('p');
+    title.className = 'quiz-toc-title';
+    title.textContent = '목차';
+    var list = document.createElement('ul');
+    var sub = null;
+    each(heads, function (h, i) {
+      h.id = 'quiz-sec-' + (i + 1);
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = textOf(h);
+      li.appendChild(a);
+      if (h.tagName === 'H2' || !list.lastElementChild) {
+        list.appendChild(li);
+        sub = null;
+      } else {
+        if (!sub) {
+          sub = document.createElement('ul');
+          list.lastElementChild.appendChild(sub);
+        }
+        sub.appendChild(li);
+      }
+    });
+    toc.appendChild(title);
+    toc.appendChild(list);
+  }
+
+  function answerLetter(answer) {
+    var kids = answer.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].tagName === 'SUMMARY') continue;
+      var m = /^\(([a-z])\)\./.exec(textOf(kids[i]));
+      return m ? m[1] : null;
+    }
+    return null;
+  }
+
+  function setupChoice(list, answer) {
+    var letter = answerLetter(answer);
+    if (!letter) return;
+    var result = document.createElement('p');
+    result.className = 'quiz-result';
+    result.setAttribute('role', 'status');
+    list.classList.add('quiz-options');
+    list.parentNode.insertBefore(result, list.nextSibling);
+    var buttons = [];
+    each(list.children, function (li) {
+      var m = /^\(([a-z])\) /.exec(textOf(li));
+      if (!m) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quiz-option';
+      btn.setAttribute('data-letter', m[1]);
+      while (li.firstChild) btn.appendChild(li.firstChild);
+      li.appendChild(btn);
+      buttons.push(btn);
+    });
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var pick = btn.getAttribute('data-letter');
+        var ok = pick === letter;
+        buttons.forEach(function (b) {
+          b.classList.remove('is-correct', 'is-wrong', 'is-answer');
+          if (!ok && b.getAttribute('data-letter') === letter) b.classList.add('is-answer');
+        });
+        btn.classList.add(ok ? 'is-correct' : 'is-wrong');
+        result.className = 'quiz-result ' + (ok ? 'is-correct' : 'is-wrong');
+        result.textContent = ok ? '정답입니다.' : '오답입니다. 정답은 (' + letter + ')입니다.';
+        answer.open = true;
+      });
+    });
+  }
+
+  function setupOpen(head, before, answer) {
+    var box = document.createElement('div');
+    box.className = 'quiz-open';
+    var area = document.createElement('textarea');
+    area.id = head.id + '-answer';
+    area.rows = 4;
+    var label = document.createElement('label');
+    label.htmlFor = area.id;
+    label.textContent = '내 답안';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quiz-reveal';
+    btn.textContent = '모범 답안 보기';
+    btn.addEventListener('click', function () {
+      answer.open = true;
+      answer.scrollIntoView({ block: 'nearest' });
+    });
+    box.appendChild(label);
+    box.appendChild(area);
+    box.appendChild(btn);
+    before.parentNode.insertBefore(box, before);
+  }
+
+  function setupQuestion(head, parts) {
+    var answer = null;
+    var first = null;
+    var options = null;
+    parts.forEach(function (el) {
+      if (el.tagName === 'DETAILS') {
+        if (!first) first = el;
+        var s = el.querySelector('summary');
+        if (!answer && s && textOf(s) === '정답·해설') answer = el;
+      } else if (!first && !options && el.tagName === 'UL' && el.children.length
+                 && /^\([a-z]\) /.test(textOf(el.children[0]))) {
+        options = el;
+      }
+    });
+    if (!answer) return;
+    var title = textOf(head);
+    if (/객관식/.test(title) && options) setupChoice(options, answer);
+    else if (/주관식/.test(title)) setupOpen(head, first || answer, answer);
+  }
+
+  // `## 문항` 아래의 `### ` 헤더가 문항이다. 다음 `## ` 헤더까지를 문항 구간으로 본다.
+  function buildQuiz() {
+    var quiz = null;
+    each(main.querySelectorAll('h2'), function (h) { if (!quiz && textOf(h) === '문항') quiz = h; });
+    if (!quiz) return;
+    var blocks = [];
+    for (var el = quiz.nextElementSibling; el && el.tagName !== 'H2'; el = el.nextElementSibling) {
+      if (el.tagName === 'H3') blocks.push({ head: el, parts: [] });
+      else if (blocks.length) blocks[blocks.length - 1].parts.push(el);
+    }
+    blocks.forEach(function (b) { setupQuestion(b.head, b.parts); });
+  }
+
+  // 도식은 하나씩 그린다. 하나가 문법 오류로 실패하면 그 자리의 코드 블록을 그대로 두고 다음으로 간다.
+  function renderDiagrams(codes) {
+    var dark = !!(w.matchMedia && w.matchMedia('(prefers-color-scheme: dark)').matches);
+    w.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'default', suppressErrorRendering: true });
+    var chain = Promise.resolve();
+    codes.forEach(function (code, i) {
+      chain = chain.then(function () {
+        var id = 'quiz-mermaid-' + (i + 1);
+        var pre = code.parentNode;
+        return Promise.resolve(w.mermaid.render(id, code.textContent)).then(function (r) {
+          var box = document.createElement('div');
+          box.className = 'quiz-diagram';
+          box.innerHTML = r.svg;
+          pre.parentNode.replaceChild(box, pre);
+        }, function () {
+          each([document.getElementById('d' + id), document.getElementById(id)], function (left) {
+            if (left && !main.contains(left) && left.parentNode) left.parentNode.removeChild(left);
+          });
+          pre.classList.add('quiz-diagram-error');
+        });
+      });
+    });
+    return chain;
+  }
+
+  var codes;
+  try {
+    var html = w.marked.parse(src.textContent, { gfm: true, async: false });
+    if (typeof html !== 'string') throw new Error('marked 결과가 문자열이 아님');
+    main.innerHTML = w.DOMPurify.sanitize(html);
+    buildToc();
+    buildQuiz();
+    codes = Array.prototype.slice.call(main.querySelectorAll('pre > code.language-mermaid'));
+  } catch (e) {
+    reset();
+    return;
+  }
+
+  var done;
+  try {
+    done = renderDiagrams(codes);
+  } catch (e) {
+    reset();
+    return;
+  }
+  done.then(function () {
+    var h1 = main.querySelector('h1');
+    if (h1) document.title = textOf(h1);
+    root.setAttribute('data-rendered', '');
+  }, function () {
+    reset();
+  });
+})();
+</script>
+</body>
+</html>

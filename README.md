@@ -21,7 +21,7 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [git-qa](./git-qa/) | 배포 대상 PR에서 repo별 QA 체크리스트 생성 |
 | [git-review](./git-review/) | 비즈니스/테크 리뷰 수행 |
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
-| [git-review-quiz](./git-review-quiz/) | PR 변경 이해도를 문항으로 점검 (대화형·PR 댓글 게시) |
+| [git-review-quiz](./git-review-quiz/) | PR 변경의 배경·목적·변경 설명을 먼저 보여 주고 이해도를 문항으로 점검 (대화형·PR 댓글 게시, 대상별 로컬 md·HTML 산출) |
 | [install-skills](./install-skills/) | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
 | [issue-audit](./issue-audit/) | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
 | [issue-work](./issue-work/) | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 워크플로우 |
