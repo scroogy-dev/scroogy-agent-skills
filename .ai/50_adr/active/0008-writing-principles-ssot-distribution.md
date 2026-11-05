@@ -58,5 +58,6 @@ last_harvested: 2026-09-09
 - [Issue #87 전체 스킬 번역투 문체 일괄 정비](https://github.com/scroogy-dev/scroogy-agent-skills/issues/87)
 - [PR #40 리뷰 코멘트](https://github.com/scroogy-dev/scroogy-agent-skills/pull/40), [PR #88 리뷰 코멘트](https://github.com/scroogy-dev/scroogy-agent-skills/pull/88)
 - 규칙 본문: [`.ai/10_rules/writing-principles.md`](../../10_rules/writing-principles.md)
+- 관련 결정: [ADR 0028 ai-workspace 소유 구분과 profile 행](./0028-ai-workspace-owned-sections-and-profile-row.md) (버전 고정 덮어쓰기를 원장 템플릿과 구간 단위로 넓힘)
 
 </details>

@@ -59,5 +59,6 @@ last_harvested: 2026-09-09
 - [Issue #80 git 스킬 3종 templates/ 분리 (원장 템플릿 위치 근거)](https://github.com/scroogy-dev/scroogy-agent-skills/issues/80)
 - [Issue #118 doc 프로파일 운영 보강: 보류 항목 원장 등재 경로](https://github.com/scroogy-dev/scroogy-agent-skills/issues/118)
 - 수명 주기·상태별 처리 표: [`.ai/70_ledger/index.md`](../../70_ledger/index.md)
+- 관련 결정: [ADR 0028 ai-workspace 소유 구분과 profile 행](./0028-ai-workspace-owned-sections-and-profile-row.md) (원장 템플릿 최신화와 index 구간 교체로 배포 범위를 넓힘)
 
 </details>
