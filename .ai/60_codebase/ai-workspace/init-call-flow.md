@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-31
-source_hash: 552fe6a
+last_synced: 2026-11-05
+source_hash: 760ead6
 status: current
 ---
 
