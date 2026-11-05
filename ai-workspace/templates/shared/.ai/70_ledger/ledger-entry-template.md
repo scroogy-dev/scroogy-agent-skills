@@ -2,6 +2,7 @@
 
 <!--
 기술부채·known issue 원장의 항목 파일 템플릿입니다.
+이 파일은 ai-workspace update가 최신본으로 덮어씁니다. 직접 고치면 사라집니다.
 
 파일명: `K-<번호>-<slug>.md` — 번호는 4자리 zero-padding (예: `K-0001-audit-report-path-fragile.md`).
 번호는 원장 전체에서 이어 붙입니다. `.ai/70_ledger/index.md`의 항목 목록과 `active/`·`archive/` 양쪽을 합쳐

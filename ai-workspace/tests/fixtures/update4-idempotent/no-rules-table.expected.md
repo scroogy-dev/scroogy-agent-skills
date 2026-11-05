@@ -9,6 +9,7 @@
 |------|----|
 | domain | fixture 검증용 예시 서비스 |
 | keywords | fixture, update4 |
+| profile | dev |
 
 ---
 
