@@ -43,6 +43,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0023](active/K-0023-check-plan-include-label-trailing-comment.md) | issue-audit 추적성 헬퍼가 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못한다 | known issue | 낮음(LOW) | 수용 | 실제 spec에서 이 경계 때문에 `추적 불가`로 오판정된 사례 관측 시, 또는 `check-plan.sh --trace`의 spec 앵커 판정(`**포함**` 라벨·포함 목록 경계) 변경 시, 또는 issue-work spec 템플릿의 `**포함**` 행에 주석을 두는 구조가 도입될 때 |
 | [K-0024](active/K-0024-quiz-branch-name-sanitize-collision.md) | git-review-quiz 브랜치 모드 산출 파일 이름이 치환 뒤 같아지는 두 브랜치를 구분하지 못한다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드 산출물이 다른 브랜치의 산출물을 덮어쓴 사례 관측 시, 또는 git-review-quiz 산출 파일 이름 규칙(브랜치 이름 치환 문자 집합·접두어) 변경 시 |
 | [K-0025](active/K-0025-quiz-branch-mode-untracked-files-excluded.md) | git-review-quiz 브랜치 모드 diff가 미추적 새 파일을 빼는데 SKILL.md는 작업 트리 변경을 포함한다고 적는다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드에서 새 파일이 빠진 퀴즈가 다시 만들어진 사례 관측 시, 또는 git-review-quiz 2단계 diff 수집 절차(브랜치 모드 명령·작업 트리 안내 문장) 변경 시 |
+| [K-0026](active/K-0026-section-scan-multi-backtick-comment.md) | ai-workspace 구간 판정이 여러 백틱 코드 스팬 안의 `<!--`를 HTML 주석으로 읽는다 | known issue | 중간(MEDIUM) | 수용 | 실제 안내도·인덱스에서 이 경계로 사용자 내용이 사라지거나 표준 구간이 중복된 사례 관측 시, 또는 `sync-owned.sh`·`check-context.sh`의 `MD_TRACK_AWK` 주석 판정 변경 시 |
 
 ## 수명 주기
 
