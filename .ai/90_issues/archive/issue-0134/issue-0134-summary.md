@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task N (고정) — 교차모델 issue-audit 검증 (사용자 수동 수행)
+> ✅ 모든 작업이 완료되었습니다.
 
 ## 모델 기록
 
@@ -13,7 +13,7 @@
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
 | 계획 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | xhigh |
-| 최종 audit 모델 |  |  |
+| 최종 audit 모델 | OpenAI, GPT-6.1 (gpt-6.1-sol) | high |
 
 - **계획 감사**: 수행 · 발견 2건 · 보정 2건
 
@@ -90,6 +90,6 @@
 
 ### Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행)
 
-- **결과**:
-- **수행 내용 요약**:
-- **특이 사항**:
+- **결과**: 완료
+- **수행 내용 요약**: 사용자가 OpenAI GPT-6.1(`gpt-6.1-sol`, effort high)로 `issue-audit`를 3회 실행했다. 1·2차(HEAD `507b650`)는 부적합(FAIL)으로 F-1·F-2를 보고했고, `--response` 승인을 거쳐 `59f1d7d`·`455d0d1`에서 보정했다. 3차(HEAD `8337647`)는 적합(PASS)이다. 충족(PASS) 43건(요구사항 12, 완료의 정의 31), 미충족(FAIL)·부분 충족(PARTIAL) 0건, 신규 발견 0건이고, F-1·F-2의 완료 기준 6개가 모두 닫혔다.
+- **특이 사항**: 발견·보정 수치는 Task 1(F-1)과 Task 4(F-2) 블록에 귀속했다(audit 발견 2건, 보정 반영 2건, 보정률 2/2). 기등재 K-0018은 재검토 조건을 충족하지 않아 수용을 유지한다. spec `[D]` 29건과 13개 러너 전체 통과는 3차 감사의 실행 기록이며, `--response` 검토에서는 `ai-workspace` 러너만 다시 실행해 passed 155, failed 0을 확인했다.
