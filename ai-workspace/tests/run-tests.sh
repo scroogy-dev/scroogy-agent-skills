@@ -1689,6 +1689,46 @@ prof_indent() {
   "$h" --profile dev "$A" >/dev/null && echo '들여쓴 다음 제목 경계 쓰기'
 }
 
+# 일반 검사도 앞 공백 3칸까지의 제목을 같은 섹션으로 본다. 기준이 다르면 update-4 가 있는 섹션을 또 넣는다.
+prof_section_indent() {
+  local c="$1" I="$PROF/.ai/AI-CONTEXT.md" o p
+  local head="# AI-CONTEXT.md" date='> last updated: 2026-01-01'
+  local premise='> 전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면'
+  local prio='**소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**'
+  local residue="누락: doc 선언의 충돌 우선순위 ('### 진입 절차'에 dev 표준 우선순위 잔존 — doc 문구로 교체 대상)"
+  prof_fresh
+
+  for p in dev doc; do
+    prepare "$TPL_DIR/$p/.ai/AI-CONTEXT.md" "$I"
+    sed -i.bak 's/^## /   ## /' "$I" && rm -f "$I.bak"
+    o="$("$c" "$I" 2>&1)" || echo "들여쓴 표준 제목 ${p} 보고"
+    [ -z "$o" ] || echo "들여쓴 표준 제목 ${p} 출력"
+  done
+
+  # 4칸은 들여쓴 코드 블록이라 제목이 아니다.
+  prepare "$TPL_DIR/dev/.ai/AI-CONTEXT.md" "$I"
+  sed -i.bak 's/^## 프로젝트 도메인$/    ## 프로젝트 도메인/' "$I" && rm -f "$I.bak"
+  o="$("$c" "$I" 2>&1)"
+  own_has "$o" "누락: '## 프로젝트 도메인' 섹션" || echo '4칸 제목을 섹션으로 셈'
+
+  # 들여쓴 다음 제목에서 섹션이 끝난다.
+  printf '%s\n' "$head" '' "$date" "$OWN_D" '' \
+    '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | d |' '' '  ## 다음 1' '' '| keywords | k |' '' \
+    '## 프로젝트 규칙' '' '  ## 다음 2' '' '| 파일 | 설명 | 사용 시점 |' '' \
+    '## 에이전트 운영 지침' '' '  ## 다음 3' '' "$premise" "$prio" > "$I"
+  o="$("$c" "$I" 2>&1)"
+  own_has "$o" "누락: '## 프로젝트 도메인' 표의 \`keywords\` 행" || echo '들여쓴 경계 도메인'
+  own_has "$o" "누락: '## 프로젝트 규칙' 표 (섹션은 있고 표 부재 — 섹션 끝에 3열 표 삽입 대상)" || echo '들여쓴 경계 규칙'
+  own_has "$o" "누락: '## 에이전트 운영 지침' 의 전제 컨벤션 한 줄" || echo '들여쓴 경계 운영 지침'
+  own_has "$o" "$residue" && echo '들여쓴 경계 잔존 문구'
+
+  # 들여쓴 제목 안의 잔존 문구와 구버전 섹션도 그대로 보고한다.
+  printf '%s\n' "$head" '' "$date" "$OWN_D" '' '  ## 에이전트 운영 지침' '' "$prio" '' '  ## 워크스페이스 위치' > "$I"
+  o="$("$c" "$I" 2>&1)"
+  own_has "$o" "$residue" || echo '들여쓴 제목 잔존 문구 미보고'
+  own_has "$o" "구버전: '## 워크스페이스 위치' 섹션 — '## 프로젝트 도메인' 2행 표로 마이그레이션 대상" || echo '들여쓴 구버전 섹션 미보고'
+}
+
 # 두 헬퍼의 추적 코드는 사본이다. 달라지면 읽기와 쓰기의 범위가 갈라진다.
 prof_tracker() {
   local block="/^MD_TRACK_AWK='/{f=1} f{print} f&&/^'\$/{exit}"
@@ -1735,6 +1775,7 @@ prof_case '쓰기' prof_write
 prof_case '쓰기 실패 경로' prof_write_fail
 prof_case '범위 일치' prof_scope
 prof_case '들여쓴 제목' prof_indent
+prof_case '일반 검사 들여쓴 제목' prof_section_indent
 prof_case '추적 코드 일치' prof_tracker
 
 prof_kill '행 둘 판정 제거' prof_decide '행 둘 인자 dev 종료 코드' check drop_line '행이 ${state#many }개"; return 1'
@@ -1744,6 +1785,34 @@ prof_kill '읽기 첫 표 제한 제거' prof_scope '범위 판정 행 없음 �
 prof_kill '읽기 들여쓴 제목 제거' prof_indent '들여쓴 도메인 제목 판정' check sub_str 'h = line; sub(/^ ? ? ?/, "", h)' 'h = line'
 prof_kill '읽기 들여쓴 경계 제거' prof_indent '들여쓴 다음 제목 경계 판정' check sub_str 'index(h, "## ") == 1' 'index(line, "## ") == 1'
 prof_kill '쓰기 들여쓴 제목 제거' prof_indent '들여쓴 도메인 제목 쓰기' sync sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0'
+
+# sub_after <파일> <앵커> <찾을 문자열> <바꿀 문자열> — 앵커 행 뒤 첫 등장 하나를 바꾼다(고정 문자열 대조).
+sub_after() {
+  awk -v a="$2" -v s="$3" -v r="$4" '
+    !done && seen && (i = index($0, s)) { $0 = substr($0, 1, i - 1) r substr($0, i + length(s)); done = 1 }
+    index($0, a) { seen = 1 }
+    { print }
+    END { exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+SEC_IND='/^ ? ? ?## '
+SEC_ONE='/^## '
+SEC_END='f && /^ ? ? ?## / { exit }'
+SEC_END_ONE='f && /^## / { exit }'
+prof_kill '일반 검사 도메인 존재 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "grep -qE '^ ? ? ?## 프로젝트 도메인" "grep -qE '^## 프로젝트 도메인"
+prof_kill '일반 검사 도메인 행 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "${SEC_IND}프로젝트 도메인" "${SEC_ONE}프로젝트 도메인"
+prof_kill '일반 검사 규칙 존재 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "grep -qE '^ ? ? ?## 프로젝트 규칙" "grep -qE '^## 프로젝트 규칙"
+prof_kill '일반 검사 규칙 헤더 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "${SEC_IND}프로젝트 규칙" "${SEC_ONE}프로젝트 규칙"
+prof_kill '일반 검사 규칙 행 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_after "-v needle=\"\$row\"" "${SEC_IND}프로젝트 규칙" "${SEC_ONE}프로젝트 규칙"
+prof_kill '일반 검사 운영 지침 존재 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "grep -qE '^ ? ? ?## 에이전트 운영 지침" "grep -qE '^## 에이전트 운영 지침"
+prof_kill '일반 검사 운영 지침 본문 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "${SEC_IND}에이전트 운영 지침" "${SEC_ONE}에이전트 운영 지침"
+prof_kill '일반 검사 구버전 섹션 들여쓰기 제거' prof_section_indent '들여쓴 구버전 섹션 미보고' check sub_str "grep -qE '^ ? ? ?## 워크스페이스 위치" "grep -qE '^## 워크스페이스 위치"
+prof_kill '일반 검사 잔존 문구 제목 들여쓰기 제거' prof_section_indent '들여쓴 제목 잔존 문구 미보고' check sub_str 'h = $0; sub(/^ ? ? ?/, "", h); ' 'h = $0; '
+prof_kill '일반 검사 공백 3칸 제한 제거' prof_section_indent '4칸 제목을 섹션으로 셈' check sub_str "grep -qE '^ ? ? ?## 프로젝트 도메인" "grep -qE '^ *## 프로젝트 도메인"
+prof_kill '일반 검사 도메인 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 도메인' check sub_str "$SEC_END" "$SEC_END_ONE"
+prof_kill '일반 검사 규칙 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 규칙' check sub_after 'rules_header="$(awk' "$SEC_END" "$SEC_END_ONE"
+prof_kill '일반 검사 운영 지침 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 운영 지침' check sub_after 'needle="$PREMISE"' "$SEC_END" "$SEC_END_ONE"
+prof_kill '일반 검사 잔존 문구 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 잔존 문구' check sub_after 'dev_residue() {' "$SEC_END" "$SEC_END_ONE"
 prof_kill '쓰기 펜스·주석 제외 제거' prof_scope '범위 쓰기 결과' sync sub_str '!ended && !fence_ch && !in_comment && ' '!ended && '
 prof_kill '쓰기 행 정리 제거' prof_write '행 정리 결과' sync sub_str 'if (rows > 1) { keep = 0; changed = 1 }' 'if (rows > 1) { changed = 1 }'
 prof_kill '쓰기 값 비교 제거' prof_write '표기 차이 출력' sync sub_str 'else if (cell($0, 3) != value) { out = row; changed = 1 }' 'else { out = row; changed = 1 }'

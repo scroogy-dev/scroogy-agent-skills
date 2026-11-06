@@ -160,6 +160,9 @@ done
 missing=0
 ng() { echo "누락: $1"; missing=$((missing + 1)); }
 
+# 아래 섹션 판정은 제목 앞 공백 3칸까지를 무시한다. profile_state·sync-owned.sh 와 같은 기준이다.
+# 기준이 다르면 들여쓴 섹션을 누락으로 보고해 update-4 가 같은 제목을 또 넣고, 뒤의 쓰기가 실패한다.
+
 # 본문 시작 위치 — H1 제목과 그 뒤 빈 줄은 본문으로 세지 않는다.
 # 템플릿이 `# AI-CONTEXT.md` 로 시작하므로 "본문 첫 줄"은 그다음 비어 있지 않은 줄이다.
 body_start="$(awk '
@@ -199,13 +202,13 @@ fi
 keys='domain keywords'
 [ "$line2" = "$SSOT_LINE_DOC" ] && keys="$keys ssot_dir"
 
-if ! grep -qE '^## 프로젝트 도메인[[:space:]]*$' "$file"; then
+if ! grep -qE '^ ? ? ?## 프로젝트 도메인[[:space:]]*$' "$file"; then
   ng "'## 프로젝트 도메인' 섹션"
 else
   for k in $keys; do
     awk -v key="$k" '
-      /^## 프로젝트 도메인[[:space:]]*$/ { f = 1; next }
-      f && /^## / { exit }
+      /^ ? ? ?## 프로젝트 도메인[[:space:]]*$/ { f = 1; next }
+      f && /^ ? ? ?## / { exit }
       f && /^\|/ {
         v = $0
         sub(/^\|[[:space:]]*/, "", v)
@@ -233,12 +236,12 @@ fi
 # "규칙 표 없음" 한 줄로 뭉치면 어느 조치를 골라야 하는지가 출력에서 사라진다.
 
 rules_ok=false
-if ! grep -qE '^## 프로젝트 규칙[[:space:]]*$' "$file"; then
+if ! grep -qE '^ ? ? ?## 프로젝트 규칙[[:space:]]*$' "$file"; then
   ng "'## 프로젝트 규칙' 섹션 (섹션 부재 — 템플릿 골격 삽입 대상)"
 else
   rules_header="$(awk '
-    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
-    f && /^## / { exit }
+    /^ ? ? ?## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
+    f && /^ ? ? ?## / { exit }
     f && /^\|/ { print; exit }
   ' "$file")"
 
@@ -290,8 +293,8 @@ rows='.ai/10_rules/context-loading.md .ai/10_rules/writing-principles.md'
 if [ "$rules_ok" = true ]; then
   for row in $rows; do
     awk -F'|' -v needle="$row" '
-      /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
-      f && /^## / { exit }
+      /^ ? ? ?## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
+      f && /^ ? ? ?## / { exit }
       f && /^\|/ {
         t = 1
         v = $2
@@ -308,12 +311,12 @@ fi
 
 # --- 에이전트 운영 지침 섹션 + 전제 한 줄 -------------------------------------------
 
-if ! grep -qE '^## 에이전트 운영 지침[[:space:]]*$' "$file"; then
+if ! grep -qE '^ ? ? ?## 에이전트 운영 지침[[:space:]]*$' "$file"; then
   ng "'## 에이전트 운영 지침' 섹션"
 else
   awk -v needle="$PREMISE" '
-    /^## 에이전트 운영 지침[[:space:]]*$/ { f = 1; next }
-    f && /^## / { exit }
+    /^ ? ? ?## 에이전트 운영 지침[[:space:]]*$/ { f = 1; next }
+    f && /^ ? ? ?## / { exit }
     f && index($0, needle) { found = 1; exit }
     END { exit !found }
   ' "$file" || ng "'## 에이전트 운영 지침' 의 전제 컨벤션 한 줄"
@@ -330,9 +333,9 @@ fi
 # dev_residue <H2 제목> <dev 표준 문구> <보고 문구>
 dev_residue() {
   awk -v head="$1" -v needle="$2" '
-    { h = $0; sub(/[[:space:]]+$/, "", h) }
+    { h = $0; sub(/^ ? ? ?/, "", h); sub(/[[:space:]]+$/, "", h) }
     h == head { f = 1; next }
-    f && /^## / { exit }
+    f && /^ ? ? ?## / { exit }
     f && index($0, needle) { found = 1; exit }
     END { exit found }
   ' "$file" || ng "$3"
@@ -353,7 +356,7 @@ fi
 #
 # 이 항목만 "있으면 위반"이다. 나머지 검사와 방향이 반대라 메시지를 구분한다.
 
-grep -qE '^## 워크스페이스 위치[[:space:]]*$' "$file" \
+grep -qE '^ ? ? ?## 워크스페이스 위치[[:space:]]*$' "$file" \
   && echo "구버전: '## 워크스페이스 위치' 섹션 — '## 프로젝트 도메인' 2행 표로 마이그레이션 대상" \
   && missing=$((missing + 1))
 
