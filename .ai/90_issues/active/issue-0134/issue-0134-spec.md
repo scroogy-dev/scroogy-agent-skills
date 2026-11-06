@@ -253,6 +253,49 @@
   ```
 
   </details>
+- [ ] [D]  쓰기가 일부 진행된 뒤 실패해도 대상 파일은 바이트 단위로 변경 전과 같고, 권한과 심볼릭 링크가 유지되며, 종료 코드 1과 `실패:` 행이 나온다 (AC8, AC15)
+  <details>
+  <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+  ```bash
+  T=ai-workspace/templates; H=ai-workspace/scripts/sync-owned.sh; W=$(mktemp -d)
+  B="$W/bin"; A="$W/.ai"; R="$W/real.md"; mkdir -p "$B" "$A"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' '  */out) /bin/cat "$1" | head -c 16; exit 1 ;;' '  *) exec /bin/cat "$@" ;;' 'esac' > "$B/cat"
+  chmod +x "$B/cat"
+  L='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$L" '' '## Git 정책' '' '옛' '' '## 사용자 메모' '' '사용자 내용' > "$R"
+  chmod 640 "$R"; cp "$R" "$W/before"; ln -s "$R" "$A/AI-CONTEXT.md"
+  o=$(PATH="$B:$PATH" "$H" --context "$T" "$A"); [ $? = 1 ] || echo '위반: 종료 코드'
+  printf '%s\n' "$o" | grep -qxF '실패: AI-CONTEXT.md — 쓰기 실패' || echo '위반: 실패 행 없음'
+  cmp -s "$W/before" "$R" || echo '위반: 원본 훼손'
+  [ -L "$A/AI-CONTEXT.md" ] || echo '위반: 심볼릭 링크 사라짐'
+  [ "$(ls -l "$R" | cut -c1-10)" = '-rw-r-----' ] || echo '위반: 권한 바뀜'
+  rm -rf "$W"
+  ```
+
+  - 설계 주의: `cat` 대역은 대상을 먼저 비운 뒤 16바이트만 쓰고 실패해 부분 쓰기를 재현한다. 대역을 `PATH` 앞에 두므로 이 명령은 임시 디렉토리의 파일만 바꾼다.
+  </details>
+- [ ] [D]  임시 결과를 만드는 중 실패하면 대상 파일은 바이트 단위로 변경 전과 같고, 종료 코드 1과 `실패:` 행이 나오며 변경 행은 나오지 않는다 (AC8, AC15)
+  <details>
+  <summary>검증 명령 — 출력 0건이면 통과</summary>
+
+  ```bash
+  T=ai-workspace/templates; H=ai-workspace/scripts/sync-owned.sh; W=$(mktemp -d)
+  B="$W/bin"; A="$W/.ai"; I="$A/AI-CONTEXT.md"; mkdir -p "$B" "$A"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' '  */inst/*) /bin/cat "$1" | head -c 16; exit 1 ;;' '  *) exec /bin/cat "$@" ;;' 'esac' > "$B/cat"
+  chmod +x "$B/cat"
+  L='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$L" '' '## Git 정책' '' '옛' '' '## 사용자 메모' '' '사용자 내용' > "$I"
+  cp "$I" "$W/before"
+  o=$(PATH="$B:$PATH" "$H" --context "$T" "$A"); [ $? = 1 ] || echo '위반: 종료 코드'
+  printf '%s\n' "$o" | grep -qxF '실패: AI-CONTEXT.md — 임시 결과를 만들 수 없음' || echo '위반: 실패 행 없음'
+  printf '%s\n' "$o" | grep -qE '^(교체|추가): ' && echo '위반: 변경 행 출력'
+  cmp -s "$W/before" "$I" || echo '위반: 원본 훼손'
+  rm -rf "$W"
+  ```
+
+  - 설계 주의: `cat` 대역은 설치본 조각을 읽을 때만 16바이트를 내고 실패해 조립 단계의 실패를 재현한다. 이 명령은 임시 디렉토리의 파일만 바꾼다.
+  </details>
 
 ### R6: 용어 사전 복사
 
@@ -402,8 +445,9 @@
   S=.ai/40_domain/specs/ai-workspace.md
   grep -qF 'sync-owned.sh' "$S" || echo '위반: 헬퍼 서술 없음'
   grep -qF '`profile`' "$S" || echo '위반: profile 서술 없음'
-  grep -nF '만 덮어쓴다' "$S"
-  grep -nF '`## Git 정책` 표는 검사하지 않는다' "$S"
+  for p in '만 덮어쓴다' '`## Git 정책` 표는 검사하지 않는다'; do
+    grep -nF -e "$p" "$S"; [ "$?" -eq 1 ] || echo "위반: 금지 서술 — $p"
+  done
   ```
 
   </details>
@@ -565,6 +609,7 @@
 - 종료 코드: 0 실패 없음, 1 실패 1건 이상, 2 사용 오류. 한 대상이 실패해도 다른 대상은 계속 처리한다.
 - `SKILL.md`의 처리: 종료 코드 1이면 update를 계속하고 `실패:` 행을 update-5 보고에 싣는다. 종료 코드 2이면 그 호출을 중단하고 보고한다.
 - 덮어쓰기는 임시 결과를 설치본에 `cat`으로 써서 권한과 심볼릭 링크를 유지한다.
+- 쓰기 전에 설치본을 임시 디렉토리에 백업하고, 쓰기가 일부 진행된 뒤 실패하면 백업으로 되돌린다. 새 파일이었으면 지운다. 복구까지 실패하면 백업을 남기고 그 경로를 `실패:` 행에 적는다. 쓰는 도중의 프로세스 강제 종료와 전원 차단은 보장 범위 밖이다.
 
 **`profile` 행 규칙**
 
@@ -581,7 +626,8 @@
 - 머리말: 첫 `## ` 제목 앞까지다. 머리말을 교체하는 `70_ledger/index.md`에 `##` 제목이 없으면 경계를 정할 수 없어 실패로 처리한다.
 - 없는 섹션: `50_adr/index.md`·`AI-CONTEXT.md`는 없는 섹션을 파일 끝에 템플릿 순서로 추가한다.
 - 같은 `## ` 제목이 설치본에 둘 이상이거나 템플릿에 구간이 없으면 실패로 처리한다.
-- 실패한 파일은 임시 결과를 쓰지 않아 변경 전 내용 그대로 남는다.
+- 구간 규칙에 걸려 실패한 파일은 임시 결과를 쓰지 않아 변경 전 내용 그대로 남는다. 쓰기 도중 실패는 헬퍼 경계의 백업으로 되돌린다.
+- 임시 결과를 만드는 중 실패하면 끊긴 결과를 설치본에 쓰지 않고 `임시 결과를 만들 수 없음`으로 보고한다.
 - 템플릿 섹션에 없는 `###` 소제목은 원래 순서대로 템플릿 본문 뒤에 둔다. `## 수명 주기`에도 같은 규칙을 쓴다.
 - 구간 끝의 빈 줄만 다르면 변경으로 보지 않는다. 구간을 넣거나 바꾼 뒤에는 다음 구간과 빈 줄 한 줄로 구분한다.
 
@@ -601,6 +647,7 @@
 - `> profile: dev`를 본문 3번째 줄에 두기: `## 프로젝트 도메인` 표가 이미 프로파일별 행을 담고 표 행 검사 코드도 있다.
 - SSoT 선언으로 프로파일 대신하기: 건물 repo는 doc 프로파일이어도 `소스 코드`로 선언한다.
 - `check-context.sh`의 doc 선언 dev 문구 잔존 검사 제거: `--context`가 같은 구간을 덮어써 조치는 중복되지만, 검사와 테스트를 지우는 변경은 이번 범위 밖이라 유지한다.
+- 쓰기 도중 실패 대비로 같은 디렉토리 임시 파일과 `mv` 원자 교체 쓰기: 강제 종료까지 막지만 심볼릭 링크 해석, 권한 복사, 읽기 전용 파일 검사가 더 필요해 백업 후 복구를 택했다 (최종 감사 F-1, 2026-11-05).
 
 **사용자 합의 (2026-11-04 대화)**
 
