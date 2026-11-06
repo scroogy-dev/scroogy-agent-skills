@@ -1166,6 +1166,118 @@ own_subsec() {
   diff -r "$OWN/snap" "$A" >/dev/null || echo '소제목 재실행 파일 변경'
 }
 
+# own_run_partial <헬퍼> <라벨> <기대 실패 행> <대상 파일> <헬퍼 인자>... — 쓰기 도중 실패에서 종료 코드, 실패 행, 변경 행 없음, 바이트 유지를 본다.
+own_run_partial() {
+  local h="$1" label="$2" want="$3" f="$4" o rc
+  shift 4
+  cp "$f" "$OWN/before"
+  o="$(PATH="$OWN/bin:$PATH" "$h" "$@")"; rc=$?
+  [ "$rc" -eq 1 ] || echo "$label 종료 코드"
+  own_has "$o" "$want" || echo "$label 실패 행 없음"
+  printf '%s\n' "$o" | grep -qE '^(교체|추가): AI-CONTEXT\.md' && echo "$label 변경 행 출력"
+  cmp -s "$OWN/before" "$f" || echo "$label 원본 훼손"
+}
+
+# 대상을 먼저 비운 뒤 일부만 쓰고 실패하는 `cat` 을 PATH 앞에 둔다. 복구 쓰기는 OWN_BAK_FAIL 이 있을 때만 실패한다.
+own_partial() {
+  local h="$1" A="$OWN/.ai" r bak o
+  own_fresh
+  mkdir -p "$OWN/bin" "$OWN/bin-cp"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' \
+    '  */out|*/shared/.ai/50_adr/*|*/shared/.ai/70_ledger/*) /bin/cat "$1" | head -c 16; exit 1 ;;' \
+    '  */bak.*) [ -z "${OWN_BAK_FAIL:-}" ] || exit 1; exec /bin/cat "$@" ;;' \
+    '  *) exec /bin/cat "$@" ;;' 'esac' > "$OWN/bin/cat"
+  printf '%s\n' '#!/bin/bash' 'exit 1' > "$OWN/bin-cp/cp"
+  chmod +x "$OWN/bin/cat" "$OWN/bin-cp/cp"
+
+  # --context: 일반 파일의 내용과 권한을 유지한다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구' '' '## 사용자 메모' '' '사용자 내용'
+  chmod 640 "$A/AI-CONTEXT.md"
+  own_run_partial "$h" '안내도' '실패: AI-CONTEXT.md — 쓰기 실패' "$A/AI-CONTEXT.md" --context "$TPL_DIR" "$A"
+  [ "$(ls -l "$A/AI-CONTEXT.md" | cut -c1-10)" = '-rw-r-----' ] || echo '안내도 권한 바뀜'
+
+  # --profile: 같은 쓰기 경로를 쓴다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | x |' '' '## 사용자 메모' '' '사용자 내용'
+  own_run_partial "$h" 'profile' '실패: AI-CONTEXT.md profile — 쓰기 실패' "$A/AI-CONTEXT.md" --profile dev "$A"
+
+  # 심볼릭 링크는 링크를 유지하고 가리키는 파일을 되돌린다.
+  r="$OWN/real.md"
+  own_ctx "$r" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구'
+  rm -f "$A/AI-CONTEXT.md"; ln -s "$r" "$A/AI-CONTEXT.md"
+  own_run_partial "$h" '링크' '실패: AI-CONTEXT.md — 쓰기 실패' "$r" --context "$TPL_DIR" "$A"
+  [ -L "$A/AI-CONTEXT.md" ] || echo '링크 사라짐'
+
+  # 복구까지 실패하면 백업을 남기고 그 경로를 실패 행에 적는다.
+  rm -f "$A/AI-CONTEXT.md"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구'
+  cp "$A/AI-CONTEXT.md" "$OWN/before"
+  o="$(OWN_BAK_FAIL=1 PATH="$OWN/bin:$PATH" "$h" --context "$TPL_DIR" "$A")" && echo '복구 실패 종료 코드'
+  bak="$(printf '%s\n' "$o" | sed -n 's/^실패: AI-CONTEXT\.md — 쓰기 실패, 복구 실패 (백업: \(.*\))$/\1/p')"
+  case "$bak" in
+    */bak.*)
+      cmp -s "$OWN/before" "$bak" || echo '복구 실패 백업 불일치'
+      rm -rf "${bak%/bak.*}"
+      ;;
+    *) echo '복구 실패 행 없음' ;;
+  esac
+
+  # 백업을 만들지 못하면 대상을 건드리지 않는다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구'
+  cp "$A/AI-CONTEXT.md" "$OWN/before"
+  o="$(PATH="$OWN/bin-cp:$PATH" "$h" --context "$TPL_DIR" "$A")" && echo '백업 실패 종료 코드'
+  own_has "$o" '실패: AI-CONTEXT.md — 백업 실패' || echo '백업 실패 행 없음'
+  cmp -s "$OWN/before" "$A/AI-CONTEXT.md" || echo '백업 실패 원본 훼손'
+
+  # --dirs: 있던 파일은 되돌리고, 쓰다 실패한 새 파일은 남기지 않으며, 다른 대상은 계속 처리한다.
+  rm -f "$A/AI-CONTEXT.md"
+  mkdir -p "$A/70_ledger"
+  echo '구버전' > "$A/70_ledger/ledger-entry-template.md"
+  cp "$A/70_ledger/ledger-entry-template.md" "$OWN/before"
+  o="$(PATH="$OWN/bin:$PATH" "$h" --dirs "$TPL_DIR" "$A")" && echo '디렉토리 종료 코드'
+  own_has "$o" '실패: 70_ledger/ledger-entry-template.md — 쓰기 실패' || echo '원장 템플릿 실패 행 없음'
+  cmp -s "$OWN/before" "$A/70_ledger/ledger-entry-template.md" || echo '원장 템플릿 원본 훼손'
+  own_has "$o" '실패: 50_adr/index.md — 쓰기 실패' || echo '새 파일 실패 행 없음'
+  [ ! -e "$A/50_adr/index.md" ] || echo '새 파일 잔존'
+  cmp -s "$A/30_contract/index.md" "$OWN_SHARED/30_contract/index.md" || echo '쓰기 실패 뒤 다른 대상 미처리'
+}
+
+# 임시 결과를 만들다 실패하면 설치본에 쓰지 않는다. 대역은 환경변수로 받은 경로에서만 실패한다.
+own_build() {
+  local h="$1" A="$OWN/.ai" I="$OWN/.ai/AI-CONTEXT.md" o want='실패: AI-CONTEXT.md — 임시 결과를 만들 수 없음' real_awk
+  real_awk="$(command -v awk)"
+  own_fresh
+  mkdir -p "$OWN/bin"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' \
+    '  ${OWN_CAT_FAIL:-/none})' \
+    '    if [ -n "${OWN_ONCE:-}" ]; then [ ! -e "$OWN_ONCE" ] || exec /bin/cat "$@"; : > "$OWN_ONCE"; fi' \
+    '    /bin/cat "$1" | head -c 16; exit 1 ;;' \
+    '  *) exec /bin/cat "$@" ;;' 'esac' > "$OWN/bin/cat"
+  printf '%s\n' '#!/bin/bash' 'case "${2:-}" in' '  ${OWN_AWK_FAIL:-/none}) exit 1 ;;' "  *) exec '$real_awk' \"\$@\" ;;" 'esac' > "$OWN/bin/awk"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' '  ${OWN_MV_FAIL:-/none}) exit 1 ;;' '  *) exec /bin/mv "$@" ;;' 'esac' > "$OWN/bin/mv"
+  chmod +x "$OWN/bin/cat" "$OWN/bin/awk" "$OWN/bin/mv"
+
+  own_ctx "$I" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구' '' '### 사용자 지침' '' '사용자 지침 본문' '' '### 사용자 지침 2' '' '둘째 본문' '' '## 사용자 메모' '' '사용자 내용'
+  OWN_CAT_FAIL='*/inst/*' own_run_partial "$h" '조립 구간 잇기' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_CAT_FAIL='*/new' own_run_partial "$h" '조립 교체 구간' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_AWK_FAIL='*/out' own_run_partial "$h" '조립 끝 정리' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_MV_FAIL='*/out.tmp' own_run_partial "$h" '조립 이동' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_AWK_FAIL='*/i/1' own_run_partial "$h" '조립 소제목' '실패: AI-CONTEXT.md ## 에이전트 운영 지침 — 소제목을 나눌 수 없음' "$I" --context "$TPL_DIR" "$A"
+
+  own_ctx "$I" "$OWN_L" '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | x |' '' '## 사용자 메모' '' '사용자 내용'
+  OWN_CAT_FAIL='*/profile/[0-9]*' own_run_partial "$h" '조립 profile' '실패: AI-CONTEXT.md profile — 임시 결과를 만들 수 없음' "$I" --profile dev "$A"
+
+  # --dirs: 한 대상의 조립 실패가 다음 대상으로 이어지지 않는다.
+  rm -f "$I"
+  mkdir -p "$A/50_adr" "$A/70_ledger"
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '옛 문구' '' '## 메모' '' '사용자 메모' > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '옛 머리말' '' '## 항목 목록' '' '사용자 행' '' '## 수명 주기' '' '옛 문구' > "$A/70_ledger/index.md"
+  cp "$A/50_adr/index.md" "$OWN/before"
+  o="$(OWN_ONCE="$OWN/once" OWN_CAT_FAIL='*/inst/*' PATH="$OWN/bin:$PATH" "$h" --dirs "$TPL_DIR" "$A")" && echo '조립 디렉토리 종료 코드'
+  own_has "$o" '실패: 50_adr/index.md — 임시 결과를 만들 수 없음' || echo '조립 디렉토리 실패 행 없음'
+  cmp -s "$OWN/before" "$A/50_adr/index.md" || echo '조립 디렉토리 원본 훼손'
+  own_has "$o" '교체: 70_ledger/index.md ## 수명 주기' || echo '조립 실패 뒤 다른 대상 미처리'
+}
+
 own_case() {
   local label="$1" out
   out="$("$2" "$SYNC" 2>&1)"
@@ -1199,7 +1311,18 @@ own_case '사용자 섹션 보존' own_preserve
 own_case '실패 경로' own_fail
 own_case 'SSoT 선언별 템플릿 선택' own_ssot
 own_case '소제목 유지' own_subsec
+own_case '쓰기 도중 실패' own_partial
+own_case '임시 결과 조립 실패' own_build
 
+own_kill '쓰기 도중 복구 제거' own_partial '안내도 원본 훼손' sub_str '! { cat "$bak" > "$3"; } 2>/dev/null' 'false'
+own_kill '새 파일 잔여물 삭제 제거' own_partial '새 파일 잔존' sub_str 'rm -f "$3"' ':'
+own_kill '복구 실패 시 백업 보존 제거' own_partial '복구 실패 백업 불일치' drop_line 'trap - EXIT'
+own_kill '백업 실패 중단 제거' own_partial '백업 실패 종료 코드' drop_line "'백업 실패'"
+own_kill '조립 실패 검사 제거' own_build '조립 구간 잇기 원본 훼손' drop_line '임시 결과를 만들 수 없음'
+own_kill '조립 실패 표시 제거' own_build '조립 구간 잇기 원본 훼손' sub_str '2>/dev/null || build_failed=1' '2>/dev/null'
+own_kill '조립 이동 실패 표시 제거' own_build '조립 이동 종료 코드' sub_str 'mv "$1.tmp" "$1" 2>/dev/null || build_failed=1' 'mv "$1.tmp" "$1" 2>/dev/null'
+own_kill '대상별 조립 표시 초기화 제거' own_build '조립 실패 뒤 다른 대상 미처리' sub_str '  build_failed=0' '  build_failed=${build_failed:-0}'
+own_kill '소제목 조립 실패 검사 제거' own_build '조립 소제목 원본 훼손' sub_str 'trim_tail "$d/i/$k" || return 1' 'trim_tail "$d/i/$k"'
 own_kill '같은 제목 검사 제거' own_fail '같은 제목 종료 코드' drop_line '같은 제목이'
 own_kill '소제목 유지 제거' own_subsec '사용자 소제목 사라짐' sub_str 'trim_tail "$d/i/$k"' ':'
 own_kill '템플릿 소제목 중복 방지 제거' own_subsec '템플릿 소제목 중복' drop_line 'grep -qxF -e "$t" "$d/t/titles"'

@@ -23,7 +23,7 @@
 #
 # 구간 규칙:
 #   코드 펜스(앞 공백 3칸까지, 백틱·물결 3개 이상)와 HTML 주석 안의 제목은 제목으로 세지 않는다. 제목 끝 공백은 무시한다.
-#   닫히지 않은 코드 펜스·HTML 주석, 같은 제목 둘 이상, 템플릿에 구간 없음은 실패이며 그 파일을 바꾸지 않는다.
+#   닫히지 않은 코드 펜스·HTML 주석, 같은 제목 둘 이상, 템플릿에 구간 없음, 임시 결과 조립 실패는 실패이며 그 파일을 바꾸지 않는다.
 #   없는 섹션은 파일 끝에 템플릿 순서로 추가한다. 템플릿에 없는 `###` 소제목은 원래 순서대로 템플릿 본문 뒤에 남긴다.
 #   구간 끝의 빈 줄만 다르면 변경으로 보지 않는다.
 #
@@ -113,17 +113,30 @@ trim_tail() {
   awk 'NF { for (i = 1; i <= n; i++) print buf[i]; n = 0; print; next } { buf[++n] = $0 }' "$1"
 }
 
+# add_to <결과 파일> <명령>... — 명령 출력을 결과 파일 끝에 잇는다. 끊긴 결과를 설치본에 쓰면 사용자 내용을 잃으므로
+# 실패하면 build_failed 를 세우고, 대상을 처리하는 함수가 쓰기 전에 확인한다.
+add_to() {
+  local dst="$1"
+  shift
+  { "$@" >> "$dst"; } 2>/dev/null || build_failed=1
+}
+
+# take_tmp <결과 파일> — add_to 로 만든 <결과 파일>.tmp 를 결과 파일로 옮긴다.
+take_tmp() {
+  mv "$1.tmp" "$1" 2>/dev/null || build_failed=1
+}
+
 # merge_section <설치본 구간> <템플릿 구간> <작업 디렉토리> — 템플릿 본문 뒤에 템플릿에 없는 `###` 소제목을 이어 출력한다.
 merge_section() {
   local inst="$1" tpl="$2" d="$3" k=0 t
   split_md "$inst" "$d/i" '### ' >/dev/null || return 1
   split_md "$tpl" "$d/t" '### ' >/dev/null || return 1
-  trim_tail "$tpl"
+  trim_tail "$tpl" || return 1
   while IFS= read -r t; do
     k=$((k + 1))
     grep -qxF -e "$t" "$d/t/titles" && continue
-    echo
-    trim_tail "$d/i/$k"
+    echo || return 1
+    trim_tail "$d/i/$k" || return 1
   done < "$d/i/titles"
 }
 
@@ -137,20 +150,36 @@ target_problem() {
 }
 
 # write_file <상대 경로> <원본> <대상> — 권한과 심볼릭 링크를 유지하려고 대상을 바꿔치지 않고 내용만 쓴다.
+# 쓰기가 일부 진행된 뒤 실패하면 백업으로 되돌린다. 새 파일이었으면 지운다.
+# 되돌리지 못하면 임시 디렉토리를 지우지 않고 백업 경로를 실패 행에 적는다.
 write_file() {
+  local bak=''
   mkdir -p "$(dirname "$3")" 2>/dev/null || { fail_line "$1" '디렉토리를 만들 수 없음'; return 1; }
-  { cat "$2" > "$3"; } 2>/dev/null || { fail_line "$1" '쓰기 실패'; return 1; }
+  if [ -e "$3" ]; then
+    serial=$((serial + 1)); bak="$TMP/bak.$serial"
+    cp "$3" "$bak" 2>/dev/null || { fail_line "$1" '백업 실패'; return 1; }
+  fi
+  { cat "$2" > "$3"; } 2>/dev/null && return 0
+  if [ -z "$bak" ]; then
+    rm -f "$3"
+  elif ! cmp -s "$bak" "$3" && ! { cat "$bak" > "$3"; } 2>/dev/null; then
+    trap - EXIT
+    fail_line "$1" "쓰기 실패, 복구 실패 (백업: ${bak})"
+    return 1
+  fi
+  fail_line "$1" '쓰기 실패'
+  return 1
 }
 
 # put_segment <설치본 구간> <새 구간> <결과 파일> — 끝 빈 줄만 다르면 설치본을 그대로 잇고 1을, 바꾸면 0을 돌려준다.
 put_segment() {
-  trim_tail "$1" > "$1.trim"
+  add_to "$1.trim" trim_tail "$1"
   if cmp -s "$1.trim" "$2"; then
-    cat "$1" >> "$3"
+    add_to "$3" cat "$1"
     return 1
   fi
-  cat "$2" >> "$3"
-  echo >> "$3"
+  add_to "$3" cat "$2"
+  add_to "$3" echo
 }
 
 # sync_sections <상대 경로> <템플릿 파일> <head|nohead> <제목>...
@@ -162,6 +191,7 @@ sync_sections() {
   serial=$((serial + 1))
   local w="$TMP/$serial"
   mkdir -p "$w"
+  build_failed=0
 
   why="$(target_problem "$target")"
   [ -z "$why" ] || { fail_line "$rel" "$why"; return; }
@@ -183,12 +213,12 @@ sync_sections() {
 
   : > "$w/out"; : > "$w/log"
   if [ "$head" = head ]; then
-    trim_tail "$w/tpl/0" > "$w/new"
+    add_to "$w/new" trim_tail "$w/tpl/0"
     if put_segment "$w/inst/0" "$w/new" "$w/out"; then
-      echo "교체: $rel 머리말" >> "$w/log"
+      add_to "$w/log" echo "교체: $rel 머리말"
     fi
   else
-    cat "$w/inst/0" >> "$w/out"
+    add_to "$w/out" cat "$w/inst/0"
   fi
 
   k=0
@@ -197,14 +227,14 @@ sync_sections() {
     want=0
     for t in "$@"; do [ "$t" = "$seg" ] && want=1; done
     if [ "$want" -eq 0 ]; then
-      cat "$w/inst/$k" >> "$w/out"
+      add_to "$w/out" cat "$w/inst/$k"
       last_changed=0
       continue
     fi
     n="$(grep -nxF -e "$seg" "$w/tpl/titles" | cut -d: -f1)"
     merge_section "$w/inst/$k" "$w/tpl/$n" "$w/m$k" > "$w/new" || { fail_line "$rel $seg" '소제목을 나눌 수 없음'; return; }
     if put_segment "$w/inst/$k" "$w/new" "$w/out"; then
-      echo "교체: $rel $seg" >> "$w/log"
+      add_to "$w/log" echo "교체: $rel $seg"
       last_changed=1
     else
       last_changed=0
@@ -214,20 +244,21 @@ sync_sections() {
   for t in "$@"; do
     grep -qxF -e "$t" "$w/inst/titles" && continue
     n="$(grep -nxF -e "$t" "$w/tpl/titles" | cut -d: -f1)"
-    trim_tail "$w/out" > "$w/out.tmp"
-    [ ! -s "$w/out.tmp" ] || echo >> "$w/out.tmp"
-    trim_tail "$w/tpl/$n" >> "$w/out.tmp"
-    echo >> "$w/out.tmp"
-    mv "$w/out.tmp" "$w/out"
-    echo "추가: $rel $t" >> "$w/log"
+    add_to "$w/out.tmp" trim_tail "$w/out"
+    [ ! -s "$w/out.tmp" ] || add_to "$w/out.tmp" echo
+    add_to "$w/out.tmp" trim_tail "$w/tpl/$n"
+    add_to "$w/out.tmp" echo
+    take_tmp "$w/out"
+    add_to "$w/log" echo "추가: $rel $t"
     last_changed=1
   done
 
-  [ -s "$w/log" ] || return 0
   if [ "$last_changed" -eq 1 ]; then
-    trim_tail "$w/out" > "$w/out.tmp"
-    mv "$w/out.tmp" "$w/out"
+    add_to "$w/out.tmp" trim_tail "$w/out"
+    take_tmp "$w/out"
   fi
+  [ "$build_failed" -eq 0 ] || { fail_line "$rel" '임시 결과를 만들 수 없음'; return; }
+  [ -s "$w/log" ] || return 0
   write_file "$rel" "$w/out" "$target" && cat "$w/log"
 }
 
@@ -324,6 +355,7 @@ set_profile_row() {
 
 run_profile() {
   local rel=AI-CONTEXT.md target="$AI/AI-CONTEXT.md" w="$TMP/profile" why n k=0 sec=0 state verb t
+  build_failed=0
   why="$(target_problem "$target")"
   [ -z "$why" ] || { fail_line "$rel profile" "$why"; return; }
   [ -e "$target" ] || { fail_line "$rel profile" '파일 없음'; return; }
@@ -332,7 +364,7 @@ run_profile() {
   [ "$n" -ge 1 ] || { fail_line "$rel profile" '`## 프로젝트 도메인` 섹션 없음'; return; }
   [ "$n" -eq 1 ] || { fail_line "$rel profile" "같은 제목이 ${n}개"; return; }
   sec="$(grep -nxF -e '## 프로젝트 도메인' "$w/titles" | cut -d: -f1)"
-  state="$(set_profile_row "$w/$sec" "$VALUE" "$w/new")"
+  state="$(set_profile_row "$w/$sec" "$VALUE" "$w/new")" || state=''
   case "$state" in
     same) return 0 ;;
     add) verb='추가' ;;
@@ -340,11 +372,12 @@ run_profile() {
     none) fail_line "$rel profile" '`## 프로젝트 도메인` 표 없음'; return ;;
     *) fail_line "$rel profile" '구간을 고칠 수 없음'; return ;;
   esac
-  cp "$w/0" "$w/out"
+  add_to "$w/out" cat "$w/0"
   while IFS= read -r t; do
     k=$((k + 1))
-    if [ "$k" -eq "$sec" ]; then cat "$w/new"; else cat "$w/$k"; fi >> "$w/out"
+    if [ "$k" -eq "$sec" ]; then add_to "$w/out" cat "$w/new"; else add_to "$w/out" cat "$w/$k"; fi
   done < "$w/titles"
+  [ "$build_failed" -eq 0 ] || { fail_line "$rel profile" '임시 결과를 만들 수 없음'; return; }
   write_file "$rel profile" "$w/out" "$target" && echo "${verb}: $rel profile"
 }
 
