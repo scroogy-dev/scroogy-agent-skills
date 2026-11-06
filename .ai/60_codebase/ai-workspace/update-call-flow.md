@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-11-05
-source_hash: 760ead6
+last_synced: 2026-11-06
+source_hash: 455d0d1
 status: current
 ---
 
@@ -23,7 +23,7 @@ ai-workspace/SKILL.md
 │   └── 없을 때만 cp                    # file-change-policy·writing-principles-local, dev면 architecture·coding-convention·testing-principles-local, doc면 document-convention
 ├── update-2단계: 20_templates/ 정리    # rm -rf .ai/20_templates/* (issue-work로 이관된 구 템플릿 제거)
 ├── update-3단계: 콘텐츠 디렉토리 정비   # 30_contract~90_issues 하위 구조·.gitkeep
-│   ├── scripts/sync-owned.sh --dirs <templates> .ai   # 없을 때만 복사(index.md·40_domain/glossary.md), 항상 최신본(ledger-entry-template.md), 구간 교체(50_adr/index.md `## 수명 주기`, 70_ledger/index.md 머리말·`## 수명 주기`). exit 1이면 계속하고 `실패:` 행을 update-5에 싣는다, exit 2면 이 호출 중단·보고
+│   ├── scripts/sync-owned.sh --dirs <templates> .ai   # 없을 때만 복사(index.md·40_domain/glossary.md), 항상 최신본(ledger-entry-template.md), 구간 교체(50_adr/index.md `## 수명 주기`, 70_ledger/index.md 머리말·`## 수명 주기`). exit 1이면 계속하고 `실패:` 행을 update-5에 싣는다(실패한 파일은 변경 전 내용 유지, 복구까지 실패하면 행에 백업 경로), exit 2면 이 호출 중단·보고
 │   └── 루트 파일 이동                  # 판단 기준 표(ADR 상태 줄·원장 상태 값)로 specs·policies/local·active·superseded·archive, 불가면 legacy/. 루트 상주 파일(index.md·40_domain/glossary.md·ledger-entry-template.md)은 제외
 ├── update-4단계: AI-CONTEXT.md 갱신
 │   ├── scripts/check-context.sh <AI-CONTEXT.md>   # 11항목 판정, 누락 1행씩·exit 1, 조치는 SKILL.md
@@ -70,7 +70,7 @@ sequenceDiagram
     SK->>RM: update-2 rm -rf .ai/20_templates/*
     Note over SK: update-3 하위 구조·.gitkeep 생성
     SK->>SO: --dirs templates .ai
-    SO-->>SK: 바뀐 대상마다 교체·추가·실패 행, 실패 없으면 exit 0, 있으면 exit 1
+    SO-->>SK: 바뀐 대상마다 교체·추가·실패 행, 실패 없으면 exit 0, 있으면 exit 1, 복구까지 실패하면 실패 행에 백업 경로
     Note over SK: 루트 파일을 판단 기준 표로 이동, 루트 상주 파일 제외, 판단 불가는 legacy/
     SK->>CC: update-4 check-context.sh .ai/AI-CONTEXT.md
     alt 누락 없음
