@@ -6,21 +6,29 @@
 # 표가 바뀌면 이 스크립트와 tests/ 의 기대값을 함께 갱신한다.
 #
 # 이 스크립트는 판정만 한다. 표의 **누락 시 조치**(삽입·정정·교체)는 내용 생성이 섞여 있어 SKILL.md 절차가 맡는다.
-# 검사 표 12행 중 10행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
+# 검사 표 13행 중 11행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
 # 앵커 존재 판정이 아니라 트리 구조 해석이라 제외했다 (조건 분기가 과하게 늘어나는 경우 —
 # `.ai/10_rules/architecture.md` "디자인 원칙"의 예외).
 #
 # 사용법:
 #   check-context.sh <AI-CONTEXT.md 경로>
+#   check-context.sh --profile <AI-CONTEXT.md 경로> [dev|doc]
 #
 # 본문 두 번째 줄은 dev(`소스 코드`)·doc(`원본 문서`) 두 표준 문구를 인정하며, doc 문구이면 `## 프로젝트 도메인` 표의 `ssot_dir` 행과 dev 표준 문구(충돌 우선순위, `60_codebase` 설명 3곳) 잔존도 검사하고, dev 문구이면 `## 프로젝트 규칙` 표의 `testing-principles.md` 행도 검사한다.
 # 입력 파일 옆에 `60_codebase/repository.yaml`이 있으면(code-map 건물 repo) doc 문구를 보고한다. 건물 repo는 `소스 코드`로 선언한다.
+# `## 프로젝트 도메인` 첫 표의 `profile` 행은 정확히 하나이고 값이 dev·doc 이어야 한다. SSoT 선언과 대조하지 않는다. 건물 repo는 doc 프로파일과 `소스 코드` 선언이 함께 있을 수 있다.
+#
+# --profile (SKILL.md 1단계): 이번 실행의 프로파일을 판정한다. 파일을 바꾸지 않는다.
+#   정해지면 값을 출력하고 종료 코드 0, 사용자에게 물어야 하면 `질의: <사유>` 를 출력하고 종료 코드 1이다.
+#   인자가 dev·doc 이 아니거나 `profile` 행이 둘 이상이면 묻는다.
+#   인자가 없으면 유효한 값을 쓰고, 값이 없거나 무효이거나 안내도가 없으면 묻는다.
+#   인자가 있으면 값과 같거나 값이 없거나 무효이거나 안내도가 없을 때 인자를 쓰고, 값과 다르면 묻는다.
 #
 # 종료 코드: 0 누락 없음(무출력) / 1 누락 있음(항목을 1행씩 출력) / 2 사용오류
 
 set -o pipefail
 
-usage() { sed -n '3,19p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,27p' "$0" | sed 's/^# \{0,1\}//'; }
 
 SSOT_LINE_DEV='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
 SSOT_LINE_DOC='> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
@@ -30,6 +38,110 @@ TREE_DEV='# [5순위] 소스코드 엔트리포인트·호출 흐름 색인 (ind
 ENTRY_DEV='`60_codebase/index.md`(코드 진입점)'
 RULE_DEV='코드 상세는 `60_codebase/`'
 RULES_HEADER='파일/설명/사용 시점'
+
+# 코드 펜스와 HTML 주석 상태를 한 행씩 추적하는 awk 함수. 호출 전의 `fence_ch`·`in_comment` 가 그 행이 펜스·주석 안인지 알려 준다.
+# sync-owned.sh 에 같은 사본이 있다. 읽기와 쓰기가 같은 범위를 봐야 하므로 함께 고친다 (tests/run-tests.sh 가 일치를 검사한다).
+MD_TRACK_AWK='
+  function fence_run(s, ch,    n) {
+    sub(/^ ? ? ?/, "", s)
+    n = 0
+    while (substr(s, n + 1, 1) == ch) n++
+    fence_rest = substr(s, n + 1)
+    return n
+  }
+  # 인라인 코드 안의 주석 표식은 주석으로 세지 않는다.
+  function scan_comment(s,    p) {
+    if (!in_comment) gsub(/`[^`]*`/, "", s)
+    while (1) {
+      if (in_comment) {
+        p = index(s, "-->"); if (!p) return
+        in_comment = 0; s = substr(s, p + 3)
+      } else {
+        p = index(s, "<!--"); if (!p) return
+        in_comment = 1; s = substr(s, p + 4)
+      }
+    }
+  }
+  function md_track(line,    c, n) {
+    if (fence_ch) {
+      if (fence_run(line, fence_ch) >= fence_len && fence_rest ~ /^[[:space:]]*$/) fence_ch = ""
+    } else if (in_comment) {
+      scan_comment(line)
+    } else if (line ~ /^ ? ? ?(```|~~~)/) {
+      c = substr(line, match(line, /[`~]/), 1); n = fence_run(line, c)
+      # 정보 문자열에 백틱이 있는 행은 펜스가 아니라 인라인 코드다.
+      if (c == "`" && index(fence_rest, "`")) scan_comment(line)
+      else { fence_ch = c; fence_len = n }
+    } else {
+      scan_comment(line)
+    }
+  }
+'
+
+# profile_state <파일> — `## 프로젝트 도메인` 첫 표의 `profile` 행 상태를 none, many <개수>, one <값> 중 하나로 출력한다.
+# 코드 펜스와 HTML 주석 안은 제목과 표로 세지 않고, 제목 앞 공백 3칸까지는 무시한다. sync-owned.sh 의 set_profile_row 와 같은 범위다.
+profile_state() {
+  awk "$MD_TRACK_AWK"'
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    {
+      visible = (fence_ch == "" && !in_comment)
+      line = $0
+      md_track(line)
+      h = line; sub(/^ ? ? ?/, "", h)
+      if (!sec) {
+        sub(/[[:space:]]+$/, "", h)
+        if (visible && h == "## 프로젝트 도메인") sec = 1
+        next
+      }
+      if (visible && index(h, "## ") == 1) exit
+      if (visible && line ~ /^\|/) {
+        table = 1
+        split(line, c, "|")
+        if (trim(c[2]) == "profile") { rows++; if (rows == 1) value = trim(c[3]) }
+      } else if (table) exit
+    }
+    END {
+      if (!rows) print "none"
+      else if (rows > 1) print "many " rows
+      else print "one " value
+    }
+  ' "$1"
+}
+
+# decide_profile <파일> [인자] — 머리 주석의 판정을 적힌 순서대로 적용한다.
+decide_profile() {
+  local file="$1" state value=''
+  if [ $# -eq 2 ]; then
+    case "$2" in
+      dev|doc) ;;
+      *) echo "질의: 프로파일 인자 [${2}]가 dev·doc이 아님"; return 1 ;;
+    esac
+  fi
+  if [ -f "$file" ] && [ -r "$file" ]; then state="$(profile_state "$file")"; else state='absent'; fi
+  case "$state" in
+    many\ *) echo "질의: '## 프로젝트 도메인' 표의 \`profile\` 행이 ${state#many }개"; return 1 ;;
+    one\ dev|one\ doc) value="${state#one }" ;;
+  esac
+  if [ $# -eq 2 ]; then
+    if [ -z "$value" ] || [ "$value" = "$2" ]; then echo "$2"; return 0; fi
+    echo "질의: 인자 [${2}]와 안내도 \`profile\` 값 [${value}]이 다름"
+    return 1
+  fi
+  if [ -n "$value" ]; then echo "$value"; return 0; fi
+  case "$state" in
+    absent) echo "질의: 안내도를 읽을 수 없음 — ${file}" ;;
+    none) echo "질의: 안내도에 \`profile\` 행이 없음" ;;
+    *) echo "질의: 안내도의 \`profile\` 값이 dev·doc이 아님 — 실제 [${state#one }]" ;;
+  esac
+  return 1
+}
+
+if [ "${1:-}" = '--profile' ]; then
+  shift
+  { [ $# -eq 1 ] || [ $# -eq 2 ]; } || { echo 'error: --profile 은 AI-CONTEXT.md 경로와 선택 인자 하나를 받습니다' >&2; usage >&2; exit 2; }
+  decide_profile "$@"
+  exit $?
+fi
 
 file=''
 while [ $# -gt 0 ]; do
@@ -47,6 +159,9 @@ done
 
 missing=0
 ng() { echo "누락: $1"; missing=$((missing + 1)); }
+
+# 아래 섹션 판정은 제목 앞 공백 3칸까지를 무시한다. profile_state·sync-owned.sh 와 같은 기준이다.
+# 기준이 다르면 들여쓴 섹션을 누락으로 보고해 update-4 가 같은 제목을 또 넣고, 뒤의 쓰기가 실패한다.
 
 # 본문 시작 위치 — H1 제목과 그 뒤 빈 줄은 본문으로 세지 않는다.
 # 템플릿이 `# AI-CONTEXT.md` 로 시작하므로 "본문 첫 줄"은 그다음 비어 있지 않은 줄이다.
@@ -87,13 +202,13 @@ fi
 keys='domain keywords'
 [ "$line2" = "$SSOT_LINE_DOC" ] && keys="$keys ssot_dir"
 
-if ! grep -qE '^## 프로젝트 도메인[[:space:]]*$' "$file"; then
+if ! grep -qE '^ ? ? ?## 프로젝트 도메인[[:space:]]*$' "$file"; then
   ng "'## 프로젝트 도메인' 섹션"
 else
   for k in $keys; do
     awk -v key="$k" '
-      /^## 프로젝트 도메인[[:space:]]*$/ { f = 1; next }
-      f && /^## / { exit }
+      /^ ? ? ?## 프로젝트 도메인[[:space:]]*$/ { f = 1; next }
+      f && /^ ? ? ?## / { exit }
       f && /^\|/ {
         v = $0
         sub(/^\|[[:space:]]*/, "", v)
@@ -103,6 +218,16 @@ else
       END { exit !found }
     ' "$file" || ng "'## 프로젝트 도메인' 표의 \`$k\` 행"
   done
+
+  # `profile` 은 쓰는 쪽(sync-owned.sh --profile)이 첫 표만 고치므로 첫 표 안에서만 찾는다.
+  # SSoT 선언과 대조하지 않는다. 건물 repo는 doc 프로파일과 `소스 코드` 선언이 함께 있을 수 있다.
+  profile="$(profile_state "$file")"
+  case "$profile" in
+    none) ng "'## 프로젝트 도메인' 표의 \`profile\` 행" ;;
+    many\ *) ng "'## 프로젝트 도메인' 표의 \`profile\` 행 — ${profile#many }개" ;;
+    one\ dev|one\ doc) ;;
+    *) ng "'## 프로젝트 도메인' 표의 \`profile\` 값 — 실제 [${profile#one }]" ;;
+  esac
 fi
 
 # --- 프로젝트 규칙 섹션 + 3열 표 ---------------------------------------------------
@@ -111,12 +236,12 @@ fi
 # "규칙 표 없음" 한 줄로 뭉치면 어느 조치를 골라야 하는지가 출력에서 사라진다.
 
 rules_ok=false
-if ! grep -qE '^## 프로젝트 규칙[[:space:]]*$' "$file"; then
+if ! grep -qE '^ ? ? ?## 프로젝트 규칙[[:space:]]*$' "$file"; then
   ng "'## 프로젝트 규칙' 섹션 (섹션 부재 — 템플릿 골격 삽입 대상)"
 else
   rules_header="$(awk '
-    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
-    f && /^## / { exit }
+    /^ ? ? ?## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
+    f && /^ ? ? ?## / { exit }
     f && /^\|/ { print; exit }
   ' "$file")"
 
@@ -168,8 +293,8 @@ rows='.ai/10_rules/context-loading.md .ai/10_rules/writing-principles.md'
 if [ "$rules_ok" = true ]; then
   for row in $rows; do
     awk -F'|' -v needle="$row" '
-      /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
-      f && /^## / { exit }
+      /^ ? ? ?## 프로젝트 규칙[[:space:]]*$/ { f = 1; next }
+      f && /^ ? ? ?## / { exit }
       f && /^\|/ {
         t = 1
         v = $2
@@ -186,12 +311,12 @@ fi
 
 # --- 에이전트 운영 지침 섹션 + 전제 한 줄 -------------------------------------------
 
-if ! grep -qE '^## 에이전트 운영 지침[[:space:]]*$' "$file"; then
+if ! grep -qE '^ ? ? ?## 에이전트 운영 지침[[:space:]]*$' "$file"; then
   ng "'## 에이전트 운영 지침' 섹션"
 else
   awk -v needle="$PREMISE" '
-    /^## 에이전트 운영 지침[[:space:]]*$/ { f = 1; next }
-    f && /^## / { exit }
+    /^ ? ? ?## 에이전트 운영 지침[[:space:]]*$/ { f = 1; next }
+    f && /^ ? ? ?## / { exit }
     f && index($0, needle) { found = 1; exit }
     END { exit !found }
   ' "$file" || ng "'## 에이전트 운영 지침' 의 전제 컨벤션 한 줄"
@@ -208,9 +333,9 @@ fi
 # dev_residue <H2 제목> <dev 표준 문구> <보고 문구>
 dev_residue() {
   awk -v head="$1" -v needle="$2" '
-    { h = $0; sub(/[[:space:]]+$/, "", h) }
+    { h = $0; sub(/^ ? ? ?/, "", h); sub(/[[:space:]]+$/, "", h) }
     h == head { f = 1; next }
-    f && /^## / { exit }
+    f && /^ ? ? ?## / { exit }
     f && index($0, needle) { found = 1; exit }
     END { exit found }
   ' "$file" || ng "$3"
@@ -231,7 +356,7 @@ fi
 #
 # 이 항목만 "있으면 위반"이다. 나머지 검사와 방향이 반대라 메시지를 구분한다.
 
-grep -qE '^## 워크스페이스 위치[[:space:]]*$' "$file" \
+grep -qE '^ ? ? ?## 워크스페이스 위치[[:space:]]*$' "$file" \
   && echo "구버전: '## 워크스페이스 위치' 섹션 — '## 프로젝트 도메인' 2행 표로 마이그레이션 대상" \
   && missing=$((missing + 1))
 

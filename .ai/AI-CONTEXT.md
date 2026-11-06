@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-11-03
+> last updated: 2026-11-05
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -14,6 +14,7 @@
 |------|----|
 | domain | Claude Code·Antigravity·Junie 등 다양한 AI 도구에서 호환되는 Agent Skills 모음 저장소 |
 | keywords | agent skills, agentskills, claude code, ai-workspace, ai 협업 가이드, skill 모음 |
+| profile | dev |
 
 > `domain`/`keywords`는 단독/멀티 여부와 무관하게 에이전트 진입 단서로 유지한다. 상위 워크스페이스 안내도(`../.ai/AI-CONTEXT.md`) 존재 여부는 런타임에 자동 판정한다 (CoC).
 
@@ -60,9 +61,9 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Antigravity, Junie 등 다
 ├── .ai/                        # AI 협업 가이드 문서 (이 디렉토리)
 ├── ai-workspace/               # .ai 작업공간 관리 스킬
 │   ├── references/             # 구버전 마이그레이션 참조 문서
-│   ├── scripts/                # update-4 멱등 보강 검사 헬퍼 (check-context.sh)
+│   ├── scripts/                # 멱등 보강 검사·프로파일 판정 헬퍼, 소유 파일·구간 동기화 헬퍼 (check-context.sh, sync-owned.sh)
 │   ├── templates/              # 프로파일별 템플릿 (원장 index 골격·항목 템플릿 포함)
-│   └── tests/                  # 검사 헬퍼 테스트·문서 구조 검사 + update-3 파일 정리·update-4 멱등 보강 fixture (배포 제외)
+│   └── tests/                  # 헬퍼 테스트(검사·프로파일 판정·소유 구간 동기화)·문서 구조 검사 + update-3 파일 정리·update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 │   ├── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
 │   ├── scripts/                # 로비 형식·분량 검사 헬퍼 (check-lobby.sh)
@@ -184,6 +185,8 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 ## .ai 디렉토리 구조
 
+<!-- 이 구간은 ai-workspace update가 최신본으로 덮어씁니다. 직접 고치면 사라집니다. -->
+
 디렉토리명 앞의 숫자는 AI가 문서를 읽는 우선순위를 나타냅니다.
 숫자가 낮을수록 먼저 읽어야 하며, 상위 우선순위 문서가 하위 우선순위 문서보다 우선합니다.
 
@@ -204,7 +207,9 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 ## 에이전트 운영 지침
 
-> 전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면 이 repo는 멀티 워크스페이스의 일부, 없으면 단독 repo다. 별도 메타 명시 없이 런타임에 자동 판정한다 (CoC).
+<!-- 이 구간은 ai-workspace update가 최신본으로 덮어씁니다. 직접 고치면 사라집니다. -->
+
+> 전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면 이 repo는 멀티 워크스페이스의 일부, 없으면 단독 repo다. 별도 메타 명시 없이 자동 판정한다 (CoC).
 
 ### 진입 절차 (질의 → 답변)
 
@@ -223,6 +228,8 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 
 ## Git 정책
 
+<!-- 이 구간은 ai-workspace update가 최신본으로 덮어씁니다. 직접 고치면 사라집니다. -->
+
 아래 skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.
 
 | Skill | 설명 | 사용 시점 |
@@ -235,6 +242,8 @@ description: <한 줄 설명>   # AI 도구가 스킬 선택 시 참고하는 �
 | `/git-review-quiz` | PR 변경 이해도 문항 생성·진행 | 리뷰 전 이해도 점검 시 |
 
 ## 이슈 작업 워크플로우
+
+<!-- 이 구간은 ai-workspace update가 최신본으로 덮어씁니다. 직접 고치면 사라집니다. -->
 
 아래 skill이 설치되어 있으면 해당 skill의 지침을 따릅니다.
 

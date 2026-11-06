@@ -20,6 +20,7 @@ set -o pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 CHECK="$HERE/../scripts/check-context.sh"
+SYNC="$HERE/../scripts/sync-owned.sh"
 TPL_DIR="$HERE/../templates"
 FIX="$HERE/fixtures/update4-idempotent"
 
@@ -30,6 +31,7 @@ ok() { echo "ok     - $1"; pass=$((pass + 1)); }
 ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
 [ -x "$CHECK" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $CHECK"; exit 1; }
+[ -x "$SYNC" ] || { echo "NOT OK - 헬퍼 실행 권한 없음 — $SYNC"; exit 1; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -536,7 +538,7 @@ assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 
 # --- 검사 표 행 수 (SKILL.md 대조) -------------------------------------------------
 #
-# 헬퍼가 다루는 10종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
+# 헬퍼가 다루는 11종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
 # SKILL.md 표가 늘면 이 검사가 걸려 제외 범위를 다시 판단하게 한다.
 
 rows="$(awk '
@@ -547,8 +549,8 @@ rows="$(awk '
 ' "$SKILL")"
 # 헤더·구분선 2행을 뺀 항목 수
 items=$((rows - 2))
-[ "$items" -eq 12 ] \
-  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 10종 + 트리 관련 2종 제외)" \
+[ "$items" -eq 13 ] \
+  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 11종 + 트리 관련 2종 제외)" \
   || ng "SKILL.md 멱등 보강 검사 표가 ${items}행입니다 — 헬퍼의 제외 범위를 다시 판단하세요"
 
 # --- 사용오류 ------------------------------------------------------------------
@@ -564,7 +566,7 @@ assert_usage_error() {
 
 assert_usage_error '인자 없음'
 assert_usage_error '읽을 수 없는 파일'  "$TMP/absent.md"
-assert_usage_error '알 수 없는 옵션'    --profile dev "$BASE"
+assert_usage_error '알 수 없는 옵션'    --bogus dev "$BASE"
 assert_usage_error '파일 중복'         "$BASE" "$BASE"
 
 # --- 문서 변형 도구 ---------------------------------------------------------------
@@ -595,7 +597,7 @@ drop_sec() {
 #
 # ADR을 쓰거나 고치는 쪽(이슈 작업, context-harvest)은 `50_adr/index.md`의 `## 수명 주기`에서
 # 경우별 처리·상태 줄·옮길 때 갱신 규칙을 읽는다 (#121). 라벨 행과 인용 문구는 이슈 spec이 정한 경계다.
-# 이 저장소 사본(`.ai/50_adr/index.md`)은 update가 덮어쓰지 않아 직접 고치므로 템플릿과 섹션 본문이 같은지도 본다
+# 이 저장소 사본(`.ai/50_adr/index.md`)은 `sync-owned.sh --dirs`로 맞추므로 템플릿과 섹션 본문이 같은지도 본다
 # (파일이 없으면 건너뛴다).
 
 ADR_TPL="$TPL_DIR/shared/.ai/50_adr/index.md"
@@ -892,6 +894,928 @@ if [ -r "$CTX_TPL" ]; then
 else
   ng "context-loading 제약: 템플릿을 찾을 수 없습니다 — $CTX_TPL"
 fi
+
+# --- 소유 구간 동기화 ---------------------------------------------------------------
+
+# sync-owned.sh 를 임시 디렉토리에서 실행해 출력·종료 코드·파일 내용을 본다 (#134).
+# 검사 함수는 헬퍼 경로를 받아 위반을 1행씩 출력한다. 격추 케이스는 보호 코드를 지운 사본을 같은 함수에 넣어
+# 기대한 위반이 나오는지 본다. 지울 코드를 찾지 못하면 변형 실패로 처리한다.
+
+OWN="$TMP/own"
+OWN_SHARED="$TPL_DIR/shared/.ai"
+OWN_L='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+OWN_D='> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'
+
+own_fresh() { rm -rf "$OWN"; mkdir -p "$OWN/.ai"; }
+own_sec() { awk -v h="$2" '$0 == h { f = 1; print; next } f && /^## / { exit } f' "$1"; }
+own_has() { printf '%s\n' "$1" | grep -qxF -e "$2"; }
+
+# own_ctx <파일> <SSoT 줄> <본문 줄>... — 안내도 입력을 쓴다.
+own_ctx() {
+  local f="$1" l="$2"; shift 2
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$l" '' "$@" > "$f"
+}
+
+# own_ctx_same <파일> <프로파일> — 표준 섹션 4개가 템플릿과 같은지 본다.
+own_ctx_same() {
+  local s
+  for s in '## .ai 디렉토리 구조' '## 에이전트 운영 지침' '## Git 정책' '## 이슈 작업 워크플로우'; do
+    [ "$(own_sec "$1" "$s")" = "$(own_sec "$TPL_DIR/$2/.ai/AI-CONTEXT.md" "$s")" ] || return 1
+  done
+}
+
+own_normal() {
+  local h="$1" A="$OWN/.ai" o rc want r
+  own_fresh
+  mkdir -p "$A/50_adr" "$A/70_ledger"
+  r="$OWN/real-entry.md"
+  echo '구버전' > "$r"; chmod 600 "$r"
+  ln -s "$r" "$A/70_ledger/ledger-entry-template.md"
+  # 펜스 3종·정보 문자열의 백틱·인라인 코드·HTML 주석 안의 제목은 제목으로 세지 않는다. 제목 끝 공백은 무시한다.
+  printf '%s\n' '# 50_adr 인덱스' '' '## 파일 목록' '' '```' '## 수명 주기' '```' '' '   ~~~' '## 수명 주기' '   ~~~' '' \
+    '````' '```' '## 수명 주기' '```' '````' '' '```x```' '' '<!--' '## 수명 주기' '-->' '' '<!-- 한 줄 주석 -->' '`<!--` 는 주석이 아니다' '' > "$OWN/adr-head"
+  { cat "$OWN/adr-head"; printf '%s\n' '## 수명 주기  ' '' '옛 문구' '' '## 메모' '' '사용자 메모'; } > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '옛 머리말' '' '## 파일 목록' '' '사용자 파일 행' '' '## 항목 목록' '' '| K-0001 | 사용자 행 |' '' '## 수명 주기' '' '옛 문구' > "$A/70_ledger/index.md"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 프로젝트 목적' '' '사용자 목적' '' '## .ai 디렉토리 구조' '' '옛' '' \
+    '## 에이전트 운영 지침' '' '옛' '' '## Git 정책' '' '옛' '' '## 이슈 작업 워크플로우' '' '옛'
+
+  o="$("$h" --dirs "$TPL_DIR" "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '--dirs 종료 코드'
+  for want in '교체: 70_ledger/ledger-entry-template.md' '교체: 50_adr/index.md ## 수명 주기' \
+    '교체: 70_ledger/index.md 머리말' '교체: 70_ledger/index.md ## 수명 주기'; do
+    own_has "$o" "$want" || echo "출력 없음 [$want]"
+  done
+  cmp -s "$r" "$OWN_SHARED/70_ledger/ledger-entry-template.md" || echo '원장 템플릿 불일치'
+  [ -L "$A/70_ledger/ledger-entry-template.md" ] || echo '심볼릭 링크 사라짐'
+  [ "$(ls -l "$r" | cut -c1-10)" = '-rw-------' ] || echo '권한 바뀜'
+  { cat "$OWN/adr-head"; own_sec "$OWN_SHARED/50_adr/index.md" '## 수명 주기'; printf '%s\n' '' '## 메모' '' '사용자 메모'; } > "$OWN/adr-want"
+  cmp -s "$OWN/adr-want" "$A/50_adr/index.md" || echo '50_adr 결과 불일치'
+  [ "$(awk '/^## /{exit} {print}' "$A/70_ledger/index.md")" = "$(awk '/^## /{exit} {print}' "$OWN_SHARED/70_ledger/index.md")" ] || echo '머리말 불일치'
+  [ "$(own_sec "$A/70_ledger/index.md" '## 수명 주기')" = "$(own_sec "$OWN_SHARED/70_ledger/index.md" '## 수명 주기')" ] || echo '70_ledger 수명 주기 불일치'
+
+  o="$("$h" --context "$TPL_DIR" "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '--context 종료 코드'
+  for want in '.ai 디렉토리 구조' '에이전트 운영 지침' 'Git 정책' '이슈 작업 워크플로우'; do
+    own_has "$o" "교체: AI-CONTEXT.md ## $want" || echo "출력 없음 [$want]"
+  done
+  own_ctx_same "$A/AI-CONTEXT.md" dev || echo '표준 섹션 불일치'
+
+  cp -R "$A" "$OWN/snap"
+  o="$("$h" --dirs "$TPL_DIR" "$A"; "$h" --context "$TPL_DIR" "$A")"
+  [ -z "$o" ] || echo '재실행 출력'
+  diff -r "$OWN/snap" "$A" >/dev/null || echo '재실행 파일 변경'
+
+  # 구간 끝 빈 줄만 다르면 변경으로 보지 않고 파일도 건드리지 않는다.
+  awk '/^## 메모$/ { print ""; print "" } { print } END { print ""; print "" }' "$A/50_adr/index.md" > "$OWN/adr-blank"
+  cp "$OWN/adr-blank" "$A/50_adr/index.md"
+  o="$("$h" --dirs "$TPL_DIR" "$A")"
+  [ -z "$o" ] || echo '빈 줄 차이 출력'
+  cmp -s "$OWN/adr-blank" "$A/50_adr/index.md" || echo '빈 줄 차이 파일 변경'
+}
+
+own_missing() {
+  local h="$1" A="$OWN/.ai" o rc rel
+  own_fresh
+  o="$("$h" --dirs "$TPL_DIR" "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '빈 .ai 종료 코드'
+  for rel in 30_contract/index.md 40_domain/index.md 40_domain/glossary.md 50_adr/index.md 60_codebase/index.md \
+    70_ledger/index.md 70_ledger/ledger-entry-template.md; do
+    own_has "$o" "추가: $rel" || echo "추가 행 없음 [$rel]"
+    cmp -s "$A/$rel" "$OWN_SHARED/$rel" || echo "복사 불일치 [$rel]"
+  done
+  [ "$(printf '%s\n' "$o" | grep -c .)" -eq 7 ] || echo '빈 .ai 출력 행 수'
+
+  own_fresh
+  mkdir -p "$A/50_adr" "$A/70_ledger"
+  printf '%s\n' '# 50_adr 인덱스' '' '## 파일 목록' '' '사용자 행' '' '' > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '## 항목 목록' '' '사용자 행' > "$A/70_ledger/index.md"
+  o="$("$h" --dirs "$TPL_DIR" "$A")" || echo '섹션 없음 종료 코드'
+  own_has "$o" '추가: 50_adr/index.md ## 수명 주기' || echo '50_adr 추가 행 없음'
+  own_has "$o" '추가: 70_ledger/index.md ## 수명 주기' || echo '70_ledger 추가 행 없음'
+  { printf '%s\n' '# 50_adr 인덱스' '' '## 파일 목록' '' '사용자 행' ''; own_sec "$OWN_SHARED/50_adr/index.md" '## 수명 주기' | awk 'NF { for (i = 1; i <= n; i++) print ""; n = 0; print; next } { n++ }'; } > "$OWN/adr-want"
+  cmp -s "$OWN/adr-want" "$A/50_adr/index.md" || echo '파일 끝 추가 결과 불일치'
+
+  # `##` 제목이 없어도 머리말을 교체하지 않는 파일은 끝에 추가한다.
+  printf '%s\n' '# 50_adr 인덱스' '' '본문만 있음' > "$A/50_adr/index.md"
+  o="$("$h" --dirs "$TPL_DIR" "$A")" || echo '제목 없는 50_adr 종료 코드'
+  own_has "$o" '추가: 50_adr/index.md ## 수명 주기' || echo '제목 없는 50_adr 추가 행 없음'
+
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 프로젝트 목적' '' '사용자 목적'
+  o="$("$h" --context "$TPL_DIR" "$A")" || echo '표준 섹션 없음 종료 코드'
+  [ "$(printf '%s\n' "$o" | grep -c '^추가: AI-CONTEXT.md ## ')" -eq 4 ] || echo '표준 섹션 추가 행 수'
+  own_ctx_same "$A/AI-CONTEXT.md" dev || echo '추가한 표준 섹션 불일치'
+  [ "$(grep '^## ' "$A/AI-CONTEXT.md" | tr '\n' '|')" = '## 프로젝트 목적|## .ai 디렉토리 구조|## 에이전트 운영 지침|## Git 정책|## 이슈 작업 워크플로우|' ] || echo '추가 순서 불일치'
+}
+
+own_preserve() {
+  local h="$1" A="$OWN/.ai" s
+  own_fresh
+  mkdir -p "$A/40_domain" "$A/50_adr" "$A/70_ledger"
+  echo '사용자 용어' > "$A/40_domain/glossary.md"
+  echo '사용자 도메인 index' > "$A/40_domain/index.md"
+  printf '%s\n' '# 50_adr 인덱스' '' '사용자 머리말' '' '## 파일 목록' '' '| `active/0001-x.md` | 사용자 행 |' '' '## 수명 주기' '' '옛 문구' '' '## Active ADR' '' '사용자 섹션' > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '옛 머리말' '' '## 파일 목록' '' '사용자 파일 행' '' '## 항목 목록' '' '| K-0001 | 사용자 행 |' '' '## 수명 주기' '' '옛 문구' '' '## 메모' '' '사용자 메모' > "$A/70_ledger/index.md"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 프로젝트 목적' '' '사용자 목적' '' '## Git 정책' '' '옛 표' '' '## 사용자 섹션' '' '사용자 본문'
+  cp "$A/50_adr/index.md" "$OWN/adr.before"; cp "$A/70_ledger/index.md" "$OWN/led.before"; cp "$A/AI-CONTEXT.md" "$OWN/ctx.before"
+  "$h" --dirs "$TPL_DIR" "$A" >/dev/null || echo '--dirs 종료 코드'
+  "$h" --context "$TPL_DIR" "$A" >/dev/null || echo '--context 종료 코드'
+  [ "$(cat "$A/40_domain/glossary.md")" = '사용자 용어' ] || echo 'glossary 변경'
+  [ "$(cat "$A/40_domain/index.md")" = '사용자 도메인 index' ] || echo 'index 변경'
+  s='/^## 수명 주기$/ { s = 1; next } /^## / { s = 0 } !s'
+  [ "$(awk "$s" "$OWN/adr.before")" = "$(awk "$s" "$A/50_adr/index.md")" ] || echo '50_adr 구간 밖 변경'
+  s='BEGIN { s = 1 } /^## 수명 주기$/ { s = 1; next } /^## / { s = 0 } !s'
+  [ "$(awk "$s" "$OWN/led.before")" = "$(awk "$s" "$A/70_ledger/index.md")" ] || echo '70_ledger 구간 밖 변경'
+  s='/^## (\.ai 디렉토리 구조|에이전트 운영 지침|Git 정책|이슈 작업 워크플로우)$/ { s = 1; next } /^## / { s = 0 } !s'
+  [ "$(awk "$s" "$OWN/ctx.before")" = "$(awk "$s" "$A/AI-CONTEXT.md")" ] || echo 'AI-CONTEXT 구간 밖 변경'
+}
+
+# own_fail_one <라벨> <기대 실패 행 접두어> <파일> <모드> <templates> — 종료 코드 1, 실패 행, 파일 무변경을 본다.
+own_fail_one() {
+  local label="$1" want="$2" f="$3" mode="$4" tpl="$5" h="$6" o rc rel
+  rel="${f#"$OWN/.ai/"}"
+  cp "$f" "$OWN/before"
+  o="$("$h" "$mode" "$tpl" "$OWN/.ai")"; rc=$?
+  [ "$rc" -eq 1 ] || echo "$label 종료 코드"
+  printf '%s\n' "$o" | grep -qF -- "$want" || echo "$label 실패 행 없음"
+  printf '%s\n' "$o" | grep -qE "^(교체|추가): ${rel}( |\$)" && echo "$label 변경 행 출력"
+  cmp -s "$OWN/before" "$f" || echo "$label 파일 변경"
+}
+
+own_fail() {
+  local h="$1" A="$OWN/.ai" T2="$OWN/tpl" o rc i
+  own_fresh
+  mkdir -p "$A/50_adr" "$A/70_ledger"
+
+  # 한 대상이 실패해도 다른 대상은 계속 처리한다.
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '옛1' '' '## 수명 주기' '' '옛2' > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '옛 머리말' '' '## 수명 주기' '' '옛' > "$A/70_ledger/index.md"
+  echo '구버전' > "$A/70_ledger/ledger-entry-template.md"
+  cp "$A/50_adr/index.md" "$OWN/before"
+  o="$("$h" --dirs "$TPL_DIR" "$A")"; rc=$?
+  [ "$rc" -eq 1 ] || echo '같은 제목 종료 코드'
+  printf '%s\n' "$o" | grep -qF '실패: 50_adr/index.md ## 수명 주기 — 같은 제목이 2개' || echo '같은 제목 실패 행 없음'
+  cmp -s "$OWN/before" "$A/50_adr/index.md" || echo '같은 제목 파일 변경'
+  own_has "$o" '교체: 70_ledger/index.md 머리말' || echo '실패 뒤 다른 대상 미처리'
+  cmp -s "$A/70_ledger/ledger-entry-template.md" "$OWN_SHARED/70_ledger/ledger-entry-template.md" || echo '실패 뒤 원장 템플릿 미처리'
+
+  # 한 파일의 구간 하나가 실패하면 그 파일의 다른 구간도 바꾸지 않는다.
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '옛' > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '옛 머리말' '' '## 수명 주기' '' '옛1' '' '## 수명 주기' '' '옛2' > "$A/70_ledger/index.md"
+  own_fail_one '부분 실패' '실패: 70_ledger/index.md ## 수명 주기' "$A/70_ledger/index.md" --dirs "$TPL_DIR" "$h"
+
+  printf '%s\n' '# 70_ledger 인덱스' '' '제목 없는 본문' > "$A/70_ledger/index.md"
+  own_fail_one '제목 없음' '실패: 70_ledger/index.md 머리말' "$A/70_ledger/index.md" --dirs "$TPL_DIR" "$h"
+  cp "$OWN_SHARED/70_ledger/index.md" "$A/70_ledger/index.md"
+
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '```' '옛' > "$A/50_adr/index.md"
+  own_fail_one '닫히지 않은 펜스' '실패: 50_adr/index.md — 닫히지 않은 코드 펜스' "$A/50_adr/index.md" --dirs "$TPL_DIR" "$h"
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '<!-- 옛' > "$A/50_adr/index.md"
+  own_fail_one '닫히지 않은 주석' '실패: 50_adr/index.md — 닫히지 않은 HTML 주석' "$A/50_adr/index.md" --dirs "$TPL_DIR" "$h"
+
+  mkdir -p "$T2"; cp -R "$TPL_DIR/shared" "$T2/shared"; cp -R "$TPL_DIR/dev" "$T2/dev"; cp -R "$TPL_DIR/doc" "$T2/doc"
+  awk '/^## 수명 주기$/ { exit } { print }' "$TPL_DIR/shared/.ai/50_adr/index.md" > "$T2/shared/.ai/50_adr/index.md"
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '옛' > "$A/50_adr/index.md"
+  own_fail_one '템플릿에 구간 없음' '실패: 50_adr/index.md ## 수명 주기 — 템플릿에 구간 없음' "$A/50_adr/index.md" --dirs "$T2" "$h"
+
+  o="$("$h" --context "$TPL_DIR" "$A")"; rc=$?
+  [ "$rc" -eq 1 ] || echo '안내도 없음 종료 코드'
+  own_has "$o" '실패: AI-CONTEXT.md — 파일 없음' || echo '안내도 없음 실패 행 없음'
+
+  own_ctx "$A/AI-CONTEXT.md" '> SSoT: 사내 위키.' '## Git 정책' '' '옛'
+  own_fail_one '비표준 선언' '실패: AI-CONTEXT.md — 본문 2번째 줄이 표준 SSoT 선언이 아님' "$A/AI-CONTEXT.md" --context "$TPL_DIR" "$h"
+  printf '%s\n' '# AI-CONTEXT.md' '' '## Git 정책' '' '옛' > "$A/AI-CONTEXT.md"
+  own_fail_one '선언 없음' '실패: AI-CONTEXT.md — 본문 2번째 줄이 표준 SSoT 선언이 아님' "$A/AI-CONTEXT.md" --context "$TPL_DIR" "$h"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## Git 정책' '' '옛1' '' '## Git 정책' '' '옛2'
+  own_fail_one '안내도 같은 제목' '실패: AI-CONTEXT.md ## Git 정책 — 같은 제목이 2개' "$A/AI-CONTEXT.md" --context "$TPL_DIR" "$h"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## Git 정책' '' '```' '옛'
+  own_fail_one '안내도 닫히지 않은 펜스' '실패: AI-CONTEXT.md — 닫히지 않은 코드 펜스' "$A/AI-CONTEXT.md" --context "$TPL_DIR" "$h"
+  awk '/^## Git 정책$/ { s = 1; next } /^## / { s = 0 } !s' "$TPL_DIR/dev/.ai/AI-CONTEXT.md" > "$T2/dev/.ai/AI-CONTEXT.md"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## Git 정책' '' '옛'
+  own_fail_one '안내도 템플릿에 구간 없음' '실패: AI-CONTEXT.md ## Git 정책 — 템플릿에 구간 없음' "$A/AI-CONTEXT.md" --context "$T2" "$h"
+
+  # 덮어쓸 수 없는 파일은 실패로 보고하고 다른 대상은 계속 처리한다 (root 는 권한 검사를 받지 않아 건너뛴다).
+  if [ "$(id -u)" -ne 0 ]; then
+    printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '옛' > "$A/50_adr/index.md"
+    chmod 444 "$A/50_adr/index.md"
+    echo '구버전' > "$A/70_ledger/ledger-entry-template.md"
+    own_fail_one '쓰기 실패' '실패: 50_adr/index.md — 쓰기 실패' "$A/50_adr/index.md" --dirs "$TPL_DIR" "$h"
+    chmod 644 "$A/50_adr/index.md"
+    cmp -s "$A/70_ledger/ledger-entry-template.md" "$OWN_SHARED/70_ledger/ledger-entry-template.md" || echo '쓰기 실패 뒤 다른 대상 미처리'
+  fi
+
+  "$h" >/dev/null 2>&1; [ $? -eq 2 ] || echo '모드 없음 종료 코드'
+  "$h" --bogus "$TPL_DIR" "$A" >/dev/null 2>&1; [ $? -eq 2 ] || echo '알 수 없는 모드 종료 코드'
+  "$h" --dirs "$TPL_DIR" >/dev/null 2>&1; [ $? -eq 2 ] || echo '인자 부족 종료 코드'
+  "$h" --dirs "$OWN/none" "$A" >/dev/null 2>&1; [ $? -eq 2 ] || echo 'templates 없음 종료 코드'
+  "$h" --dirs "$TPL_DIR" "$OWN/none" >/dev/null 2>&1; [ $? -eq 2 ] || echo '.ai 없음 종료 코드'
+}
+
+own_ssot() {
+  local h="$1" A="$OWN/.ai"
+  own_fresh
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## .ai 디렉토리 구조' '' '옛' '' '## 에이전트 운영 지침' '' '옛' '' '## Git 정책' '' '옛' '' '## 이슈 작업 워크플로우' '' '옛'
+  "$h" --context "$TPL_DIR" "$A" >/dev/null || echo '소스 코드 선언 종료 코드'
+  own_ctx_same "$A/AI-CONTEXT.md" dev || echo '소스 코드 선언 템플릿 불일치'
+
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_D" '## .ai 디렉토리 구조' '' '옛' '' '## 에이전트 운영 지침' '' '옛' '' '## Git 정책' '' '옛' '' '## 이슈 작업 워크플로우' '' '옛'
+  "$h" --context "$TPL_DIR" "$A" >/dev/null || echo '원본 문서 선언 종료 코드'
+  own_ctx_same "$A/AI-CONTEXT.md" doc || echo '원본 문서 선언 템플릿 불일치'
+
+  # 선택 기준은 SSoT 선언이다. 건물 repo 는 doc 프로파일이어도 `소스 코드` 로 선언한다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| profile | doc |' '' '## 에이전트 운영 지침' '' '옛'
+  "$h" --context "$TPL_DIR" "$A" >/dev/null || echo '건물 repo 조합 종료 코드'
+  own_ctx_same "$A/AI-CONTEXT.md" dev || echo '건물 repo 조합 템플릿 불일치'
+}
+
+# 앞 공백 3칸까지의 제목은 경계로 세고 사용자 제목의 들여쓰기는 그대로 둔다. 4칸은 들여쓴 코드 블록이라 본문이다.
+own_indent() {
+  local h="$1" A="$OWN/.ai" I="$OWN/.ai/AI-CONTEXT.md" o
+  own_fresh
+  own_ctx "$I" "$OWN_L" '## Git 정책' '' '옛 표' '' '    ## 코드 블록 제목' '' \
+    '  ## 사용자 섹션' '' '사용자 본문' '' \
+    '   ## 이슈 작업 워크플로우' '' '옛' '' '  ### 들여쓴 소제목' '' '소제목 본문'
+  o="$("$h" --context "$TPL_DIR" "$A")" || echo '들여쓴 제목 종료 코드'
+  own_has "$o" '교체: AI-CONTEXT.md ## 이슈 작업 워크플로우' || echo '들여쓴 표준 제목 출력'
+  grep -qxF '  ## 사용자 섹션' "$I" || echo '들여쓴 사용자 섹션 사라짐'
+  grep -qxF '사용자 본문' "$I" || echo '들여쓴 사용자 본문 사라짐'
+  grep -qxF '  ### 들여쓴 소제목' "$I" || echo '들여쓴 소제목 사라짐'
+  grep -qxF '소제목 본문' "$I" || echo '들여쓴 소제목 본문 사라짐'
+  grep -qxF '   ## 이슈 작업 워크플로우' "$I" && echo '들여쓴 표준 제목 남음'
+  [ "$(grep -cxF '## 이슈 작업 워크플로우' "$I")" -eq 1 ] || echo '표준 제목 개수'
+  grep -qxF '    ## 코드 블록 제목' "$I" && echo '4칸 제목을 경계로 셈'
+
+  cp "$I" "$OWN/after"
+  o="$("$h" --context "$TPL_DIR" "$A")"
+  [ -z "$o" ] || echo '들여쓴 제목 재실행 출력'
+  cmp -s "$OWN/after" "$I" || echo '들여쓴 제목 재실행 파일 변경'
+
+  # 들여쓴 제목과 첫 열 제목은 같은 제목이다.
+  own_ctx "$I" "$OWN_L" '## Git 정책' '' '옛 표' '' '  ## Git 정책' '' '옛 표'
+  own_fail_one '들여쓴 같은 제목' '같은 제목이 2개' "$I" --context "$TPL_DIR" "$h"
+}
+
+own_subsec() {
+  local h="$1" A="$OWN/.ai" s t
+  own_fresh
+  mkdir -p "$A/70_ledger"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구' '' \
+    '### 진입 절차 (질의 → 답변)' '' '옛 절차' '' \
+    '### 사용자 지침 1' '' '본문 1' '' '#### 더 깊은 제목' '' '깊은 본문' '' '```' '### 작성 규칙 (이 파일을 손볼 때)' '```' '' \
+    '### 작성 규칙 (이 파일을 손볼 때)' '' '옛 규칙' '' \
+    '### 사용자 지침 2' '' '본문 2' '' '## 사용자 섹션' '' '사용자 본문'
+  "$h" --context "$TPL_DIR" "$A" >/dev/null || echo '안내도 종료 코드'
+  s="$(own_sec "$A/AI-CONTEXT.md" '## 에이전트 운영 지침')"
+  t="$(own_sec "$TPL_DIR/dev/.ai/AI-CONTEXT.md" '## 에이전트 운영 지침')"
+  case "$s" in "$t"*) ;; *) echo '템플릿 본문이 앞에 없음' ;; esac
+  own_has "$s" '### 사용자 지침 1' || echo '사용자 소제목 사라짐'
+  own_has "$s" '깊은 본문' || echo '사용자 소제목 본문 사라짐'
+  [ "$(printf '%s\n' "$s" | grep -n '^### 사용자 지침' | cut -d: -f2 | tr '\n' '|')" = '### 사용자 지침 1|### 사용자 지침 2|' ] || echo '사용자 소제목 순서'
+  [ "$(printf '%s\n' "$s" | grep -cxF '### 진입 절차 (질의 → 답변)')" -eq 1 ] || echo '템플릿 소제목 중복'
+  # 펜스 안의 같은 제목은 사용자 소제목 본문이라 그대로 남고, 진짜 소제목은 템플릿 것 하나만 남는다.
+  [ "$(printf '%s\n' "$s" | grep -cxF '### 작성 규칙 (이 파일을 손볼 때)')" -eq 2 ] || echo '펜스 안 소제목 처리'
+  own_has "$s" '옛 절차' && echo '옛 소제목 본문 남음'
+  own_has "$s" '옛 규칙' && echo '옛 소제목 본문 남음'
+  grep -qxF '사용자 본문' "$A/AI-CONTEXT.md" || echo '사용자 섹션 사라짐'
+
+  # `## 수명 주기` 에도 같은 규칙을 쓴다.
+  printf '%s\n' '# 70_ledger 인덱스' '' '## 수명 주기' '' '옛' '' '### 상태별 처리 (같은 결함이 다시 올라왔을 때)' '' '옛 처리' '' '### 사용자 메모' '' '메모 본문' > "$A/70_ledger/index.md"
+  "$h" --dirs "$TPL_DIR" "$A" >/dev/null || echo '원장 index 종료 코드'
+  s="$(own_sec "$A/70_ledger/index.md" '## 수명 주기')"
+  t="$(own_sec "$OWN_SHARED/70_ledger/index.md" '## 수명 주기')"
+  case "$s" in "$t"*) ;; *) echo '수명 주기 템플릿 본문이 앞에 없음' ;; esac
+  own_has "$s" '### 사용자 메모' || echo '수명 주기 사용자 소제목 사라짐'
+  [ "$(printf '%s\n' "$s" | grep -cxF '### 상태별 처리 (같은 결함이 다시 올라왔을 때)')" -eq 1 ] || echo '수명 주기 템플릿 소제목 중복'
+
+  # 소제목을 옮긴 뒤 다시 실행해도 결과가 같다.
+  cp -R "$A" "$OWN/snap"
+  t="$("$h" --dirs "$TPL_DIR" "$A"; "$h" --context "$TPL_DIR" "$A")"
+  [ -z "$t" ] || echo '소제목 재실행 출력'
+  diff -r "$OWN/snap" "$A" >/dev/null || echo '소제목 재실행 파일 변경'
+}
+
+# own_run_partial <헬퍼> <라벨> <기대 실패 행> <대상 파일> <헬퍼 인자>... — 쓰기 도중 실패에서 종료 코드, 실패 행, 변경 행 없음, 바이트 유지를 본다.
+own_run_partial() {
+  local h="$1" label="$2" want="$3" f="$4" o rc
+  shift 4
+  cp "$f" "$OWN/before"
+  o="$(PATH="$OWN/bin:$PATH" "$h" "$@")"; rc=$?
+  [ "$rc" -eq 1 ] || echo "$label 종료 코드"
+  own_has "$o" "$want" || echo "$label 실패 행 없음"
+  printf '%s\n' "$o" | grep -qE '^(교체|추가): AI-CONTEXT\.md' && echo "$label 변경 행 출력"
+  cmp -s "$OWN/before" "$f" || echo "$label 원본 훼손"
+}
+
+# 대상을 먼저 비운 뒤 일부만 쓰고 실패하는 `cat` 을 PATH 앞에 둔다. 복구 쓰기는 OWN_BAK_FAIL 이 있을 때만 실패한다.
+own_partial() {
+  local h="$1" A="$OWN/.ai" r bak o
+  own_fresh
+  mkdir -p "$OWN/bin" "$OWN/bin-cp"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' \
+    '  */out|*/shared/.ai/50_adr/*|*/shared/.ai/70_ledger/*) /bin/cat "$1" | head -c 16; exit 1 ;;' \
+    '  */bak.*) [ -z "${OWN_BAK_FAIL:-}" ] || exit 1; exec /bin/cat "$@" ;;' \
+    '  *) exec /bin/cat "$@" ;;' 'esac' > "$OWN/bin/cat"
+  printf '%s\n' '#!/bin/bash' 'exit 1' > "$OWN/bin-cp/cp"
+  chmod +x "$OWN/bin/cat" "$OWN/bin-cp/cp"
+
+  # --context: 일반 파일의 내용과 권한을 유지한다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구' '' '## 사용자 메모' '' '사용자 내용'
+  chmod 640 "$A/AI-CONTEXT.md"
+  own_run_partial "$h" '안내도' '실패: AI-CONTEXT.md — 쓰기 실패' "$A/AI-CONTEXT.md" --context "$TPL_DIR" "$A"
+  [ "$(ls -l "$A/AI-CONTEXT.md" | cut -c1-10)" = '-rw-r-----' ] || echo '안내도 권한 바뀜'
+
+  # --profile: 같은 쓰기 경로를 쓴다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | x |' '' '## 사용자 메모' '' '사용자 내용'
+  own_run_partial "$h" 'profile' '실패: AI-CONTEXT.md profile — 쓰기 실패' "$A/AI-CONTEXT.md" --profile dev "$A"
+
+  # 심볼릭 링크는 링크를 유지하고 가리키는 파일을 되돌린다.
+  r="$OWN/real.md"
+  own_ctx "$r" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구'
+  rm -f "$A/AI-CONTEXT.md"; ln -s "$r" "$A/AI-CONTEXT.md"
+  own_run_partial "$h" '링크' '실패: AI-CONTEXT.md — 쓰기 실패' "$r" --context "$TPL_DIR" "$A"
+  [ -L "$A/AI-CONTEXT.md" ] || echo '링크 사라짐'
+
+  # 복구까지 실패하면 백업을 남기고 그 경로를 실패 행에 적는다.
+  rm -f "$A/AI-CONTEXT.md"
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구'
+  cp "$A/AI-CONTEXT.md" "$OWN/before"
+  o="$(OWN_BAK_FAIL=1 PATH="$OWN/bin:$PATH" "$h" --context "$TPL_DIR" "$A")" && echo '복구 실패 종료 코드'
+  bak="$(printf '%s\n' "$o" | sed -n 's/^실패: AI-CONTEXT\.md — 쓰기 실패, 복구 실패 (백업: \(.*\))$/\1/p')"
+  case "$bak" in
+    */bak.*)
+      cmp -s "$OWN/before" "$bak" || echo '복구 실패 백업 불일치'
+      rm -rf "${bak%/bak.*}"
+      ;;
+    *) echo '복구 실패 행 없음' ;;
+  esac
+
+  # 백업을 만들지 못하면 대상을 건드리지 않는다.
+  own_ctx "$A/AI-CONTEXT.md" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구'
+  cp "$A/AI-CONTEXT.md" "$OWN/before"
+  o="$(PATH="$OWN/bin-cp:$PATH" "$h" --context "$TPL_DIR" "$A")" && echo '백업 실패 종료 코드'
+  own_has "$o" '실패: AI-CONTEXT.md — 백업 실패' || echo '백업 실패 행 없음'
+  cmp -s "$OWN/before" "$A/AI-CONTEXT.md" || echo '백업 실패 원본 훼손'
+
+  # --dirs: 있던 파일은 되돌리고, 쓰다 실패한 새 파일은 남기지 않으며, 다른 대상은 계속 처리한다.
+  rm -f "$A/AI-CONTEXT.md"
+  mkdir -p "$A/70_ledger"
+  echo '구버전' > "$A/70_ledger/ledger-entry-template.md"
+  cp "$A/70_ledger/ledger-entry-template.md" "$OWN/before"
+  o="$(PATH="$OWN/bin:$PATH" "$h" --dirs "$TPL_DIR" "$A")" && echo '디렉토리 종료 코드'
+  own_has "$o" '실패: 70_ledger/ledger-entry-template.md — 쓰기 실패' || echo '원장 템플릿 실패 행 없음'
+  cmp -s "$OWN/before" "$A/70_ledger/ledger-entry-template.md" || echo '원장 템플릿 원본 훼손'
+  own_has "$o" '실패: 50_adr/index.md — 쓰기 실패' || echo '새 파일 실패 행 없음'
+  [ ! -e "$A/50_adr/index.md" ] || echo '새 파일 잔존'
+  cmp -s "$A/30_contract/index.md" "$OWN_SHARED/30_contract/index.md" || echo '쓰기 실패 뒤 다른 대상 미처리'
+}
+
+# 임시 결과를 만들다 실패하면 설치본에 쓰지 않는다. 대역은 환경변수로 받은 경로에서만 실패한다.
+own_build() {
+  local h="$1" A="$OWN/.ai" I="$OWN/.ai/AI-CONTEXT.md" o want='실패: AI-CONTEXT.md — 임시 결과를 만들 수 없음' real_awk
+  real_awk="$(command -v awk)"
+  own_fresh
+  mkdir -p "$OWN/bin"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' \
+    '  ${OWN_CAT_FAIL:-/none})' \
+    '    if [ -n "${OWN_ONCE:-}" ]; then [ ! -e "$OWN_ONCE" ] || exec /bin/cat "$@"; : > "$OWN_ONCE"; fi' \
+    '    /bin/cat "$1" | head -c 16; exit 1 ;;' \
+    '  *) exec /bin/cat "$@" ;;' 'esac' > "$OWN/bin/cat"
+  printf '%s\n' '#!/bin/bash' 'case "${2:-}" in' '  ${OWN_AWK_FAIL:-/none}) exit 1 ;;' "  *) exec '$real_awk' \"\$@\" ;;" 'esac' > "$OWN/bin/awk"
+  printf '%s\n' '#!/bin/bash' 'case "${1:-}" in' '  ${OWN_MV_FAIL:-/none}) exit 1 ;;' '  *) exec /bin/mv "$@" ;;' 'esac' > "$OWN/bin/mv"
+  chmod +x "$OWN/bin/cat" "$OWN/bin/awk" "$OWN/bin/mv"
+
+  own_ctx "$I" "$OWN_L" '## 에이전트 운영 지침' '' '옛 문구' '' '### 사용자 지침' '' '사용자 지침 본문' '' '### 사용자 지침 2' '' '둘째 본문' '' '## 사용자 메모' '' '사용자 내용'
+  OWN_CAT_FAIL='*/inst/*' own_run_partial "$h" '조립 구간 잇기' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_CAT_FAIL='*/new' own_run_partial "$h" '조립 교체 구간' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_AWK_FAIL='*/out' own_run_partial "$h" '조립 끝 정리' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_MV_FAIL='*/out.tmp' own_run_partial "$h" '조립 이동' "$want" "$I" --context "$TPL_DIR" "$A"
+  OWN_AWK_FAIL='*/i/1' own_run_partial "$h" '조립 소제목' '실패: AI-CONTEXT.md ## 에이전트 운영 지침 — 소제목을 나눌 수 없음' "$I" --context "$TPL_DIR" "$A"
+
+  own_ctx "$I" "$OWN_L" '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | x |' '' '## 사용자 메모' '' '사용자 내용'
+  OWN_CAT_FAIL='*/profile/[0-9]*' own_run_partial "$h" '조립 profile' '실패: AI-CONTEXT.md profile — 임시 결과를 만들 수 없음' "$I" --profile dev "$A"
+
+  # --dirs: 한 대상의 조립 실패가 다음 대상으로 이어지지 않는다.
+  rm -f "$I"
+  mkdir -p "$A/50_adr" "$A/70_ledger"
+  printf '%s\n' '# 50_adr 인덱스' '' '## 수명 주기' '' '옛 문구' '' '## 메모' '' '사용자 메모' > "$A/50_adr/index.md"
+  printf '%s\n' '# 70_ledger 인덱스' '' '옛 머리말' '' '## 항목 목록' '' '사용자 행' '' '## 수명 주기' '' '옛 문구' > "$A/70_ledger/index.md"
+  cp "$A/50_adr/index.md" "$OWN/before"
+  o="$(OWN_ONCE="$OWN/once" OWN_CAT_FAIL='*/inst/*' PATH="$OWN/bin:$PATH" "$h" --dirs "$TPL_DIR" "$A")" && echo '조립 디렉토리 종료 코드'
+  own_has "$o" '실패: 50_adr/index.md — 임시 결과를 만들 수 없음' || echo '조립 디렉토리 실패 행 없음'
+  cmp -s "$OWN/before" "$A/50_adr/index.md" || echo '조립 디렉토리 원본 훼손'
+  own_has "$o" '교체: 70_ledger/index.md ## 수명 주기' || echo '조립 실패 뒤 다른 대상 미처리'
+}
+
+own_case() {
+  local label="$1" out
+  out="$("$2" "$SYNC" 2>&1)"
+  if [ -z "$out" ]; then
+    ok "소유 구간 $label 통과"
+  else
+    ng "소유 구간 $label — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+# own_kill <라벨> <검사 함수> <기대 위반> <변형 함수> <변형 인자>...
+own_kill() {
+  local label="$1" fn="$2" want="$3" mut="$TMP/sync-mut.sh" out
+  shift 3
+  cp "$SYNC" "$mut"
+  local op="$1"; shift
+  "$op" "$mut" "$@" || { ng "소유 구간 $label — 변형 실패"; return; }
+  chmod +x "$mut"
+  bash -n "$mut" 2>/dev/null || { ng "소유 구간 $label — 변형 사본 문법 오류"; return; }
+  out="$("$fn" "$mut" 2>&1)"
+  if printf '%s\n' "$out" | grep -qxF -e "$want"; then
+    ok "소유 구간 $label 격추"
+  else
+    ng "소유 구간 $label — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+own_case '정상' own_normal
+own_case '섹션 없음' own_missing
+own_case '사용자 섹션 보존' own_preserve
+own_case '실패 경로' own_fail
+own_case 'SSoT 선언별 템플릿 선택' own_ssot
+own_case '소제목 유지' own_subsec
+own_case '들여쓴 제목' own_indent
+own_case '쓰기 도중 실패' own_partial
+own_case '임시 결과 조립 실패' own_build
+
+own_kill '쓰기 도중 복구 제거' own_partial '안내도 원본 훼손' sub_str '! { cat "$bak" > "$3"; } 2>/dev/null' 'false'
+own_kill '새 파일 잔여물 삭제 제거' own_partial '새 파일 잔존' sub_str 'rm -f "$3"' ':'
+own_kill '복구 실패 시 백업 보존 제거' own_partial '복구 실패 백업 불일치' drop_line 'trap - EXIT'
+own_kill '백업 실패 중단 제거' own_partial '백업 실패 종료 코드' drop_line "'백업 실패'"
+own_kill '조립 실패 검사 제거' own_build '조립 구간 잇기 원본 훼손' drop_line '임시 결과를 만들 수 없음'
+own_kill '조립 실패 표시 제거' own_build '조립 구간 잇기 원본 훼손' sub_str '2>/dev/null || build_failed=1' '2>/dev/null'
+own_kill '조립 이동 실패 표시 제거' own_build '조립 이동 종료 코드' sub_str 'mv "$1.tmp" "$1" 2>/dev/null || build_failed=1' 'mv "$1.tmp" "$1" 2>/dev/null'
+own_kill '대상별 조립 표시 초기화 제거' own_build '조립 실패 뒤 다른 대상 미처리' sub_str '  build_failed=0' '  build_failed=${build_failed:-0}'
+own_kill '소제목 조립 실패 검사 제거' own_build '조립 소제목 원본 훼손' sub_str 'trim_tail "$d/i/$k" || return 1' 'trim_tail "$d/i/$k"'
+own_kill '같은 제목 검사 제거' own_fail '같은 제목 종료 코드' drop_line '같은 제목이'
+own_kill '소제목 유지 제거' own_subsec '사용자 소제목 사라짐' sub_str 'trim_tail "$d/i/$k"' ':'
+own_kill '템플릿 소제목 중복 방지 제거' own_subsec '템플릿 소제목 중복' drop_line 'grep -qxF -e "$t" "$d/t/titles"'
+own_kill '템플릿 선택 dev 고정' own_ssot '원본 문서 선언 템플릿 불일치' sub_str 'then p=doc' 'then p=dev'
+own_kill '비표준 선언 실패 제거' own_fail '비표준 선언 종료 코드' sub_str "fail_line AI-CONTEXT.md '본문 2번째 줄이 표준 SSoT 선언이 아님'" ':'
+own_kill '들여쓴 제목 경계 제거' own_indent '들여쓴 사용자 섹션 사라짐' sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0'
+own_kill '제목 앞 공백 3칸 제한 제거' own_indent '4칸 제목을 경계로 셈' sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0; sub(/^ +/, "", line)'
+own_kill '들여쓴 제목 정규화 제거' own_indent '들여쓴 표준 제목 남음' sub_str 't = line; sub(' 't = $0; sub('
+own_kill '펜스 안 제목 판정 제거' own_normal '--dirs 종료 코드' cut_str '!fence_ch && !in_comment && '
+own_kill '인라인 코드 주석 표식 제외 제거' own_normal '--dirs 종료 코드' drop_line 'if (!in_comment) gsub('
+own_kill '닫히지 않은 펜스 검사 제거' own_fail '닫히지 않은 펜스 종료 코드' drop_line '닫히지 않은 코드 펜스"; exit 1'
+own_kill '닫히지 않은 주석 검사 제거' own_fail '닫히지 않은 주석 종료 코드' drop_line '닫히지 않은 HTML 주석"; exit 1'
+own_kill '파일 단위 실패 제거' own_fail '부분 실패 파일 변경' drop_line '[ "$bad" -eq 0 ] || return'
+own_kill '제목 없음 실패 제거' own_fail '제목 없음 종료 코드' drop_line '`##` 제목이 없어 경계를 정할 수 없음'
+
+# --- 소유 구간 절차 -----------------------------------------------------------------
+#
+# 헬퍼는 SKILL.md 절차가 호출해야 update 실행에서 동작한다 (#134). 호출과 처리 조항이 정해진 단계 안에 있는지 본다.
+# 질의와 완료 보고는 AI가 수행하는 절차라 동작 대신 문구 앵커로 판정한다.
+
+# proc_sec <SKILL.md> <시작 정규식> <끝 정규식> — 시작 행 다음부터 끝 행 전까지.
+proc_sec() { awk -v a="$2" -v b="$3" '$0 ~ a { f = 1; next } f && $0 ~ b { exit } f' "$1"; }
+
+# proc_need <구간> <위반 행> <문자열> — 구간에 문자열이 없으면 위반 행을 출력한다.
+# 구간이 파이프 버퍼보다 길 수 있어 `printf | grep -q` 대신 here-string으로 넘긴다 (pipefail이 SIGPIPE를 실패로 본다).
+proc_need() { grep -qF -e "$3" <<< "$1" || echo "$2"; }
+
+# proc_violations <SKILL.md> — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
+proc_violations() {
+  local f="$1" s
+  s="$(proc_sec "$f" '^### 1단계: 프로파일 확인' '^### 2단계')"
+  proc_need "$s" '1단계 호출' "\"\$check\" --profile '.ai/AI-CONTEXT.md'"
+  proc_need "$s" '1단계 추정 금지' '내용을 보고 추정하지 않습니다'
+  proc_need "$s" '1단계 자동 변경 금지' '안내도 값을 자동으로 바꾸지 않습니다'
+  proc_need "$s" '1단계 답 반영' '그 값이 update-4 `#### 표준 구간 최신화`에서 반영됩니다'
+  proc_need "$s" '1단계 행 정리' '사용자가 고른 값으로 update-4가 행을 하나로 정리합니다'
+
+  s="$(proc_sec "$f" '^#### 하위 디렉토리 구조 생성' '^#### 기존 파일 정리')"
+  proc_need "$s" 'update-3 호출' "\"\$sync\" --dirs '<skill 디렉토리>/templates' '.ai'"
+  proc_need "$s" 'update-3 실패 처리' '`실패:` 행을 update-5 보고에 싣습니다'
+  grep -qF '설치본에 이미 있으면 사용자 작성분이므로 덮어쓰지 않습니다' "$f" && echo 'update-3 옛 조항'
+
+  s="$(proc_sec "$f" '^#### 표준 구간 최신화' '^### update-5단계')"
+  proc_need "$s" 'update-4 profile 호출' "\"\$sync\" --profile '<1단계에서 정한 프로파일>' '.ai'"
+  proc_need "$s" 'update-4 context 호출' "\"\$sync\" --context '<skill 디렉토리>/templates' '.ai'"
+  proc_need "$s" 'update-4 실패 처리' '`실패:` 행을 update-5 보고에 싣습니다'
+  # 마지막 소절이어야 위 검사의 조치와 마이그레이션이 끝난 안내도를 교체한다.
+  grep -q '^#### ' <<< "$s" && echo 'update-4 소절 위치'
+  grep -qF '`## .ai 디렉토리 구조` 바로 다음에 표준 골격' "$f" || echo 'update-4 삽입 규칙'
+  grep -qF '다른 사용자 작성분은 보존한다' "$f" && echo 'update-4 옛 보존 조항'
+
+  s="$(proc_sec "$f" '^### update-5단계' '^---$')"
+  proc_need "$s" 'update-5 보고' '`sync-owned.sh` 출력의 `교체:`·`추가:`·`실패:` 행'
+}
+
+# swap_lines <파일> <행 A> <행 B> — 두 행의 내용을 맞바꾼다. 소절 순서를 바꾼 사본을 만드는 데 쓴다.
+swap_lines() {
+  awk -v a="$2" -v b="$3" '
+    $0 == a { print b; x = 1; next }
+    $0 == b { print a; y = 1; next }
+    { print }
+    END { exit !(x && y) }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+# proc_kill <라벨> <기대 위반> <변형 명령...> — SKILL.md 사본을 변형한 뒤 위반을 본다.
+proc_kill() {
+  local label="$1" want="$2" out
+  shift 2
+  cp "$SKILL" "$C_SKILL"
+  "$@" || { ng "소유 구간 절차 $label — 변형 실패"; return; }
+  out="$(proc_violations "$C_SKILL")"
+  if printf '%s\n' "$out" | grep -qxF -e "$want"; then
+    ok "소유 구간 절차 $label 격추"
+  else
+    ng "소유 구간 절차 $label — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+out="$(proc_violations "$SKILL")"
+if [ -z "$out" ]; then
+  ok '소유 구간 절차 앵커 통과'
+else
+  ng "소유 구간 절차 앵커 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+proc_kill '1단계 호출 제거' '1단계 호출' drop_line "$C_SKILL" '"$check" --profile'
+proc_kill '1단계 추정 금지 제거' '1단계 추정 금지' cut_str "$C_SKILL" '프로파일을 안내도나 프로젝트의 내용을 보고 추정하지 않습니다. '
+proc_kill '1단계 자동 변경 금지 제거' '1단계 자동 변경 금지' cut_str "$C_SKILL" '인자와 `profile` 값이 달라도 안내도 값을 자동으로 바꾸지 않습니다. '
+proc_kill '1단계 답 반영 제거' '1단계 답 반영' cut_str "$C_SKILL" '사용자가 바꾸기로 답하면 그 값이 update-4 `#### 표준 구간 최신화`에서 반영됩니다. '
+proc_kill '1단계 행 정리 제거' '1단계 행 정리' cut_str "$C_SKILL" '`profile` 행이 둘 이상이면 사용자가 고른 값으로 update-4가 행을 하나로 정리합니다.'
+proc_kill 'update-3 호출 제거' 'update-3 호출' drop_line "$C_SKILL" '"$sync" --dirs'
+proc_kill 'update-3 호출 위치 변경' 'update-3 호출' swap_lines "$C_SKILL" '#### 스킬 소유 파일·구간 최신화' '#### 기존 파일 정리'
+proc_kill 'update-3 실패 처리 제거' 'update-3 실패 처리' drop_line "$C_SKILL" '`실패:` 행을 update-5 보고에 싣습니다'
+proc_kill 'update-3 옛 조항 복원' 'update-3 옛 조항' sub_str "$C_SKILL" '구간 밖의 내용(ADR 파일 목록' '설치본에 이미 있으면 사용자 작성분이므로 덮어쓰지 않습니다. 구간 밖의 내용(ADR 파일 목록'
+proc_kill 'update-4 profile 호출 제거' 'update-4 profile 호출' drop_line "$C_SKILL" '"$sync" --profile'
+proc_kill 'update-4 context 호출 제거' 'update-4 context 호출' drop_line "$C_SKILL" '"$sync" --context'
+proc_kill 'update-4 실패 처리 제거' 'update-4 실패 처리' drop_line "$C_SKILL" '`실패:` 행을 update-5 보고에 싣습니다'
+proc_kill 'update-4 소절 위치 변경' 'update-4 소절 위치' swap_lines "$C_SKILL" '#### 구버전 구조 마이그레이션' '#### 표준 구간 최신화'
+proc_kill 'update-4 삽입 규칙 제거' 'update-4 삽입 규칙' cut_str "$C_SKILL" '`## .ai 디렉토리 구조` 바로 다음에 표준 골격'
+proc_kill 'update-4 옛 보존 조항 복원' 'update-4 옛 보존 조항' sub_str "$C_SKILL" '위 4곳은 표준 섹션 안에 있어' 'dev 표준 문구와 다른 사용자 작성분은 보존한다. 위 4곳은 표준 섹션 안에 있어'
+proc_kill 'update-5 보고 제거' 'update-5 보고' drop_line "$C_SKILL" '`sync-owned.sh` 출력의'
+
+# --- 프로파일 행 ---------------------------------------------------------------------
+
+# `## 프로젝트 도메인` 첫 표의 `profile` 행을 일반 검사, `--profile` 판정, 쓰기가 같은 범위로 보는지 본다 (#134).
+# 판정 표는 check-context.sh 머리 주석과 같고 위 조건부터 차례로 적용한다.
+# 검사 함수는 check-context.sh 와 sync-owned.sh 경로를 받아 위반을 1행씩 출력한다.
+
+PROF="$TMP/prof"
+PROF_IN="$TMP/prof-in"
+mkdir -p "$PROF_IN"
+sed '/^| profile | /d' "$BASE" > "$PROF_IN/none.md"
+sed 's/^| profile | dev |$/| profile | foo |/' "$BASE" > "$PROF_IN/bad.md"
+sed 's/^| profile | dev |$/| profile | doc |/' "$BASE" > "$PROF_IN/bld.md"
+awk '{ print } $0 == "| profile | dev |" { print "| profile | doc |" }' "$BASE" > "$PROF_IN/dup.md"
+awk '{ print } $0 == "| profile | dev |" { print }' "$BASE" > "$PROF_IN/dup-same.md"
+
+# prof_report <라벨> <입력> <기대 행> — 망가뜨린 입력이 일반 검사에 걸리는지 본다.
+prof_report() {
+  local out rc
+  out="$("$CHECK" "$2" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qxF -e "$3"; then
+    ok "프로파일 $1 격추"
+  else
+    ng "프로파일 $1 — exit 1과 '$3' 기대, 실제 exit $rc: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+# prof_doc <파일> [첫 표 끝에 둘 행]... — 안내도 입력을 쓴다.
+prof_doc() {
+  local f="$1"; shift
+  {
+    printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$OWN_L" '' \
+      '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | d |' '| keywords | k |'
+    [ $# -eq 0 ] || printf '%s\n' "$@"
+    printf '%s\n' '' '> 메모' '' '## 프로젝트 목적' '' '목적'
+  } > "$f"
+}
+
+prof_fresh() { rm -rf "$PROF"; mkdir -p "$PROF/.ai"; }
+
+# 프로파일과 SSoT 선언은 서로 대조하지 않는다.
+prof_combo() {
+  "$1" "$PROF_IN/bld.md" >/dev/null 2>&1 || echo 'doc 프로파일과 소스 코드 선언 보고'
+  prepare "$TPL_DIR/doc/.ai/AI-CONTEXT.md" "$TMP/prof-doc.md"
+  sed -i.bak 's/^| profile | doc |$/| profile | dev |/' "$TMP/prof-doc.md" && rm -f "$TMP/prof-doc.md.bak"
+  "$1" "$TMP/prof-doc.md" >/dev/null 2>&1 || echo 'dev 프로파일과 원본 문서 선언 보고'
+}
+
+# prof_want <check> <라벨> <기대 출력, 묻는 경우 질의:> <파일> [인자]
+prof_want() {
+  local c="$1" label="$2" want="$3" o rc code=0
+  shift 3
+  [ "$want" != '질의:' ] || code=1
+  o="$("$c" --profile "$@" 2>&1)"; rc=$?
+  [ "$rc" -eq "$code" ] || echo "${label} 종료 코드"
+  if [ "$want" = '질의:' ]; then
+    [ "$(printf '%s\n' "$o" | wc -l | tr -d ' ')" = 1 ] && printf '%s\n' "$o" | grep -q '^질의: ' || echo "${label} 질의 행"
+  else
+    [ "$o" = "$want" ] || echo "${label} 출력"
+  fi
+}
+
+prof_decide() {
+  local c="$1" i="$PROF_IN" snap="$TMP/prof-snap"
+  rm -rf "$snap"; cp -R "$i" "$snap"
+  prof_want "$c" '인자 오류' '질의:' "$BASE" foo
+  prof_want "$c" '인자 오류 안내도 없음' '질의:' "$i/absent.md" foo
+  prof_want "$c" '인자 빈 값' '질의:' "$BASE" ''
+  prof_want "$c" '행 둘 인자 없음' '질의:' "$i/dup.md"
+  prof_want "$c" '행 둘 인자 dev' '질의:' "$i/dup.md" dev
+  prof_want "$c" '행 둘 인자 doc' '질의:' "$i/dup.md" doc
+  prof_want "$c" '같은 값 행 둘 인자 없음' '질의:' "$i/dup-same.md"
+  prof_want "$c" '같은 값 행 둘 인자 dev' '질의:' "$i/dup-same.md" dev
+  prof_want "$c" '인자 없음 유효 dev' dev "$BASE"
+  prof_want "$c" '인자 없음 유효 doc' doc "$i/bld.md"
+  prof_want "$c" '인자 없음 행 없음' '질의:' "$i/none.md"
+  prof_want "$c" '인자 없음 값 무효' '질의:' "$i/bad.md"
+  prof_want "$c" '인자 없음 안내도 없음' '질의:' "$i/absent.md"
+  prof_want "$c" '인자 같음 dev' dev "$BASE" dev
+  prof_want "$c" '인자 같음 doc' doc "$i/bld.md" doc
+  prof_want "$c" '인자 있음 행 없음' doc "$i/none.md" doc
+  prof_want "$c" '인자 있음 값 무효' doc "$i/bad.md" doc
+  prof_want "$c" '인자 있음 안내도 없음' doc "$i/absent.md" doc
+  prof_want "$c" '인자 다름 doc' '질의:' "$BASE" doc
+  prof_want "$c" '인자 다름 dev' '질의:' "$i/bld.md" dev
+  diff -r "$snap" "$i" >/dev/null || echo '판정이 파일 변경'
+  "$c" --profile >/dev/null 2>&1; [ $? -eq 2 ] || echo '경로 없음 종료 코드'
+  "$c" --profile "$BASE" dev extra >/dev/null 2>&1; [ $? -eq 2 ] || echo '인자 초과 종료 코드'
+}
+
+prof_write() {
+  local h="$2" A="$PROF/.ai" I="$PROF/.ai/AI-CONTEXT.md" W="$PROF/want" o rc r
+  prof_fresh
+
+  # 추가: 첫 표 끝에 넣고 나머지는 그대로 둔다.
+  prof_doc "$I"; prof_doc "$W" '| profile | doc |'
+  o="$("$h" --profile doc "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '추가 종료 코드'
+  [ "$o" = '추가: AI-CONTEXT.md profile' ] || echo '추가 출력'
+  cmp -s "$W" "$I" || echo '추가 결과'
+  o="$("$h" --profile doc "$A")"
+  [ -z "$o" ] || echo '추가 재실행 출력'
+  cmp -s "$W" "$I" || echo '추가 재실행 파일 변경'
+
+  # 교체: 값만 바꾼다.
+  prof_doc "$W" '| profile | dev |'
+  o="$("$h" --profile dev "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '교체 종료 코드'
+  [ "$o" = '교체: AI-CONTEXT.md profile' ] || echo '교체 출력'
+  cmp -s "$W" "$I" || echo '교체 결과'
+  o="$("$h" --profile dev "$A")"
+  [ -z "$o" ] || echo '교체 재실행 출력'
+
+  # 행 정리: 첫 행 자리에 그 값을 두고 나머지를 지운다.
+  prof_doc "$I" '| profile | dev |' '| 메모 | 사용자 행 |' '| profile | doc |'
+  prof_doc "$W" '| profile | doc |' '| 메모 | 사용자 행 |'
+  o="$("$h" --profile doc "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '행 정리 종료 코드'
+  [ "$o" = '교체: AI-CONTEXT.md profile' ] || echo '행 정리 출력'
+  cmp -s "$W" "$I" || echo '행 정리 결과'
+  o="$("$h" --profile doc "$A")"
+  [ -z "$o" ] || echo '행 정리 재실행 출력'
+
+  # 첫 행의 값이 이미 같아도 나머지 행을 지운다.
+  prof_doc "$I" '| profile | doc |' '| profile | doc |'
+  prof_doc "$W" '| profile | doc |'
+  o="$("$h" --profile doc "$A")"
+  [ "$o" = '교체: AI-CONTEXT.md profile' ] || echo '같은 값 행 정리 출력'
+  cmp -s "$W" "$I" || echo '같은 값 행 정리 결과'
+
+  # 값이 같으면 표기가 달라도 그대로 둔다.
+  prof_doc "$I" '|profile|  doc  |'
+  cp "$I" "$W"
+  o="$("$h" --profile doc "$A")"
+  [ -z "$o" ] || echo '표기 차이 출력'
+  cmp -s "$W" "$I" || echo '표기 차이 파일 변경'
+
+  # 표가 파일 끝에 있어도 표 안에 넣는다.
+  printf '%s\n' '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | d |' > "$I"
+  o="$("$h" --profile dev "$A")"
+  [ "$o" = '추가: AI-CONTEXT.md profile' ] || echo '파일 끝 표 출력'
+  [ "$(tail -1 "$I")" = '| profile | dev |' ] || echo '파일 끝 표 위치'
+
+  # 권한과 심볼릭 링크를 유지한다.
+  r="$PROF/real.md"
+  prof_doc "$r"; chmod 600 "$r"
+  rm -f "$I"; ln -s "$r" "$I"
+  "$h" --profile dev "$A" >/dev/null || echo '심볼릭 링크 종료 코드'
+  [ -L "$I" ] || echo '심볼릭 링크 사라짐'
+  [ "$(ls -l "$r" | cut -c1-10)" = '-rw-------' ] || echo '권한 바뀜'
+  grep -qxF '| profile | dev |' "$r" || echo '심볼릭 링크 대상 미반영'
+}
+
+# prof_fail_one <helper> <라벨> <기대 사유> — 파일을 그대로 두고 실패 행과 종료 코드 1을 내는지 본다.
+prof_fail_one() {
+  local h="$1" label="$2" why="$3" A="$PROF/.ai" I="$PROF/.ai/AI-CONTEXT.md" o rc
+  cp "$I" "$PROF/before"
+  o="$("$h" --profile dev "$A")"; rc=$?
+  [ "$rc" -eq 1 ] || echo "${label} 종료 코드"
+  [ "$o" = "실패: AI-CONTEXT.md profile — ${why}" ] || echo "${label} 실패 행"
+  cmp -s "$PROF/before" "$I" || echo "${label} 파일 변경"
+}
+
+prof_write_fail() {
+  local h="$2" A="$PROF/.ai" I="$PROF/.ai/AI-CONTEXT.md" o rc
+  prof_fresh
+  printf '%s\n' '# AI-CONTEXT.md' '' '## 프로젝트 목적' '' '목적' > "$I"
+  prof_fail_one "$h" '섹션 없음' '`## 프로젝트 도메인` 섹션 없음'
+  printf '%s\n' '# AI-CONTEXT.md' '' '## 프로젝트 도메인' '' '표 없는 본문' '' '## 프로젝트 목적' '' '| 항목 | 값 |' > "$I"
+  prof_fail_one "$h" '표 없음' '`## 프로젝트 도메인` 표 없음'
+  printf '%s\n' '## 프로젝트 도메인' '' '| 항목 | 값 |' '' '## 프로젝트 도메인' '' '| 항목 | 값 |' > "$I"
+  prof_fail_one "$h" '같은 제목' '같은 제목이 2개'
+  printf '%s\n' '## 프로젝트 도메인' '' '| 항목 | 값 |' '' '```' '옛' > "$I"
+  prof_fail_one "$h" '닫히지 않은 펜스' '닫히지 않은 코드 펜스'
+  printf '%s\n' '## 프로젝트 도메인' '' '| 항목 | 값 |' '' '<!-- 옛' > "$I"
+  prof_fail_one "$h" '닫히지 않은 주석' '닫히지 않은 HTML 주석'
+
+  rm -f "$I"
+  o="$("$h" --profile dev "$A")"; rc=$?
+  [ "$rc" -eq 1 ] || echo '안내도 없음 종료 코드'
+  [ "$o" = '실패: AI-CONTEXT.md profile — 파일 없음' ] || echo '안내도 없음 실패 행'
+  [ ! -e "$I" ] || echo '안내도 없음 파일 생성'
+
+  "$h" --profile foo "$A" >/dev/null 2>&1; [ $? -eq 2 ] || echo '값 오류 종료 코드'
+  "$h" --profile dev "$PROF/absent" >/dev/null 2>&1; [ $? -eq 2 ] || echo '디렉토리 없음 종료 코드'
+  "$h" --profile dev >/dev/null 2>&1; [ $? -eq 2 ] || echo '인자 부족 종료 코드'
+}
+
+# 펜스·주석 안과 둘째 표의 `profile` 행은 세지 않고, 세 경로가 같은 행을 본다.
+prof_scope() {
+  local c="$1" h="$2" A="$PROF/.ai" I="$PROF/.ai/AI-CONTEXT.md" o rc
+  prof_fresh
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$OWN_L" '' \
+    '```' '## 프로젝트 도메인' '' '| profile | doc |' '```' '' \
+    '## 프로젝트 도메인' '' '<!--' '| profile | foo |' '-->' '' '```' '| profile | doc |' '```' '' \
+    '| 항목 | 값 |' '|------|----|' '| domain | d |' '| keywords | k |' \
+    '@ROW@' '' '| 둘째 표 | 값 |' '|------|----|' '| profile | doc |' '' '## 프로젝트 목적' '' '목적' > "$PROF/tpl"
+  sed '/^@ROW@$/d' "$PROF/tpl" > "$I"
+  sed 's/^@ROW@$/| profile | dev |/' "$PROF/tpl" > "$PROF/want"
+
+  o="$("$c" --profile "$I")"; rc=$?
+  [ "$rc" -eq 1 ] || echo '범위 판정 행 없음 종료 코드'
+  o="$("$c" --profile "$I" dev)"; rc=$?
+  [ "$rc" -eq 0 ] && [ "$o" = dev ] || echo '범위 판정 인자 사용'
+  o="$("$c" "$I")"
+  printf '%s\n' "$o" | grep -qxF "누락: '## 프로젝트 도메인' 표의 \`profile\` 행" || echo '범위 일반 검사 행 없음'
+
+  o="$("$h" --profile dev "$A")"; rc=$?
+  [ "$rc" -eq 0 ] || echo '범위 쓰기 종료 코드'
+  [ "$o" = '추가: AI-CONTEXT.md profile' ] || echo '범위 쓰기 출력'
+  cmp -s "$PROF/want" "$I" || echo '범위 쓰기 결과'
+
+  [ "$("$c" --profile "$I")" = dev ] || echo '범위 쓰기 뒤 판정'
+  o="$("$c" "$I")"
+  ! printf '%s\n' "$o" | grep -q '`profile`' || echo '범위 쓰기 뒤 일반 검사 보고'
+  o="$("$h" --profile dev "$A")"
+  [ -z "$o" ] || echo '범위 재실행 출력'
+}
+
+# 앞 공백 3칸까지의 제목은 읽기와 쓰기가 같은 경계로 본다.
+prof_indent() {
+  local c="$1" h="$2" A="$PROF/.ai" I="$PROF/.ai/AI-CONTEXT.md" o rc
+  prof_fresh
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$OWN_L" '' \
+    '  ## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| profile | doc |' > "$I"
+  [ "$("$c" --profile "$I")" = doc ] || echo '들여쓴 도메인 제목 판정'
+  o="$("$h" --profile dev "$A")"; rc=$?
+  [ "$rc" -eq 0 ] && [ "$o" = '교체: AI-CONTEXT.md profile' ] || echo '들여쓴 도메인 제목 쓰기'
+  grep -qxF '| profile | dev |' "$I" || echo '들여쓴 도메인 제목 쓰기 결과'
+  grep -qxF '  ## 프로젝트 도메인' "$I" || echo '도메인 제목 들여쓰기 변경'
+
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$OWN_L" '' \
+    '## 프로젝트 도메인' '' '도메인 설명' '' '  ## 프로젝트 목적' '' '| 항목 | 값 |' '|------|----|' '| profile | doc |' > "$I"
+  "$c" --profile "$I" >/dev/null && echo '들여쓴 다음 제목 경계 판정'
+  "$h" --profile dev "$A" >/dev/null && echo '들여쓴 다음 제목 경계 쓰기'
+}
+
+# 일반 검사도 앞 공백 3칸까지의 제목을 같은 섹션으로 본다. 기준이 다르면 update-4 가 있는 섹션을 또 넣는다.
+prof_section_indent() {
+  local c="$1" I="$PROF/.ai/AI-CONTEXT.md" o p
+  local head="# AI-CONTEXT.md" date='> last updated: 2026-01-01'
+  local premise='> 전제: 상위 디렉토리에 `.ai/AI-CONTEXT.md`가 있으면'
+  local prio='**소스 코드 > 이 repo 안내도 > 상위 워크스페이스 안내도**'
+  local residue="누락: doc 선언의 충돌 우선순위 ('### 진입 절차'에 dev 표준 우선순위 잔존 — doc 문구로 교체 대상)"
+  prof_fresh
+
+  for p in dev doc; do
+    prepare "$TPL_DIR/$p/.ai/AI-CONTEXT.md" "$I"
+    sed -i.bak 's/^## /   ## /' "$I" && rm -f "$I.bak"
+    o="$("$c" "$I" 2>&1)" || echo "들여쓴 표준 제목 ${p} 보고"
+    [ -z "$o" ] || echo "들여쓴 표준 제목 ${p} 출력"
+  done
+
+  # 4칸은 들여쓴 코드 블록이라 제목이 아니다.
+  prepare "$TPL_DIR/dev/.ai/AI-CONTEXT.md" "$I"
+  sed -i.bak 's/^## 프로젝트 도메인$/    ## 프로젝트 도메인/' "$I" && rm -f "$I.bak"
+  o="$("$c" "$I" 2>&1)"
+  own_has "$o" "누락: '## 프로젝트 도메인' 섹션" || echo '4칸 제목을 섹션으로 셈'
+
+  # 들여쓴 다음 제목에서 섹션이 끝난다.
+  printf '%s\n' "$head" '' "$date" "$OWN_D" '' \
+    '## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| domain | d |' '' '  ## 다음 1' '' '| keywords | k |' '' \
+    '## 프로젝트 규칙' '' '  ## 다음 2' '' '| 파일 | 설명 | 사용 시점 |' '' \
+    '## 에이전트 운영 지침' '' '  ## 다음 3' '' "$premise" "$prio" > "$I"
+  o="$("$c" "$I" 2>&1)"
+  own_has "$o" "누락: '## 프로젝트 도메인' 표의 \`keywords\` 행" || echo '들여쓴 경계 도메인'
+  own_has "$o" "누락: '## 프로젝트 규칙' 표 (섹션은 있고 표 부재 — 섹션 끝에 3열 표 삽입 대상)" || echo '들여쓴 경계 규칙'
+  own_has "$o" "누락: '## 에이전트 운영 지침' 의 전제 컨벤션 한 줄" || echo '들여쓴 경계 운영 지침'
+  own_has "$o" "$residue" && echo '들여쓴 경계 잔존 문구'
+
+  # 들여쓴 제목 안의 잔존 문구와 구버전 섹션도 그대로 보고한다.
+  printf '%s\n' "$head" '' "$date" "$OWN_D" '' '  ## 에이전트 운영 지침' '' "$prio" '' '  ## 워크스페이스 위치' > "$I"
+  o="$("$c" "$I" 2>&1)"
+  own_has "$o" "$residue" || echo '들여쓴 제목 잔존 문구 미보고'
+  own_has "$o" "구버전: '## 워크스페이스 위치' 섹션 — '## 프로젝트 도메인' 2행 표로 마이그레이션 대상" || echo '들여쓴 구버전 섹션 미보고'
+}
+
+# 두 헬퍼의 추적 코드는 사본이다. 달라지면 읽기와 쓰기의 범위가 갈라진다.
+prof_tracker() {
+  local block="/^MD_TRACK_AWK='/{f=1} f{print} f&&/^'\$/{exit}"
+  awk "$block" "$1" > "$TMP/prof-track-c"
+  awk "$block" "$2" > "$TMP/prof-track-h"
+  [ -s "$TMP/prof-track-c" ] || echo '추적 코드 없음'
+  cmp -s "$TMP/prof-track-c" "$TMP/prof-track-h" || echo '추적 코드 불일치'
+}
+
+prof_case() {
+  local label="$1" out
+  out="$("$2" "$CHECK" "$SYNC" 2>&1)"
+  if [ -z "$out" ]; then
+    ok "프로파일 $label 통과"
+  else
+    ng "프로파일 $label — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+# prof_kill <라벨> <검사 함수> <기대 위반> <check|sync> <변형 함수> <변형 인자>...
+prof_kill() {
+  local label="$1" fn="$2" want="$3" which="$4" c="$CHECK" h="$SYNC" mut="$TMP/prof-mut.sh" out
+  shift 4
+  if [ "$which" = check ]; then cp "$CHECK" "$mut"; c="$mut"; else cp "$SYNC" "$mut"; h="$mut"; fi
+  local op="$1"; shift
+  "$op" "$mut" "$@" || { ng "프로파일 $label — 변형 실패"; return; }
+  chmod +x "$mut"
+  bash -n "$mut" 2>/dev/null || { ng "프로파일 $label — 변형 사본 문법 오류"; return; }
+  out="$("$fn" "$c" "$h" 2>&1)"
+  if printf '%s\n' "$out" | grep -qxF -e "$want"; then
+    ok "프로파일 $label 격추"
+  else
+    ng "프로파일 $label — 위반에 '$want' 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+  fi
+}
+
+prof_report '행 누락' "$PROF_IN/none.md" "누락: '## 프로젝트 도메인' 표의 \`profile\` 행"
+prof_report '행 중복' "$PROF_IN/dup.md" "누락: '## 프로젝트 도메인' 표의 \`profile\` 행 — 2개"
+prof_report '값 오류' "$PROF_IN/bad.md" "누락: '## 프로젝트 도메인' 표의 \`profile\` 값 — 실제 [foo]"
+
+prof_case 'SSoT 조합' prof_combo
+prof_case '결정' prof_decide
+prof_case '쓰기' prof_write
+prof_case '쓰기 실패 경로' prof_write_fail
+prof_case '범위 일치' prof_scope
+prof_case '들여쓴 제목' prof_indent
+prof_case '일반 검사 들여쓴 제목' prof_section_indent
+prof_case '추적 코드 일치' prof_tracker
+
+prof_kill '행 둘 판정 제거' prof_decide '행 둘 인자 dev 종료 코드' check drop_line '행이 ${state#many }개"; return 1'
+prof_kill '인자 다름 질의 제거' prof_decide '인자 다름 doc 종료 코드' check sub_str '[ -z "$value" ] || [ "$value" = "$2" ]' '[ -z "$2" ] || [ "$2" = "$2" ]'
+prof_kill '읽기 펜스·주석 제외 제거' prof_scope '범위 판정 행 없음 종료 코드' check sub_str 'visible = (fence_ch == "" && !in_comment)' 'visible = 1'
+prof_kill '읽기 첫 표 제한 제거' prof_scope '범위 판정 행 없음 종료 코드' check sub_str '} else if (table) exit' '}'
+prof_kill '읽기 들여쓴 제목 제거' prof_indent '들여쓴 도메인 제목 판정' check sub_str 'h = line; sub(/^ ? ? ?/, "", h)' 'h = line'
+prof_kill '읽기 들여쓴 경계 제거' prof_indent '들여쓴 다음 제목 경계 판정' check sub_str 'index(h, "## ") == 1' 'index(line, "## ") == 1'
+prof_kill '쓰기 들여쓴 제목 제거' prof_indent '들여쓴 도메인 제목 쓰기' sync sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0'
+
+# sub_after <파일> <앵커> <찾을 문자열> <바꿀 문자열> — 앵커 행 뒤 첫 등장 하나를 바꾼다(고정 문자열 대조).
+sub_after() {
+  awk -v a="$2" -v s="$3" -v r="$4" '
+    !done && seen && (i = index($0, s)) { $0 = substr($0, 1, i - 1) r substr($0, i + length(s)); done = 1 }
+    index($0, a) { seen = 1 }
+    { print }
+    END { exit !done }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+SEC_IND='/^ ? ? ?## '
+SEC_ONE='/^## '
+SEC_END='f && /^ ? ? ?## / { exit }'
+SEC_END_ONE='f && /^## / { exit }'
+prof_kill '일반 검사 도메인 존재 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "grep -qE '^ ? ? ?## 프로젝트 도메인" "grep -qE '^## 프로젝트 도메인"
+prof_kill '일반 검사 도메인 행 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "${SEC_IND}프로젝트 도메인" "${SEC_ONE}프로젝트 도메인"
+prof_kill '일반 검사 규칙 존재 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "grep -qE '^ ? ? ?## 프로젝트 규칙" "grep -qE '^## 프로젝트 규칙"
+prof_kill '일반 검사 규칙 헤더 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "${SEC_IND}프로젝트 규칙" "${SEC_ONE}프로젝트 규칙"
+prof_kill '일반 검사 규칙 행 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_after "-v needle=\"\$row\"" "${SEC_IND}프로젝트 규칙" "${SEC_ONE}프로젝트 규칙"
+prof_kill '일반 검사 운영 지침 존재 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "grep -qE '^ ? ? ?## 에이전트 운영 지침" "grep -qE '^## 에이전트 운영 지침"
+prof_kill '일반 검사 운영 지침 본문 들여쓰기 제거' prof_section_indent '들여쓴 표준 제목 dev 보고' check sub_str "${SEC_IND}에이전트 운영 지침" "${SEC_ONE}에이전트 운영 지침"
+prof_kill '일반 검사 구버전 섹션 들여쓰기 제거' prof_section_indent '들여쓴 구버전 섹션 미보고' check sub_str "grep -qE '^ ? ? ?## 워크스페이스 위치" "grep -qE '^## 워크스페이스 위치"
+prof_kill '일반 검사 잔존 문구 제목 들여쓰기 제거' prof_section_indent '들여쓴 제목 잔존 문구 미보고' check sub_str 'h = $0; sub(/^ ? ? ?/, "", h); ' 'h = $0; '
+prof_kill '일반 검사 공백 3칸 제한 제거' prof_section_indent '4칸 제목을 섹션으로 셈' check sub_str "grep -qE '^ ? ? ?## 프로젝트 도메인" "grep -qE '^ *## 프로젝트 도메인"
+prof_kill '일반 검사 도메인 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 도메인' check sub_str "$SEC_END" "$SEC_END_ONE"
+prof_kill '일반 검사 규칙 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 규칙' check sub_after 'rules_header="$(awk' "$SEC_END" "$SEC_END_ONE"
+prof_kill '일반 검사 운영 지침 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 운영 지침' check sub_after 'needle="$PREMISE"' "$SEC_END" "$SEC_END_ONE"
+prof_kill '일반 검사 잔존 문구 경계 들여쓰기 제거' prof_section_indent '들여쓴 경계 잔존 문구' check sub_after 'dev_residue() {' "$SEC_END" "$SEC_END_ONE"
+prof_kill '쓰기 펜스·주석 제외 제거' prof_scope '범위 쓰기 결과' sync sub_str '!ended && !fence_ch && !in_comment && ' '!ended && '
+prof_kill '쓰기 행 정리 제거' prof_write '행 정리 결과' sync sub_str 'if (rows > 1) { keep = 0; changed = 1 }' 'if (rows > 1) { changed = 1 }'
+prof_kill '쓰기 값 비교 제거' prof_write '표기 차이 출력' sync sub_str 'else if (cell($0, 3) != value) { out = row; changed = 1 }' 'else { out = row; changed = 1 }'
 
 echo "-----"
 echo "passed: $pass, failed: $fail"

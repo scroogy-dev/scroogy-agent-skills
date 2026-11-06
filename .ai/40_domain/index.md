@@ -20,6 +20,6 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 파일만 선택적으�
 | `specs/git-pr-feedback.md` | git-pr-feedback 수집·분류·승인·조치 요건, push 방어, 원장 연계 |
 | `specs/git-review-quiz.md` | git-review-quiz 옵션, 대상별 산출 md·HTML, 설명 절(배경·목적·변경 설명), 문항 형식 규칙 R1~R8, `--comment` 검사, 대화형 진행(설명 요약 먼저) |
 | `specs/install-skills.md` | install-skills 대상 경로, 소스 스캔·가드, 배포 제외, 검증 헬퍼, 보고 템플릿 |
-| `specs/ai-workspace.md` | ai-workspace·ai-workspace-directory 모드·프로파일, doc 문서 규약 파일, update 구조 정합·멱등 보강 검사(건물 repo 선언 포함), 로비 SSoT 선언, 로비·층 안내도 동기화 |
+| `specs/ai-workspace.md` | ai-workspace·ai-workspace-directory 모드·프로파일, doc 문서 규약 파일, update 소유 구분·소유 구간 교체(`sync-owned.sh`)·구조 정합·멱등 보강 검사(건물 repo 선언 포함), `profile` 행과 프로파일 결정, 로비 SSoT 선언, 로비·층 안내도 동기화 |
 | `specs/readme-sync.md` | readme-sync 모드·프로파일·템플릿 구성, 라이선스 옵션 연결 |
 | `glossary.md` | 프로젝트 도메인 용어 사전 |
