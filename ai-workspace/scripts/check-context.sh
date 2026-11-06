@@ -79,7 +79,7 @@ MD_TRACK_AWK='
 '
 
 # profile_state <파일> — `## 프로젝트 도메인` 첫 표의 `profile` 행 상태를 none, many <개수>, one <값> 중 하나로 출력한다.
-# 코드 펜스와 HTML 주석 안은 제목과 표로 세지 않는다. sync-owned.sh 의 set_profile_row 와 같은 범위다.
+# 코드 펜스와 HTML 주석 안은 제목과 표로 세지 않고, 제목 앞 공백 3칸까지는 무시한다. sync-owned.sh 의 set_profile_row 와 같은 범위다.
 profile_state() {
   awk "$MD_TRACK_AWK"'
     function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
@@ -87,12 +87,13 @@ profile_state() {
       visible = (fence_ch == "" && !in_comment)
       line = $0
       md_track(line)
+      h = line; sub(/^ ? ? ?/, "", h)
       if (!sec) {
-        h = line; sub(/[[:space:]]+$/, "", h)
+        sub(/[[:space:]]+$/, "", h)
         if (visible && h == "## 프로젝트 도메인") sec = 1
         next
       }
-      if (visible && index(line, "## ") == 1) exit
+      if (visible && index(h, "## ") == 1) exit
       if (visible && line ~ /^\|/) {
         table = 1
         split(line, c, "|")

@@ -1127,6 +1127,33 @@ own_ssot() {
   own_ctx_same "$A/AI-CONTEXT.md" dev || echo '건물 repo 조합 템플릿 불일치'
 }
 
+# 앞 공백 3칸까지의 제목은 경계로 세고 사용자 제목의 들여쓰기는 그대로 둔다. 4칸은 들여쓴 코드 블록이라 본문이다.
+own_indent() {
+  local h="$1" A="$OWN/.ai" I="$OWN/.ai/AI-CONTEXT.md" o
+  own_fresh
+  own_ctx "$I" "$OWN_L" '## Git 정책' '' '옛 표' '' '    ## 코드 블록 제목' '' \
+    '  ## 사용자 섹션' '' '사용자 본문' '' \
+    '   ## 이슈 작업 워크플로우' '' '옛' '' '  ### 들여쓴 소제목' '' '소제목 본문'
+  o="$("$h" --context "$TPL_DIR" "$A")" || echo '들여쓴 제목 종료 코드'
+  own_has "$o" '교체: AI-CONTEXT.md ## 이슈 작업 워크플로우' || echo '들여쓴 표준 제목 출력'
+  grep -qxF '  ## 사용자 섹션' "$I" || echo '들여쓴 사용자 섹션 사라짐'
+  grep -qxF '사용자 본문' "$I" || echo '들여쓴 사용자 본문 사라짐'
+  grep -qxF '  ### 들여쓴 소제목' "$I" || echo '들여쓴 소제목 사라짐'
+  grep -qxF '소제목 본문' "$I" || echo '들여쓴 소제목 본문 사라짐'
+  grep -qxF '   ## 이슈 작업 워크플로우' "$I" && echo '들여쓴 표준 제목 남음'
+  [ "$(grep -cxF '## 이슈 작업 워크플로우' "$I")" -eq 1 ] || echo '표준 제목 개수'
+  grep -qxF '    ## 코드 블록 제목' "$I" && echo '4칸 제목을 경계로 셈'
+
+  cp "$I" "$OWN/after"
+  o="$("$h" --context "$TPL_DIR" "$A")"
+  [ -z "$o" ] || echo '들여쓴 제목 재실행 출력'
+  cmp -s "$OWN/after" "$I" || echo '들여쓴 제목 재실행 파일 변경'
+
+  # 들여쓴 제목과 첫 열 제목은 같은 제목이다.
+  own_ctx "$I" "$OWN_L" '## Git 정책' '' '옛 표' '' '  ## Git 정책' '' '옛 표'
+  own_fail_one '들여쓴 같은 제목' '같은 제목이 2개' "$I" --context "$TPL_DIR" "$h"
+}
+
 own_subsec() {
   local h="$1" A="$OWN/.ai" s t
   own_fresh
@@ -1311,6 +1338,7 @@ own_case '사용자 섹션 보존' own_preserve
 own_case '실패 경로' own_fail
 own_case 'SSoT 선언별 템플릿 선택' own_ssot
 own_case '소제목 유지' own_subsec
+own_case '들여쓴 제목' own_indent
 own_case '쓰기 도중 실패' own_partial
 own_case '임시 결과 조립 실패' own_build
 
@@ -1328,6 +1356,9 @@ own_kill '소제목 유지 제거' own_subsec '사용자 소제목 사라짐' su
 own_kill '템플릿 소제목 중복 방지 제거' own_subsec '템플릿 소제목 중복' drop_line 'grep -qxF -e "$t" "$d/t/titles"'
 own_kill '템플릿 선택 dev 고정' own_ssot '원본 문서 선언 템플릿 불일치' sub_str 'then p=doc' 'then p=dev'
 own_kill '비표준 선언 실패 제거' own_fail '비표준 선언 종료 코드' sub_str "fail_line AI-CONTEXT.md '본문 2번째 줄이 표준 SSoT 선언이 아님'" ':'
+own_kill '들여쓴 제목 경계 제거' own_indent '들여쓴 사용자 섹션 사라짐' sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0'
+own_kill '제목 앞 공백 3칸 제한 제거' own_indent '4칸 제목을 경계로 셈' sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0; sub(/^ +/, "", line)'
+own_kill '들여쓴 제목 정규화 제거' own_indent '들여쓴 표준 제목 남음' sub_str 't = line; sub(' 't = $0; sub('
 own_kill '펜스 안 제목 판정 제거' own_normal '--dirs 종료 코드' cut_str '!fence_ch && !in_comment && '
 own_kill '인라인 코드 주석 표식 제외 제거' own_normal '--dirs 종료 코드' drop_line 'if (!in_comment) gsub('
 own_kill '닫히지 않은 펜스 검사 제거' own_fail '닫히지 않은 펜스 종료 코드' drop_line '닫히지 않은 코드 펜스"; exit 1'
@@ -1640,6 +1671,24 @@ prof_scope() {
   [ -z "$o" ] || echo '범위 재실행 출력'
 }
 
+# 앞 공백 3칸까지의 제목은 읽기와 쓰기가 같은 경계로 본다.
+prof_indent() {
+  local c="$1" h="$2" A="$PROF/.ai" I="$PROF/.ai/AI-CONTEXT.md" o rc
+  prof_fresh
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$OWN_L" '' \
+    '  ## 프로젝트 도메인' '' '| 항목 | 값 |' '|------|----|' '| profile | doc |' > "$I"
+  [ "$("$c" --profile "$I")" = doc ] || echo '들여쓴 도메인 제목 판정'
+  o="$("$h" --profile dev "$A")"; rc=$?
+  [ "$rc" -eq 0 ] && [ "$o" = '교체: AI-CONTEXT.md profile' ] || echo '들여쓴 도메인 제목 쓰기'
+  grep -qxF '| profile | dev |' "$I" || echo '들여쓴 도메인 제목 쓰기 결과'
+  grep -qxF '  ## 프로젝트 도메인' "$I" || echo '도메인 제목 들여쓰기 변경'
+
+  printf '%s\n' '# AI-CONTEXT.md' '' '> last updated: 2026-01-01' "$OWN_L" '' \
+    '## 프로젝트 도메인' '' '도메인 설명' '' '  ## 프로젝트 목적' '' '| 항목 | 값 |' '|------|----|' '| profile | doc |' > "$I"
+  "$c" --profile "$I" >/dev/null && echo '들여쓴 다음 제목 경계 판정'
+  "$h" --profile dev "$A" >/dev/null && echo '들여쓴 다음 제목 경계 쓰기'
+}
+
 # 두 헬퍼의 추적 코드는 사본이다. 달라지면 읽기와 쓰기의 범위가 갈라진다.
 prof_tracker() {
   local block="/^MD_TRACK_AWK='/{f=1} f{print} f&&/^'\$/{exit}"
@@ -1685,12 +1734,16 @@ prof_case '결정' prof_decide
 prof_case '쓰기' prof_write
 prof_case '쓰기 실패 경로' prof_write_fail
 prof_case '범위 일치' prof_scope
+prof_case '들여쓴 제목' prof_indent
 prof_case '추적 코드 일치' prof_tracker
 
 prof_kill '행 둘 판정 제거' prof_decide '행 둘 인자 dev 종료 코드' check drop_line '행이 ${state#many }개"; return 1'
 prof_kill '인자 다름 질의 제거' prof_decide '인자 다름 doc 종료 코드' check sub_str '[ -z "$value" ] || [ "$value" = "$2" ]' '[ -z "$2" ] || [ "$2" = "$2" ]'
 prof_kill '읽기 펜스·주석 제외 제거' prof_scope '범위 판정 행 없음 종료 코드' check sub_str 'visible = (fence_ch == "" && !in_comment)' 'visible = 1'
 prof_kill '읽기 첫 표 제한 제거' prof_scope '범위 판정 행 없음 종료 코드' check sub_str '} else if (table) exit' '}'
+prof_kill '읽기 들여쓴 제목 제거' prof_indent '들여쓴 도메인 제목 판정' check sub_str 'h = line; sub(/^ ? ? ?/, "", h)' 'h = line'
+prof_kill '읽기 들여쓴 경계 제거' prof_indent '들여쓴 다음 제목 경계 판정' check sub_str 'index(h, "## ") == 1' 'index(line, "## ") == 1'
+prof_kill '쓰기 들여쓴 제목 제거' prof_indent '들여쓴 도메인 제목 쓰기' sync sub_str 'line = $0; sub(/^ ? ? ?/, "", line)' 'line = $0'
 prof_kill '쓰기 펜스·주석 제외 제거' prof_scope '범위 쓰기 결과' sync sub_str '!ended && !fence_ch && !in_comment && ' '!ended && '
 prof_kill '쓰기 행 정리 제거' prof_write '행 정리 결과' sync sub_str 'if (rows > 1) { keep = 0; changed = 1 }' 'if (rows > 1) { changed = 1 }'
 prof_kill '쓰기 값 비교 제거' prof_write '표기 차이 출력' sync sub_str 'else if (cell($0, 3) != value) { out = row; changed = 1 }' 'else { out = row; changed = 1 }'
