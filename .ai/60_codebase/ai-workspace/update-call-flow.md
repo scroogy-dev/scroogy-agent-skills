@@ -100,7 +100,7 @@ sequenceDiagram
 - 설계 근거는 `ai-workspace/SKILL.md` `### 설계 원칙`과 `## 디렉토리 트리 정렬 규칙`에 있다. 버전 고정 파일과 사용자 관리 파일을 나눈 이유는 update-1단계 주석에 있다.
 - `check-context.sh`가 판정만 맡고 조치를 SKILL.md에 남긴 것은 [architecture.md 디자인 원칙](../../10_rules/architecture.md)의 역할 분담을 따른 것이다. 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
 - 원장 [K-0001](../../70_ledger/archive/K-0001-update3-fixture-absent.md): update-3 파일 정리에 회귀 fixture가 없었다(해소(PR #124)).
-- 원장 [K-0018](../../70_ledger/active/K-0018-update4-rules-restore-profile-mismatch-row.md): update-4에서 `## 프로젝트 규칙` 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠졌다. #136에서 섹션·표를 복구한 실행이 dev 표준 선언이면 dev 행 2개를 함께 넣도록 바뀌어 원인이 사라졌다.
+- 원장 [K-0018](../../70_ledger/archive/K-0018-update4-rules-restore-profile-mismatch-row.md): update-4에서 `## 프로젝트 규칙` 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠졌다. #136에서 섹션·표를 복구한 실행이 dev 표준 선언이면 dev 행 2개를 함께 넣도록 바뀌어 원인이 사라졌다(해소(PR #137)).
 - update-3 `50_adr/` 판정을 본문 키워드 대신 상태 줄 값으로 하고 상태 줄 없는 ADR을 `active/`로 두는 결정은 [ADR 0022](../../50_adr/active/0022-adr-lifecycle-status-and-superseded-move.md). 판단 기준 표 5행·루트 상주 파일·`legacy/`는 회귀 fixture `ai-workspace/tests/fixtures/update3-file-cleanup/`(모의 실행 `[QD]`)가 덮으며, 이 fixture로 원장 K-0001을 해소했다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(update 소유 구분·구조 정합, 멱등 보강 검사 12종 + AI 판정 2종, 프로파일 결정, 표준 구간 최신화, 루트 상주 파일 제외).
 - 소유 구분(파일 단위 최신본·구간 단위 교체·사용자 작성), `sync-owned.sh` 분리, 표준 섹션 템플릿을 SSoT 선언으로 고르는 규칙, `profile` 행과 1단계 결정 규칙은 [ADR 0028](../../50_adr/active/0028-ai-workspace-owned-sections-and-profile-row.md). `## Git 정책` 표는 이 교체로 최신본이 되어 #70 리스크가 해소됐다.

@@ -70,7 +70,7 @@ last_harvested: 2026-11-07
 
 - [Issue #136 ai-workspace: IDE 도구 우선 규칙(ide-tools.md)을 dev 프로파일에 도입하고 init·update에서 안내도 규칙 표·context-loading에 연결한다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/136)
 - 규칙 본문: [`.ai/10_rules/ide-tools.md`](../../10_rules/ide-tools.md)
-- 해소한 원장 항목: [K-0018](../../70_ledger/active/K-0018-update4-rules-restore-profile-mismatch-row.md)
+- 해소한 원장 항목: [K-0018](../../70_ledger/archive/K-0018-update4-rules-restore-profile-mismatch-row.md)
 - 관련 결정: [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0023 테스트 실행 원칙 쌍](./0023-testing-principles-pair-and-consumer-skill-references.md), [ADR 0028 소유 구간과 profile 행](./0028-ai-workspace-owned-sections-and-profile-row.md)
 - 외부 문서: [IntelliJ IDEA MCP 서버](https://www.jetbrains.com/help/idea/mcp-server.html), [Claude Code MCP (tool search, `alwaysLoad`)](https://code.claude.com/docs/en/mcp)
 
