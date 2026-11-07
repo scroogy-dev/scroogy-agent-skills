@@ -17,9 +17,10 @@
 ## 코드 수정·리뷰·분석 시
 
 1. `.ai/10_rules/architecture.md` — 아키텍처 제약 준수 여부 확인
-2. `.ai/60_codebase/index.md` — 대상 기능의 엔트리포인트·호출 흐름 파악
-3. 색인 행의 "관련 문서" 열에 링크된 `40_domain/`, `50_adr/`, `30_contract/` 문서를 따라 읽는다
-4. 링크가 없더라도 변경 내용이 아래에 해당하면 해당 index.md를 연다:
+2. `.ai/10_rules/ide-tools.md` — 코드 탐색·수정에 쓸 도구 확인 (IntelliJ MCP 연결 시 IDE 도구 우선)
+3. `.ai/60_codebase/index.md` — 대상 기능의 엔트리포인트·호출 흐름 파악
+4. 색인 행의 "관련 문서" 열에 링크된 `40_domain/`, `50_adr/`, `30_contract/` 문서를 따라 읽는다
+5. 링크가 없더라도 변경 내용이 아래에 해당하면 해당 index.md를 연다:
    - 데이터·정책 변경 → `40_domain/index.md`
    - 아키텍처·기술 선택 변경 → `50_adr/index.md`
    - 외부 API·연동 변경 → `30_contract/index.md`

@@ -6,7 +6,7 @@
 # 표가 바뀌면 이 스크립트와 tests/ 의 기대값을 함께 갱신한다.
 #
 # 이 스크립트는 판정만 한다. 표의 **누락 시 조치**(삽입·정정·교체)는 내용 생성이 섞여 있어 SKILL.md 절차가 맡는다.
-# 검사 표 13행 중 11행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
+# 검사 표 14행 중 12행을 다룬다. `## 디렉토리 구조` 의 `.ai/` 한 줄 압축과 트리 정렬 순서 2종은
 # 앵커 존재 판정이 아니라 트리 구조 해석이라 제외했다 (조건 분기가 과하게 늘어나는 경우 —
 # `.ai/10_rules/architecture.md` "디자인 원칙"의 예외).
 #
@@ -14,7 +14,7 @@
 #   check-context.sh <AI-CONTEXT.md 경로>
 #   check-context.sh --profile <AI-CONTEXT.md 경로> [dev|doc]
 #
-# 본문 두 번째 줄은 dev(`소스 코드`)·doc(`원본 문서`) 두 표준 문구를 인정하며, doc 문구이면 `## 프로젝트 도메인` 표의 `ssot_dir` 행과 dev 표준 문구(충돌 우선순위, `60_codebase` 설명 3곳) 잔존도 검사하고, dev 문구이면 `## 프로젝트 규칙` 표의 `testing-principles.md` 행도 검사한다.
+# 본문 두 번째 줄은 dev(`소스 코드`)·doc(`원본 문서`) 두 표준 문구를 인정하며, doc 문구이면 `## 프로젝트 도메인` 표의 `ssot_dir` 행과 dev 표준 문구(충돌 우선순위, `60_codebase` 설명 3곳) 잔존도 검사하고, dev 문구이면 `## 프로젝트 규칙` 표의 `testing-principles.md`·`ide-tools.md` 행도 검사한다.
 # 입력 파일 옆에 `60_codebase/repository.yaml`이 있으면(code-map 건물 repo) doc 문구를 보고한다. 건물 repo는 `소스 코드`로 선언한다.
 # `## 프로젝트 도메인` 첫 표의 `profile` 행은 정확히 하나이고 값이 dev·doc 이어야 한다. SSoT 선언과 대조하지 않는다. 건물 repo는 doc 프로파일과 `소스 코드` 선언이 함께 있을 수 있다.
 #
@@ -276,11 +276,11 @@ fi
 
 # --- 표준 행 --------------------------------------------------------------------
 #
-# 섹션·표 존재가 보장된 뒤에만 수행한다 (SKILL.md 표의 "아래 세 행 검사는 이 검사로 …" 조건).
-# `testing-principles.md` 행은 dev 선언일 때만 검사한다. 파일 쌍이 dev 프로파일 전용이기 때문이다.
+# 섹션·표 존재가 보장된 뒤에만 수행한다 (SKILL.md 표의 "아래 네 행 검사는 이 검사로 …" 조건).
+# `testing-principles.md`·`ide-tools.md` 행은 dev 선언일 때만 검사한다. 두 파일이 dev 프로파일 전용이기 때문이다.
 # doc 선언이면 검사하지 않고, 비표준 선언도 검사하지 않는다 (`ssot_dir` 행과 같은 이유로, 위에서 이미 보고했고
 # 어느 프로파일 문구로 바뀔지는 조치 단계가 정한다).
-# 표가 없는 상태에서 행을 찾으면 조치가 겹쳐 같은 결함이 세 번 보고된다.
+# 표가 없는 상태에서 행을 찾으면 조치가 겹쳐 같은 결함이 검사하는 행 수만큼 보고된다.
 # 행 인정 기준은 첫 번째 `파일` 셀의 정확 대조다(백틱·양끝 공백 무시 — SKILL.md 검사 표의 계약).
 # 행 전체를 부분 문자열로 찾으면 경로가 설명·확장 열에만 있어도 표준 행으로 오인한다.
 # 탐색 범위는 섹션의 첫 번째 표 블록(헤더를 검증한 그 표)이며, 표가 끝난 첫 비표 행에서 멈춘다.
@@ -288,7 +288,7 @@ fi
 # 누락 시 조치가 "그 표 끝에 삽입"이라 다른 표의 행은 조치 결과 상태가 아니다.
 
 rows='.ai/10_rules/context-loading.md .ai/10_rules/writing-principles.md'
-[ "$line2" = "$SSOT_LINE_DEV" ] && rows="$rows .ai/10_rules/testing-principles.md"
+[ "$line2" = "$SSOT_LINE_DEV" ] && rows="$rows .ai/10_rules/testing-principles.md .ai/10_rules/ide-tools.md"
 
 if [ "$rules_ok" = true ]; then
   for row in $rows; do
