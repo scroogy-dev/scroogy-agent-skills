@@ -36,6 +36,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 ADR만 선택적으로 �
 | `active/0026-acceptance-criteria-across-issue-spec-pr.md` | 이슈 본문 템플릿과 `--create`(분할 권고·AC 미대응 포함 항목 보고), AC 2단계 해상도(3-2 AC 정제·출처 표기·`(AC 없음: <사유>)`·번호 유지), 변경 통제 3분류(구체화·확장·완화), 6단계 이슈 본문 갱신 질의(기준 본문 재조회·summary 기록), 계획 감사 `check-plan.sh --ac`와 관점 3 완화·확장 점검, PR 첫 화면 5항목·접기 안 5헤더, PR 완료의 정의 대조 근거는 최종 감사 리포트, ADR 0016 일부 변경 |
 | `active/0027-git-review-quiz-explanation-sections-and-html-output.md` | git-review-quiz 문항 앞 설명 절(배경·목적·변경 설명, 출처 우선순위·`(추정)`, 변경 개요·호출 흐름·묶음 소절), 시퀀스 규칙 네 번째 사본, 형식 검사 R7 설명 절·R8 정답 편향·설명 절 펜스 인식, 대상별 산출 이름(치환 충돌 K-0024), md 원본·브라우저 렌더 HTML(CDN 고정 버전, DOMPurify 정화, 라이브러리 하나라도 실패하면 원문, 도식 오류는 그 자리만 코드), 설명 요약 먼저, 지시문 데이터 취급, PR 무영향·git-pr 비의존, ADR 0017 유지 |
 | `active/0028-ai-workspace-owned-sections-and-profile-row.md` | ai-workspace update의 소유 구분(파일 단위 최신본·구간 단위 교체·사용자 작성)과 안내 주석, 헬퍼 `sync-owned.sh`(`--dirs`·`--context`·`--profile`, 실패한 파일은 변경 전 유지), 표준 섹션 템플릿은 SSoT 선언으로 선택, `profile` 행과 SSoT 선언의 역할 구분, 1단계 프로파일 결정 규칙(`check-context.sh --profile`, 추정·자동 변경 없음), `## Git 정책` 미검사 리스크(#70) 해소, ADR 0007·0008 유지 |
+| `active/0029-ide-tools-rule-dev-profile-distribution.md` | IDE 도구 우선 규칙 `ide-tools.md`(dev 전용 버전 고정 단일 파일, local 쌍 없음), 규칙 표 설명 열에 핵심 기준(IDE 도구 먼저 쓸 작업·grep 전환 조건), context-loading 코드 절 라우팅, 서버 등록 이름 미기재·`lint_files` 기본(`build_project`는 선언 변경 뒤), dev 표준 선언 한정 행 검사와 선언 보정·규칙 섹션 복구 실행의 dev 전용 행 보강(K-0018 해소), ADR 0023 유지 |
 | `superseded/` | 대체·폐기된 결정 (상태 줄에 대체한 ADR 번호 또는 폐기 이슈 번호를 적음) |
 | (문서를 추가하면 이 목록에 함께 기재하세요) | |
 

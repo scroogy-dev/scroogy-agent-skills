@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-11-05
-source_hash: 760ead6
+last_synced: 2026-11-07
+source_hash: cdcdb84
 status: current
 ---
 
@@ -21,7 +21,7 @@ ai-workspace/SKILL.md
 ├── init-1단계: 파일 복사
 │   ├── rm -rf .ai                     # 전체 초기화, GNU cp 중첩 복사 회피 겸함
 │   ├── cp -r templates/shared/.ai/    # 공통 골격: 10_rules 공통 4종, 각 index.md, 70_ledger/ledger-entry-template.md, .gitkeep
-│   ├── cp -r templates/<profile>/.ai/*   # AI-CONTEXT.md(`profile` 행은 그 프로파일 값, dev는 규칙 표 testing-principles.md 행, doc은 원본 문서 선언·ssot_dir·publish 행), dev 전용 architecture.md·coding-convention.md·testing-principles.md(버전 고정)·testing-principles-local.md, doc 전용 document-convention.md(문서 규약 골격 H2 4칸)
+│   ├── cp -r templates/<profile>/.ai/*   # AI-CONTEXT.md(`profile` 행은 그 프로파일 값, dev는 규칙 표 testing-principles.md·ide-tools.md 행, doc은 원본 문서 선언·ssot_dir·publish 행), dev 전용 architecture.md·coding-convention.md·testing-principles.md(버전 고정)·testing-principles-local.md·ide-tools.md(버전 고정), doc 전용 document-convention.md(문서 규약 골격 H2 4칸)
 │   └── sed "> last updated: YYYY-MM-DD"  # date +%Y-%m-%d 로 치환
 └── init-2단계: 완료 보고              # 생성 트리, domain·keywords 입력 요청(doc은 ssot_dir도), multi면 상위 안내도 Repos 행 동기화 권유, solo면 단독 repo 명시
 ```
@@ -67,4 +67,4 @@ sequenceDiagram
 - 자매 스킬 ai-workspace-directory와의 역할 분담은 `## 이 구조와 함께 사용 가능한 skill`에 있다.
 - 명세: [.ai 작업공간과 안내도 요건](../../40_domain/specs/ai-workspace.md)(init 전체 초기화, dev/doc 프로파일, `.ai/` 읽기 우선순위).
 - 정책: [SSoT 원칙과 안내도 라우터](../../40_domain/policies/local/ssot-and-router-principle.md)(멀티/단독 CoC 런타임 판정, 판정 결과 미기재의 근거 #5).
-- 배포 골격의 결정: `70_ledger/` index·항목 템플릿은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), `writing-principles.md` 버전 고정 배포는 [ADR 0008](../../50_adr/active/0008-writing-principles-ssot-distribution.md). doc 전용 `document-convention.md`와 `writing-principles.md` 1.2.0의 위임 줄은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md). dev 전용 `testing-principles.md`·`testing-principles-local.md` 쌍과 dev 템플릿 규칙 표 행은 [ADR 0023](../../50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md). `profile` 행과 1단계 프로파일 결정 규칙은 [ADR 0028](../../50_adr/active/0028-ai-workspace-owned-sections-and-profile-row.md).
+- 배포 골격의 결정: `70_ledger/` index·항목 템플릿은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), `writing-principles.md` 버전 고정 배포는 [ADR 0008](../../50_adr/active/0008-writing-principles-ssot-distribution.md). doc 전용 `document-convention.md`와 `writing-principles.md` 1.2.0의 위임 줄은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md). dev 전용 `testing-principles.md`·`testing-principles-local.md` 쌍과 dev 템플릿 규칙 표 행은 [ADR 0023](../../50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md). dev 전용 `ide-tools.md`(버전 고정 단일 파일)와 dev 템플릿 규칙 표 행은 [ADR 0029](../../50_adr/active/0029-ide-tools-rule-dev-profile-distribution.md). `profile` 행과 1단계 프로파일 결정 규칙은 [ADR 0028](../../50_adr/active/0028-ai-workspace-owned-sections-and-profile-row.md).
