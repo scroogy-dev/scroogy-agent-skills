@@ -14,7 +14,7 @@ last_harvested: 2026-11-05
 - update가 다루는 대상을 소유에 따라 셋으로 나눈다 (#134).
   - **파일 단위 최신본**: 실행마다 템플릿으로 덮어쓴다. 버전 고정 파일(`context-loading.md`, `writing-principles.md`, dev 전용 `testing-principles.md`)과 `70_ledger/ledger-entry-template.md`가 대상이다.
   - **구간 단위 교체**: 정한 구간만 템플릿 최신본으로 바꾸고, 없는 섹션은 파일 끝에 템플릿 순서로 더한다. `50_adr/index.md`의 `## 수명 주기`, `70_ledger/index.md`의 머리말과 `## 수명 주기`, `AI-CONTEXT.md` 표준 섹션 4개(`.ai 디렉토리 구조`, `에이전트 운영 지침`, `Git 정책`, `이슈 작업 워크플로우`)가 대상이다. `## 에이전트 운영 지침`이 없으면 update-4의 기존 삽입 규칙이 먼저 넣는다.
-  - **사용자 작성**: 내용을 바꾸지 않는다. 사용자 관리 규칙 파일(`architecture.md`, `coding-convention.md`, `document-convention.md`, `file-change-policy.md`, `*-local.md`)과 `40_domain/glossary.md`, 각 `index.md`는 없을 때만 복사한다. 구간 밖 내용, 구간 안의 템플릿에 없는 `###` 소제목, `AI-CONTEXT.md`의 나머지 섹션도 유지한다. `## 프로젝트 규칙`은 update-4의 행 검사가 표준 행만 보강한다.
+  - **사용자 작성**: 내용을 바꾸지 않는다. 사용자 관리 규칙 파일(`architecture.md`, `coding-convention.md`, `document-convention.md`, `file-change-policy.md`, `*-local.md`)과 `40_domain/glossary.md`, 각 `index.md`는 없을 때만 복사한다. 구간 밖 내용, 구간 안의 템플릿에 없는 `###` 소제목, `AI-CONTEXT.md`의 나머지 섹션도 유지한다. `## 프로젝트 규칙`은 update-4의 행 검사가 표준 행만 알파벳순 자리에 보강하고, 행 순서가 어긋나면 정렬을 권유해 승인한 경우에만 행 단위로 재정렬한다.
 - 덮어쓰는 대상의 템플릿에 직접 고치면 update 때 사라진다는 안내 주석을 한 줄씩 둔다. 원장 템플릿, 두 index의 `## 수명 주기`, dev·doc `AI-CONTEXT.md` 표준 섹션 4개에 두고 `70_ledger/index.md` 머리말에는 두지 않는다. 덮어쓰기 전에 사용자에게 확인하지 않는다.
 - 구간 교체와 `profile` 행 쓰기는 헬퍼 `ai-workspace/scripts/sync-owned.sh`가 맡는다.
   - **호출 위치**: `--dirs`는 update-3이 하위 디렉토리를 만든 뒤, `--profile`과 `--context`는 update-4의 조치와 마이그레이션을 끝낸 뒤에 호출한다.
@@ -50,6 +50,7 @@ last_harvested: 2026-11-05
 - 인자를 쓰는 경우를 넓게 둔 이유: 인자는 사용자가 명령으로 정한 결정이다. 행이 없거나 값이 무효이면 대조할 값이 없어 인자를 쓰고, 값과 다를 때만 어느 쪽이 맞는지 묻는다.
 - `## 프로젝트 규칙`을 표준 섹션에서 뺀 이유: 사용자 행이 섞여 있어 통째로 교체하면 사라진다.
 - 원장 K-0018을 함께 해소하지 않은 이유: 건물 repo의 규칙 표 복구 경로가 남아 원인이 사라지지 않는다.
+- 2026-11-09 일부 변경(#138): 표준 행을 표 끝에 붙이면 알파벳순인 템플릿 표와 순서가 달라져, `파일` 셀 기준 알파벳순 자리에 넣게 했다. 이전 update로 순서가 어긋난 기존 표는 사용자가 정한 순서일 수 있어 자동으로 바꾸지 않고, 디렉토리 트리 정렬처럼 권유해 승인한 경우에만 재정렬한다. `## 프로젝트 규칙`이 사용자 작성 구간이라는 결정은 바뀌지 않는다.
 
 </details>
 
@@ -78,6 +79,7 @@ last_harvested: 2026-11-05
 
 - [Issue #134 ai-workspace: update가 스킬 소유 구간을 최신본으로 반영하고 안내도에 프로파일을 표시한다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/134)
 - [Issue #70 Git 정책 표에 git-pr-feedback 행 추가](https://github.com/scroogy-dev/scroogy-agent-skills/issues/70)
+- 일부 변경: [Issue #138](https://github.com/scroogy-dev/scroogy-agent-skills/issues/138)
 - 절차와 헬퍼: [`ai-workspace/SKILL.md`](../../../ai-workspace/SKILL.md), [`sync-owned.sh`](../../../ai-workspace/scripts/sync-owned.sh), [`check-context.sh`](../../../ai-workspace/scripts/check-context.sh)
 - 관련 결정: [ADR 0001 헬퍼 테스트 위치](./0001-skill-deterministic-helper-test-convention.md), [ADR 0007 원장 위치와 구조](./0007-tech-debt-ledger-location-and-structure.md), [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0020 doc SSoT와 건물 repo 선언](./0020-doc-ssot-original-documents-and-publishing-deferred.md), [ADR 0022 ADR 수명 주기](./0022-adr-lifecycle-status-and-superseded-move.md), [ADR 0023 테스트 원칙 파일 쌍](./0023-testing-principles-pair-and-consumer-skill-references.md)
 
