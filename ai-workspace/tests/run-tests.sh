@@ -535,6 +535,76 @@ assert_missing 'SSoT 선언 doc 작성 규칙 설명만 잔존 격추'         "
 assert_pass    'SSoT 선언 doc 사용자 작성 우선순위 보존'                        m_doc_prio_custom
 assert_missing 'SSoT 선언 doc 유사 문구 격추' '본문 두 번째 줄 SSoT'           m_near_with_root
 
+# --- 프로젝트 규칙 표의 행 순서 (#138) ----------------------------------------------
+#
+# update-4 는 표준 행을 알파벳순 자리에 넣고, 순서가 어긋난 기존 표는 정렬을 권유한다.
+# 헬퍼는 섹션 첫 표의 데이터 행이 `파일` 셀 기준 대소문자 무시 알파벳순인지 본다.
+# 입력은 날짜를 바꾼 dev·doc 템플릿을 고쳐 만든다. 통과는 순서 항목 무보고, 격추는 순서 항목 보고다.
+
+ORDER_KEY="'## 프로젝트 규칙' 표의 행 순서"
+ORD="$TMP/ord"
+mkdir -p "$ORD"
+
+# order_case <설명> <순서 보고 기대 yes|no> <입력> [<기대 exit> <기대 출력 행 수>]
+# 종료 코드와 출력 행 수를 주면 함께 대조한다. 다른 항목이 같이 걸리거나 어긋난 쌍마다 보고하는 구현을 막는다.
+order_case() {
+  local desc="$1" want="$2" f="$3" want_rc="${4:-}" want_n="${5:-}" out rc n hit=no
+  out="$("$CHECK" "$f" 2>&1)"; rc=$?
+  printf '%s\n' "$out" | grep -qF "$ORDER_KEY" && hit=yes
+  n="$(printf '%s\n' "$out" | grep -c .)"
+  if [ "$hit" != "$want" ]; then
+    ng "$desc — 순서 보고 $want 기대, 실제 $hit (exit $rc: $(printf '%s' "$out" | tr '\n' ' '))"
+  elif [ -n "$want_rc" ] && { [ "$rc" -ne "$want_rc" ] || [ "$n" -ne "$want_n" ]; }; then
+    ng "$desc — exit ${want_rc}·출력 ${want_n}행 기대, 실제 exit ${rc}·${n}행: $(printf '%s' "$out" | tr '\n' ' ')"
+  else
+    ok "$desc"
+  fi
+}
+
+# o_swap <파일> — 첫 데이터 행(`architecture.md`)과 다음 행을 맞바꾼다. 바뀐 것이 없으면 종료 코드 1이다.
+o_swap() {
+  awk '/^\| `\.ai\/10_rules\/architecture\.md`/ { a = $0; next } a != "" { print; print a; a = ""; next } { print }' "$1" > "$1.swap" || return 1
+  if cmp -s "$1" "$1.swap"; then rm -f "$1.swap"; return 1; fi
+  mv "$1.swap" "$1"
+}
+
+# o_has <파일> <문자열> — 변형 결과에 문자열이 없으면 실패로 센다.
+# 변형이 헛돌면 무보고를 기대하는 통과 케이스가 원래 입력으로 그대로 통과하기 때문이다.
+o_has() { grep -qF -e "$2" "$1" || ng "행 순서: 변형 실패 — $(basename "$1")에 '$2' 없음"; }
+
+cp "$TMP/dev.md" "$ORD/dev-ok.md"
+cp "$TMP/doc.md" "$ORD/doc-ok.md"
+sed 's#`\.ai/10_rules/coding-convention\.md`#`.ai/10_rules/Coding-convention.md`#' "$TMP/dev.md" > "$ORD/upper-ok.md"
+o_has "$ORD/upper-ok.md" '`.ai/10_rules/Coding-convention.md`'
+awk '{ print } /^\| `\.ai\/10_rules\/context-loading\.md`/ { print "| `.ai/10_rules/context-loading.md` | 중복 | 중복 |" }' "$TMP/dev.md" > "$ORD/dup-ok.md"
+o_has "$ORD/dup-ok.md" '| 중복 | 중복 |'
+awk '{ print } /^\| `\.ai\/10_rules\/writing-principles\.md`/ {
+  print ""; print "| 파일 | 설명 | 사용 시점 |"; print "|------|------|----------|"; print "| `z.md` | z | z |"; print "| `a.md` | a | a |"
+}' "$TMP/dev.md" > "$ORD/second-ok.md"
+o_has "$ORD/second-ok.md" '| `a.md` | a | a |'
+cp "$TMP/dev.md" "$ORD/swap.md"
+o_swap "$ORD/swap.md" || ng '행 순서: 변형 실패 — swap.md 맞바꿈 없음'
+cp "$ORD/swap.md" "$ORD/othername.md" && m_rules_hdr "$ORD/othername.md"
+cp "$ORD/swap.md" "$ORD/nosection.md" && m_no_rules "$ORD/nosection.md"
+o_has "$ORD/nosection.md" '## 규칙 모음'
+cp "$ORD/swap.md" "$ORD/2col.md" && m_rules_2col "$ORD/2col.md"
+grep -qxF '| 파일 | 설명 |' "$ORD/2col.md" || ng '행 순서: 변형 실패 — 2col.md에 2열 헤더 행 없음'
+cp "$ORD/swap.md" "$ORD/4col.md" && m_rules_4col "$ORD/4col.md"
+o_has "$ORD/4col.md" '| 파일 | 설명 | 사용 시점 | 비고 |'
+sed 's#`\.ai/10_rules/architecture\.md`#`.ai/10_rules/Delta.md`#' "$TMP/dev.md" > "$ORD/upper-ng.md"
+
+order_case '행 순서: 정렬된 dev 템플릿 무보고 통과'                         no  "$ORD/dev-ok.md" 0 0
+order_case '행 순서: 정렬된 doc 템플릿 무보고 통과'                         no  "$ORD/doc-ok.md" 0 0
+order_case '행 순서: 대소문자만 다른 정렬 표(Coding-convention.md) 무보고 통과' no  "$ORD/upper-ok.md" 0 0
+order_case '행 순서: 같은 경로 행 연속 무보고 통과'                          no  "$ORD/dup-ok.md" 0 0
+order_case '행 순서: 같은 섹션 둘째 표만 어긋나면 무보고 통과'               no  "$ORD/second-ok.md" 0 0
+order_case '행 순서: 헤더 이름이 다른 3열 표의 어긋남 무보고 통과'           no  "$ORD/othername.md"
+order_case '행 순서: 섹션 부재면 무보고 통과'                               no  "$ORD/nosection.md"
+order_case '행 순서: 두 행 맞바꿈 1행 보고 격추'                            yes "$ORD/swap.md" 1 1
+order_case '행 순서: 대소문자 무시로 어긋난 표(Delta.md) 격추'              yes "$ORD/upper-ng.md" 1 1
+order_case '행 순서: 헤더가 파일·설명인 2열 표의 어긋남 격추'               yes "$ORD/2col.md"
+order_case '행 순서: 확장 열 4열 표의 어긋남 격추'                          yes "$ORD/4col.md" 1 1
+
 # --- 건물 repo SSoT 선언 ----------------------------------------------------------
 #
 # 헬퍼는 입력 파일 옆 `60_codebase/repository.yaml` 존재로 건물 repo를 판정한다.
@@ -593,6 +663,8 @@ assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 # dev 선언 + doc 프로파일 선택 상태 (#136, K-0018). 기대 파일은 doc 골격 뒤에 dev 전용 표준 행 2개를 넣은 결과다.
 assert_fixture 'no-rules-section-mismatch' '섹션 부재'
 assert_fixture 'no-rules-table-mismatch'   '섹션은 있고 표 부재'
+# 행 순서만 어긋난 4열 표 (#138). 기대 파일은 정렬을 승인해 행 단위로 재정렬한 결과다.
+assert_fixture 'unsorted-rows' "표의 행 순서"
 
 # 2열 구버전 표는 열 확장과 함께 표준 행 누락도 보고한다 (PR #137 리뷰). 기대 파일은 표준 행 4개를 넣은 상태라,
 # 출력된 항목만 조치하는 절차로 그 결과에 닿으려면 네 행이 모두 보고돼야 한다.
@@ -619,7 +691,7 @@ assert_fixture 'no-rules-table-mismatch'   '섹션은 있고 표 부재'
 
 # --- 검사 표 행 수 (SKILL.md 대조) -------------------------------------------------
 #
-# 헬퍼가 다루는 12종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
+# 헬퍼가 다루는 13종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
 # SKILL.md 표가 늘면 이 검사가 걸려 제외 범위를 다시 판단하게 한다.
 
 rows="$(awk '
@@ -630,8 +702,8 @@ rows="$(awk '
 ' "$SKILL")"
 # 헤더·구분선 2행을 뺀 항목 수
 items=$((rows - 2))
-[ "$items" -eq 14 ] \
-  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 12종 + 트리 관련 2종 제외)" \
+[ "$items" -eq 15 ] \
+  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 13종 + 트리 관련 2종 제외)" \
   || ng "SKILL.md 멱등 보강 검사 표가 ${items}행입니다 — 헬퍼의 제외 범위를 다시 판단하세요"
 
 # --- 사용오류 ------------------------------------------------------------------
