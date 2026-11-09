@@ -252,6 +252,45 @@ assert_update1_reject '테스트 원칙 update-1 공통 파일 덮어쓰기 조�
   'index($0, "10_rules/testing-principles.md\" .ai/") { print "  [ ! -f .ai/10_rules/testing-principles.md ] && \\"; hit = 1 } { print } END { exit !hit }' \
   testing_update1_violations
 
+# --- update-1 IDE 도구 우선 규칙 복사 (SKILL.md 코드 블록 실행) ---------------------
+#
+# `ide-tools.md`는 dev 전용 버전 고정 파일이다 (#136). update-1이 dev에서 없을 때와 구버전일 때 모두
+# 템플릿 최신본으로 덮어쓰고, doc에서는 만들지 않는다. 위 두 절과 같은 코드 블록 실행으로 판정한다.
+
+IDE_RULE='.ai/10_rules/ide-tools.md'
+
+# ide_update1_violations <코드 블록 파일> — 어긋난 동작을 1행씩 출력한다. 무출력이면 통과.
+# doc 실행은 문서 규약 파일 생성으로 블록이 실제로 돌았는지 먼저 본다. 실행이 실패하면 미복사 검사가 그대로 통과하기 때문이다.
+ide_update1_violations() {
+  local w
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai"
+  run_update1 "$1" dev "$w"
+  cmp -s "$w/$IDE_RULE" "$TPL_DIR/dev/$IDE_RULE" || echo 'dev 신규 복사'
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai/10_rules"; echo '구버전' > "$w/$IDE_RULE"
+  run_update1 "$1" dev "$w"
+  cmp -s "$w/$IDE_RULE" "$TPL_DIR/dev/$IDE_RULE" || echo 'dev 구버전 덮어쓰기'
+  w="$(mktemp -d "$TMP/u1.XXXXXX")"; mkdir -p "$w/.ai"
+  run_update1 "$1" doc "$w"
+  [ -e "$w/$CONV" ] || echo 'doc 실행 실패'
+  [ ! -e "$w/$IDE_RULE" ] || echo 'doc 미복사'
+}
+
+out="$(ide_update1_violations "$U1_BLOCK")"
+if [ -z "$out" ]; then
+  ok "ide-tools update-1 복사(dev 신규·구버전 덮어쓰기·doc 미복사) 통과"
+else
+  ng "ide-tools update-1 복사(dev 신규·구버전 덮어쓰기·doc 미복사) 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+assert_update1_reject 'ide-tools update-1 복사 줄 삭제 격추' 'dev 신규 복사' \
+  'index($0, "10_rules/ide-tools.md\" .ai/") { hit = 1; next } { print } END { exit !hit }' \
+  ide_update1_violations
+assert_update1_reject 'ide-tools update-1 덮어쓰기 조건 추가 격추' 'dev 구버전 덮어쓰기' \
+  'index($0, "10_rules/ide-tools.md\" .ai/") { print "  [ ! -f .ai/10_rules/ide-tools.md ] && \\"; hit = 1 } { print } END { exit !hit }' \
+  ide_update1_violations
+assert_update1_reject 'ide-tools update-1 doc 분기 복사 추가 격추' 'doc 미복사' \
+  '{ print } /^if \[ "\$PROFILE" = "doc" \]; then$/ { print "  cp \"$SKILL_DIR/templates/dev/.ai/10_rules/ide-tools.md\" .ai/10_rules/ide-tools.md"; hit = 1 } END { exit !hit }' \
+  ide_update1_violations
+
 # --- 이 저장소 안내도 -----------------------------------------------------------
 
 REPO_CTX="$HERE/../../.ai/AI-CONTEXT.md"
@@ -298,10 +337,24 @@ m_no_agent()  { sed -i.bak 's/^## 에이전트 운영 지침$/## 운영/' "$1" &
 m_ctxrow()    { sed -i.bak '/`\.ai\/10_rules\/context-loading\.md`/d' "$1" && rm -f "$1.bak"; }
 m_wrrow()     { sed -i.bak '/`\.ai\/10_rules\/writing-principles\.md`/d' "$1" && rm -f "$1.bak"; }
 m_tprow()     { grep -qF '`.ai/10_rules/testing-principles.md`' "$1" && sed -i.bak '/`\.ai\/10_rules\/testing-principles\.md`/d' "$1" && rm -f "$1.bak"; }
+m_iderow()    { grep -qF '`.ai/10_rules/ide-tools.md`' "$1" && sed -i.bak '/`\.ai\/10_rules\/ide-tools\.md`/d' "$1" && rm -f "$1.bak"; }
 m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|------|----|\n| building | ws |\n' >> "$1"; }
 # 5차 audit F-5 반례: 열 수는 3이지만 헤더 이름이 표준과 다른 표.
 m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
 m_rules_ord() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| 설명 | 파일 | 사용 시점 |/' "$1" && rm -f "$1.bak"; }
+
+# PR #137 리뷰 반례: 규칙 표를 2열(파일·설명) 구버전 표로 줄인다. 헤더가 `파일`·`설명`이면
+# 열 확장 보고와 함께 행 검사도 돌아야 하고, 헤더 이름이 다르면 행 검사를 건너뛰어야 한다.
+m_rules_2col() {
+  awk '
+    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; print; next }
+    f && /^## / { f = 0 }
+    f && /^\|/ { split($0, c, "|"); print "|" c[2] "|" c[3] "|"; next }
+    { print }
+  ' "$1" > "$1.2col" && mv "$1.2col" "$1"
+}
+m_ide_2col()     { m_rules_2col "$1" && m_iderow "$1"; }
+m_ide_2col_hdr() { m_ide_2col "$1" && sed -i.bak 's/^| 파일 | 설명 |$/| 항목 | 내용 |/' "$1" && rm -f "$1.bak"; }
 
 # doc 선언 변형. dev 템플릿에서 출발해 "doc 선언이 `ssot_dir`·dev 표준 문구 4곳 검사를 켠다"를 고정한다.
 # 유사 문구 변형은 `ssot_dir` 행·doc 문구 4곳이 있는 파일로 만들어 격추 원인을 2번째 줄로 한정한다.
@@ -369,11 +422,15 @@ m_row_in_ext() {
 m_ctx_in_ext() { m_row_in_ext '.ai/10_rules/context-loading.md' "$1"; }
 m_wr_in_ext()  { m_row_in_ext '.ai/10_rules/writing-principles.md' "$1"; }
 m_tp_in_ext()  { m_row_in_ext '.ai/10_rules/testing-principles.md' "$1"; }
+m_ide_in_ext() { m_row_in_ext '.ai/10_rules/ide-tools.md' "$1"; }
 
 # `testing-principles.md` 행은 dev 선언일 때만 검사한다 (#122). 행을 지운 같은 입력에서 선언만 바꿔
 # 선언과 무관하게 늘 보고하는 구현을 걸러낸다. doc 선언은 doc 전환을 마친 상태라 헬퍼 전체가 통과해야 한다.
 m_tp_doc()  { m_doc_root "$1" && m_tprow "$1"; }
 m_tp_odd()  { m_tprow "$1" && m_ssot "$1"; }
+# `ide-tools.md` 행도 같은 조건으로 검사한다 (#136). 같은 방식으로 선언만 바꾼 입력을 둔다.
+m_ide_doc() { m_doc_root "$1" && m_iderow "$1"; }
+m_ide_odd() { m_iderow "$1" && m_ssot "$1"; }
 
 # 4차 audit F-9 반례: 두 필수 행을 첫 번째 표에서 빼 같은 H2의 두 번째 표로 옮긴다.
 # 탐색이 첫 번째 표 블록에서 멈추지 않으면 이 입력이 통과한다.
@@ -450,6 +507,9 @@ assert_missing '전제 컨벤션 한 줄'             '전제 컨벤션 한 줄'
 assert_missing '구버전 워크스페이스 위치 섹션'   "'## 워크스페이스 위치' 섹션"        m_legacy
 assert_missing '프로젝트 규칙 표 헤더 이름(5차 audit F-5 반례)' '헤더 이름'          m_rules_hdr
 assert_missing '프로젝트 규칙 표 헤더 순서'      '헤더 이름'                          m_rules_ord
+assert_missing '2열 구버전 표에서도 ide-tools 행 누락 격추(PR #137 리뷰 반례)' 'ide-tools.md` 행' m_ide_2col
+assert_not_reported '2열 표 헤더 이름이 다르면 행 검사 건너뜀' \
+  '구버전 표 — 열 확장 대상' 'ide-tools.md` 행' m_ide_2col_hdr
 assert_pass    '프로젝트 규칙 표 사용자 확장 열 허용'                                m_rules_4col
 assert_missing 'context-loading.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'context-loading.md` 행' m_ctx_in_ext
 assert_missing 'writing-principles.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'writing-principles.md` 행' m_wr_in_ext
@@ -460,6 +520,11 @@ assert_missing 'testing-principles 행 경로가 확장 열에만 있음(dev 선
 assert_pass    'testing-principles 행 누락이어도 doc 선언이면 무보고 통과'                          m_tp_doc
 assert_not_reported 'testing-principles 행 누락이어도 비표준 선언이면 이 행 무보고 통과' \
   '본문 두 번째 줄 SSoT' 'testing-principles.md' m_tp_odd
+assert_missing 'ide-tools 행 누락(dev 선언) 격추'                        'ide-tools.md` 행' m_iderow
+assert_missing 'ide-tools 행 경로가 확장 열에만 있음(dev 선언) 격추'     'ide-tools.md` 행' m_ide_in_ext
+assert_pass    'ide-tools 행 누락이어도 doc 선언이면 무보고 통과'                          m_ide_doc
+assert_not_reported 'ide-tools 행 누락이어도 비표준 선언이면 이 행 무보고 통과' \
+  '본문 두 번째 줄 SSoT' 'ide-tools.md' m_ide_odd
 assert_missing 'SSoT 선언 doc ssot_dir 행 없음 격추' 'ssot_dir` 행'           m_doc_noroot
 assert_pass    'SSoT 선언 doc 문구 통과'                                      m_doc_root
 assert_missing 'SSoT 선언 doc 전환 전 dev 표준 문구 잔존 격추(PR #115 리뷰 반례)' 'doc 선언의 충돌 우선순위' m_doc_dev_text
@@ -525,8 +590,24 @@ assert_fixture 'no-rules-table'   '섹션은 있고 표 부재'
 assert_fixture 'legacy-two-col'   '구버전 표 — 열 확장 대상'
 assert_fixture 'missing-rows'     'context-loading.md` 행'
 assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
+# dev 선언 + doc 프로파일 선택 상태 (#136, K-0018). 기대 파일은 doc 골격 뒤에 dev 전용 표준 행 2개를 넣은 결과다.
+assert_fixture 'no-rules-section-mismatch' '섹션 부재'
+assert_fixture 'no-rules-table-mismatch'   '섹션은 있고 표 부재'
 
-# 표가 없는 상태에서는 표준 행 검사를 수행하지 않는다 — 같은 결함을 세 번 세지 않기 위함이다.
+# 2열 구버전 표는 열 확장과 함께 표준 행 누락도 보고한다 (PR #137 리뷰). 기대 파일은 표준 행 4개를 넣은 상태라,
+# 출력된 항목만 조치하는 절차로 그 결과에 닿으려면 네 행이 모두 보고돼야 한다.
+{
+  out="$("$CHECK" "$FIX/legacy-two-col.input.md" 2>&1)"
+  for row in context-loading writing-principles testing-principles ide-tools; do
+    if printf '%s\n' "$out" | grep -qF "${row}.md\` 행"; then
+      ok "fixture 상태 판정(legacy-two-col): ${row}.md 행 누락 보고"
+    else
+      ng "fixture 상태 판정(legacy-two-col) — ${row}.md 행 누락 보고 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+    fi
+  done
+}
+
+# 표가 없는 상태에서는 표준 행 검사를 수행하지 않는다 — 같은 결함을 검사하는 행 수만큼 세지 않기 위함이다.
 {
   out="$("$CHECK" "$FIX/no-rules-section.input.md" 2>&1)"
   if printf '%s\n' "$out" | grep -qF 'context-loading.md` 행'; then
@@ -538,7 +619,7 @@ assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 
 # --- 검사 표 행 수 (SKILL.md 대조) -------------------------------------------------
 #
-# 헬퍼가 다루는 11종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
+# 헬퍼가 다루는 12종 외 2종(디렉토리 구조 관련)은 의도적으로 제외했다.
 # SKILL.md 표가 늘면 이 검사가 걸려 제외 범위를 다시 판단하게 한다.
 
 rows="$(awk '
@@ -549,8 +630,8 @@ rows="$(awk '
 ' "$SKILL")"
 # 헤더·구분선 2행을 뺀 항목 수
 items=$((rows - 2))
-[ "$items" -eq 13 ] \
-  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 11종 + 트리 관련 2종 제외)" \
+[ "$items" -eq 14 ] \
+  && ok "SKILL.md 멱등 보강 검사 표: ${items}행 (헬퍼 12종 + 트리 관련 2종 제외)" \
   || ng "SKILL.md 멱등 보강 검사 표가 ${items}행입니다 — 헬퍼의 제외 범위를 다시 판단하세요"
 
 # --- 사용오류 ------------------------------------------------------------------
@@ -839,6 +920,9 @@ fi
 #
 # 테스트 라우팅(#122): "테스트 작성·실행 시" 섹션이 하나 있고 테스트 원칙 두 파일을 순서대로 가리키는 항목 2개만 갖는지 본다.
 # 섹션이 "존재하면 읽는다" 안내 아래에 있어야 파일이 없는 doc repo에서 건너뛰므로 그 안내와 SSoT 문장 사이에 있는지도 본다.
+#
+# IDE 도구 라우팅(#136): `ide-tools.md`가 "코드 수정·리뷰·분석 시" 절의 목록 항목 1개로만 나오고 파일 전체에서도 1곳인지 본다.
+# 다른 절로 옮기거나 중복으로 적으면 코드 작업에서 읽는 위치가 흐려진다.
 
 CTX_TPL="$TPL_DIR/shared/.ai/10_rules/context-loading.md"
 REPO_CTX="$HERE/../../.ai/10_rules/context-loading.md"
@@ -855,7 +939,20 @@ ctx_violations() {
     && [ "$(awk '/^## 테스트 작성·실행 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit } f && /^- / { sub(/ —.*/, ""); print }' "$1")" \
          = "$(printf '%s\n' '- `.ai/10_rules/testing-principles.md`' '- `.ai/10_rules/testing-principles-local.md`')" ]; } \
     || echo '테스트 라우팅'
+  { [ "$(awk '/^## 코드 수정·리뷰·분석 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit }
+           f && /^([0-9]+\.|-) `\.ai\/10_rules\/ide-tools\.md`/ { n++ } END { print n + 0 }' "$1")" -eq 1 ] \
+    && [ "$(grep -cF '.ai/10_rules/ide-tools.md' "$1")" -eq 1 ]; } || echo 'IDE 도구 라우팅'
   [ -z "${2:-}" ] || cmp -s "$1" "$2" || echo '사본 불일치'
+}
+
+# ctx_move_ide <파일> — 코드 절의 `ide-tools.md` 항목을 지우고 "정책·명세 문서 수정 시" 절 첫 항목 뒤로 옮긴다.
+ctx_move_ide() {
+  awk -v k='`.ai/10_rules/ide-tools.md`' '
+    index($0, k) && !m { m = $0; next }
+    { print }
+    $0 == "## 정책·명세 문서 수정 시" { p = 1; next }
+    p && /^- / && m != "" { print "- " substr(m, index(m, k)); p = 0; hit = 1 }
+    END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
 C_CTX="$TMP/context-loading.md"
@@ -876,9 +973,9 @@ assert_ctx_reject() {
 
 if [ -r "$CTX_TPL" ]; then
   if [ -r "$REPO_CTX" ]; then
-    desc='context-loading 제약 문장·테스트 라우팅·저장소 사본 일치 통과'; out="$(ctx_violations "$CTX_TPL" "$REPO_CTX")"
+    desc='context-loading 제약 문장·테스트 라우팅·ide-tools 라우팅·저장소 사본 일치 통과'; out="$(ctx_violations "$CTX_TPL" "$REPO_CTX")"
   else
-    desc='context-loading 제약 문장·테스트 라우팅(저장소 사본 없음, 대조 건너뜀) 통과'; out="$(ctx_violations "$CTX_TPL")"
+    desc='context-loading 제약 문장·테스트 라우팅·ide-tools 라우팅(저장소 사본 없음, 대조 건너뜀) 통과'; out="$(ctx_violations "$CTX_TPL")"
   fi
   if [ -z "$out" ]; then
     ok "$desc"
@@ -891,6 +988,12 @@ if [ -r "$CTX_TPL" ]; then
     sub_str "$C_CTX_COPY" '이력 확인에만 읽는다.' '이력 확인에만 읽는다. 사본에만 있는 문장이다.'
   assert_ctx_reject 'context-loading 테스트 라우팅 삭제 격추' '테스트 라우팅' \
     drop_sec "$C_CTX" '## 테스트 작성·실행 시'
+  assert_ctx_reject 'context-loading ide-tools 라우팅 항목 삭제 격추' 'IDE 도구 라우팅' \
+    drop_line "$C_CTX" '`.ai/10_rules/ide-tools.md`'
+  assert_ctx_reject 'context-loading ide-tools 라우팅 다른 절로 이동 격추' 'IDE 도구 라우팅' \
+    ctx_move_ide "$C_CTX"
+  assert_ctx_reject 'context-loading ide-tools 라우팅 다른 절에 중복 격추' 'IDE 도구 라우팅' \
+    sub_str "$C_CTX" '- `.ai/40_domain/index.md` — 기존 정책과의 충돌 여부' '- `.ai/40_domain/index.md` — 기존 정책과의 충돌 여부 (`.ai/10_rules/ide-tools.md` 참고)'
 else
   ng "context-loading 제약: 템플릿을 찾을 수 없습니다 — $CTX_TPL"
 fi

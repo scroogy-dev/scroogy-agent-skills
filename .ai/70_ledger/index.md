@@ -35,7 +35,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0015](archive/K-0015-ssot-declaration-silent-fallback.md) | SSoT 선언이 표준 값이 아니면 선언을 읽는 스킬이 경고 없이 소스 코드로 폴백한다 | known issue | 낮음(LOW) | 해소(PR #125) | - |
 | [K-0016](active/K-0016-git-pr-adr-sync-check-absent.md) | git-pr 문서 동기화 점검이 변경과 ADR 결정의 어긋남을 대조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | ADR 결정과 어긋난 변경이 머지된 사례 관측 시, 또는 git-pr 문서 동기화 점검 표의 행 실질 변경 시 |
 | [K-0017](active/K-0017-adr-link-helper-absent.md) | ADR을 superseded/로 옮긴 뒤 끊긴 링크를 결정적 헬퍼로 검사하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 첫 `superseded/` 이동에서 링크 갱신 누락 관측 시, 또는 ADR index `## 수명 주기`의 들어오는 링크 갱신 행 실질 변경 시 |
-| [K-0018](active/K-0018-update4-rules-restore-profile-mismatch-row.md) | ai-workspace update-4에서 규칙 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠진다 | known issue | 낮음(LOW) | 수용 | update-4 `## 프로젝트 규칙` 섹션·표 복구 조치나 `testing-principles.md` 행 검사 조건 실질 변경 시, 또는 dev 선언 repo의 update 결과에서 이 행이 빠진 사례 관측 시 |
+| [K-0018](archive/K-0018-update4-rules-restore-profile-mismatch-row.md) | ai-workspace update-4에서 규칙 섹션·표를 프로파일이 어긋난 템플릿으로 복구하면 그 실행에서 `testing-principles.md` 행이 빠진다 | known issue | 낮음(LOW) | 해소(PR #137) | - |
 | [K-0019](active/K-0019-seq-copy-literal-check-misses-meaning-change.md) | 시퀀스 규칙 사본 대조가 라벨·리터럴만 보아 리터럴을 남긴 의미 변경을 잡지 못한다 | 기술부채 | 낮음(LOW) | 수용 | git-pr·git-review-context·git-review-quiz 사본의 규칙 행이 code-map 원문과 뜻이 어긋난 사례 관측 시, 또는 사본의 규칙 유지 방식(`SEQ_ROWS` 대조)이나 code-map `## 시퀀스 다이어그램 작성 규칙` 행 실질 변경 시 |
 | [K-0020](active/K-0020-quiz-link-to-pr-and-task-deferred.md) | PR 안내와 Task 진행에 이해 점검 퀴즈 연결이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 퀴즈 운영 방식(풀 사람·시점)을 정할 때, 또는 PR 리뷰 전후로 `/git-review-quiz`를 따로 호출하는 사용이 반복될 때 |
 | [K-0021](active/K-0021-microworld-generation-deferred.md) | 변경 동작을 조작해 볼 축소 모형(마이크로월드) 생성 기능이 없다 | 기술부채 | 낮음(LOW) | 수용 | 서술·호출 흐름·시퀀스 다이어그램·전후 예시만으로 변경 동작을 이해하기 어려웠던 PR 사례가 반복될 때, 또는 마이크로월드 생성을 스킬로 만들기로 결정할 때 |
@@ -45,6 +45,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0025](active/K-0025-quiz-branch-mode-untracked-files-excluded.md) | git-review-quiz 브랜치 모드 diff가 미추적 새 파일을 빼는데 SKILL.md는 작업 트리 변경을 포함한다고 적는다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드에서 새 파일이 빠진 퀴즈가 다시 만들어진 사례 관측 시, 또는 git-review-quiz 2단계 diff 수집 절차(브랜치 모드 명령·작업 트리 안내 문장) 변경 시 |
 | [K-0026](active/K-0026-section-scan-multi-backtick-comment.md) | ai-workspace 구간 판정이 여러 백틱 코드 스팬 안의 `<!--`를 HTML 주석으로 읽는다 | known issue | 중간(MEDIUM) | 수용 | 실제 안내도·인덱스에서 이 경계로 사용자 내용이 사라지거나 표준 구간이 중복된 사례 관측 시, 또는 `sync-owned.sh`·`check-context.sh`의 `MD_TRACK_AWK` 주석 판정 변경 시 |
 | [K-0027](active/K-0027-section-scan-heading-forms.md) | ai-workspace 구간 판정이 탭 구분·Setext·`#` 제목을 경계로 세지 않는다 | known issue | 중간(MEDIUM) | 수용 | 실제 안내도·인덱스에서 이 세 형식의 제목과 내용이 사라진 사례 관측 시, 또는 `sync-owned.sh` `split_md`·`check-context.sh` `profile_state`의 제목 경계 판정 변경 시 |
+| [K-0028](active/K-0028-consumer-skill-ide-tools-reference-deferred.md) | 소비 스킬 본문이 IDE 도구 우선 규칙(`ide-tools.md`)을 직접 참조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 규칙 표가 있는데도 `code-map`·`git-review` 등 코드를 탐색하는 스킬 실행에서 IDE 도구 없이 grep만 쓴 사례가 반복될 때, 또는 `context-loading.md`의 `ide-tools.md` 라우팅이나 규칙 표의 스킬 선행 적용 문장이 바뀔 때 |
 
 ## 수명 주기
 
