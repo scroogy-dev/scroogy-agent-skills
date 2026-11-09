@@ -343,6 +343,19 @@ m_legacy()    { printf '\n## 워크스페이스 위치\n\n| 항목 | 값 |\n|---
 m_rules_hdr() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| foo | bar | baz |/' "$1" && rm -f "$1.bak"; }
 m_rules_ord() { sed -i.bak 's/^| 파일 | 설명 | 사용 시점 |$/| 설명 | 파일 | 사용 시점 |/' "$1" && rm -f "$1.bak"; }
 
+# PR #137 리뷰 반례: 규칙 표를 2열(파일·설명) 구버전 표로 줄인다. 헤더가 `파일`·`설명`이면
+# 열 확장 보고와 함께 행 검사도 돌아야 하고, 헤더 이름이 다르면 행 검사를 건너뛰어야 한다.
+m_rules_2col() {
+  awk '
+    /^## 프로젝트 규칙[[:space:]]*$/ { f = 1; print; next }
+    f && /^## / { f = 0 }
+    f && /^\|/ { split($0, c, "|"); print "|" c[2] "|" c[3] "|"; next }
+    { print }
+  ' "$1" > "$1.2col" && mv "$1.2col" "$1"
+}
+m_ide_2col()     { m_rules_2col "$1" && m_iderow "$1"; }
+m_ide_2col_hdr() { m_ide_2col "$1" && sed -i.bak 's/^| 파일 | 설명 |$/| 항목 | 내용 |/' "$1" && rm -f "$1.bak"; }
+
 # doc 선언 변형. dev 템플릿에서 출발해 "doc 선언이 `ssot_dir`·dev 표준 문구 4곳 검사를 켠다"를 고정한다.
 # 유사 문구 변형은 `ssot_dir` 행·doc 문구 4곳이 있는 파일로 만들어 격추 원인을 2번째 줄로 한정한다.
 m_doc_noroot() { sed -i.bak 's/^> SSoT: .*/> SSoT: 원본 문서. 이 파일은 안내도일 뿐 진실의 원천이 아니다./' "$1" && rm -f "$1.bak"; }
@@ -494,6 +507,9 @@ assert_missing '전제 컨벤션 한 줄'             '전제 컨벤션 한 줄'
 assert_missing '구버전 워크스페이스 위치 섹션'   "'## 워크스페이스 위치' 섹션"        m_legacy
 assert_missing '프로젝트 규칙 표 헤더 이름(5차 audit F-5 반례)' '헤더 이름'          m_rules_hdr
 assert_missing '프로젝트 규칙 표 헤더 순서'      '헤더 이름'                          m_rules_ord
+assert_missing '2열 구버전 표에서도 ide-tools 행 누락 격추(PR #137 리뷰 반례)' 'ide-tools.md` 행' m_ide_2col
+assert_not_reported '2열 표 헤더 이름이 다르면 행 검사 건너뜀' \
+  '구버전 표 — 열 확장 대상' 'ide-tools.md` 행' m_ide_2col_hdr
 assert_pass    '프로젝트 규칙 표 사용자 확장 열 허용'                                m_rules_4col
 assert_missing 'context-loading.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'context-loading.md` 행' m_ctx_in_ext
 assert_missing 'writing-principles.md 경로가 확장 열에만 있음(3차 audit F-8 반례)' 'writing-principles.md` 행' m_wr_in_ext
@@ -577,6 +593,19 @@ assert_fixture 'missing-rows-doc' 'context-loading.md` 행'
 # dev 선언 + doc 프로파일 선택 상태 (#136, K-0018). 기대 파일은 doc 골격 뒤에 dev 전용 표준 행 2개를 넣은 결과다.
 assert_fixture 'no-rules-section-mismatch' '섹션 부재'
 assert_fixture 'no-rules-table-mismatch'   '섹션은 있고 표 부재'
+
+# 2열 구버전 표는 열 확장과 함께 표준 행 누락도 보고한다 (PR #137 리뷰). 기대 파일은 표준 행 4개를 넣은 상태라,
+# 출력된 항목만 조치하는 절차로 그 결과에 닿으려면 네 행이 모두 보고돼야 한다.
+{
+  out="$("$CHECK" "$FIX/legacy-two-col.input.md" 2>&1)"
+  for row in context-loading writing-principles testing-principles ide-tools; do
+    if printf '%s\n' "$out" | grep -qF "${row}.md\` 행"; then
+      ok "fixture 상태 판정(legacy-two-col): ${row}.md 행 누락 보고"
+    else
+      ng "fixture 상태 판정(legacy-two-col) — ${row}.md 행 누락 보고 없음, 실제: $(printf '%s' "$out" | tr '\n' ' ')"
+    fi
+  done
+}
 
 # 표가 없는 상태에서는 표준 행 검사를 수행하지 않는다 — 같은 결함을 검사하는 행 수만큼 세지 않기 위함이다.
 {

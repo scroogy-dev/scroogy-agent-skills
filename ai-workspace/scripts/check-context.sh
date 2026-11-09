@@ -38,6 +38,7 @@ TREE_DEV='# [5순위] 소스코드 엔트리포인트·호출 흐름 색인 (ind
 ENTRY_DEV='`60_codebase/index.md`(코드 진입점)'
 RULE_DEV='코드 상세는 `60_codebase/`'
 RULES_HEADER='파일/설명/사용 시점'
+RULES_HEADER_LEGACY='파일/설명'
 
 # 코드 펜스와 HTML 주석 상태를 한 행씩 추적하는 awk 함수. 호출 전의 `fence_ch`·`in_comment` 가 그 행이 펜스·주석 안인지 알려 준다.
 # sync-owned.sh 에 같은 사본이 있다. 읽기와 쓰기가 같은 범위를 봐야 하므로 함께 고친다 (tests/run-tests.sh 가 일치를 검사한다).
@@ -249,34 +250,38 @@ else
     ng "'## 프로젝트 규칙' 표 (섹션은 있고 표 부재 — 섹션 끝에 3열 표 삽입 대상)"
   else
     cols="$(printf '%s\n' "$rules_header" | awk -F'|' '{ print NF - 2 }')"
+    # SKILL.md 표가 3열의 이름까지 `파일`·`설명`·`사용 시점` 으로 고정하므로 열 수만 세지 않는다.
+    # 개수만 보면 이름이 다른 3열 표가 통과해 이후 행 검사가 엉뚱한 표에 붙는다.
+    # 앞 3열의 이름·순서만 판정하고 뒤에 붙은 사용자 확장 열은 허용한다
+    # (SKILL.md 검사 표에 명시한 관용 범위이며 `-lt 3` 관용과 같은 정책이다).
+    names="$(printf '%s\n' "$rules_header" | awk -F'|' '{
+      out = ""
+      for (i = 2; i <= NF - 1 && i <= 4; i++) {
+        v = $i
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+        out = (out == "" ? v : out "/" v)
+      }
+      print out
+    }')"
     if [ "$cols" -lt 3 ]; then
       ng "'## 프로젝트 규칙' 표의 '사용 시점' 열 (${cols}열 구버전 표 — 열 확장 대상)"
-    else
-      # SKILL.md 표가 3열의 이름까지 `파일`·`설명`·`사용 시점` 으로 고정하므로 열 수만 세지 않는다.
-      # 개수만 보면 이름이 다른 3열 표가 통과해 이후 행 검사가 엉뚱한 표에 붙는다.
-      # 앞 3열의 이름·순서만 판정하고 뒤에 붙은 사용자 확장 열은 허용한다
-      # (SKILL.md 검사 표에 명시한 관용 범위이며 `-lt 3` 관용과 같은 정책이다).
-      names="$(printf '%s\n' "$rules_header" | awk -F'|' '{
-        out = ""
-        for (i = 2; i <= NF - 1 && i <= 4; i++) {
-          v = $i
-          gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
-          out = (out == "" ? v : out "/" v)
-        }
-        print out
-      }')"
-      if [ "$names" != "$RULES_HEADER" ]; then
-        ng "'## 프로젝트 규칙' 표의 헤더 이름 ($RULES_HEADER 순서 — 실제 [$names], 헤더 정정 대상)"
-      else
+      # 헤더가 `파일`·`설명`인 2열 표는 열을 넓힌 뒤에도 그 표 끝에 표준 행을 넣으므로 행 검사도 수행한다.
+      # 건너뛰면 출력된 항목만 조치하는 SKILL.md 절차에서 열을 넓힌 실행의 표준 행 보강이 빠진다 (PR #137 리뷰).
+      # 헤더 이름이 다르면 첫 열이 `파일`이라는 보장이 없어 행 검사가 엉뚱한 표에 붙으므로 건너뛴다.
+      if [ "$names" = "$RULES_HEADER_LEGACY" ]; then
         rules_ok=true
       fi
+    elif [ "$names" != "$RULES_HEADER" ]; then
+      ng "'## 프로젝트 규칙' 표의 헤더 이름 ($RULES_HEADER 순서 — 실제 [$names], 헤더 정정 대상)"
+    else
+      rules_ok=true
     fi
   fi
 fi
 
 # --- 표준 행 --------------------------------------------------------------------
 #
-# 섹션·표 존재가 보장된 뒤에만 수행한다 (SKILL.md 표의 "아래 네 행 검사는 이 검사로 …" 조건).
+# 3열 표가 확인됐거나 헤더가 `파일`·`설명`인 2열 표일 때만 수행한다 (SKILL.md 표의 "아래 네 행 검사는 …" 조건).
 # `testing-principles.md`·`ide-tools.md` 행은 dev 선언일 때만 검사한다. 두 파일이 dev 프로파일 전용이기 때문이다.
 # doc 선언이면 검사하지 않고, 비표준 선언도 검사하지 않는다 (`ssot_dir` 행과 같은 이유로, 위에서 이미 보고했고
 # 어느 프로파일 문구로 바뀔지는 조치 단계가 정한다).
