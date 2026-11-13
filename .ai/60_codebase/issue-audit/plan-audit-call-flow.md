@@ -109,7 +109,7 @@ sequenceDiagram
 ## Why
 
 - 근거는 `issue-audit/SKILL.md` `### --plan` 소절(시점·입력·대조 기준·판정 매핑·5관점)과 `check-plan.sh` 머리말(읽는 앵커, 판정 순서, 행 단위 경계)에 있다.
-- 원장 [K-0009](../../70_ledger/active/K-0009-plan-audit-fake-d-check-manual.md): 가짜 `[D]` 사전 판별의 헬퍼 결정화 보류(기술부채). [K-0010](../../70_ledger/active/K-0010-check-plan-line-based-markdown-boundary.md): 행 단위 파서라 여러 행 코드 스팬 등은 구분하지 않음(known issue, `--ac`도 같은 경계를 이어받음). [K-0023](../../70_ledger/active/K-0023-check-plan-include-label-trailing-comment.md): 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못하던 경계. #140에서 포함 표지를 scan 결과로 판정하게 고쳐 해소했다.
+- 원장 [K-0009](../../70_ledger/active/K-0009-plan-audit-fake-d-check-manual.md): 가짜 `[D]` 사전 판별의 헬퍼 결정화 보류(기술부채). [K-0010](../../70_ledger/active/K-0010-check-plan-line-based-markdown-boundary.md): 행 단위 파서라 여러 행 코드 스팬 등은 구분하지 않음(known issue, `--ac`도 같은 경계를 이어받음). [K-0023](../../70_ledger/archive/K-0023-check-plan-include-label-trailing-comment.md): 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못하던 경계. #140에서 포함 표지를 scan 결과로 판정하게 고쳐 해소했다.
 - AC 대조(`--ac`)와 관점 3의 완화·확장 점검은 이슈 AC를 spec·PR까지 같은 번호로 잇는 결정의 일부다([ADR 0026](../../50_adr/active/0026-acceptance-criteria-across-issue-spec-pr.md)). AC 없는 이슈의 `대조 불가`를 발견으로 세지 않고 AC 보강을 issue-work 6단계에 맡기는 근거도 같은 ADR에 있다.
 - 계획 감사 리포트의 보정은 issue-work `--response`가 spec·plan에 반영하고 건수를 summary `계획 감사` 줄에 적는다([--response 흐름](../issue-work/response-call-flow.md)).
 - 명세: [이슈 감사 요건](../../40_domain/specs/issue-audit.md) `--plan` 항목. 요구사항 층·계획 감사 모드·수행 여부 사용자 선택은 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md). 가짜 `[D]` 함정("틀렸을 때 검사가 실제로 실패하나")은 [ADR 0003](../../50_adr/active/0003-verification-levels-and-determinization.md) 근거 절.
