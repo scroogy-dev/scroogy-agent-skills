@@ -40,13 +40,14 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0020](active/K-0020-quiz-link-to-pr-and-task-deferred.md) | PR 안내와 Task 진행에 이해 점검 퀴즈 연결이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 퀴즈 운영 방식(풀 사람·시점)을 정할 때, 또는 PR 리뷰 전후로 `/git-review-quiz`를 따로 호출하는 사용이 반복될 때 |
 | [K-0021](active/K-0021-microworld-generation-deferred.md) | 변경 동작을 조작해 볼 축소 모형(마이크로월드) 생성 기능이 없다 | 기술부채 | 낮음(LOW) | 수용 | 서술·호출 흐름·시퀀스 다이어그램·전후 예시만으로 변경 동작을 이해하기 어려웠던 PR 사례가 반복될 때, 또는 마이크로월드 생성을 스킬로 만들기로 결정할 때 |
 | [K-0022](active/K-0022-doc-profile-flow-substitute-format-deferred.md) | doc 프로파일 저장소 PR에 호출 흐름·시퀀스를 대신할 형식이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | doc 저장소에서 git-pr로 PR을 여러 번 만들어 테크 관점 형식을 정할 수 있을 때, 또는 doc 저장소 PR의 테크 관점이 문서 구조 변경을 보여 주지 못해 리뷰에 지장이 생긴 사례 관측 시 |
-| [K-0023](active/K-0023-check-plan-include-label-trailing-comment.md) | issue-audit 추적성 헬퍼가 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못한다 | known issue | 낮음(LOW) | 수용 | 실제 spec에서 이 경계 때문에 `추적 불가`로 오판정된 사례 관측 시, 또는 `check-plan.sh --trace`의 spec 앵커 판정(`**포함**` 라벨·포함 목록 경계) 변경 시, 또는 issue-work spec 템플릿의 `**포함**` 행에 주석을 두는 구조가 도입될 때 |
+| [K-0023](archive/K-0023-check-plan-include-label-trailing-comment.md) | issue-audit 추적성 헬퍼가 행 끝에 닫힌 주석이 붙은 `**포함**` 라벨을 인식하지 못한다 | known issue | 낮음(LOW) | 해소(PR #141) | - |
 | [K-0024](active/K-0024-quiz-branch-name-sanitize-collision.md) | git-review-quiz 브랜치 모드 산출 파일 이름이 치환 뒤 같아지는 두 브랜치를 구분하지 못한다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드 산출물이 다른 브랜치의 산출물을 덮어쓴 사례 관측 시, 또는 git-review-quiz 산출 파일 이름 규칙(브랜치 이름 치환 문자 집합·접두어) 변경 시 |
 | [K-0025](active/K-0025-quiz-branch-mode-untracked-files-excluded.md) | git-review-quiz 브랜치 모드 diff가 미추적 새 파일을 빼는데 SKILL.md는 작업 트리 변경을 포함한다고 적는다 | known issue | 중간(MEDIUM) | 수용 | 브랜치 모드에서 새 파일이 빠진 퀴즈가 다시 만들어진 사례 관측 시, 또는 git-review-quiz 2단계 diff 수집 절차(브랜치 모드 명령·작업 트리 안내 문장) 변경 시 |
 | [K-0026](active/K-0026-section-scan-multi-backtick-comment.md) | ai-workspace 구간 판정이 여러 백틱 코드 스팬 안의 `<!--`를 HTML 주석으로 읽는다 | known issue | 중간(MEDIUM) | 수용 | 실제 안내도·인덱스에서 이 경계로 사용자 내용이 사라지거나 표준 구간이 중복된 사례 관측 시, 또는 `sync-owned.sh`·`check-context.sh`의 `MD_TRACK_AWK` 주석 판정 변경 시 |
 | [K-0027](active/K-0027-section-scan-heading-forms.md) | ai-workspace 구간 판정이 탭 구분·Setext·`#` 제목을 경계로 세지 않는다 | known issue | 중간(MEDIUM) | 수용 | 실제 안내도·인덱스에서 이 세 형식의 제목과 내용이 사라진 사례 관측 시, 또는 `sync-owned.sh` `split_md`·`check-context.sh` `profile_state`의 제목 경계 판정 변경 시 |
 | [K-0028](active/K-0028-consumer-skill-ide-tools-reference-deferred.md) | 소비 스킬 본문이 IDE 도구 우선 규칙(`ide-tools.md`)을 직접 참조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 규칙 표가 있는데도 `code-map`·`git-review` 등 코드를 탐색하는 스킬 실행에서 IDE 도구 없이 grep만 쓴 사례가 반복될 때, 또는 `context-loading.md`의 `ide-tools.md` 라우팅이나 규칙 표의 스킬 선행 적용 문장이 바뀔 때 |
 | [K-0029](active/K-0029-rules-table-sort-digit-compare-undefined.md) | ai-workspace 규칙 표 알파벳순이 이름 속 숫자의 비교 방식을 정하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 규칙 파일 이름에 든 숫자 때문에 알파벳순 자리 삽입이나 순서 검사 결과가 사용자 기대와 다른 사례 관측 시, 또는 `ai-workspace/SKILL.md` `## 디렉토리 트리 정렬 규칙`에 숫자 비교 정의가 생길 때 |
+| [K-0030](active/K-0030-spec-requirements-ungrouped-check-absent.md) | 기준 수 이상인데 묶지 않은 spec 요구사항을 결정적 검사로 잡지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 포함 또는 제외 항목이 5개 이상인데 묶지 않은 spec이 실제로 나왔을 때, 또는 issue-work spec 템플릿의 5개 기준 묶음 규칙이 바뀔 때 |
 
 ## 수명 주기
 

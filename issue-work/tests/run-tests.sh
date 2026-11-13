@@ -291,8 +291,9 @@ check_spec_structure() {
     /^## 목표 \(Goal\)$/             { goal++; goal_at = NR }
     /^## 요구사항 \(Requirements\)$/ { req++; req_at = NR }
     /^## 완료의 정의 \(Definition of Done\)$/ { dod_at = NR }
-    /^\*\*포함\*\*$/                 { inc++; if (sec != "## 요구사항 (Requirements)") mis++; inc_at = NR; list = "inc" }
-    /^\*\*제외\*\*$/                 { exc++; if (sec != "## 요구사항 (Requirements)") mis++; exc_at = NR; list = "exc" }
+    /^### 포함$/                     { inc++; if (sec != "## 요구사항 (Requirements)") mis++; inc_at = NR; list = "inc" }
+    /^### 제외$/                     { exc++; if (sec != "## 요구사항 (Requirements)") mis++; exc_at = NR; list = "exc" }
+    /^\*\*(포함|제외)\*\*/           { bold++ }
     list == "inc" && /^- /           { if ($0 ~ /^- R[0-9]+: /) { inc_items++
                                          n = $0; sub(/^- R/, "", n); sub(/:.*/, "", n); inc_rs[n]++
                                        } else inc_bad++ }
@@ -309,6 +310,7 @@ check_spec_structure() {
       if (inc != 1)       print "포함 표기 " inc + 0 "개 (기대 1개)"
       if (exc != 1)       print "제외 표기 " exc + 0 "개 (기대 1개)"
       if (mis)            print "포함·제외 표기가 요구사항 섹션 밖: " mis "개"
+      if (bold)           print "굵은 글씨 포함·제외 표지 " bold "행 (표지는 ### 포함·### 제외 제목)"
       if (inc == 1 && exc == 1 && inc_at > exc_at) print "포함·제외 순서 역전"
       if (goal_at && req_at && goal_at > req_at) print "목표·요구사항 섹션 순서 역전"
       if (req_at && dod_at && req_at > dod_at)   print "요구사항·완료의 정의 섹션 순서 역전"
@@ -343,7 +345,7 @@ check_spec_structure() {
 # spec 템플릿의 포함 R 번호 집합과 대조해 Task→요구사항 연결이 실제로 이어지는지도 판정한다.
 check_plan_structure() {
   local valid
-  valid="$(awk '/^\*\*포함\*\*$/ { list = 1; next } /^\*\*/ { list = 0 }
+  valid="$(awk '/^### 포함$/ { list = 1; next } /^### / || /^## / || /^\*\*/ { list = 0 }
                list && /^- R[0-9]+: / { n = $0; sub(/^- /, "", n); sub(/:.*/, "", n); printf "%s ", n }' \
     "$SPEC_TPL")"
   awk -v valid="$valid" '
@@ -380,19 +382,19 @@ assert_structure() {
 
 # 반례 fixture 는 실제 템플릿의 awk 변형으로 만든다 (구조 드리프트를 그대로 재현).
 awk '!/^## 요구사항 \(Requirements\)$/' "$SPEC_TPL" > "$sandbox/s-no-req.md"
-awk '!/^\*\*포함\*\*$/' "$SPEC_TPL" > "$sandbox/s-no-incl.md"
-awk '!/^\*\*제외\*\*$/' "$SPEC_TPL" > "$sandbox/s-no-excl.md"
+awk '!/^### 포함$/' "$SPEC_TPL" > "$sandbox/s-no-incl.md"
+awk '!/^### 제외$/' "$SPEC_TPL" > "$sandbox/s-no-excl.md"
 awk '!/^### R1: /' "$SPEC_TPL" > "$sandbox/s-no-rgroup.md"
 awk '!/^### 공통$/' "$SPEC_TPL" > "$sandbox/s-no-common.md"
 awk '{print} END{print ""; print "## 범위 (Scope)"}' "$SPEC_TPL" > "$sandbox/s-scope-back.md"
 
 # F-2 반례(2차 audit 재현·이웃 변형): 존재 검사만으로는 통과하는 변형들.
 awk '{print} END{print ""; print "## 요구사항 (Requirements)"}' "$SPEC_TPL" > "$sandbox/s-dup-req.md"
-awk '{print} /^\*\*포함\*\*$/{print ""; print "**포함**"}' "$SPEC_TPL" > "$sandbox/s-dup-incl.md"
-awk '/^\*\*포함\*\*$/{next} {print} /^\*\*제외\*\*$/{print ""; print "**포함**"}' \
+awk '{print} /^### 포함$/{print ""; print "### 포함"}' "$SPEC_TPL" > "$sandbox/s-dup-incl.md"
+awk '/^### 포함$/{next} {print} /^### 제외$/{print ""; print "### 포함"}' \
   "$SPEC_TPL" > "$sandbox/s-swap-order.md"
-awk '!/^\*\*제외\*\*$/{print} END{print ""; print "**제외**"}' "$SPEC_TPL" > "$sandbox/s-excl-outside.md"
-awk '{print} /^\*\*제외\*\*$/{print ""; print "**비포함 (Out)**"}' "$SPEC_TPL" > "$sandbox/s-old-coexist.md"
+awk '!/^### 제외$/{print} END{print ""; print "### 제외"}' "$SPEC_TPL" > "$sandbox/s-excl-outside.md"
+awk '{print} /^### 제외$/{print ""; print "**비포함 (Out)**"}' "$SPEC_TPL" > "$sandbox/s-old-coexist.md"
 # PR #95 리뷰 반례: 소속·목록 항목까지 판정 — DoD 그룹 헤더의 섹션 밖 이동, 목록 항목 삭제·형식 훼손.
 awk '!/^### R1: /{print} END{print ""; print "### R1: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-rgroup-outside.md"
 awk '!/^### 공통$/{print} END{print ""; print "### 공통"}' "$SPEC_TPL" > "$sandbox/s-common-outside.md"
@@ -403,7 +405,7 @@ awk '!/^- <검토했지만/' "$SPEC_TPL" > "$sandbox/s-no-excl-items.md"
 awk '!/^### R2: /{print} END{print ""; print "### R2: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-r2-outside.md"
 # PR #95 3차 리뷰 반례: 소속 접두사 매칭 우회 — 원 헤더는 비워 두고 블록을 유사 헤더 아래로
 # 옮기면 `^## 요구사항`·`^## 완료의 정의` 접두사에 걸려 위반 0건으로 통과한다.
-awk '/^\*\*포함\*\*$/{hold=1} /^## 완료의 정의/{hold=0} hold{buf = buf $0 "\n"; next} {print}
+awk '/^### 포함$/{hold=1} /^## 완료의 정의/{hold=0} hold{buf = buf $0 "\n"; next} {print}
      END{print ""; print "## 요구사항 참고"; print ""; printf "%s", buf}' \
   "$SPEC_TPL" > "$sandbox/s-req-lookalike.md"
 awk '/^### R1: /{hold=1} /^### 공통$/{hold=0} hold{buf = buf $0 "\n"; next} {print}
@@ -1371,8 +1373,15 @@ check_body_template() {
     /^<\/details>/ { d-- }
     { t = $0; while (match(t, /<summary>[^<]+<\/summary>/)) { s = s substr(t, RSTART, RLENGTH) "|"; t = substr(t, RSTART + RLENGTH) } }
     sec == "완료의 정의" && /^- \[ \] AC[0-9]+: / { ac++ }
+    /^### 포함$/ { if (sec == "범위") { bi++; bi_at = NR } else bout++ }
+    /^### 제외$/ { if (sec == "범위") { be++; be_at = NR } else bout++ }
+    /^\*\*(포함|제외)\*\*/ { bold++ }
     END {
       if (h != "## 목표|## 범위|## 완료의 정의|## 검토 필요|") print "본문 헤더 구성 [" h "]"
+      if (bi != 1 || be != 1) print "범위 표지 제목 포함 " bi + 0 "개·제외 " be + 0 "개 (기대 각 1개)"
+      else if (bi_at > be_at) print "범위 포함·제외 표지 순서 역전"
+      if (bout) print "포함·제외 표지 제목이 범위 섹션 밖: " bout "개"
+      if (bold) print "굵은 글씨 포함·제외 표지 " bold "행 (표지는 ### 포함·### 제외 제목)"
       if (s != "<summary>배경</summary>|<summary>현재 동작 → 기대 동작</summary>|<summary>연관 문서</summary>|")
         print "접기 구성 [" s "]"
       if (ac < 1) print "완료의 정의에 AC 행 없음"
@@ -1757,6 +1766,238 @@ assert_structure check_body_update_audit_item "$WORKFLOW_TPL"                   
 assert_structure check_body_update_audit_item "$sandbox/bu-wf-no-step6.md"        fail "본문 갱신 질의: workflow 템플릿 계획 감사 항목 6단계 삭제 격추"
 assert_structure check_body_update_audit_item "$sandbox/bu-wf-no-line.md"         fail "본문 갱신 질의: workflow 템플릿 계획 감사 항목 이슈 본문 갱신 줄 삭제 격추"
 assert_structure check_body_update_audit_item "$sandbox/bu-wf-dup.md"             fail "본문 갱신 질의: workflow 템플릿 계획 감사 항목 중복 격추"
+
+# --- 요구사항 묶음·하위 목록 (issue #140) -----------------------------------------
+#
+# 요구사항이 5개 이상이면 포함은 내용별, 제외는 사유별로 묶고 R 첫 줄 아래에 세부 조건을 하위 목록으로 두는 규칙이
+# spec 템플릿 요구사항 안내에서 사라지지 않았는지 판정한다.
+# 조항은 행 단위로 본다. 행은 `- <라벨>: `로 시작하는 줄과 두 칸 들여쓴 이어지는 줄이다.
+# 같은 문구가 다른 행이나 다른 섹션에 있으면 세지 않는다. `5개 미만이면 묶지 않는다`는 포함 묶음·제외 묶음 두 행에 있다.
+
+# group_req_section <파일> → spec 요구사항 섹션 (헤더 행 다음부터 다음 `## ` 앞까지)
+group_req_section() { awk '/^## 요구사항 \(Requirements\)$/ { s = 1; next } /^## / { s = 0 } s' "$1"; }
+
+# group_row <라벨> → 표준 입력에서 `- <라벨>: `로 시작하는 행과 두 칸 들여쓴 이어지는 줄
+group_row() { awk -v l="- $1: " 'index($0, l) == 1 { s = 1; print; next } s && /^  / { print; next } { s = 0 }'; }
+
+# group_need <섹션 내용> <라벨> <문구> → 그 행에 문구가 없으면 위반 1줄
+group_need() { printf '%s\n' "$1" | group_row "$2" | grep -qF -- "$3" || echo "[$2] 행에 [$3] 없음"; }
+
+# check_group_spec_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_group_spec_tpl() {
+  local sec p
+  sec="$(group_req_section "$1")"
+  for p in '포함 묶음' '제외 묶음'; do
+    [ "$(printf '%s\n' "$sec" | grep -c "^- $p: ")" -eq 1 ] || echo "요구사항 섹션의 [$p] 행이 1개가 아님"
+  done
+  for p in '첫 줄은 한 문장' '세부 조건과 근거 표기는 그 항목의 하위 목록에' '하위 목록의 세부 조건도 그 R의 요구사항'; do
+    group_need "$sec" '포함' "$p"
+  done
+  for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '5개 미만이면 묶지 않는다' '기능 영역을 가리키는 명사구' \
+           '다시 매기지 않' '다음 번호를 받아 맞는 묶음' '이슈 본문의 포함이 묶여 있으면' '묶음 이름을 이어 쓴다'; do
+    group_need "$sec" '포함 묶음' "$p"
+  done
+  for p in '제외 항목이 5개 이상이면' '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '5개 미만이면 묶지 않는다' '항목이 없는 사유는 생략'; do
+    group_need "$sec" '제외 묶음' "$p"
+  done
+  group_need "$sec" '근거 표기' '하위 목록'
+  group_need "$sec" '함께 해소 표기' '첫 줄 끝에 `(함께 해소: K-<번호>)`'
+  if printf '%s\n' "$sec" | group_row '근거 표기' | grep -qF '문장 끝'; then echo '[근거 표기] 행에 옛 위치(문장 끝)가 남음'; fi
+  printf '%s\n' "$sec" | awk '/^### 포함$/ { i = 1; next } /^### / { i = 0 }
+    i && p ~ /^- R[0-9]+: / && /^  - / { n++ } { p = $0 }
+    END { if (n < 1) print "포함 예시의 R 항목 바로 아래에 하위 목록 줄 없음" }'
+}
+
+# 반례 fixture 는 실제 템플릿의 awk 변형으로 만든다. 문구 삭제는 요구사항 섹션의 그 행에서만 한다.
+# group_drop_in_row <파일> <라벨> <문구> → 그 행(이어지는 줄 포함)에서만 문구를 지운 사본
+group_drop_in_row() {
+  awk -v l="- $2: " -v s="$3" '
+    /^## / { q = ($0 == "## 요구사항 (Requirements)") }
+    { if (q && index($0, l) == 1) r = 1; else if (r && !/^  /) r = 0 }
+    r { while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)) }
+    { print }' "$1"
+}
+
+# group_drop_row <파일> <라벨> → 요구사항 섹션의 그 행(이어지는 줄 포함)을 지운 사본
+group_drop_row() {
+  awk -v l="- $2: " '
+    /^## / { q = ($0 == "## 요구사항 (Requirements)") }
+    { if (q && index($0, l) == 1) r = 1; else if (r && !/^  /) r = 0 }
+    !r' "$1"
+}
+
+GS_N=0
+# group_spec_drop_case <라벨> <문구> → spec 템플릿의 그 행에서 문구를 지운 사본이 격추되는지 본다
+group_spec_drop_case() {
+  GS_N=$((GS_N + 1))
+  group_drop_in_row "$SPEC_TPL" "$1" "$2" > "$sandbox/gs-drop-$GS_N.md"
+  assert_structure check_group_spec_tpl "$sandbox/gs-drop-$GS_N.md" fail "요구사항 묶음: spec 템플릿 [$1] 행 [$2] 삭제 격추"
+}
+
+assert_structure check_group_spec_tpl "$SPEC_TPL" pass "요구사항 묶음: spec 템플릿 실제 템플릿 통과"
+for p in '첫 줄은 한 문장' '세부 조건과 근거 표기는 그 항목의 하위 목록에' '하위 목록의 세부 조건도 그 R의 요구사항'; do
+  group_spec_drop_case '포함' "$p"
+done
+for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '5개 미만이면 묶지 않는다' '기능 영역을 가리키는 명사구' \
+         '다시 매기지 않' '다음 번호를 받아 맞는 묶음' '이슈 본문의 포함이 묶여 있으면' '묶음 이름을 이어 쓴다'; do
+  group_spec_drop_case '포함 묶음' "$p"
+done
+for p in '제외 항목이 5개 이상이면' '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '5개 미만이면 묶지 않는다' '항목이 없는 사유는 생략'; do
+  group_spec_drop_case '제외 묶음' "$p"
+done
+group_spec_drop_case '근거 표기' '하위 목록'
+group_spec_drop_case '함께 해소 표기' '첫 줄 끝에'
+
+group_drop_row "$SPEC_TPL" '포함 묶음' > "$sandbox/gs-no-inc-row.md"
+group_drop_row "$SPEC_TPL" '제외 묶음' > "$sandbox/gs-no-exc-row.md"
+awk -v l="- 포함 묶음: " '
+  /^## / { q = ($0 == "## 요구사항 (Requirements)"); d = ($0 == "## 완료의 정의 (Definition of Done)") }
+  { if (q && index($0, l) == 1) r = 1; else if (r && !/^  /) r = 0 }
+  r { held = held $0 "\n"; next }
+  { print }
+  d && /^<!--$/ { printf "%s", held; d = 0 }' "$SPEC_TPL" > "$sandbox/gs-inc-row-in-dod.md"
+awk '/^## / { q = ($0 == "## 요구사항 (Requirements)") }
+     q && /^- 근거 표기: / { $0 = $0 " 문장 끝에 병기해도 된다." } { print }' "$SPEC_TPL" > "$sandbox/gs-basis-end.md"
+awk '/^### 포함$/ { i = 1 } /^### 제외$/ { i = 0 } i && /^  - / { next } { print }' "$SPEC_TPL" > "$sandbox/gs-no-sublist.md"
+
+assert_structure check_group_spec_tpl "$sandbox/gs-no-inc-row.md"     fail "요구사항 묶음: spec 템플릿 포함 묶음 행 삭제 격추"
+assert_structure check_group_spec_tpl "$sandbox/gs-no-exc-row.md"     fail "요구사항 묶음: spec 템플릿 제외 묶음 행 삭제 격추"
+assert_structure check_group_spec_tpl "$sandbox/gs-inc-row-in-dod.md" fail "요구사항 묶음: spec 템플릿 포함 묶음 행의 완료의 정의 주석 이동 격추"
+assert_structure check_group_spec_tpl "$sandbox/gs-basis-end.md"      fail "요구사항 묶음: spec 템플릿 근거 표기 행에 문장 끝 다시 넣기 격추"
+assert_structure check_group_spec_tpl "$sandbox/gs-no-sublist.md"     fail "요구사항 묶음: spec 템플릿 포함 예시 하위 목록 줄 삭제 격추"
+
+# 이슈 본문 템플릿의 범위 안내도 같은 5개 기준으로 묶고 세부 조건을 하위 목록에 두도록 안내한다.
+# 범위 섹션(주석 행 포함)만 읽어, 규칙 문장을 다른 섹션으로 옮기면 세지 않는다.
+# `5개 미만이면 묶지 않는다`는 포함·제외 두 곳에 있어 횟수로 판정한다.
+
+# group_scope_section <파일> → 이슈 본문 범위 섹션 (헤더 행 다음부터 다음 `## ` 앞까지)
+group_scope_section() { awk '/^## 범위$/ { s = 1; next } /^## / { s = 0 } s' "$1"; }
+
+# check_group_body_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_group_body_tpl() {
+  local sec p n
+  sec="$(group_scope_section "$1")"
+  for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '제외 항목이 5개 이상이면' \
+           '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '항목이 없는 사유는 생략' '세부 조건은 하위 목록에 둔다'; do
+    printf '%s\n' "$sec" | grep -qF -- "$p" || echo "범위 안내에 [$p] 없음"
+  done
+  n="$(printf '%s\n' "$sec" | grep -oF '5개 미만이면 묶지 않는다' | wc -l | tr -d ' ')"
+  [ "$n" -eq 2 ] || echo "범위 안내의 [5개 미만이면 묶지 않는다] ${n}회 (기대 2회: 포함·제외)"
+  if printf '%s\n' "$sec" | grep -qF '관련 항목은 하위 목록으로 묶어도 된다'; then
+    echo '범위 안내에 옛 문장(관련 항목은 하위 목록으로 묶어도 된다)이 남음'
+  fi
+}
+
+# group_scope_drop <파일> <문구> [1] → 범위 섹션에서 문구를 지운 사본 (셋째 인자가 1이면 처음 1회만 지운다)
+group_scope_drop() {
+  awk -v s="$2" -v once="${3:-0}" '
+    /^## / { q = ($0 == "## 범위") }
+    q && !(once && done) {
+      while ((i = index($0, s))) {
+        $0 = substr($0, 1, i - 1) substr($0, i + length(s))
+        if (once) { done = 1; break }
+      }
+    }
+    { print }' "$1"
+}
+
+assert_structure check_group_body_tpl "$BODY_TPL" pass "요구사항 묶음: 이슈 본문 템플릿 실제 템플릿 통과"
+GB_N=0
+for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '제외 항목이 5개 이상이면' \
+         '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '항목이 없는 사유는 생략' '세부 조건은 하위 목록에 둔다'; do
+  GB_N=$((GB_N + 1))
+  group_scope_drop "$BODY_TPL" "$p" > "$sandbox/gb-drop-$GB_N.md"
+  assert_structure check_group_body_tpl "$sandbox/gb-drop-$GB_N.md" fail "요구사항 묶음: 이슈 본문 템플릿 [$p] 삭제 격추"
+done
+
+group_scope_drop "$BODY_TPL" '5개 미만이면 묶지 않는다' 1 > "$sandbox/gb-under5-once.md"
+awk '/^## / { q = ($0 == "## 범위") }
+     q && /^- 포함: / { $0 = $0 " 관련 항목은 하위 목록으로 묶어도 된다." } { print }' "$BODY_TPL" > "$sandbox/gb-old-sentence.md"
+GB_RULE="$(grep -F '포함 항목이 5개 이상이면' "$BODY_TPL")" \
+  awk 'index($0, "포함 항목이 5개 이상이면") { next }
+       /^## / { d = ($0 == "## 완료의 정의") }
+       { print }
+       d && /^<!--$/ { print ENVIRON["GB_RULE"]; d = 0 }' "$BODY_TPL" > "$sandbox/gb-inc-rule-in-dod.md"
+
+assert_structure check_group_body_tpl "$sandbox/gb-under5-once.md"     fail "요구사항 묶음: 이슈 본문 템플릿 5개 미만 규칙 한 곳만 삭제 격추"
+assert_structure check_group_body_tpl "$sandbox/gb-old-sentence.md"    fail "요구사항 묶음: 이슈 본문 템플릿 옛 하위 목록 문장 다시 넣기 격추"
+assert_structure check_group_body_tpl "$sandbox/gb-inc-rule-in-dod.md" fail "요구사항 묶음: 이슈 본문 템플릿 포함 묶음 규칙의 완료의 정의 주석 이동 격추"
+
+# SKILL.md 3-1 승인 요청과 `--create` 요약 제시는 목록을 묶음대로 나눠 보여 주고 항목은 첫 줄만 보여 준다.
+# 3-1은 `3-1. 승인 전` 행부터 `3-2. 승인 후` 행 앞까지, 요약 제시는 `--create` 절의 그 단계(다음 번호 단계 앞까지)만 읽는다.
+# 범위가 비면 문구 검사가 공집합 통과가 되므로 범위 실재를 먼저 판정한다.
+
+# group_skill_31 <파일> → "새 이슈 시작 시" 3-1 범위
+group_skill_31() { awk '/^   - \*\*3-1\. 승인 전/ { s = 1 } /^   - \*\*3-2\. 승인 후/ { s = 0 } s' "$1"; }
+
+# group_skill_create_summary <파일> → `--create` 절의 요약 제시 단계
+group_skill_create_summary() {
+  awk '/^### `--create`$/ { f = 1; next } f && /^#{2,3} / { exit } f' "$1" \
+    | awk '/^  [0-9]+\. \*\*요약 제시\*\*/ { s = 1; print; next } s && /^  [0-9]+\. / { exit } s'
+}
+
+# check_group_skill_31 <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_group_skill_31() {
+  local sec p
+  sec="$(group_skill_31 "$1")"
+  if [ -z "$sec" ]; then echo '3-1 범위 없음'; return; fi
+  for p in 'spec의 묶음대로 나눠 보여 주고' 'R은 첫 줄만 보여 준다' \
+           '이슈 본문에 근거가 없는' '목록에서 따로 표시하고, 추가로 확정할지 제외할지 질의한다' \
+           '첫 줄 끝에 `(함께 해소: K-<번호>)`'; do
+    printf '%s\n' "$sec" | grep -qF -- "$p" || echo "3-1에 [$p] 없음"
+  done
+}
+
+# check_group_skill_create <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_group_skill_create() {
+  local st p
+  st="$(group_skill_create_summary "$1")"
+  if [ -z "$st" ]; then echo '--create 요약 제시 단계 범위 없음'; return; fi
+  for p in '초안의 묶음대로 나눠 보여 주고' '항목은 첫 줄만 보여 준다'; do
+    printf '%s\n' "$st" | grep -qF -- "$p" || echo "요약 제시 단계에 [$p] 없음"
+  done
+}
+
+assert_structure check_group_skill_31     "$SKILL" pass "요구사항 묶음: SKILL.md 3-1 실제 SKILL.md 통과"
+assert_structure check_group_skill_create "$SKILL" pass "요구사항 묶음: SKILL.md --create 실제 SKILL.md 통과"
+GK_N=0
+for p in 'spec의 묶음대로 나눠 보여 주고' 'R은 첫 줄만 보여 준다' \
+         '이슈 본문에 근거가 없는' '목록에서 따로 표시하고, 추가로 확정할지 제외할지 질의한다'; do
+  GK_N=$((GK_N + 1))
+  drop_literal "$SKILL" "$p" > "$sandbox/gk-31-drop-$GK_N.md"
+  assert_structure check_group_skill_31 "$sandbox/gk-31-drop-$GK_N.md" fail "요구사항 묶음: SKILL.md 3-1 [$p] 삭제 격추"
+done
+for p in '초안의 묶음대로 나눠 보여 주고' '항목은 첫 줄만 보여 준다'; do
+  GK_N=$((GK_N + 1))
+  drop_literal "$SKILL" "$p" > "$sandbox/gk-cr-drop-$GK_N.md"
+  assert_structure check_group_skill_create "$sandbox/gk-cr-drop-$GK_N.md" fail "요구사항 묶음: SKILL.md --create [$p] 삭제 격추"
+done
+
+awk 'index($0, "spec의 묶음대로 나눠 보여 주고") { held = $0; next } { print }
+     /^   - \*\*3-2\. 승인 후/ && held { print held; held = "" }' "$SKILL" > "$sandbox/gk-31-moved-32.md"
+awk '{ sub(/R 첫 줄 끝에/, "R 문장 끝에"); print }' "$SKILL" > "$sandbox/gk-31-sentence-end.md"
+awk 'index($0, "**목록 제시**") { held = $0; next } { print }
+     /^  3\. \*\*승인\*\*/ && held { print held; held = "" }' "$SKILL" > "$sandbox/gk-cr-moved-approval.md"
+
+assert_structure check_group_skill_31     "$sandbox/gk-31-moved-32.md"        fail "요구사항 묶음: SKILL.md 3-1 새 항목의 3-2 이동 격추"
+assert_structure check_group_skill_31     "$sandbox/gk-31-sentence-end.md"    fail "요구사항 묶음: SKILL.md 3-1 함께 해소 표기 위치 R 문장 끝 되돌리기 격추"
+assert_structure check_group_skill_create "$sandbox/gk-cr-moved-approval.md"  fail "요구사항 묶음: SKILL.md --create 목록 제시 항목의 승인 단계 이동 격추"
+
+# 포함·제외 표지는 `### 포함`·`### 제외` 제목이라 `#### ` 묶음 제목보다 한 단계 위로 보인다.
+# 표지 하나를 굵은 글씨로 되돌린 사본은 spec 구조 검사·이슈 본문 템플릿 검사가 격추한다.
+group_label_bold() { awk -v l="### $2" -v b="**$2**" '$0 == l { $0 = b } { print }' "$1"; }  # <파일> <표지 이름>
+group_label_bold "$SPEC_TPL" 포함 > "$sandbox/gl-spec-inc-bold.md"
+group_label_bold "$SPEC_TPL" 제외 > "$sandbox/gl-spec-exc-bold.md"
+group_label_bold "$BODY_TPL" 포함 > "$sandbox/gl-body-inc-bold.md"
+group_label_bold "$BODY_TPL" 제외 > "$sandbox/gl-body-exc-bold.md"
+awk '/^### 포함$/ { hold = 1 } /^### 제외$/ { hold = 0 } hold { buf = buf $0 "\n"; next }
+     { print } /^- <검토했지만 하지 않는 것>/ { print ""; printf "%s", buf }' "$BODY_TPL" > "$sandbox/gl-body-swap.md"
+
+assert_structure check_spec_structure "$sandbox/gl-spec-inc-bold.md" fail "요구사항 표지: spec 템플릿 포함 표지 굵은 글씨 되돌리기 격추"
+assert_structure check_spec_structure "$sandbox/gl-spec-exc-bold.md" fail "요구사항 표지: spec 템플릿 제외 표지 굵은 글씨 되돌리기 격추"
+assert_structure check_body_template  "$sandbox/gl-body-inc-bold.md" fail "요구사항 표지: 이슈 본문 템플릿 포함 표지 굵은 글씨 되돌리기 격추"
+assert_structure check_body_template  "$sandbox/gl-body-exc-bold.md" fail "요구사항 표지: 이슈 본문 템플릿 제외 표지 굵은 글씨 되돌리기 격추"
+assert_structure check_body_template  "$sandbox/gl-body-swap.md"     fail "요구사항 표지: 이슈 본문 템플릿 포함·제외 표지 순서 역전 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"

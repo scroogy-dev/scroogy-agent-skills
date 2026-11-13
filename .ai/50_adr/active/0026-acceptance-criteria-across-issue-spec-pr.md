@@ -12,8 +12,10 @@ last_harvested: 2026-11-01
 ## 결정
 
 - **이슈 본문 템플릿**: issue-work `templates/issue-body-template.md`를 둔다. 본문은 목표·범위·완료의 정의·검토 필요, 접기는 배경·현재 동작 → 기대 동작·연관 문서다. 완료의 정의는 `- [ ] AC<n>: <관찰할 수 있는 결과>` 행이며, 포함 항목마다 AC를 1개 이상 둔다 (#130).
+  - 범위의 표지는 spec과 같은 `### 포함`·`### 제외` 제목이다. 포함 항목의 세부 조건은 하위 목록에 둔다. 포함·제외는 따로 세어 5개 이상이면 spec과 같은 기준으로 묶는다. 포함은 내용(기능 영역)별 `#### <묶음 이름>` 묶음, 제외는 `#### 보류`, `#### 대체`, `#### 불필요` 순서의 사유별 묶음이고, 5개 미만이면 묶지 않는다 (#140).
 - **`--create`**: issue-work에 이슈 등록 옵션을 둔다. 단계는 초안 작성 → 요약 제시 → 승인 → 등록 → 번호 보고 → 시작 질의다.
   - 초안은 `.ai/99_workspace/issue-create-body.md` 1개이고 전문을 대화에 출력하지 않는다(ADR 0013 방식). 제목은 파일에 넣지 않고 승인한 값을 `--title`로 넘긴다.
+  - 요약 제시 단계는 포함·제외 목록을 초안의 묶음대로 나눠 보여 주고 항목은 첫 줄만 보여 준다. 하위 목록은 파일에서 확인한다 (#140).
   - 요약 제시 단계에서 서로 독립으로 머지할 수 있는 항목이 있으면 AI가 이슈 분할을 권고한다. 수치 기준은 두지 않고 결정은 사용자가 한다. 같은 단계에서 AC가 대응하지 않는 포함 항목을 보고한다.
   - 승인 전에는 `gh issue create`를 실행하지 않고, 명령은 `--repo`와 `--body-file`을 생략하지 않는다. MCP 폴백은 `github.com` 대상일 때만 한다.
   - 등록까지만 하며 active 작업 파일을 옮기거나 지우지 않는다. 작업 시작은 시작 질의를 승인한 뒤 "새 이슈 시작 시"가 맡는다.
@@ -73,6 +75,10 @@ last_harvested: 2026-11-01
 - `--create`·6단계의 초안 파일도 승인 뒤 내용 동일성을 검증하지 않는다. `--clear` 이슈 댓글 파일과 같은 구조다(K-0003).
 - 계획 감사는 OpenAI 모델로 3회 수행했고 발견 2건(F-1·F-2)을 모두 보정했다. 3차에서 신규 발견 없이 적합(PASS)이었다.
 - ADR 0016 일부 변경(2026-11-01, #130): 5단계 건너뜀 경로가 Task 0으로 바로 가면 6단계 질의가 빠진다. 결정 항목 나머지는 유효해 ADR index `## 수명 주기`의 일부 변경으로 제자리에서 고쳤다.
+- 2026-11-12 #140에서 일부 변경: `이슈 본문 템플릿` 항목에 범위의 표지·묶음 규칙을, `--create` 항목에 요약 제시의 목록 모양을 더했다. 나머지 결정은 유효해 제자리에서 고쳤다.
+  - 이슈 본문과 spec의 묶음이 같아야 두 문서를 맞춰 읽기 쉽다. 그래서 범위에도 spec과 같은 5개 기준을 두고, spec은 이슈 본문의 묶음 이름을 이어 쓴다([ADR 0016](./0016-spec-requirements-layer-and-plan-audit.md)).
+  - 기존 범위 안내의 "관련 항목은 하위 목록으로 묶어도 된다"는 묶기를 `#### ` 제목이 맡게 되어 "항목의 세부 조건은 하위 목록에 둔다"로 바꿨다. 이슈 본문 항목에는 첫 줄 한 문장 규칙을 두지 않는다.
+  - 등록 전에 범위를 읽는 요약 제시 목록도 초안과 같은 묶음으로 보여 줘야 승인할 때 읽는 구조가 파일과 같다.
 
 </details>
 
@@ -103,6 +109,7 @@ last_harvested: 2026-11-01
 <summary>출처 목록 펼치기</summary>
 
 - [Issue #130 issue-work·git-pr·issue-audit: 이슈 등록 옵션(--create)과 이슈 본문 템플릿을 추가하고 완료의 정의를 이슈·spec·PR로 잇는다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/130)
+- [Issue #140 issue-work: 요구사항이 5개 이상이면 spec·이슈 본문·승인 요청에서 포함은 내용별·제외는 사유별로 묶는다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/140)
 - 규칙 본문: [`issue-work/SKILL.md`](../../../issue-work/SKILL.md), [`issue-work/templates/issue-body-template.md`](../../../issue-work/templates/issue-body-template.md), [`issue-work/templates/issue-spec-template.md`](../../../issue-work/templates/issue-spec-template.md), [`issue-work/templates/issue-plan-template.md`](../../../issue-work/templates/issue-plan-template.md), [`issue-work/templates/issue-summary-template.md`](../../../issue-work/templates/issue-summary-template.md), [`issue-work/templates/issue-workflow-template.md`](../../../issue-work/templates/issue-workflow-template.md), [`issue-audit/SKILL.md`](../../../issue-audit/SKILL.md), [`issue-audit/scripts/check-plan.sh`](../../../issue-audit/scripts/check-plan.sh), [`git-pr/SKILL.md`](../../../git-pr/SKILL.md), [`git-pr/templates/pr-body-template.md`](../../../git-pr/templates/pr-body-template.md)
 - 검사: [`issue-work/tests/run-tests.sh`](../../../issue-work/tests/run-tests.sh), [`issue-audit/tests/run-tests.sh`](../../../issue-audit/tests/run-tests.sh), [`git-pr/tests/run-tests.sh`](../../../git-pr/tests/run-tests.sh), [`code-map/tests/run-tests.sh`](../../../code-map/tests/run-tests.sh)
 - 정책: [외부 공개 행위 승인 게이트](../../40_domain/policies/local/external-action-approval-gate.md)
