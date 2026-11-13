@@ -16,6 +16,7 @@ status: current
 issue-work/SKILL.md `### --create`
 ├── 1. 초안 작성                        # templates/issue-body-template.md 구조로 .ai/99_workspace/issue-create-body.md 1회, 이미 있으면 덮어쓸지 질의, 제목은 파일 밖에서 따로 정함
 ├── 2. 요약 제시                        # 경로·제목 전문·목표 한 줄·포함·제외·AC 수·검토 필요만, 초안 전문은 출력 안 함
+│   ├── 목록 제시                       # 포함·제외 목록은 초안의 묶음대로 나눠 항목 첫 줄만, 하위 목록은 파일에서 확인
 │   ├── 분할 권고                       # 서로 독립으로 머지할 수 있는 항목이 있으면 권고, 수치 기준 없음, 결정은 사용자
 │   └── AC 대응 점검                    # 포함 항목 하나가 AC 하나 이상의 결과로 판정되는지, AC 없는 포함 항목 보고(없으면 `없음`)
 ├── 3. 승인                             # 승인 대상: 제목·초안 파일·대상 저장소, 승인 전 gh issue create 미실행
@@ -40,7 +41,7 @@ sequenceDiagram
 
     Note over SK: 1. 이슈 본문 템플릿 구조로 issue-create-body.md를 1회 작성
     loop 수정 요청이 있는 동안
-        Note over SK: 2. 요약 제시 (분할 권고, AC가 대응하지 않는 포함 항목 보고)
+        Note over SK: 2. 요약 제시 (목록은 초안의 묶음대로 나눠 첫 줄만, 분할 권고, AC가 대응하지 않는 포함 항목 보고)
         Note over SK: 3. 제목·초안 파일·대상 저장소 승인 질의
     end
     alt 거절 또는 대상 저장소 미확정

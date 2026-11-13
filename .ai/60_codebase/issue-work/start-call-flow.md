@@ -16,9 +16,9 @@ status: current
 issue-work/SKILL.md `## 새 이슈 시작 시` → `## 작업 진행 중`
 ├── 1. active/ 기존 이슈 → archive/ 이동
 ├── 2. templates/issue-workflow-template.md → active/issue-workflow.md   # 템플릿이 SSoT, 다르면 덮어쓰기
-├── 3-1. 승인 전                        # templates/issue-spec-template.md 로 목표·요구사항(포함·제외)·연관 문서 후보 (30_contract·40_domain·50_adr index)
-│   ├── 함께 해소 후보                  # 70_ledger index 의 관련 active/ 항목을 따로 표시·질의, 포함하면 R 에 `(함께 해소: K-<번호>)`, 미포함은 기록 안 함
-│   └── 요구사항 승인 게이트            # spec 경로 + 목표 한 줄·포함·제외 목록만 제시, 이슈 본문 근거 없는 항목은 표시·질의
+├── 3-1. 승인 전                        # templates/issue-spec-template.md 로 목표·요구사항(`### 포함`·`### 제외`, R 첫 줄 한 문장·세부 조건은 하위 목록, 각 5개 이상이면 `#### ` 묶음)·연관 문서 후보 (30_contract·40_domain·50_adr index)
+│   ├── 함께 해소 후보                  # 70_ledger index 의 관련 active/ 항목을 따로 표시·질의, 포함하면 R 첫 줄 끝에 `(함께 해소: K-<번호>)`, 미포함은 기록 안 함
+│   └── 요구사항 승인 게이트            # spec 경로 + 목표 한 줄·포함·제외 목록만 제시(목록은 spec의 묶음대로 나눠 R 첫 줄만), 이슈 본문 근거 없는 항목은 표시·질의
 ├── 3-2. 승인 후                        # 완료의 정의(`[D]`는 외부 경계의 인수 테스트)·전제(구현 전에도 통과가 정상인 항목은 본문 끝 `(회귀 방지 항목)`), templates/issue-plan-template.md·issue-summary-template.md
 │   ├── 테스트 층 표                    # testing-principles-local.md 있으면 Task 테스트 [D]의 러너 호출·출력 판독·실행 셸과 DoD 인수 테스트 층을 층 표에서, 기기 확인 Task 없음
 │   ├── AC 정제                         # 이슈 본문에 `- [ ] AC<n>: ` 행이 있으면 완료의 정의를 새로 쓰지 않고 AC를 [D]/[QD]/[ND]로 정제, 항목 끝 `(AC<n>)` 출처(회귀 방지 표시 앞), 모든 AC 연결(`공통` 회귀 방지 예외), AC 없는 R은 `(AC 없음: <사유>)`, 번호는 뒤에만 추가
@@ -50,7 +50,7 @@ sequenceDiagram
     Note over SK: 2. issue-workflow.md를 템플릿과 비교해 다르면 덮어쓰기
     Note over SK: 3-1. spec 목표·요구사항·연관 문서 후보 작성, 함께 해소 후보는 따로 표시
     loop 수정 요청이 있는 동안
-        Note over SK: 요구사항 승인 게이트 (spec 경로와 목표 한 줄·포함·제외만 제시)
+        Note over SK: 요구사항 승인 게이트 (spec 경로와 목표 한 줄·포함·제외만 제시, 목록은 spec의 묶음대로 나눠 R 첫 줄만)
     end
     alt 이슈 본문에 AC 있음
         Note over SK: 3-2. AC를 정제해 완료의 정의 작성, 항목마다 출처 AC 표기
