@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-11-01
-source_hash: 6e0ddb3
+last_synced: 2026-11-13
+source_hash: 4398a41
 status: current
 ---
 
@@ -107,5 +107,6 @@ sequenceDiagram
 - 지표 5종(`수행 모델`·`수행 effort`와 수치 3종)을 값이 없어도 남기는 이유는 `## 작업 진행 중`(사후 집계가 표기 고정에 의존)에 있다.
 - Task N을 사용자가 타벤더 모델로 직접 수행하는 원칙은 [ADR 0004](../../50_adr/active/0004-cross-model-audit-and-response-gate.md). 계획 종료·구현 시작 게이트와 `모델 기록` 표는 [ADR 0005](../../50_adr/active/0005-model-separation-gates.md). 요구사항 승인 게이트와 계획 감사 질의는 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md). 함께 해소 후보와 해소 기재 시점은 [ADR 0018](../../50_adr/active/0018-ledger-proactive-review-and-resolve-timing.md).
 - AC 정제·출처 표기, 6단계 이슈 본문 갱신 질의(계획 감사 뒤·Task 0 전), 변경 통제의 구체화·확장·완화 분류는 [ADR 0026](../../50_adr/active/0026-acceptance-criteria-across-issue-spec-pr.md). 이슈 본문 갱신은 외부 공개 행위라 [승인 게이트 정책](../../40_domain/policies/local/external-action-approval-gate.md)을 따르고, `gh` 인용·MCP 폴백 규칙은 [GitHub 연동 계약](../../30_contract/github-integration.md)을 따른다. 초안 파일을 승인 뒤 다시 대조하지 않는 구조는 원장 [K-0003](../../70_ledger/active/K-0003-approved-file-content-unverified.md)과 같다.
+- 요구사항의 `### 포함`·`### 제외` 표지, R 첫 줄과 하위 목록, 5개 기준 묶음은 [ADR 0016](../../50_adr/active/0016-spec-requirements-layer-and-plan-audit.md)의 #140 일부 변경이다. 실제 spec의 묶음 여부를 헬퍼로 판정하지 않는 것은 원장 [K-0030](../../70_ledger/active/K-0030-spec-requirements-ungrouped-check-absent.md)으로 수용했다.
 - 명세: [이슈 단위 작업 워크플로우 요건](../../40_domain/specs/issue-workflow.md)(절차 순서, AC 정제·이슈 본문 갱신 질의·변경 통제, spec·plan·summary 구성, 게이트 10종 요약).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
