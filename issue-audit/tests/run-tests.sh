@@ -1011,6 +1011,118 @@ assert_trace fail 'trace: 값이 백틱을 담은 한 줄 주석뿐인 필드는
 awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: `<!--` <!-- ` --> R2"; next } { print }' "$tplan" > "$sandbox/tp-code-then-comment.md"
 assert_trace pass 'trace: 코드 안의 <!-- 뒤에 온 주석 안의 백틱은 글자 (먼저 시작한 쪽이 이김)' "$tspec" "$sandbox/tp-code-then-comment.md"
 
+# 포함 표지 (issue #140) — 표지는 `### 포함`·`### 제외` 제목이고, 이미 쓴 spec 의 `**포함**` 표지도 읽는다.
+# 표지 행 끝의 닫힌 주석은 표지를 가리지 않는다 (원장 K-0023). 포함 목록은 `### 제외` 에서 끝나며, `#### 포함` 은 표지가 아니다.
+awk '$0 == "**포함**" { $0 = "### 포함" } $0 == "**제외**" { $0 = "### 제외" } { print }' "$tspec" > "$sandbox/ts-label-h3.md"
+awk '$0 == "### 포함" { $0 = $0 " <!-- 메모 -->" } { print }' "$sandbox/ts-label-h3.md" > "$sandbox/ts-label-h3-note.md"
+awk '$0 == "**포함**" { $0 = $0 " <!-- 메모 -->" } { print }' "$tspec" > "$sandbox/ts-label-bold-note.md"
+awk '{ print } $0 == "### 제외" { print ""; print "- R9: 제외 아래의 R 형식 줄" }' "$sandbox/ts-label-h3.md" > "$sandbox/ts-label-exc-r.md"
+awk '$0 == "### 포함" { $0 = "#### 포함" } $0 == "### 제외" { $0 = "#### 제외" } { print }' "$sandbox/ts-label-h3.md" > "$sandbox/ts-label-h4.md"
+assert_trace pass 'trace: 포함 표지 ### 포함 통과'                    "$sandbox/ts-label-h3.md"        "$tplan"
+assert_trace pass 'trace: 포함 표지 **포함** 통과'                    "$tspec"                         "$tplan"
+assert_trace pass 'trace: 포함 표지 ### 포함 행 끝 닫힌 주석 통과'    "$sandbox/ts-label-h3-note.md"   "$tplan"
+assert_trace pass 'trace: 포함 표지 **포함** 행 끝 닫힌 주석 통과'    "$sandbox/ts-label-bold-note.md" "$tplan"
+assert_trace pass 'trace: 포함 표지 ### 제외에서 포함 목록 끝남 통과' "$sandbox/ts-label-exc-r.md"     "$tplan"
+assert_trace fail 'trace: 포함 표지 #### 포함 제목 격추'              "$sandbox/ts-label-h4.md"        "$tplan" \
+  '추적 불가: spec 포함 목록에 R<n> 항목이 없습니다 — 경로를 확인하세요'
+
+# 요구사항 묶음 (issue #140) — 포함이 5개 이상이면 `#### <묶음 이름>` 제목으로 묶고, R 세부 조건·근거 표기는 하위 목록에 둔다.
+# 묶음 제목·하위 목록·번호 순서가 섞인 R 은 포함 목록을 끊거나 R 로 읽히지 않아야 한다.
+# 묶음 제목을 굵은 글씨로 쓰면 포함 목록이 거기서 끊기고, 뒤 묶음의 R 도 Task 연결을 검사받는다.
+gspec="$sandbox/trace-group-spec.md"
+cat > "$gspec" <<'EOF'
+# Issue #98 스펙 — 요구사항 묶음 fixture
+
+## 요구사항 (Requirements)
+
+### 포함
+
+#### 첫 묶음
+
+- R1: 첫 요구
+  - 세부 조건
+- R4: 넷째 요구
+  - 이슈 본문 근거 없음. 2026-11-12 대화에서 결정
+
+#### 둘째 묶음
+
+- R3: 셋째 요구
+- R2: 둘째 요구
+  - 세부 조건
+- R5: 다섯째 요구 (함께 해소: K-0001)
+
+### 제외
+
+#### 보류
+
+- 여섯째: 보류(사례를 본 뒤 판단)
+
+#### 불필요
+
+- 일곱째: 불필요(지금 구조로 충분)
+
+## 완료의 정의 (Definition of Done)
+
+### R1: 첫 그룹
+
+- [ ] [D] 조건
+
+### R2: 둘째 그룹
+
+- [ ] [D] 조건
+
+### R3: 셋째 그룹
+
+- [ ] [D] 조건
+
+### R4: 넷째 그룹
+
+- [ ] [D] 조건
+
+### R5: 다섯째 그룹
+
+- [ ] [D] 조건
+
+### 공통
+
+- [ ] [D] 전체 테스트
+EOF
+
+gplan="$sandbox/trace-group-plan.md"
+cat > "$gplan" <<'EOF'
+# Issue #98 실행계획 — 요구사항 묶음 fixture
+
+## Tasks
+
+### Task 0 (고정): 구현 시작 게이트
+
+- [ ] 완료
+- **목표**: 전제 확인
+
+### Task 1: 첫 묶음 구현
+
+- [ ] 완료
+- **목표**: 첫 묶음 구현
+- **대상 요구사항**: R1, R4
+
+### Task 2: 둘째 묶음 구현
+
+- [ ] 완료
+- **목표**: 둘째 묶음 구현
+- **대상 요구사항**: R2, R3, R5
+
+### Task N (고정): 교차모델 issue-audit 검증
+
+- [ ] 완료
+- **목표**: 감사
+EOF
+
+awk '$0 == "#### 둘째 묶음" { $0 = "**둘째 묶음**" } { print }' "$gspec" > "$sandbox/ts-group-bold.md"
+awk '$0 == "- **대상 요구사항**: R2, R3, R5" { $0 = "- **대상 요구사항**: R2, R3" } { print }' "$gplan" > "$sandbox/tp-group-r5-unref.md"
+assert_trace pass 'trace: 요구사항 묶음 fixture 통과 (#### 묶음 제목·하위 목록·섞인 R 번호 순서)' "$gspec" "$gplan"
+assert_trace fail 'trace: 요구사항 묶음의 굵은 글씨 묶음 제목 격추' "$sandbox/ts-group-bold.md" "$gplan" 'R 없는 DoD 그룹: R3'
+assert_trace fail 'trace: 요구사항 묶음의 뒤 묶음 R에 Task 연결 없음 격추' "$gspec" "$sandbox/tp-group-r5-unref.md" 'Task 없는 R: R5'
+
 # 공집합 — 포함 목록이 비었거나 Task 블록이 없으면 위반 0건이 아니라 추적 불가다.
 awk '!/^- R[0-9]+: /' "$tspec" > "$sandbox/ts-empty-inc.md"
 assert_trace fail 'trace: 포함 목록 공집합 격추' "$sandbox/ts-empty-inc.md" "$tplan" \
