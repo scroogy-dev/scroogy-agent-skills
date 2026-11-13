@@ -47,6 +47,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0027](active/K-0027-section-scan-heading-forms.md) | ai-workspace 구간 판정이 탭 구분·Setext·`#` 제목을 경계로 세지 않는다 | known issue | 중간(MEDIUM) | 수용 | 실제 안내도·인덱스에서 이 세 형식의 제목과 내용이 사라진 사례 관측 시, 또는 `sync-owned.sh` `split_md`·`check-context.sh` `profile_state`의 제목 경계 판정 변경 시 |
 | [K-0028](active/K-0028-consumer-skill-ide-tools-reference-deferred.md) | 소비 스킬 본문이 IDE 도구 우선 규칙(`ide-tools.md`)을 직접 참조하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 규칙 표가 있는데도 `code-map`·`git-review` 등 코드를 탐색하는 스킬 실행에서 IDE 도구 없이 grep만 쓴 사례가 반복될 때, 또는 `context-loading.md`의 `ide-tools.md` 라우팅이나 규칙 표의 스킬 선행 적용 문장이 바뀔 때 |
 | [K-0029](active/K-0029-rules-table-sort-digit-compare-undefined.md) | ai-workspace 규칙 표 알파벳순이 이름 속 숫자의 비교 방식을 정하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 규칙 파일 이름에 든 숫자 때문에 알파벳순 자리 삽입이나 순서 검사 결과가 사용자 기대와 다른 사례 관측 시, 또는 `ai-workspace/SKILL.md` `## 디렉토리 트리 정렬 규칙`에 숫자 비교 정의가 생길 때 |
+| [K-0030](active/K-0030-spec-requirements-ungrouped-check-absent.md) | 기준 수 이상인데 묶지 않은 spec 요구사항을 결정적 검사로 잡지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 포함 또는 제외 항목이 5개 이상인데 묶지 않은 spec이 실제로 나왔을 때, 또는 issue-work spec 템플릿의 5개 기준 묶음 규칙이 바뀔 때 |
 
 ## 수명 주기
 
