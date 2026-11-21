@@ -21,7 +21,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 ADR만 선택적으로 �
 | `active/0011-git-pr-submission-and-approval-gate.md` | git-pr 제출까지 확장, 유형 확인·승인 게이트 필수, `--draft`, gh 기본 + MCP 폴백, 포크 비지원, 문서 동기화 점검 flag-only |
 | `active/0012-git-pr-feedback-separate-skill.md` | 리뷰 코멘트 대응은 별도 스킬(git-pr 확장·`--response`·git-review 확장 기각), 의견 유형 5종, 외부 공개 행위 승인, push 방어, 이름 결정 기준 |
 | `active/0013-long-output-single-file-generation.md` | PR 본문·이슈 댓글은 99_workspace 파일 1회 생성 + 경로·요약 제시, 파일명 규약, 정리 시점 A+B 병행 |
-| `active/0014-inverted-pyramid-and-verdict-derivation.md` | 평가 결과 역피라미드(판정 한 줄·요약·상세), 카테고리 7종 원본 git-review, 상태·판정 재량 없는 산출, 신호등 이모지 SSoT는 SKILL.md 대응표, 이모지 정책 |
+| `active/0014-inverted-pyramid-and-verdict-derivation.md` | 평가 결과 역피라미드(판정 한 줄·요약·상세), 카테고리 7종 원본 git-review, 상태·판정 재량 없는 산출, 신호등 이모지 SSoT는 SKILL.md 대응표, 이모지 정책, git-review의 변경 전부터 있던 결함은 별도 섹션에 적고 산출 제외(#142) |
 | `active/0015-issue-clear-timing-and-archive-rules.md` | `--clear`는 머지 직전, archive 이관은 머지 전 PR 브랜치, 댓글은 시점 무관, 이관 파일 경로 참조 갱신·stale 0건 검사, workflow 자동 동기화 |
 | `active/0016-spec-requirements-layer-and-plan-audit.md` | spec 요구사항(포함 R<n>·제외) 신설·범위 삭제·DoD R 그룹·Task 대상 요구사항, `### 포함`·`### 제외` 표지·R 첫 줄과 하위 목록·5개 이상 묶음, 요구사항 승인 게이트(목록은 묶음대로 R 첫 줄만), `--plan` 계획 감사(선택)와 계획 보정, 단계 어휘 |
 | `active/0017-git-review-quiz-study-mode.md` | git-review-quiz 별도 스킬, 문항 구성(위치 본문·힌트·정답 접기), 근거 규칙, 일반 댓글 하나 게시, 머지 차단 게이트 배제 |
