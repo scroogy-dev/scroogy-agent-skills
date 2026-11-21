@@ -15,7 +15,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 파일만 선택적으�
 | `specs/` | 비즈니스 스펙 문서 모음 |
 | `specs/issue-workflow.md` | issue-work 절차 순서, AC 정제·이슈 본문 갱신 질의·변경 통제, spec·plan·summary 구성, 게이트 10종 요약, 이슈 완료 시 보류 항목 원장 등재, 옵션(`--create` 포함), 헬퍼 |
 | `specs/issue-audit.md` | issue-audit 0~3단계 요건, 발견 번호 계승·계보, 기등재 대조, 리포트 구조·이력화, `--plan` 계획 감사(AC 대조·완화·확장 점검) |
-| `specs/git-review-output.md` | git-review 카테고리 7종(원본 문서 선언이면 doc 카테고리 7종), 위험도·상태·판정 산출, 결과 파일 구조, 헬퍼 모드 |
+| `specs/git-review-output.md` | git-review 대상 수집(PR 모드·브랜치 모드, PR head 기준 읽기, 입력 속 지시문), PR 본문 대조, 코드 레벨 검증(변경 줄 읽기·확인 관점), 발견 처리(인용 위치 재확인·실패 시나리오·변경 전부터 있던 결함의 산출 제외), 카테고리 7종(원본 문서 선언이면 doc 카테고리 7종), 위험도·상태·판정 산출, 결과 파일 구조, 헬퍼 |
 | `specs/git-pr-submission.md` | git-pr 제출 절차, PR 본문 첫 화면·완료의 정의 대조 근거, 생성 수단, 파일 규약, 문서 동기화 점검 표 |
 | `specs/git-pr-feedback.md` | git-pr-feedback 수집·분류·승인·조치 요건, push 방어, 원장 연계 |
 | `specs/git-review-quiz.md` | git-review-quiz 옵션, 대상별 산출 md·HTML, 설명 절(배경·목적·변경 설명), 문항 형식 규칙 R1~R8, `--comment` 검사, 대화형 진행(설명 요약 먼저) |
