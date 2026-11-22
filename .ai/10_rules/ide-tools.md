@@ -37,10 +37,10 @@
 
 | 작업 | 먼저 쓸 도구 | 쓰는 방법 | 뒷정리 |
 |------|-------------|-----------|--------|
-| 테스트 실행 | `get_run_configurations`·`execute_run_configuration` | `get_run_configurations(filePath)`로 run point를 찾고 `execute_run_configuration(filePath, line, waitForExit=true, timeout)`으로 실행한다. 판정은 `exitCode`와 `fullOutputPath` 로그의 실패 건수로 한다. `exitCode`가 없으면 `timeout` 안에 끝나지 않아 프로세스가 계속 돌고 있으므로 판정하지 않는다. `fullOutputPath`가 없어 실패 건수를 확인할 수 없으면 `exitCode`가 0이어도 통과로 보지 않고 러너 명령으로 판정한다 | 임시 Run Configuration은 그대로 둔다(IntelliJ가 5개까지만 남기고 오래된 것부터 지운다). `exitCode`가 없으면 테스트가 계속 돌고 있다고 사용자에게 알리고 종료를 요청한다 |
+| 테스트 실행 | `get_run_configurations`·`execute_run_configuration` | `get_run_configurations(filePath)`로 run point를 찾고 `execute_run_configuration(filePath, line, waitForExit=true, timeout)`으로 실행한다. 판정은 `exitCode`와 `fullOutputPath` 로그의 실패 건수로 한다. `exitCode`가 없으면 `timeout` 안에 끝나지 않아 프로세스가 계속 돌고 있으므로 판정하지 않는다. `fullOutputPath`가 없어 실패 건수를 확인할 수 없으면 `exitCode`가 0이어도 통과로 보지 않고 러너 명령으로 판정한다 | 임시 Run Configuration은 그대로 둔다(IntelliJ가 기본 5개까지만 남기고 오래된 것부터 지운다. 한도는 IDE 설정에서 바꿀 수 있다). `exitCode`가 없으면 테스트가 계속 돌고 있다고 사용자에게 알리고 종료를 요청한다 |
 | 커버리지 확인 | `coverage_run_configuration`·`coverage_get_file` | `coverage_run_configuration(filePath, line)`으로 실행하고 `coverage_get_file`로 변경한 줄이 실행됐는지 본다. 결과를 아직 불러오는 중이면 `coverage_get_status`로 확인한다 | 없음(임시 Run Configuration과 에디터의 커버리지 표시는 그대로 둔다. 지우거나 끄는 도구가 없다) |
-| 로컬 서버 기동 | `execute_run_configuration` | `testing-principles-local.md`의 로컬 서버 절에 적힌 Run Configuration 이름으로 `execute_run_configuration(configurationName, waitForExit=false)`를 호출해 띄운다. 이름이 없으면 `get_run_configurations()` 목록을 보여 주고 사용자에게 고르게 한다. 반환값에 환경 변수·실행 인자가 함께 들어 있으므로 목록에서는 구성 이름만 보여 준다 | 작업이 끝나면 서버가 떠 있다고 사용자에게 알리고 종료를 요청한다(일반 실행 프로세스를 끄는 도구가 없다) |
-| 디버깅 | `xdebug_set_breakpoints`·`xdebug_start_debugger_session`·`xdebug_control_session` | 사용자가 요청할 때만 시작한다. 중단점을 건 뒤 세션을 시작해 멈출 때까지 기다리고, 멈춘 뒤 스택 → 프레임 값 → 식 평가 순서로 확인한다. 자세한 순서는 아래 디버깅 순서를 따른다 | `xdebug_control_session(action=STOP)`으로 세션을 멈추고, `owner=agent`만 준 `xdebug_remove_breakpoints`로 에이전트가 건 중단점만 지운다 |
+| 로컬 서버 기동 | `execute_run_configuration` | `testing-principles-local.md`의 로컬 서버 절에 적힌 Run Configuration 이름으로 `execute_run_configuration(configurationName, waitForExit=false)`를 호출해 띄운다. 이름이 없으면 `get_run_configurations()` 목록을 보여 주고 사용자에게 고르게 한다. 목록이 비어 있으면 서버를 띄우지 않고 서버용 Run Configuration을 만들어 달라고 사용자에게 요청한다. 반환값에 환경 변수·실행 인자가 함께 들어 있으므로 목록에서는 구성 이름만 보여 준다 | 작업이 끝나면 서버가 떠 있다고 사용자에게 알리고 종료를 요청한다(일반 실행 프로세스를 끄는 도구가 없다) |
+| 디버깅 | `xdebug_set_breakpoints`·`xdebug_start_debugger_session`·`xdebug_control_session` | 사용자가 요청할 때만 시작한다. 중단점을 건 뒤 세션을 시작해 멈출 때까지 기다리고, 멈춘 뒤 스택 → 프레임 값 → 식 평가 순서로 확인한다. 자세한 순서는 아래 디버깅 순서를 따른다 | `xdebug_control_session(action=STOP)`으로 세션을 멈추고, 이번 작업에서 건 중단점만 `breakpointId`와 `owner=agent`를 함께 준 `xdebug_remove_breakpoints`로 지운다 |
 
 #### 디버깅 순서
 
@@ -53,7 +53,11 @@
 - 멈춘 뒤에는 `xdebug_get_stack` → `xdebug_get_frame_values` → `xdebug_evaluate_expression` 순서로 확인한다.
 - 프로그램이 멈추거나 느린 원인은 `jvm_debug_get_thread_dump`로 본다.
 - `xdebug_get_threads`·`xdebug_get_value_by_path`·`xdebug_get_debugger_status`·`xdebug_get_process_output`·`xdebug_list_breakpoints`·`xdebug_run_to_line`과 `xdebug_control_session`의 단계 실행(`STEP_INTO`·`STEP_OVER`·`STEP_OUT`)은 디버깅 중에 필요하면 쓴다.
-- 끝나면 `xdebug_control_session(action=STOP)`으로 세션을 멈추고 `owner=agent`만 준 `xdebug_remove_breakpoints`로 에이전트가 건 중단점만 지운다. 사용자 중단점(`owner=user`)은 건드리지 않는다.
+- 중단점을 걸면 그 ID를 기록해 둔다. `xdebug_set_breakpoints`는 결과로 ID를 돌려주고, 예외·메서드 중단점은 건 뒤 `xdebug_list_breakpoints`에서 ID를 찾는다.
+- 끝나면 `xdebug_control_session(action=STOP)`으로 세션을 멈추고, 기록한 ID마다 `breakpointId`와 `owner=agent`를 함께 준 `xdebug_remove_breakpoints`로 이번 작업에서 건 중단점만 지운다. `owner`만 주면 앞선 작업이나 다른 세션이 건 에이전트 중단점까지 모두 지워지기 때문이다.
+  - 이번 작업에서 건 중단점이 없으면 지우지 않는다.
+  - 건 중단점의 ID를 잃었으면 `xdebug_list_breakpoints`로 `owner=agent` 중단점을 보여 주고 지울지 사용자에게 묻는다.
+  - 사용자 중단점(`owner=user`)은 건드리지 않는다.
 
 #### 실행 표 밖의 작업과 판정
 

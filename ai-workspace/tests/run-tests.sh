@@ -295,7 +295,8 @@ assert_update1_reject 'ide-tools update-1 doc 분기 복사 추가 격추' 'doc 
 #
 # `ide-tools.md`에 적힌 IntelliJ MCP 도구 이름과 도구별 결정 목록(`.ai/40_domain/specs/ide-tools-decisions.md`)이
 # 어긋나면 실패한다 (#144). 도구 이름은 백틱 코드 스팬 내용이 `^[a-z][a-z0-9]*(_[a-z0-9]+)+(\(.*\))?$`에
-# 맞는 것의 `(` 앞부분이다. 네 조건을 모두 만족해야 통과다.
+# 맞는 것의 `(` 앞부분이다. 다섯 조건을 모두 만족해야 통과다.
+#   0. 결정 목록에 같은 이름의 행이 두 개 이상 없다. 겹치면 마지막 행의 결정만 남아 모순이 통과하기 때문이다.
 #   1. 이름은 모두 결정 목록에 있다.
 #   2. `## 사용자가 요청할 때만 쓰는 도구` 절 안의 이름은 결정이 `쓰지 않음`이다.
 #   3. 그 절 밖의 이름은 결정이 `표에 둠`이다.
@@ -316,7 +317,10 @@ ide_decision_violations() {
   done
   awk -F'|' '
     function t(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
-    FNR == NR { if ($0 ~ /^\| `[a-z0-9_]+` \|/) { k = t($2); gsub(/`/, "", k); dec[k] = t($3) } next }
+    FNR == NR { if ($0 ~ /^\| `[a-z0-9_]+` \|/) { k = t($2); gsub(/`/, "", k)
+                  if (k in dec) print "결정 행 중복: " k
+                  dec[k] = t($3) }
+                next }
     /^## / { sec = ($0 ~ /^## 사용자가 요청할 때만 쓰는 도구[[:space:]]*$/) }
     { line = $0
       while (match(line, /`[^`]+`/)) {
@@ -376,6 +380,15 @@ dv_in_section() {
     && mv "$1.tmp" "$1" && echo "$2"
 }
 dv_no_list() { rm -f "$2" && echo "$2"; }
+# 결정 중복: `표에 둠` 행 앞이나 뒤에 같은 이름의 `보류` 행을 더한다. 행 순서와 관계없이 격추해야 한다.
+dv_dup() {
+  awk -v where="$3" '
+    /^\| `lint_files` \| 표에 둠 \|/ { if (where == "before") print "| `lint_files` | 보류 | 중복 변형 |"
+                                     print; if (where == "after") print "| `lint_files` | 보류 | 중복 변형 |"; hit = 1; next }
+    { print } END { exit !hit }' "$2" > "$2.tmp" && mv "$2.tmp" "$2" && echo "$2"
+}
+dv_dup_before() { dv_dup "$1" "$2" before; }
+dv_dup_after()  { dv_dup "$1" "$2" after; }
 
 assert_ide_decision_reject '결정 목록에 없는 이름 추가' '결정 목록에 없음: zz_unknown_tool' dv_unknown
 assert_ide_decision_reject '표에 둠 도구 삭제' '표에 둠인데 절 밖에 이름 없음: get_project_modules' dv_delete
@@ -385,16 +398,52 @@ assert_ide_decision_reject '표에 둠 도구를 쓰지 않음으로 변경' '�
 assert_ide_decision_reject '쓰지 않음 도구를 요청 전용 절 밖에 추가' '요청 전용 절 밖인데 쓰지 않음: reformat_file' dv_unused
 assert_ide_decision_reject '표에 둠 도구를 요청 전용 절에 추가' '요청 전용 절 안인데 표에 둠: lint_files' dv_in_section
 assert_ide_decision_reject '결정 목록 없음' '파일 없음: ' dv_no_list
+assert_ide_decision_reject '보류 행을 앞에 둔 결정 중복' '결정 행 중복: lint_files' dv_dup_before
+assert_ide_decision_reject '보류 행을 뒤에 둔 결정 중복' '결정 행 중복: lint_files' dv_dup_after
+
+# ide_count_violations <목록 사본> <결정 목록> — 목록 사본 줄 수·결정 목록 머리의 `도구 수`·표의 도구 행 수가
+# 모두 같은지 본다. 어긋나면 1행을 출력한다. 도구 수를 고정값으로 두면 IntelliJ 업데이트 뒤 목록을 정상 갱신해도
+# 실패하므로 세 값끼리 맞춘다 (#144 최종 감사 F-2).
+ide_count_violations() {
+  local lines declared rows
+  lines="$(grep -c . "$1")"
+  declared="$(sed -n 's/^- \*\*도구 수\*\*: \([0-9][0-9]*\)[[:space:]]*$/\1/p' "$2" | sed -n 1p)"
+  rows="$(grep -cE '^\| `[a-z0-9_]+` \|' "$2")"
+  if [ -z "$declared" ] || [ "$lines" != "$declared" ] || [ "$rows" != "$declared" ]; then
+    echo "도구 수 불일치: 목록 사본 ${lines}, 머리 ${declared:-없음}, 표 ${rows}"
+  fi
+}
 
 # 목록 대조 헬퍼: 종료 코드와 출력 행을 함께 본다.
 if [ ! -x "$LISTCHK" ]; then
   ng "ide 도구 목록 대조: 헬퍼 실행 권한 없음 — $LISTCHK"
 else
   out="$("$LISTCHK" "$IDE_LIST" 2>&1)"; rc=$?
-  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ "$(grep -c . "$IDE_LIST")" -eq 101 ]; then
+  cnt="$(ide_count_violations "$IDE_LIST" "$IDE_DEC")"
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -z "$cnt" ]; then
     ok "ide 도구 목록 대조: 저장소 사본 통과"
   else
-    ng "ide 도구 목록 대조: 저장소 사본 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+    ng "ide 도구 목록 대조: 저장소 사본 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')] ${cnt}"
+  fi
+
+  # 도구 하나를 목록 사본·표·머리에 함께 더하면 통과하고, 머리의 수만 그대로면 격추한다.
+  wc_="$(mktemp -d "$TMP/cnt.XXXXXX")"
+  { cat "$IDE_LIST"; echo zz_new_tool; } > "$wc_/list"
+  declared="$(sed -n 's/^- \*\*도구 수\*\*: \([0-9][0-9]*\)[[:space:]]*$/\1/p' "$IDE_DEC" | sed -n 1p)"
+  { cat "$IDE_DEC"; echo '| `zz_new_tool` | 보류 | 도구 수 변형 |'; } > "$wc_/stale.md"
+  sed "s/^- \*\*도구 수\*\*: ${declared}[[:space:]]*\$/- **도구 수**: $((declared + 1))/" "$wc_/stale.md" > "$wc_/grown.md"
+  out="$("$LISTCHK" "$wc_/list" "$wc_/grown.md" 2>&1)"; rc=$?
+  cnt="$(ide_count_violations "$wc_/list" "$wc_/grown.md")"
+  if [ -n "$declared" ] && [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -z "$cnt" ]; then
+    ok "ide 도구 목록 대조: 도구 수를 함께 늘린 목록 통과"
+  else
+    ng "ide 도구 목록 대조: 도구 수를 함께 늘린 목록 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')] ${cnt}"
+  fi
+  cnt="$(ide_count_violations "$wc_/list" "$wc_/stale.md")"
+  if [ -n "$cnt" ]; then
+    ok "ide 도구 목록 대조: 머리 도구 수만 그대로인 목록 격추"
+  else
+    ng "ide 도구 목록 대조: 머리 도구 수만 그대로인 목록 격추 — 불일치 보고 없음"
   fi
 
   w="$(mktemp -d "$TMP/lst.XXXXXX")"
@@ -431,6 +480,20 @@ else
   else
     ng "ide 도구 목록 대조: 목록 읽기 실패 격추 — rc=$rc, 표준 출력 [$(tr '\n' ' ' < "$w/stdout")]"
   fi
+
+  # 인자 수 경계: 0개와 3개는 사용 오류다 (#144 최종 감사 F-7).
+  for n in 0 3; do
+    if [ "$n" -eq 0 ]; then
+      "$LISTCHK" > "$w/stdout" 2> "$w/stderr"; rc=$?
+    else
+      "$LISTCHK" "$w/names" "$IDE_DEC" "$w/names" > "$w/stdout" 2> "$w/stderr"; rc=$?
+    fi
+    if [ "$rc" -eq 2 ] && [ ! -s "$w/stdout" ] && [ -s "$w/stderr" ]; then
+      ok "ide 도구 목록 대조: 인자 ${n}개 격추"
+    else
+      ng "ide 도구 목록 대조: 인자 ${n}개 격추 — rc=$rc, 표준 출력 [$(tr '\n' ' ' < "$w/stdout")]"
+    fi
+  done
 fi
 
 # --- 이 저장소 안내도 -----------------------------------------------------------
