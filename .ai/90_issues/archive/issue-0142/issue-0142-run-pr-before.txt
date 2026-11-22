@@ -1,0 +1,83 @@
+issue-0142
+b94ce222f24d7f0501d2d2899fbcf3797be6574f
+ M .ai/50_adr/active/0014-inverted-pyramid-and-verdict-derivation.md
+ M .ai/50_adr/index.md
+ M .ai/70_ledger/index.md
+ M .ai/AI-CONTEXT.md
+ M git-review/SKILL.md
+ M git-review/templates/review-result-template.md
+ M git-review/tests/run-tests.sh
+?? .ai/70_ledger/active/K-0031-review-branch-mode-index-exception-paths.md
+?? .ai/70_ledger/active/K-0032-quiz-instruction-clause-commit-message-absent.md
+?? .ai/90_issues/active/issue-0142/
+?? .ai/99_workspace/issue-0142-body-base.md
+?? .ai/99_workspace/issue-0142-body.md
+?? .ai/99_workspace/issue-0142-mock-clean.md
+?? .ai/99_workspace/issue-0142-mock-deleted-lines.md
+?? .ai/99_workspace/issue-0142-mock-index-read.md
+?? .ai/99_workspace/issue-0142-mock-planted-defects.md
+?? .ai/99_workspace/issue-0142-mock-preexisting.md
+?? .ai/99_workspace/issue-0142-mock-unverifiable.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-1.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-10.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-11-gemini.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-11.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-2.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-3.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-4.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-5.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-6.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-7.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-8.md
+?? .ai/99_workspace/issue-0142-plan-audit-report-9.md
+?? .ai/99_workspace/issue-0142-plan-audit-report.md
+?? .ai/99_workspace/issue-audit-vs-code-review.md
+?? .ai/99_workspace/issue-create-body.md
+?? git-review/scripts/collect-branch-changes.sh
+?? git-review/scripts/resolve-target.sh
+?? git-review/tests/fixtures/
+e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+f28043fbef9d5b908fa96f6c18a965214c5b2fb9
+7374682194ccb6cff3c6ef46a5266e73b2697f50 .ai/70_ledger/active/K-0031-review-branch-mode-index-exception-paths.md
+ca3ab5006d02394c7e96d3a19f5cbff098ae9736 .ai/70_ledger/active/K-0032-quiz-instruction-clause-commit-message-absent.md
+31fb950bc7280a4d0b396012ef9aae11e7957570 .ai/90_issues/active/issue-0142/issue-0142-plan.md
+439c1d2291f3c425ca30687dfe494a89cc00579b .ai/90_issues/active/issue-0142/issue-0142-spec.md
+c85770fe1ee047cb78f974634afc462c635e1b3b .ai/90_issues/active/issue-0142/issue-0142-summary.md
+0625a25dfed37d5be93b6a0a10ec7c712b4189f4 .ai/99_workspace/issue-0142-body-base.md
+f8504a5b340879505f180f6d51fb548111ce0cbf .ai/99_workspace/issue-0142-body.md
+2162603bdda2be3f5135c530f2fe90b0435ad79e .ai/99_workspace/issue-0142-mock-clean.md
+86688a58a7b03ae8de7cb5088b18348e6ab7041a .ai/99_workspace/issue-0142-mock-deleted-lines.md
+ab450c3625b8e1c16289a0bf8bf3ae25c3ffa5e8 .ai/99_workspace/issue-0142-mock-index-read.md
+a09d288de6a18efbc372731308426ef42e7d2034 .ai/99_workspace/issue-0142-mock-planted-defects.md
+52fbd6c979311a16fa0774e1453b472e19b8b8be .ai/99_workspace/issue-0142-mock-preexisting.md
+977595d10a5cbbbf1e3bdbc49ecd47521467fe9e .ai/99_workspace/issue-0142-mock-unverifiable.md
+860019bf3855f4a5fe578d6e9b3234aa72ac613c .ai/99_workspace/issue-0142-plan-audit-report-1.md
+42deb68b9ec7b29ff3605e301be771692f25d0f0 .ai/99_workspace/issue-0142-plan-audit-report-10.md
+2533cdef00fb01106b36fbca9b0f336d7f7b276d .ai/99_workspace/issue-0142-plan-audit-report-11-gemini.md
+1cb50d7261c5f8360294bb52f95d2d4d2a913af0 .ai/99_workspace/issue-0142-plan-audit-report-11.md
+c8acdb1b0faf2a0d6c2bc148502c6ef102a78dfe .ai/99_workspace/issue-0142-plan-audit-report-2.md
+df58fd5b7d65cf1a887173f814e626629c52697c .ai/99_workspace/issue-0142-plan-audit-report-3.md
+a07010e68501261e2425d6f70f2d86575c6c6672 .ai/99_workspace/issue-0142-plan-audit-report-4.md
+a6ed7fd24bd41fbd35d3a9b36c9399fb7f77d625 .ai/99_workspace/issue-0142-plan-audit-report-5.md
+b41c52e25ff853ae9f1e083481c7e2a0e21f1b34 .ai/99_workspace/issue-0142-plan-audit-report-6.md
+5ca8176670802c20be5643477619b9391c053298 .ai/99_workspace/issue-0142-plan-audit-report-7.md
+96c932624f7626c090c2aea339a679f10060df62 .ai/99_workspace/issue-0142-plan-audit-report-8.md
+d8b7703bd1e960f8ac2d8e6e6313877326eb669e .ai/99_workspace/issue-0142-plan-audit-report-9.md
+7694ade8da0178a7fd3e3453a550d288605eac23 .ai/99_workspace/issue-0142-plan-audit-report.md
+50d6affe632b303a984af20ee6e0d4585e5a0e4b .ai/99_workspace/issue-audit-vs-code-review.md
+3804eeec084865f98980476f40dce6c4b9a8785e .ai/99_workspace/issue-create-body.md
+c8eea9b31d8fa55a149b7091865e0eee0e48844e git-review/scripts/collect-branch-changes.sh
+f42ba22a1096eaaa62040f7b8e6ee50cabc251c6 git-review/scripts/resolve-target.sh
+04f73976c92a236ae632a543a4b59231ebbf1f73 git-review/tests/fixtures/code-level/README.md
+0bfae4ebf3dbf41564de9f1fe2dd6bcade433c9f git-review/tests/fixtures/code-level/clean.expected.md
+6fafb0891af71df40a9e66d71a8bd78df830d1e6 git-review/tests/fixtures/code-level/clean.input.md
+78f463711e153e1d1282de5bede2d327cb2b8c04 git-review/tests/fixtures/code-level/deleted-lines.expected.md
+19477dc4dd029d762dfeb8399834bff36851e81a git-review/tests/fixtures/code-level/deleted-lines.input.md
+f4535bcd13c9c583fbb0fc6a3cf4652b96f305ff git-review/tests/fixtures/code-level/index-read.expected.md
+213ce3c0e9a110e04099d4784d8008703109bbd8 git-review/tests/fixtures/code-level/index-read.input.md
+37cba2b1a9690f6d13985901c4621bf310b23464 git-review/tests/fixtures/code-level/planted-defects.expected.md
+fc1fabaac7e285782567508054afe07010ddd99a git-review/tests/fixtures/code-level/planted-defects.input.md
+e1279b65605214972ad1392afa7ce9c3bea2ed80 git-review/tests/fixtures/code-level/preexisting.expected.md
+ac7ecec6c69a231961d3b76bde15bfdc0e81ee06 git-review/tests/fixtures/code-level/preexisting.input.md
+6924d4255ec9a0954b9a05f09c611f0657394157 git-review/tests/fixtures/code-level/unverifiable.expected.md
+8546e7cd0b594c2f76738f27e8c0369d3ae8ffa0 git-review/tests/fixtures/code-level/unverifiable.input.md
