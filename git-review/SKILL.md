@@ -136,7 +136,9 @@ git log --format='%h %s%n%n%b' "${mb}..HEAD"
   - fetch의 성공 여부와 별개로 `git cat-file -e`로 고정한 커밋이 로컬에 있는지 확인합니다. 있으면 파일을 `git show`로 읽습니다.
   - 커밋이 로컬에 없으면(fetch 실패, 또는 fetch는 성공했지만 그 사이 PR head가 바뀌어 고정한 커밋이 받은 이력에 없는 경우) `gh api --hostname '<호스트>'`의 contents 조회(`?ref=<SHA>`)로 읽습니다. 그것도 실패하면 그 파일을 읽지 않은 파일(사유: 읽기 실패)로 둡니다.
   - contents 조회는 경로가 영문자·숫자·`.`·`_`·`-`·`~`·`/`로만 되어 있을 때만 씁니다. 다른 문자(`#`·`?`·`%`·공백·한글 등)가 든 경로는 URL에서 경로가 잘리거나 `ref`가 빠져 다른 파일을 읽을 수 있으므로, 조회하지 않고 읽지 않은 파일(사유: 읽기 실패)로 둡니다.
-  - diff의 파일 머리 행(`new file mode`·`new mode`·`index` 행)에 모드 `120000`(심볼릭 링크)이 나오는 파일에는 contents 조회를 쓰지 않습니다. contents 조회는 링크가 저장소 안의 일반 파일을 가리키면 그 파일의 내용을 돌려주어, `git show`가 읽는 링크 자체(가리키는 경로)와 다릅니다. 링크가 가리키는 경로는 diff의 변경 줄에 전부 나오므로 그 줄로 읽습니다.
+  - contents 조회는 고정한 커밋의 트리에서 모드가 일반 파일(`100644`·`100755`)인 경로에만 씁니다. 조회하기 전에 트리 조회(`git/trees/<SHA>?recursive=1`)로 그 경로의 모드를 읽습니다. diff의 파일 머리 행은 내용 변경 없이 이름만 바뀐 파일의 모드를 적지 않으므로 파일의 종류를 diff로 가리지 않습니다.
+  - 모드가 `120000`(심볼릭 링크)인 경로에는 contents 조회를 쓰지 않습니다. contents 조회는 링크가 저장소 안의 일반 파일을 가리키면 그 파일의 내용을 돌려주어, `git show`가 읽는 링크 자체(가리키는 경로)와 다릅니다. 링크가 가리키는 경로가 diff의 변경 줄에 나오면 그 줄로 읽고, 나오지 않으면(내용 변경 없이 이름만 바뀐 링크 등) 읽지 않은 파일(사유: 읽기 실패)로 둡니다.
+  - 모드를 얻지 못한 경로(트리 조회 실패, 항목이 많아 잘린 트리)와 그 밖의 모드(하위 모듈 `160000` 등)도 조회하지 않고 읽지 않은 파일(사유: 읽기 실패)로 둡니다.
   - `FETCH_HEAD`나 작업 트리의 파일로 대신 읽지 않습니다.
   - `PR 모드`에서 이 스킬이 쓰는 파일은 결과 파일 `.ai/99_workspace/temp_review_result.md`뿐입니다. 비즈니스 리뷰의 "문서 부재 시 처리"도 하지 않습니다.
 
@@ -145,10 +147,15 @@ git log --format='%h %s%n%n%b' "${mb}..HEAD"
 git cat-file -e "${sha}^{commit}" || git fetch '<원격>' 'refs/pull/<PR 번호>/head'
 git cat-file -e "${sha}^{commit}" && git show "${sha}:${file}"
 
-# 고정한 커밋이 로컬에 없을 때. 경로가 영문자·숫자·._~/-로만 되어 있으면 raw 미디어 유형으로 파일 내용을 그대로 받는다
+# 고정한 커밋이 로컬에 없을 때. 경로가 영문자·숫자·._~/-로만 되어 있고 고정한 커밋의 트리에서 일반 파일이면 raw 미디어 유형으로 파일 내용을 그대로 받는다
 case "$file" in
   (*[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~/-]*) echo "읽기 실패: URL에 그대로 넣을 수 없는 경로 ${file}" ;;
-  (*) gh api --hostname '<호스트>' -H 'Accept: application/vnd.github.raw' "repos/<소유자>/<저장소>/contents/${file}?ref=${sha}" ;;
+  (*)
+    mode="$(gh api --hostname '<호스트>' "repos/<소유자>/<저장소>/git/trees/${sha}?recursive=1" --jq ".tree[] | select(.path == \"${file}\") | .mode")"
+    case "$mode" in
+      (100644|100755) gh api --hostname '<호스트>' -H 'Accept: application/vnd.github.raw' "repos/<소유자>/<저장소>/contents/${file}?ref=${sha}" ;;
+      (*) echo "읽기 실패: 고정한 커밋의 트리에서 일반 파일로 확인하지 못한 경로 ${file}" ;;
+    esac ;;
 esac
 ```
 

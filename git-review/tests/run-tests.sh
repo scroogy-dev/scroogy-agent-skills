@@ -402,18 +402,34 @@ need_row() {
 }
 
 # contents_guard <3단계 본문> → 3단계 코드 블록의 contents 조회 판정(`case "$file" in` … `esac`)을 실행해 위반을 1행씩 출력.
-# gh 는 마지막 인자를 내는 함수로 바꾼다. 쓸 수 있는 경로는 고정한 SHA 로 한 번 조회하고, 다른 문자가 든 경로는
+# gh 는 조회 경로(`repos/…` 인자)를 1행씩 내는 함수로 바꾼다. 트리 조회(`git/trees`)에는 그 경로를 고르는 필터가
+# 있을 때만 준 모드를 돌려준다. 쓸 수 있는 경로는 고정한 SHA 로 한 번 조회하고, 다른 문자가 든 경로는
 # 조회하지 않아야 한다(최종 감사 1차 F-3·F-7). 문구만 찾으면 `?ref=` 를 빼거나 판정 문자를 넓힌 사본이 통과한다.
+# contents 조회 앞에 고정한 SHA 의 트리에서 모드를 읽고, 일반 파일(100644·100755)일 때만 조회해야 한다(최종 감사 3차 F-13).
 contents_guard() {
-  local snip="$tmpdir/contents-guard.sh" p got
+  local snip="$tmpdir/contents-guard.sh" p m got
   printf '%s\n' "$1" | awk '/^case "\$file" in$/{f=1} f{print} f&&/^esac$/{exit}' > "$snip"
   if ! grep -qx 'esac' "$snip"; then echo '3단계에 contents 조회 판정(case "$file" in … esac) 없음'; return; fi
-  run_guard() { bash -c 'sha=0123abc; file="$1"; gh() { for a; do l="$a"; done; printf "GH %s\n" "$l"; }; . "$2"' _ "$1" "$snip" 2>/dev/null | grep '^GH '; }
-  got="$(run_guard 'app/a.py')"
-  [ "$got" = 'GH repos/<소유자>/<저장소>/contents/app/a.py?ref=0123abc' ] \
-    || echo "contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음 [$(printf '%s' "$got" | tr '\n' '|')]"
+  # run_guard <경로> <트리 조회가 돌려줄 모드> → gh 호출의 조회 경로를 `GH <경로>` 1행씩
+  run_guard() {
+    bash -c 'sha=0123abc; file="$1"; want="$3"
+      gh() { local a u=""; for a; do case "$a" in (repos/*) u="$a" ;; esac; done; printf "GH %s\n" "$u" >&3
+        case "$u" in (*/git/trees/*) case "$*" in (*".path == \"${file}\""*) [ -z "$want" ] || printf "%s\n" "$want" ;; esac ;; esac; }
+      . "$2"' _ "$1" "$snip" "$2" 3>&1 >/dev/null 2>&1
+  }
+  for m in 100644 100755; do
+    got="$(run_guard 'app/a.py' "$m")"
+    [ "$(printf '%s\n' "$got" | sed -n '1p')" = 'GH repos/<소유자>/<저장소>/git/trees/0123abc?recursive=1' ] \
+      || echo "트리 조회가 고정한 SHA의 트리에서 경로의 모드를 읽지 않음 [$(printf '%s' "$got" | tr '\n' '|')]"
+    [ "$(printf '%s\n' "$got" | sed '1d')" = 'GH repos/<소유자>/<저장소>/contents/app/a.py?ref=0123abc' ] \
+      || echo "contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음 (모드 ${m}) [$(printf '%s' "$got" | tr '\n' '|')]"
+  done
+  for m in 120000 160000 040000 ''; do
+    got="$(run_guard 'app/a.py' "$m")"
+    if printf '%s\n' "$got" | grep -qF '/contents/'; then echo "contents 조회가 모드 [${m}]인 경로를 조회함"; fi
+  done
   for p in 'app/a#b.py' 'a?b.py' 'x%20.py' 'my file.py' '새 파일.txt'; do
-    [ -z "$(run_guard "$p")" ] || echo "contents 조회가 URL에 그대로 넣을 수 없는 경로 [${p}]를 조회함"
+    [ -z "$(run_guard "$p" 100644)" ] || echo "contents 조회가 URL에 그대로 넣을 수 없는 경로 [${p}]를 조회함"
   done
 }
 
@@ -453,6 +469,8 @@ check_collect_clause() {
   need "$three" '3단계' '?ref=${sha}'
   need_row "$three" '3단계' 'contents 조회' '영문자·숫자'
   need_row "$three" '3단계' 'contents 조회' '120000'
+  need_row "$three" '3단계' 'contents 조회' '트리' '100644' '100755'
+  need_row "$three" '3단계' '모드를 얻지 못한 경로' '읽기 실패'
   contents_guard "$three"
 
   four="$(sec "$f" '대상 수집' '4단계: PR 본문 확인 항목 수집')"
@@ -535,6 +553,12 @@ edit_in "$SKILL" "$S1" "$T3" replace  '0123456789._~/-]' '0123456789._~/#?%-]'  
 edit_in "$SKILL" "$S1" "$T3" drop-row 'case "$file" in'                            > "$C/three-guard-drop.md"
 edit_in "$SKILL" "$S1" "$T3" drop-row 'contents 조회|영문자·숫자'                  > "$C/three-guard-rule.md"
 edit_in "$SKILL" "$S1" "$T3" drop-row 'contents 조회|120000'                       > "$C/three-symlink.md"
+edit_in "$SKILL" "$S1" "$T3" drop-row 'contents 조회|트리|100644'                  > "$C/three-mode-rule.md"
+edit_in "$SKILL" "$S1" "$T3" drop-row '모드를 얻지 못한 경로'                      > "$C/three-mode-none.md"
+edit_in "$SKILL" "$S1" "$T3" replace  '(100644|100755)' '(100644|100755|120000)'   > "$C/three-mode-wide.md"
+edit_in "$SKILL" "$S1" "$T3" replace  '(100644|100755)' '(*)'                      > "$C/three-mode-any.md"
+edit_in "$SKILL" "$S1" "$T3" replace  'git/trees/${sha}?' 'git/trees/main?'        > "$C/three-tree-ref.md"
+edit_in "$SKILL" "$S1" "$T3" replace  'select(.path == ' 'select(.type == '        > "$C/three-tree-path.md"
 edit_in "$SKILL" "$S1" "$T4" drop-str '완료의 정의 대조'                           > "$C/four-dod.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-row 'PR 모드|수행하지 않습니다' > "$C/miss-pr.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-str '참조 문서 없음:'          > "$C/miss-line.md"
@@ -572,7 +596,13 @@ assert_collect "$C/three-guard-wide.md"    fail '대상 수집 조항: contents 
 assert_collect "$C/three-guard-drop.md"    fail '대상 수집 조항: contents 조회 판정의 case 행 삭제 격추'                '3단계에 contents 조회 판정(case "$file" in … esac) 없음'
 assert_collect "$C/three-guard-rule.md"    fail '대상 수집 조항: contents 조회의 경로 문자 조건 행 삭제 격추'           '[contents 조회 영문자·숫자]가 함께 든 행 없음'
 assert_collect "$C/three-symlink.md"       fail '대상 수집 조항: 심볼릭 링크에 contents 조회를 쓰지 않는 행 삭제 격추'  '[contents 조회 120000]가 함께 든 행 없음'
-assert_collect "$C/four-dod.md"            fail '대상 수집 조항: 4단계의 완료의 정의 대조 삭제 격추'                    '4단계에 [완료의 정의 대조] 없음'
+assert_collect "$C/three-mode-rule.md"     fail '대상 수집 조항: contents 조회를 일반 파일 모드에만 쓰는 행 삭제 격추'  '[contents 조회 트리 100644 100755]가 함께 든 행 없음'
+assert_collect "$C/three-mode-none.md"     fail '대상 수집 조항: 모드를 얻지 못한 경로의 읽기 실패 행 삭제 격추'        '[모드를 얻지 못한 경로 읽기 실패]가 함께 든 행 없음'
+assert_collect "$C/three-mode-wide.md"     fail '대상 수집 조항: contents 조회 판정의 모드에 120000을 더함 격추'        'contents 조회가 모드 [120000]인 경로를 조회함'
+assert_collect "$C/three-mode-any.md"      fail '대상 수집 조항: contents 조회 판정이 모드를 가리지 않음 격추'          'contents 조회가 모드 []인 경로를 조회함'
+assert_collect "$C/three-tree-ref.md"      fail '대상 수집 조항: 트리 조회의 고정한 SHA를 main으로 바꿈 격추'           '트리 조회가 고정한 SHA의 트리에서 경로의 모드를 읽지 않음'
+assert_collect "$C/three-tree-path.md"     fail '대상 수집 조항: 트리 조회 필터가 경로로 고르지 않음 격추'              'contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음'
+assert_collect "$C/four-dod.md"           fail '대상 수집 조항: 4단계의 완료의 정의 대조 삭제 격추'                    '4단계에 [완료의 정의 대조] 없음'
 assert_collect "$C/miss-pr.md"             fail '대상 수집 조항: 문서 부재 시 처리의 PR 모드 행 삭제 격추'              '[PR 모드 수행하지 않습니다]가 함께 든 행 없음'
 assert_collect "$C/miss-line.md"           fail '대상 수집 조항: 문서 부재 시 처리의 참조 문서 없음: 삭제 격추'         '문서 부재 시 처리에 [참조 문서 없음:] 없음'
 assert_collect "$C/order-swap.md"          fail '대상 수집 조항: 3단계와 4단계의 순서 교환 격추'                        '대상 수집 소절이 고정한 4개·순서와 다름'
@@ -1353,6 +1383,48 @@ case "$probe" in
     else ng "브랜치 수집: 임시 디렉토리와 같은 상위 디렉토리의 사용자 파일은 들어감 (rc=${rc} [$(show "$(list_of)")])"; fi ;;
   (*) ng "브랜치 수집: TMPDIR 을 따르는 mktemp 로 작업 트리 안에 임시 디렉토리를 만드는 상태를 만들지 못함 [${probe}]" ;;
 esac
+
+# 헬퍼가 부른 프로그램이 TMPDIR 에 남기는 파일(최종 감사 3차 F-12): macOS 의 git 실행기는 환경에 따라 TMPDIR 에 캐시를 남긴다.
+# 부를 때마다 TMPDIR 에 파일을 남기는 대역 git 을 PATH 앞에 두어 같은 상태를 만든다. 헬퍼는 부르는 프로그램의 TMPDIR 을
+# 자기 임시 디렉토리로 지정하므로, 그 파일이 목록에 나오지 않고 호출 뒤 작업 트리에도 남지 않는다.
+rl="$tmpdir/bc-launcher"; gshim="$tmpdir/gshim"; real_git="$(command -v git)"
+{ newrepo "$rl" && printf 'a\n' > "$rl/tracked.txt" && printf 'h\n' > "$rl/hidden.txt" && mkdir -p "$rl/sub" && printf 's\n' > "$rl/sub/keep.txt" \
+  && g "$rl" add -A && g "$rl" commit -m base && g "$rl" update-index --assume-unchanged hidden.txt \
+  && mkdir -p "$rl/scratch" "$gshim" "$tmpdir/gprobe" \
+  && printf '#!/bin/sh\n: > "${TMPDIR:-/tmp}/launcher_cache"\nexec %s "$@"\n' "'$real_git'" > "$gshim/git" && chmod +x "$gshim/git"; } \
+  || ng '브랜치 수집: 실행기 캐시 저장소를 만들지 못함'
+# launcher_run <PATH 앞에 둘 디렉토리> <호출 디렉토리> <TMPDIR> <헬퍼 인자…> — 대역 git 으로 헬퍼를 불러 out·rc 와 scratch/ 에 남은 이름(left)을 남긴다
+launcher_run() {
+  local pre="$1" dir="$2" td="$3"; shift 3
+  out="$(cd "$dir" && PATH="${pre}:${PATH}" TMPDIR="$td" "$COLLECT" "$@" 2> "$tmpdir/collect.err")"; rc=$?
+  left="$(ls -A "$rl/scratch" | tr '\n' ' ')"
+}
+(PATH="${gshim}:${PATH}" TMPDIR="$tmpdir/gprobe" git --version >/dev/null 2>&1)
+if [ ! -e "$tmpdir/gprobe/launcher_cache" ]; then
+  ng '브랜치 수집: 부를 때마다 TMPDIR 에 파일을 남기는 대역 git 상태를 만들지 못함'
+else
+  launcher_run "$gshim" "$rl" "$rl/scratch" --base main
+  if [ "$rc" = 0 ] && [ -z "$out" ] && [ -z "$left" ]; then
+    ok '브랜치 수집: 부른 프로그램이 TMPDIR 에 남기는 파일이 목록에 나오지 않고 작업 트리에 남지 않음 통과'
+  else ng "브랜치 수집: 부른 프로그램이 TMPDIR 에 남기는 파일이 목록에 나오지 않고 작업 트리에 남지 않음 (rc=${rc} [$(show "$(list_of)")] 남은 파일 [${left}])"; fi
+  launcher_run "${gshim}:${shim}" "$rl" "$rl/scratch" --base main
+  if [ "$rc" = 0 ] && [ -z "$out" ] && [ -z "$left" ]; then
+    ok '브랜치 수집: 임시 디렉토리가 작업 트리 안일 때도 부른 프로그램의 파일이 목록에 나오지 않음 통과'
+  else ng "브랜치 수집: 임시 디렉토리가 작업 트리 안일 때도 부른 프로그램의 파일이 목록에 나오지 않음 (rc=${rc} [$(show "$(list_of)")] 남은 파일 [${left}])"; fi
+  launcher_run "${gshim}:${shim}" "$rl/sub" ../scratch --base main
+  if [ "$rc" = 0 ] && [ -z "$out" ] && [ -z "$left" ]; then
+    ok '브랜치 수집: 하위 디렉토리에서 상대 경로 TMPDIR 로 불러도 출력이 비고 작업 트리에 남지 않음 통과'
+  else ng "브랜치 수집: 하위 디렉토리에서 상대 경로 TMPDIR 로 불러도 출력이 비고 작업 트리에 남지 않음 (rc=${rc} [$(show "$(list_of)")] 남은 파일 [${left}] $(head -n 1 "$tmpdir/collect.err"))"; fi
+  launcher_run "$gshim" "$rl" "$rl/scratch" --marked
+  if [ "$rc" = 0 ] && [ "$out" = 'h hidden.txt' ] && [ -z "$left" ]; then
+    ok '브랜치 수집: --marked 도 부른 프로그램의 파일을 작업 트리에 남기지 않음 통과'
+  else ng "브랜치 수집: --marked 도 부른 프로그램의 파일을 작업 트리에 남기지 않음 (rc=${rc} [$(show "$out")] 남은 파일 [${left}])"; fi
+  printf 'u\n' > "$rl/scratch/user.txt"
+  launcher_run "${gshim}:${shim}" "$rl" "$rl/scratch" --base main
+  if [ "$rc" = 0 ] && [ "$(list_of)" = "A${TAB}scratch/user.txt" ] && has_line "$(patch_of)" '+u' && [ "$left" = 'user.txt ' ]; then
+    ok '브랜치 수집: 부른 프로그램이 파일을 남겨도 같은 상위 디렉토리의 사용자 파일만 들어감 통과'
+  else ng "브랜치 수집: 부른 프로그램이 파일을 남겨도 같은 상위 디렉토리의 사용자 파일만 들어감 (rc=${rc} [$(show "$(list_of)")] 남은 파일 [${left}])"; fi
+fi
 
 # 호출 위치(최종 감사 2차 F-10): 하위 디렉토리에서 상대 경로 GIT_DIR·GIT_WORK_TREE 로 불러도 절대 경로로 부른 결과와 같다.
 # 바깥에 다른 저장소를 두어, 작업 트리 루트로 옮긴 뒤 `../.git` 을 읽는 헬퍼가 바깥 저장소의 변경을 내는 경우도 격추한다.

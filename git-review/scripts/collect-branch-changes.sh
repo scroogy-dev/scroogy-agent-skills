@@ -31,8 +31,11 @@
 #   그대로 쓰이며, 저장소 전체를 가리키는 pathspec(`:(top)`, `:/`)으로 어느 하위 디렉토리에서 불러도 같은 결과를 낸다.
 #   작업 트리 루트로 옮기면 `GIT_DIR=../.git` 같은 상대 경로가 다른 디렉토리(바깥 저장소 등)를 가리킨다.
 #
-# 임시 디렉토리(`mktemp -d`)는 `TMPDIR` 에 따라 작업 트리 안에 생길 수 있다(GNU mktemp). 그 안에 `*` 한 줄의
-# `.gitignore` 를 두어 헬퍼가 쓰는 파일(임시 인덱스, 표준 오류 기록 등)이 스냅샷에 들지 않게 한다.
+# 임시 디렉토리(`mktemp -d`)는 첫 git 명령 앞에서 만들고, 헬퍼가 부르는 프로그램의 `TMPDIR` 을 그 디렉토리로 지정한다.
+#   `TMPDIR` 에 따라 작업 트리 안에 생길 수 있어(GNU mktemp) 그 안에 `*` 한 줄의 `.gitignore` 를 둔다.
+#   헬퍼가 쓰는 파일(임시 인덱스, 표준 오류 기록 등)과 헬퍼가 부른 프로그램이 `TMPDIR` 에 남기는 파일(macOS 의 git
+#   실행기 캐시 등)이 이 디렉토리에만 생겨 스냅샷에 들지 않고, 끝날 때 함께 지워진다.
+#   상대 경로로 나온 임시 디렉토리는 절대 경로로 바꿔 쓴다. Git 은 작업 트리 루트로 옮겨 상대 경로를 해석한다.
 #
 # 사용법:
 #   collect-branch-changes.sh --base <브랜치|커밋>
@@ -83,13 +86,17 @@ if [ "$has_base" = 1 ] && [ "$marked" = 1 ]; then fail '--base 와 --marked 는 
 if [ "$has_base" = 0 ] && [ "$marked" = 0 ]; then fail '--base 나 --marked 가 필요하다' 2; fi
 if [ "$has_base" = 1 ] && [ -z "$base" ]; then fail '--base 의 값이 비어 있다' 2; fi
 
+# 임시 디렉토리는 첫 git 명령 앞에서 만든다 (헤더 주석 "임시 디렉토리")
+tmp="$(mktemp -d)" || fail '임시 디렉토리를 만들지 못했다' 1
+case "$tmp" in (/*) ;; (*) tmp="${PWD}/${tmp}" ;; esac
+trap 'rm -rf "$tmp"' EXIT   # 자기가 만든 디렉토리만 지운다
+# 임시 디렉토리가 작업 트리 안에 생겨도 스냅샷에 들지 않게 한다
+printf '*\n' > "$tmp/.gitignore" || fail '임시 디렉토리에 무시 규칙을 쓰지 못했다' 1
+# 헬퍼가 부르는 프로그램이 임시 파일을 이 디렉토리에만 남기게 한다
+export TMPDIR="$tmp"
+
 # 현재 디렉토리는 옮기지 않는다 (헤더 주석 "호출 위치")
 top="$(git "${G[@]}" rev-parse --show-toplevel 2>/dev/null)" && [ -n "$top" ] || fail 'git 작업 트리 밖에서 실행했다' 1
-
-tmp="$(mktemp -d)" || fail '임시 디렉토리를 만들지 못했다' 1
-trap 'rm -rf "$tmp"' EXIT   # 자기가 만든 디렉토리만 지운다
-# 임시 디렉토리가 작업 트리 안에 생겨도 스냅샷에 들지 않게 한다 (헤더 주석 참조)
-printf '*\n' > "$tmp/.gitignore" || fail '임시 디렉토리에 무시 규칙을 쓰지 못했다' 1
 
 # first_err — 마지막 git 명령이 표준 오류에 낸 첫 줄
 first_err() { head -n 1 "$tmp/err" 2>/dev/null; }
