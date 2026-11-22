@@ -452,6 +452,7 @@ check_collect_clause() {
   if printf '%s\n' "$three" | grep -qF 'git merge-base'; then echo '3단계에 [git merge-base] 있음 (merge-base를 다시 구함)'; fi
   need "$three" '3단계' '?ref=${sha}'
   need_row "$three" '3단계' 'contents 조회' '영문자·숫자'
+  need_row "$three" '3단계' 'contents 조회' '120000'
   contents_guard "$three"
 
   four="$(sec "$f" '대상 수집' '4단계: PR 본문 확인 항목 수집')"
@@ -533,6 +534,7 @@ edit_in "$SKILL" "$S1" "$T3" drop-str '?ref=${sha}'                             
 edit_in "$SKILL" "$S1" "$T3" replace  '0123456789._~/-]' '0123456789._~/#?%-]'     > "$C/three-guard-wide.md"
 edit_in "$SKILL" "$S1" "$T3" drop-row 'case "$file" in'                            > "$C/three-guard-drop.md"
 edit_in "$SKILL" "$S1" "$T3" drop-row 'contents 조회|영문자·숫자'                  > "$C/three-guard-rule.md"
+edit_in "$SKILL" "$S1" "$T3" drop-row 'contents 조회|120000'                       > "$C/three-symlink.md"
 edit_in "$SKILL" "$S1" "$T4" drop-str '완료의 정의 대조'                           > "$C/four-dod.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-row 'PR 모드|수행하지 않습니다' > "$C/miss-pr.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-str '참조 문서 없음:'          > "$C/miss-line.md"
@@ -569,6 +571,7 @@ assert_collect "$C/three-ref.md"           fail '대상 수집 조항: 3단계 c
 assert_collect "$C/three-guard-wide.md"    fail '대상 수집 조항: contents 조회 판정 문자에 # ? %를 더함 격추'           'URL에 그대로 넣을 수 없는 경로 [app/a#b.py]를 조회함'
 assert_collect "$C/three-guard-drop.md"    fail '대상 수집 조항: contents 조회 판정의 case 행 삭제 격추'                '3단계에 contents 조회 판정(case "$file" in … esac) 없음'
 assert_collect "$C/three-guard-rule.md"    fail '대상 수집 조항: contents 조회의 경로 문자 조건 행 삭제 격추'           '[contents 조회 영문자·숫자]가 함께 든 행 없음'
+assert_collect "$C/three-symlink.md"       fail '대상 수집 조항: 심볼릭 링크에 contents 조회를 쓰지 않는 행 삭제 격추'  '[contents 조회 120000]가 함께 든 행 없음'
 assert_collect "$C/four-dod.md"            fail '대상 수집 조항: 4단계의 완료의 정의 대조 삭제 격추'                    '4단계에 [완료의 정의 대조] 없음'
 assert_collect "$C/miss-pr.md"             fail '대상 수집 조항: 문서 부재 시 처리의 PR 모드 행 삭제 격추'              '[PR 모드 수행하지 않습니다]가 함께 든 행 없음'
 assert_collect "$C/miss-line.md"           fail '대상 수집 조항: 문서 부재 시 처리의 참조 문서 없음: 삭제 격추'         '문서 부재 시 처리에 [참조 문서 없음:] 없음'
@@ -1328,6 +1331,49 @@ elif [ "$rc" = 0 ] && [ "$(list_of)" = "A${TAB}job.py" ] && has_line "$(patch_of
      && ! patch_of | grep -qF 'print('; then
   ok '브랜치 수집: Git 이 바이너리로 보는 텍스트 파일이 목록에 나오고 patch 에 Binary files 행만 나옴 통과'
 else ng "브랜치 수집: Git 이 바이너리로 보는 텍스트 파일이 목록에 나오고 patch 에 Binary files 행만 나옴 (rc=${rc} [$(show "$(patch_of)")])"; fi
+
+# 작업 트리 안의 임시 디렉토리(최종 감사 2차 F-9): GNU mktemp 는 TMPDIR 을 따라 작업 트리 안에 임시 디렉토리를 만든다.
+# macOS 의 mktemp 는 TMPDIR 을 보지 않으므로, TMPDIR 을 따르는 대체 mktemp 를 PATH 앞에 두어 같은 상태를 만든다.
+rt="$tmpdir/bc-tmpdir"; shim="$tmpdir/shim"; real_mktemp="$(command -v mktemp)"
+{ newrepo "$rt" && printf 'a\n' > "$rt/tracked.txt" && g "$rt" add -A && g "$rt" commit -m base && mkdir -p "$rt/scratch" "$shim" \
+  && printf '#!/bin/sh\nexec %s -d "${TMPDIR:-/tmp}/tmp.XXXXXXXXXX"\n' "'$real_mktemp'" > "$shim/mktemp" && chmod +x "$shim/mktemp"; } \
+  || ng '브랜치 수집: 임시 디렉토리 저장소를 만들지 못함'
+probe="$(PATH="$shim:$PATH" TMPDIR="$rt/scratch" mktemp -d 2>/dev/null)"
+case "$probe" in
+  ("$rt/scratch/"*)
+    rmdir "$probe"
+    out="$(cd "$rt" && PATH="$shim:$PATH" TMPDIR="$rt/scratch" "$COLLECT" --base main 2> "$tmpdir/collect.err")"; rc=$?
+    if [ "$rc" = 0 ] && [ -z "$out" ] && [ -z "$(ls -A "$rt/scratch")" ]; then
+      ok '브랜치 수집: 임시 디렉토리가 작업 트리 안이어도 변경 없는 저장소의 출력이 빔 통과'
+    else ng "브랜치 수집: 임시 디렉토리가 작업 트리 안이어도 변경 없는 저장소의 출력이 빔 (rc=${rc} [$(show "$(list_of)")])"; fi
+    printf 'u\n' > "$rt/scratch/user.txt"
+    out="$(cd "$rt" && PATH="$shim:$PATH" TMPDIR="$rt/scratch" "$COLLECT" --base main 2> "$tmpdir/collect.err")"; rc=$?
+    if [ "$rc" = 0 ] && [ "$(list_of)" = "A${TAB}scratch/user.txt" ] && has_line "$(patch_of)" '+u'; then
+      ok '브랜치 수집: 임시 디렉토리와 같은 상위 디렉토리의 사용자 파일은 들어감 통과'
+    else ng "브랜치 수집: 임시 디렉토리와 같은 상위 디렉토리의 사용자 파일은 들어감 (rc=${rc} [$(show "$(list_of)")])"; fi ;;
+  (*) ng "브랜치 수집: TMPDIR 을 따르는 mktemp 로 작업 트리 안에 임시 디렉토리를 만드는 상태를 만들지 못함 [${probe}]" ;;
+esac
+
+# 호출 위치(최종 감사 2차 F-10): 하위 디렉토리에서 상대 경로 GIT_DIR·GIT_WORK_TREE 로 불러도 절대 경로로 부른 결과와 같다.
+# 바깥에 다른 저장소를 두어, 작업 트리 루트로 옮긴 뒤 `../.git` 을 읽는 헬퍼가 바깥 저장소의 변경을 내는 경우도 격추한다.
+ro="$tmpdir/bc-outer"; ri="$ro/inner"
+{ newrepo "$ro" && printf 'o\n' > "$ro/outer.txt" && g "$ro" add -A && g "$ro" commit -m outer && printf 'o2\n' >> "$ro/outer.txt" \
+  && newrepo "$ri" && mkdir -p "$ri/src" && printf 'a\n' > "$ri/src/file" && printf 'h\n' > "$ri/hidden.txt" \
+  && g "$ri" add -A && g "$ri" commit -m base && g "$ri" checkout -b work && g "$ri" update-index --assume-unchanged hidden.txt \
+  && printf 'b\n' >> "$ri/src/file" && printf 'n\n' > "$ri/new.txt"; } \
+  || ng '브랜치 수집: 호출 위치 저장소를 만들지 못함'
+# rel_abs <설명> <기대 출력> <헬퍼 인자…> — src/ 에서 절대 경로 변수로 부른 출력이 기대와 같고, 상대 경로 변수로 부른 출력이 그와 같은가
+rel_abs() {
+  local desc="$1" want="$2" abs_out abs_rc; shift 2
+  abs_out="$(cd "$ri/src" && GIT_DIR="$ri/.git" GIT_WORK_TREE="$ri" "$COLLECT" "$@" 2> "$tmpdir/collect.err")"; abs_rc=$?
+  out="$(cd "$ri/src" && GIT_DIR=../.git GIT_WORK_TREE=.. "$COLLECT" "$@" 2> "$tmpdir/collect.err")"; rc=$?
+  if [ "$abs_rc" != 0 ] || [ "$want" != "$(printf '%s\n' "$abs_out" | awk 'NF==0{exit} {print}' | LC_ALL=C sort)" ]; then
+    ng "브랜치 수집: ${desc} 절대 경로 대조군이 기대와 다름 (rc=${abs_rc} [$(show "$abs_out")])"
+  elif [ "$rc" = 0 ] && [ "$out" = "$abs_out" ]; then ok "브랜치 수집: ${desc} 상대 경로 변수의 출력이 절대 경로와 같음 통과"
+  else ng "브랜치 수집: ${desc} 상대 경로 변수의 출력이 절대 경로와 같음 (rc=${rc} [$(show "$out")] $(head -n 1 "$tmpdir/collect.err"))"; fi
+}
+rel_abs '하위 디렉토리 --base' "$(want_rows "A${TAB}new.txt" "M${TAB}src/file")" --base main
+rel_abs '하위 디렉토리 --marked' 'h hidden.txt' --marked
 
 # 수집 실패와 사용오류: 표준 출력 없이 종료 코드 1·2 와 표준 오류 1행
 mkdir -p "$tmpdir/outside"

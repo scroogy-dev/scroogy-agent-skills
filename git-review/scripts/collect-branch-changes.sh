@@ -27,6 +27,13 @@
 #   `GIT_NOGLOB_PATHSPECS`·`GIT_ICASE_PATHSPECS`·`GIT_DIFF_OPTS` 는 끈다. 그 밖의 변수(`GIT_DIR`·`GIT_WORK_TREE` 등)는
 #   Git 의 결과를 따른다.
 #
+# 호출 위치: 헬퍼는 현재 디렉토리를 옮기지 않는다. 상대 경로로 준 Git 환경 변수도 호출한 위치에서 Git 이 해석하는
+#   그대로 쓰이며, 저장소 전체를 가리키는 pathspec(`:(top)`, `:/`)으로 어느 하위 디렉토리에서 불러도 같은 결과를 낸다.
+#   작업 트리 루트로 옮기면 `GIT_DIR=../.git` 같은 상대 경로가 다른 디렉토리(바깥 저장소 등)를 가리킨다.
+#
+# 임시 디렉토리(`mktemp -d`)는 `TMPDIR` 에 따라 작업 트리 안에 생길 수 있다(GNU mktemp). 그 안에 `*` 한 줄의
+# `.gitignore` 를 두어 헬퍼가 쓰는 파일(임시 인덱스, 표준 오류 기록 등)이 스냅샷에 들지 않게 한다.
+#
 # 사용법:
 #   collect-branch-changes.sh --base <브랜치|커밋>
 #   collect-branch-changes.sh --marked
@@ -76,11 +83,13 @@ if [ "$has_base" = 1 ] && [ "$marked" = 1 ]; then fail '--base 와 --marked 는 
 if [ "$has_base" = 0 ] && [ "$marked" = 0 ]; then fail '--base 나 --marked 가 필요하다' 2; fi
 if [ "$has_base" = 1 ] && [ -z "$base" ]; then fail '--base 의 값이 비어 있다' 2; fi
 
+# 현재 디렉토리는 옮기지 않는다 (헤더 주석 "호출 위치")
 top="$(git "${G[@]}" rev-parse --show-toplevel 2>/dev/null)" && [ -n "$top" ] || fail 'git 작업 트리 밖에서 실행했다' 1
-cd "$top" || fail "작업 트리 루트로 옮기지 못했다: ${top}" 1
 
 tmp="$(mktemp -d)" || fail '임시 디렉토리를 만들지 못했다' 1
 trap 'rm -rf "$tmp"' EXIT   # 자기가 만든 디렉토리만 지운다
+# 임시 디렉토리가 작업 트리 안에 생겨도 스냅샷에 들지 않게 한다 (헤더 주석 참조)
+printf '*\n' > "$tmp/.gitignore" || fail '임시 디렉토리에 무시 규칙을 쓰지 못했다' 1
 
 # first_err — 마지막 git 명령이 표준 오류에 낸 첫 줄
 first_err() { head -n 1 "$tmp/err" 2>/dev/null; }
@@ -97,9 +106,10 @@ read_lines() {
 # 다른 레코드로 읽힌다. 인용 표기가 필요한 경로는 같은 순번의 줄 단위 행을 그대로 쓴다.
 
 if [ "$marked" = 1 ]; then
-  git "${G[@]}" ls-files -v -z > "$tmp/marked.z" 2> "$tmp/err" \
+  # `--full-name` 과 `:/` 로 어느 하위 디렉토리에서 불러도 저장소 전체를 루트 기준 경로로 낸다
+  git "${G[@]}" ls-files -v -z --full-name -- ':/' > "$tmp/marked.z" 2> "$tmp/err" \
     || fail "인덱스를 조회하지 못했다: $(first_err)" 1
-  git "${G[@]}" -c core.quotePath=false ls-files -v > "$tmp/marked.txt" 2> "$tmp/err" \
+  git "${G[@]}" -c core.quotePath=false ls-files -v --full-name -- ':/' > "$tmp/marked.txt" 2> "$tmp/err" \
     || fail "인덱스를 조회하지 못했다: $(first_err)" 1
   read_lines "$tmp/marked.txt"
   : > "$tmp/out"
@@ -131,8 +141,9 @@ index="$(git "${G[@]}" rev-parse --git-path index 2> "$tmp/err")" && [ -n "$inde
   || fail "인덱스 경로를 얻지 못했다: $(first_err)" 1
 objects="$(git "${G[@]}" rev-parse --git-path objects 2> "$tmp/err")" && [ -n "$objects" ] \
   || fail "객체 디렉토리 경로를 얻지 못했다: $(first_err)" 1
-case "$index" in (/*) ;; (*) index="${top}/${index}" ;; esac
-case "$objects" in (/*) ;; (*) objects="${top}/${objects}" ;; esac
+# `--git-path` 의 상대 경로는 현재 디렉토리 기준이다
+case "$index" in (/*) ;; (*) index="${PWD}/${index}" ;; esac
+case "$objects" in (/*) ;; (*) objects="${PWD}/${objects}" ;; esac
 # 대체 객체 디렉토리 목록은 `:` 로 구분한다. 경로에 `:`·`"`·`\` 가 있으면 큰따옴표로 감싸 이스케이프한다.
 case "$objects" in
   (*[:\"\\]*) objects="\"$(printf '%s' "$objects" | sed 's/[\\"]/\\&/g')\"" ;;
@@ -148,10 +159,11 @@ export GIT_INDEX_FILE="$tmp/index" GIT_OBJECT_DIRECTORY="$tmp/objects" \
   GIT_ALTERNATE_OBJECT_DIRECTORIES="${objects}${GIT_ALTERNATE_OBJECT_DIRECTORIES:+:${GIT_ALTERNATE_OBJECT_DIRECTORIES}}"
 
 # 스냅샷: 추적 파일을 작업 트리의 내용·모드로 갱신하고, `.ai/99_workspace/` 밖의 미추적 파일을 더한다.
-# `git add -u` 에는 경로를 주지 않는다. 인덱스가 비어 있으면 `.` 에 맞는 파일이 없어 명령이 실패한다.
+# `git add -u` 에는 경로를 주지 않는다(저장소 전체). 인덱스가 비어 있으면 경로에 맞는 파일이 없어 명령이 실패한다.
+# `git add -A` 의 pathspec 은 `:(top)` 으로 저장소 루트 기준이다. 현재 디렉토리를 옮기지 않으므로 `.` 을 쓰지 않는다.
 git "${G[@]}" add -u > /dev/null 2> "$tmp/err" \
   || fail "스냅샷을 만들지 못했다(git add -u): $(first_err)" 1
-git "${G[@]}" add -A -- . ':(exclude).ai/99_workspace' > /dev/null 2> "$tmp/err" \
+git "${G[@]}" add -A -- ':(top)' ':(top,exclude).ai/99_workspace' > /dev/null 2> "$tmp/err" \
   || fail "스냅샷을 만들지 못했다(git add -A): $(first_err)" 1
 
 # 산출: 목록(NUL 구분·줄 단위)과 patch. `git diff` 는 사용자 diff 설정을 읽어 저장소마다 출력이 달라지므로 쓰지 않는다.
