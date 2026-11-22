@@ -26,6 +26,11 @@
 # 종료 코드: 0 대상 확정 / 1 PR 링크의 저장소(호스트 포함)가 원격 저장소와 다름 /
 #            2 사용오류(옵션 누락·중복·알 수 없는 인자, 원격 URL 정규화 실패, PR 링크·번호 형식 아님).
 #            1·2 에서는 표준 출력에 아무것도 쓰지 않고 사유를 표준 오류에 1행으로 쓴다.
+#
+# 사유에는 입력 값(원격 URL·PR 값·알 수 없는 인자)의 원문을 넣지 않는다. 어느 입력이 틀렸는지와 기대 형식만 적는다.
+# 원격 URL 에 든 자격 증명(`사용자:토큰@`)이 오류 출력에 남지 않게 하기 위해서다. 종료 코드 1 의 두 저장소는
+# 사용자 정보를 지운 정규화 표기이고, 알 수 없는 인자는 옵션 이름 형식(`--` 뒤 영소문자·`-`)일 때만 이름을 적는다
+# (이슈 #142 최종 감사 4차 F-14, .ai/30_contract/github-integration.md 의 userinfo 제거 규칙).
 
 set -o pipefail
 
@@ -59,7 +64,7 @@ normalize() {
 
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
-remote_url='' pr='' has_remote=0 has_pr=0
+remote_url='' pr='' has_remote=0 has_pr=0 argc=$#
 while [ $# -gt 0 ]; do
   case "$1" in
     --remote-url)
@@ -71,13 +76,15 @@ while [ $# -gt 0 ]; do
       [ $# -ge 2 ] || fail '--pr 의 값이 없다' 2
       pr="$2"; has_pr=1; shift 2 ;;
     *)
-      fail "알 수 없는 인자: $1" 2 ;;
+      if [[ $1 =~ ^--[a-z][a-z-]*$ ]]; then fail "알 수 없는 옵션: $1" 2; fi
+      fail "알 수 없는 인자가 $((argc - $# + 1))번째에 있다 (값은 적지 않는다)" 2 ;;
   esac
 done
 [ "$has_remote" = 1 ] || fail '--remote-url 이 없다' 2
 [ "$has_pr" = 1 ] || fail '--pr 이 없다' 2
 
-remote="$(normalize "$remote_url")" || fail "원격 URL 을 정규화할 수 없다: ${remote_url}" 2
+remote="$(normalize "$remote_url")" \
+  || fail '--remote-url 값을 정규화할 수 없다 (기대 형식: https://호스트/소유자/저장소, ssh://…, git@호스트:소유자/저장소)' 2
 
 num_re='^#?([0-9]+)$'
 # 링크는 소문자로 바꾼 뒤 읽는다. 저장소 비교가 대소문자를 가리지 않고, 출력의 저장소 표기는 원격 URL 에서 얻는다.
@@ -91,15 +98,16 @@ elif [[ $link =~ $link_re ]]; then
   host="${BASH_REMATCH[1]}"; path="${BASH_REMATCH[2]}"; n="${BASH_REMATCH[3]}"
   host="${host#*@}"                          # user@ 제거 (원격 URL 정규화와 같은 규칙)
   host="${host%%:*}"                         # 포트 제거
-  [ -n "$host" ] && [[ $path =~ $repo_re ]] || fail "--pr 값이 PR 링크 형식이 아니다: ${pr}" 2
+  [ -n "$host" ] && [[ $path =~ $repo_re ]] \
+    || fail '--pr 값이 PR 링크 형식이 아니다 (기대 형식: http(s)://호스트/소유자/저장소/pull/숫자)' 2
   linked="${host}/${path}"
   [ "$linked" = "$(lower "$remote")" ] \
     || fail "PR 링크의 저장소(${linked})가 원격 저장소(${remote})와 다르다" 1
 else
-  fail "--pr 값이 PR 링크나 PR 번호 형식이 아니다: ${pr}" 2
+  fail '--pr 값이 PR 링크나 PR 번호 형식이 아니다 (기대 형식: PR 링크, 숫자, #숫자)' 2
 fi
 
 n="$(printf '%s' "$n" | sed 's/^0*//')"
-[ -n "$n" ] || fail "PR 번호가 0 이다: ${pr}" 2
+[ -n "$n" ] || fail '--pr 값의 PR 번호가 0 이다' 2
 
 printf '%s %s\n' "$remote" "$n"

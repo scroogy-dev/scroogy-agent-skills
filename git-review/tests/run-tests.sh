@@ -402,19 +402,31 @@ need_row() {
 }
 
 # contents_guard <3단계 본문> → 3단계 코드 블록의 contents 조회 판정(`case "$file" in` … `esac`)을 실행해 위반을 1행씩 출력.
-# gh 는 조회 경로(`repos/…` 인자)를 1행씩 내는 함수로 바꾼다. 트리 조회(`git/trees`)에는 그 경로를 고르는 필터가
-# 있을 때만 준 모드를 돌려준다. 쓸 수 있는 경로는 고정한 SHA 로 한 번 조회하고, 다른 문자가 든 경로는
-# 조회하지 않아야 한다(최종 감사 1차 F-3·F-7). 문구만 찾으면 `?ref=` 를 빼거나 판정 문자를 넓힌 사본이 통과한다.
-# contents 조회 앞에 고정한 SHA 의 트리에서 모드를 읽고, 일반 파일(100644·100755)일 때만 조회해야 한다(최종 감사 3차 F-13).
+# gh 는 조회 경로(`repos/…` 인자)를 1행씩 내는 함수로 바꾼다. 쓸 수 있는 경로는 고정한 SHA 로 한 번 조회하고,
+# 다른 문자가 든 경로는 조회하지 않아야 한다(최종 감사 1차 F-3·F-7). 문구만 찾으면 `?ref=` 를 빼거나 판정 문자를
+# 넓힌 사본이 통과한다. contents 조회 앞에 고정한 SHA 의 트리에서 모드를 읽고, 일반 파일(100644·100755)일 때만
+# 조회해야 한다(최종 감사 3차 F-13).
+# 트리 조회(`git/trees`)에는 링크 항목과 그 경로의 항목이 든 응답을 만들어 SKILL.md 의 `--jq` 필터를 jq 로 실제로
+# 평가한 값을 돌려준다. 인자에 경로를 고르는 문구가 있는지만 보면 고르는 필드를 `.sha` 로 바꾼 사본이 통과한다(최종 감사 4차 F-15).
 contents_guard() {
   local snip="$tmpdir/contents-guard.sh" p m got
+  command -v jq >/dev/null 2>&1 || { echo '트리 조회 필터를 평가할 jq가 없음'; return; }
   printf '%s\n' "$1" | awk '/^case "\$file" in$/{f=1} f{print} f&&/^esac$/{exit}' > "$snip"
   if ! grep -qx 'esac' "$snip"; then echo '3단계에 contents 조회 판정(case "$file" in … esac) 없음'; return; fi
-  # run_guard <경로> <트리 조회가 돌려줄 모드> → gh 호출의 조회 경로를 `GH <경로>` 1행씩
+  # run_guard <경로> <트리 응답에서 그 경로의 모드(빈 값이면 그 경로 항목 없음)> → gh 호출의 조회 경로를 `GH <경로>` 1행씩
   run_guard() {
     bash -c 'sha=0123abc; file="$1"; want="$3"
-      gh() { local a u=""; for a; do case "$a" in (repos/*) u="$a" ;; esac; done; printf "GH %s\n" "$u" >&3
-        case "$u" in (*/git/trees/*) case "$*" in (*".path == \"${file}\""*) [ -z "$want" ] || printf "%s\n" "$want" ;; esac ;; esac; }
+      gh() { local a u="" q="" nx=0
+        for a; do
+          if [ "$nx" = 1 ]; then q="$a"; nx=0; continue; fi
+          case "$a" in (--jq) nx=1 ;; (repos/*) u="$a" ;; esac
+        done
+        printf "GH %s\n" "$u" >&3
+        case "$u" in (*/git/trees/*)
+          { printf "{\"sha\":\"%s\",\"truncated\":false,\"tree\":[{\"path\":\"tools/link\",\"mode\":\"120000\",\"type\":\"blob\",\"sha\":\"bbb222\"}" "$sha"
+            [ -z "$want" ] || printf ",{\"path\":\"%s\",\"mode\":\"%s\",\"type\":\"blob\",\"sha\":\"abc123\"}" "$file" "$want"
+            printf "]}"; } | jq -r "$q" ;;
+        esac; }
       . "$2"' _ "$1" "$snip" "$2" 3>&1 >/dev/null 2>&1
   }
   for m in 100644 100755; do
@@ -559,6 +571,7 @@ edit_in "$SKILL" "$S1" "$T3" replace  '(100644|100755)' '(100644|100755|120000)'
 edit_in "$SKILL" "$S1" "$T3" replace  '(100644|100755)' '(*)'                      > "$C/three-mode-any.md"
 edit_in "$SKILL" "$S1" "$T3" replace  'git/trees/${sha}?' 'git/trees/main?'        > "$C/three-tree-ref.md"
 edit_in "$SKILL" "$S1" "$T3" replace  'select(.path == ' 'select(.type == '        > "$C/three-tree-path.md"
+edit_in "$SKILL" "$S1" "$T3" replace  '| .mode")"' '| .sha")"'                     > "$C/three-tree-field.md"
 edit_in "$SKILL" "$S1" "$T4" drop-str '완료의 정의 대조'                           > "$C/four-dod.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-row 'PR 모드|수행하지 않습니다' > "$C/miss-pr.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-str '참조 문서 없음:'          > "$C/miss-line.md"
@@ -602,6 +615,7 @@ assert_collect "$C/three-mode-wide.md"     fail '대상 수집 조항: contents 
 assert_collect "$C/three-mode-any.md"      fail '대상 수집 조항: contents 조회 판정이 모드를 가리지 않음 격추'          'contents 조회가 모드 []인 경로를 조회함'
 assert_collect "$C/three-tree-ref.md"      fail '대상 수집 조항: 트리 조회의 고정한 SHA를 main으로 바꿈 격추'           '트리 조회가 고정한 SHA의 트리에서 경로의 모드를 읽지 않음'
 assert_collect "$C/three-tree-path.md"     fail '대상 수집 조항: 트리 조회 필터가 경로로 고르지 않음 격추'              'contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음'
+assert_collect "$C/three-tree-field.md"    fail '대상 수집 조항: 트리 조회 필터가 모드 대신 객체 해시를 고름 격추'      'contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음'
 assert_collect "$C/four-dod.md"           fail '대상 수집 조항: 4단계의 완료의 정의 대조 삭제 격추'                    '4단계에 [완료의 정의 대조] 없음'
 assert_collect "$C/miss-pr.md"             fail '대상 수집 조항: 문서 부재 시 처리의 PR 모드 행 삭제 격추'              '[PR 모드 수행하지 않습니다]가 함께 든 행 없음'
 assert_collect "$C/miss-line.md"           fail '대상 수집 조항: 문서 부재 시 처리의 참조 문서 없음: 삭제 격추'         '문서 부재 시 처리에 [참조 문서 없음:] 없음'
@@ -907,6 +921,41 @@ assert_resolve 2 '' '대상 대조: 저장소 단계가 모자란 링크 격추'
 assert_resolve 2 '' '대상 대조: PR 번호 형식 아님 격추' --remote-url "$SHOP" --pr '12a'
 assert_resolve 2 '' '대상 대조: --pr 중복 격추' --remote-url "$SHOP" --pr '12' --pr '13'
 assert_resolve 2 '' '대상 대조: 알 수 없는 인자 격추' --remote-url "$SHOP" --pr '12' --repo 'acme/shop'
+
+# assert_resolve_hidden <기대 종료 코드> <사유에 있어야 할 문구> <설명> <헬퍼 인자…>
+# 입력에 가짜 사용자 정보(zuser·ZTOKEN0)를 넣고, 실패 때 표준 오류가 원인 문구를 담은 1행이며 사용자 정보와
+# `/`·`@`가 든 입력 값의 원문을 담지 않는지 본다(최종 감사 4차 F-14). 링크는 소문자로 바꿔 읽으므로 대소문자 없이 찾는다.
+assert_resolve_hidden() {
+  local want_rc="$1" want_err="$2" desc="$3"; shift 3
+  local out rc err a leak=''
+  out="$("$RESOLVE" "$@" 2> "$tmpdir/resolve.err")"; rc=$?
+  err="$(cat "$tmpdir/resolve.err")"
+  for a in "$@"; do
+    case "$a" in (*/*|*@*) printf '%s\n' "$err" | grep -qiF -- "$a" && leak="입력 값 [${a}]" ;; esac
+  done
+  printf '%s\n' "$err" | grep -qiE 'zuser|ztoken0' && leak='사용자 정보'
+  if [ "$rc" != "$want_rc" ] || [ -n "$out" ]; then
+    ng "$desc (기대 rc=${want_rc} 빈 표준 출력, 실제 rc=${rc} out=[${out}])"
+  elif [ "$(grep -c . "$tmpdir/resolve.err")" != 1 ]; then
+    ng "$desc (표준 오류의 사유가 1행이 아님)"
+  elif ! printf '%s\n' "$err" | grep -qF -- "$want_err"; then
+    ng "$desc (사유에 [${want_err}] 없음: ${err})"
+  elif [ -n "$leak" ]; then
+    ng "$desc (표준 오류에 남음: ${leak})"
+  else
+    ok "$desc"
+  fi
+}
+
+SECRET_SHOP='https://zuser:ZTOKEN0@github.com/acme/shop.git'
+assert_resolve_hidden 2 '--remote-url' '대상 대조: 정규화할 수 없는 원격 URL의 사유에 입력 값이 없음'       --remote-url 'https://zuser:ZTOKEN0@ghe.example.com' --pr '12'
+assert_resolve_hidden 2 '--remote-url' '대상 대조: 저장소 단계가 모자란 원격 URL의 사유에 입력 값이 없음'   --remote-url 'https://zuser:ZTOKEN0@github.com/shop' --pr '12'
+assert_resolve_hidden 2 '--pr'         '대상 대조: 저장소 단계가 모자란 링크의 사유에 입력 값이 없음'       --remote-url "$SHOP" --pr 'https://zuser:ZTOKEN0@github.com/acme/pull/12'
+assert_resolve_hidden 2 '--pr'         '대상 대조: PR 링크·번호 형식이 아닌 값의 사유에 입력 값이 없음'     --remote-url "$SHOP" --pr 'ssh://zuser:ZTOKEN0@github.com/acme/shop/pull/12'
+assert_resolve_hidden 2 '--pr'         '대상 대조: PR 번호 0 링크의 사유에 입력 값이 없음'                  --remote-url "$SHOP" --pr 'https://zuser:ZTOKEN0@github.com/acme/shop/pull/0'
+assert_resolve_hidden 2 '5번째'        '대상 대조: 알 수 없는 인자의 사유에 입력 값이 없음'                 --remote-url "$SHOP" --pr '12' "$SECRET_SHOP"
+assert_resolve_hidden 2 '5번째'        '대상 대조: 값이 붙은 알 수 없는 옵션의 사유에 입력 값이 없음'       --remote-url "$SHOP" --pr '12' "--repo=${SECRET_SHOP}"
+assert_resolve_hidden 1 'github.com/acme/other' '대상 대조: 다른 저장소의 사유는 사용자 정보를 지운 저장소 표기' --remote-url "$SECRET_SHOP" --pr 'https://zuser:ZTOKEN0@github.com/acme/other/pull/12'
 
 # --- 브랜치 수집 (issue #142) --------------------------------------------------
 # collect-branch-changes.sh 는 merge-base 와 "지금 작업 트리를 전부 스테이징해 커밋하면 들어갈 내용"의 차이를 내고,
