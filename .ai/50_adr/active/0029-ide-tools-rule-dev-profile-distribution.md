@@ -11,15 +11,15 @@ last_harvested: 2026-11-07
 
 ## 결정
 
-- IntelliJ MCP가 연결된 환경에서 코드 탐색·수정에 어떤 도구를 먼저 쓸지는 `10_rules/ide-tools.md` 한 파일에 둔다 (#136).
+- IntelliJ MCP가 연결된 환경에서 코드 탐색·수정·실행에 어떤 도구를 먼저 쓸지는 `10_rules/ide-tools.md` 한 파일에 둔다 (#136). 실행 표와 도구별 결정 목록은 ADR 0030이 정한다 (#144).
   - **버전 고정 단일 파일**: 1행 SYNCED 헤더와 2행 버전 주석(1.0.0)을 두고 update-1이 dev 프로파일에서 항상 덮어쓴다. `ide-tools-local.md` 쌍은 두지 않는다.
   - **dev 프로파일 전용**: `templates/dev/`에 둔다. init은 dev 템플릿 일괄 복사에 포함되고, doc 프로파일에는 배포하지 않는다.
-  - **본문 구성**: `## 적용 조건`, `## 작업별 우선 도구`, `## 기존 도구로 전환하는 조건`, `## 호출 방법` 4절이다. 조건이 맞지 않는 환경에서는 기존 도구를 그대로 쓴다.
+  - **본문 구성**: `## 적용 조건`, `## 작업별 우선 도구`, `## 기존 도구로 전환하는 조건`, `## 사용자가 요청할 때만 쓰는 도구`, `## 호출 방법` 5절이다. 조건이 맞지 않는 환경에서는 기존 도구를 그대로 쓴다.
   - **도구 이름으로 안내**: 본문에 MCP 서버 등록 이름을 적지 않는다. 도구 목록에 없으면 도구 이름으로 찾아 불러오게 한다(Claude Code 도구 검색, Codex `ALL_TOOLS` 필터).
   - **수정 후 검증 기본값**: `lint_files`다. `build_project`는 다른 파일에 영향이 가는 선언을 바꾼 뒤에만 쓰며, 도구 설명의 "수정 후 반드시 빌드" 안내보다 이 규칙이 우선한다.
 - 에이전트가 이 규칙으로 안내받는 경로 두 곳을 잇는다. ADR 0023의 테스트 실행 원칙과 같은 경로다.
-  - **안내도 규칙 표**: dev AI-CONTEXT 템플릿 `## 프로젝트 규칙` 표에 `ide-tools.md` 행을 두고, **설명 열에 핵심 기준을 직접 적는다**. 설명 열만 읽어도 어떤 작업에 IDE 도구를 먼저 쓰고 언제 grep으로 바꾸는지 판단할 수 있어야 한다. 사용 시점은 `코드 탐색·수정 전`이다.
-  - **context-loading**: shared `context-loading.md`의 `## 코드 수정·리뷰·분석 시` 목록 2번(`architecture.md` 다음)에 둔다. "존재하면 읽는다" 목록이라 파일이 없는 doc repo는 건너뛴다.
+  - **안내도 규칙 표**: dev AI-CONTEXT 템플릿 `## 프로젝트 규칙` 표에 `ide-tools.md` 행을 두고, **설명 열에 핵심 기준을 직접 적는다**. 설명 열만 읽어도 어떤 작업에 IDE 도구를 먼저 쓰고 언제 grep으로 바꾸는지 판단할 수 있어야 한다. 사용 시점은 `코드 탐색·수정·실행 전`이다.
+  - **context-loading**: shared `context-loading.md`의 `## 코드 수정·리뷰·분석 시` 목록 2번(`architecture.md` 다음)과 `## 테스트 작성·실행 시` 목록 세 번째 항목(`testing-principles-local.md` 다음)에 둔다. "존재하면 읽는다" 목록이라 파일이 없는 doc repo는 건너뛴다.
 - update-4 멱등 보강 검사(`check-context.sh`)는 본문 2번째 줄이 dev 표준 SSoT 선언일 때만 `ide-tools.md` 행 누락을 보고한다. doc 선언·비표준 선언은 검사하지 않는다. 누락이면 알파벳순 자리에 표준 행을 넣고 사용자 행은 보존한다.
 - 헬퍼를 한 번만 실행해 행 검사가 돌지 않는 실행에서도 dev 전용 행(`testing-principles.md`·`ide-tools.md`)을 함께 넣는다.
   - **선언 보정**: SSoT 선언 행·건물 repo 선언 행의 조치로 dev 문구를 넣거나 바꾼 실행.
@@ -43,6 +43,7 @@ last_harvested: 2026-11-07
 - 선언 보정 실행의 보강은 계획 감사 F-1(2026-11-07)을 반영했다. 비표준·doc 선언 입력은 첫 검사에서 새 행 검사를 건너뛰고, 선언 보정 뒤 표준 구간 최신화가 교체하는 4개 구간에 `## 프로젝트 규칙`이 없어 그 실행에서 행이 빠졌다.
 - K-0018을 같은 이슈에서 해소한 이유: dev 전용 행 검사를 늘리는 변경이라 원장의 재검토 조건(행 검사 조건의 실질 변경)을 충족한다. 원장이 적어 둔 "채택하지 않은 대안"을 채택했다. 행이 둘로 늘어 복구 실행에서 빠지는 행도 둘이 되므로 같은 문장으로 함께 다뤘다.
 - 2026-11-09 일부 변경(#138): 누락 행을 표 끝에 넣으면 알파벳순인 템플릿 표와 순서가 달라져, `ide-tools.md` 행을 포함한 표준 행을 `파일` 셀 기준 알파벳순 자리에 넣게 했다. 행 검사 조건과 dev 전용 행 보강 계기는 바뀌지 않는다.
+- 2026-11-22 일부 변경(#144): 테스트·커버리지·로컬 서버·디버깅 실행에도 IDE 도구를 먼저 쓰게 되어, 적용 범위를 코드 탐색·수정·실행으로 넓히고 본문에 `## 사용자가 요청할 때만 쓰는 도구` 절을 더했다. 규칙 표 사용 시점을 `코드 탐색·수정·실행 전`으로 바꾸고, 테스트 작업에서도 이 규칙을 읽도록 context-loading `## 테스트 작성·실행 시` 목록에 `ide-tools.md`를 더했다. 실행 표·도구별 결정 목록은 새 결정이라 ADR 0030에 두었다. 단일 파일·dev 전용·행 검사 조건은 바뀌지 않는다.
 
 </details>
 
@@ -70,10 +71,10 @@ last_harvested: 2026-11-07
 <summary>출처 목록 펼치기</summary>
 
 - [Issue #136 ai-workspace: IDE 도구 우선 규칙(ide-tools.md)을 dev 프로파일에 도입하고 init·update에서 안내도 규칙 표·context-loading에 연결한다](https://github.com/scroogy-dev/scroogy-agent-skills/issues/136)
-- 일부 변경: [Issue #138](https://github.com/scroogy-dev/scroogy-agent-skills/issues/138)
+- 일부 변경: [Issue #138](https://github.com/scroogy-dev/scroogy-agent-skills/issues/138), [Issue #144](https://github.com/scroogy-dev/scroogy-agent-skills/issues/144)
 - 규칙 본문: [`.ai/10_rules/ide-tools.md`](../../10_rules/ide-tools.md)
 - 해소한 원장 항목: [K-0018](../../70_ledger/archive/K-0018-update4-rules-restore-profile-mismatch-row.md)
-- 관련 결정: [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0023 테스트 실행 원칙 쌍](./0023-testing-principles-pair-and-consumer-skill-references.md), [ADR 0028 소유 구간과 profile 행](./0028-ai-workspace-owned-sections-and-profile-row.md)
+- 관련 결정: [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0023 테스트 실행 원칙 쌍](./0023-testing-principles-pair-and-consumer-skill-references.md), [ADR 0028 소유 구간과 profile 행](./0028-ai-workspace-owned-sections-and-profile-row.md), [ADR 0030 실행 표와 도구별 결정 목록](./0030-ide-tools-execution-table-and-tool-decisions.md)
 - 외부 문서: [IntelliJ IDEA MCP 서버](https://www.jetbrains.com/help/idea/mcp-server.html), [Claude Code MCP (tool search, `alwaysLoad`)](https://code.claude.com/docs/en/mcp)
 
 </details>
