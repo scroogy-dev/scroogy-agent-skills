@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-11-21
-source_hash: 7265afe
+last_synced: 2026-11-22
+source_hash: 54a33bf
 status: current
 ---
 
@@ -19,13 +19,13 @@ git-review/SKILL.md
 │   ├── 1단계: 대상 식별               # 인자가 PR 링크·번호면 PR 모드, 없으면 브랜치 모드(열린 PR 자동 감지 없음). 저장소 확정 규칙은 git-pr-feedback "대상 PR 식별"의 사본
 │   │   ├── git rev-parse --abbrev-ref '@{upstream}' · git remote get-url <원격>   # PR 모드. upstream 원격(없으면 origin)의 URL, 원격 없음·후보 복수면 질의
 │   │   ├── scripts/resolve-target.sh --remote-url <원격 URL> --pr <인자>         # exit 0 "<호스트>/<소유자>/<저장소> <PR 번호>", exit 1 저장소 다름·exit 2 입력 형식 오류는 빈 표준 출력 → 리뷰 시작 안 함
-│   │   └── gh pr view <PR 번호> --repo --json …,headRefOid,baseRefOid,closingIssuesReferences   # 응답 URL 대조 후 불변값 보관. gh 불가면 github.com만 MCP 폴백
+│   │   └── gh pr view <PR 번호> --repo <호스트>/<소유자>/<저장소> --json …,headRefOid,baseRefOid,closingIssuesReferences   # 응답 URL 대조 후 불변값 보관. gh 불가면 github.com만 MCP 폴백
 │   ├── 2단계: 변경 수집               # diff를 얻지 못하면 리뷰 시작 안 함(변경 파일 0개와 구분). 이 단계에서 변경 파일 목록 확정
 │   │   ├── PR 모드
-│   │   │   ├── gh pr diff <PR 번호> --repo                                       # diff, 변경 파일 목록
-│   │   │   ├── gh api --hostname 'repos/…/pulls/<PR 번호>' --jq .commits         # PR의 커밋 수. 모은 커밋 메시지 수와 다르면 --paginate 페이지 조회, 그래도 못 모으면 최종 의견 한 줄
-│   │   │   ├── gh issue view <이슈 번호> --repo                                  # 본문 참조 + closingIssuesReferences 연결 이슈 본문. 실패는 최종 의견 한 줄
-│   │   │   └── gh pr view <PR 번호> --repo --json headRefOid,baseRefOid          # 다시 조회. 1단계 값과 다르면 1단계부터 1회 재수집, 그래도 다르면 리뷰 시작 안 함
+│   │   │   ├── gh pr diff <PR 번호> --repo <호스트>/<소유자>/<저장소>                                   # diff, 변경 파일 목록
+│   │   │   ├── gh api --hostname <호스트> 'repos/<소유자>/<저장소>/pulls/<PR 번호>' --jq .commits       # PR의 커밋 수. 모은 커밋 메시지 수와 다르면 --paginate 페이지 조회, 그래도 못 모으면 최종 의견 한 줄
+│   │   │   ├── gh issue view <이슈 번호> --repo <호스트>/<소유자>/<저장소>                              # 본문 참조 + closingIssuesReferences 연결 이슈 본문. 실패는 최종 의견 한 줄
+│   │   │   └── gh pr view <PR 번호> --repo <호스트>/<소유자>/<저장소> --json headRefOid,baseRefOid      # 다시 조회. 1단계 값과 다르면 1단계부터 1회 재수집, 그래도 다르면 리뷰 시작 안 함
 │   │   └── 브랜치 모드                # base는 origin/HEAD가 가리키는 브랜치(없으면 main)
 │   │       ├── git merge-base <base> HEAD                                        # merge-base 커밋 해시를 mb로 한 번만 구해 보관
 │   │       ├── scripts/collect-branch-changes.sh --base "$mb"                    # 지금 전부 스테이징해 커밋하면 들어갈 변경. 변경 파일 목록 · 빈 줄 · patch, exit 1·2는 빈 표준 출력
@@ -33,12 +33,12 @@ git-review/SKILL.md
 │   ├── 3단계: 읽기 기준 확정           # 작업 트리·현재 브랜치를 바꾸지 않음. PR 모드에서 쓰는 파일은 결과 파일뿐
 │   │   ├── PR 모드
 │   │   │   ├── git cat-file -e "${sha}^{commit}" · git fetch <원격> 'refs/pull/<PR 번호>/head'   # sha는 headRefOid. 로컬에 없을 때만 객체를 받음
-│   │   │   ├── git show "${sha}:${path}"                                         # PR head 기준 주변 코드
-│   │   │   └── gh api --hostname 'repos/…/contents/<경로>?ref=<SHA>'             # 고정한 커밋이 로컬에 없을 때. 실패는 읽지 않은 파일(읽기 실패)
+│   │   │   ├── git show "${sha}:${file}"                                         # PR head 기준 주변 코드
+│   │   │   └── gh api --hostname <호스트> 'repos/<소유자>/<저장소>/contents/<경로>?ref=<SHA>'   # 고정한 커밋이 로컬에 없을 때, 경로가 영문자·숫자·._~/-로만 된 파일만. 그 밖의 경로와 실패는 읽지 않은 파일(읽기 실패)
 │   │   └── 브랜치 모드                # 읽기 기준은 수집한 내용(patch와 merge-base 커밋), 목록의 경로를 그대로 넘김
-│   │       ├── git show "${mb}:${path}"                                          # patch에 나오지 않은 줄
+│   │       ├── git show "${mb}:${file}"                                          # patch에 나오지 않은 줄
 │   │       ├── scripts/collect-branch-changes.sh --marked                        # 변경을 보지 않도록 표시한 경로 "<표지> <경로>"
-│   │       └── git show ":0:${path}"                                             # 표시한 경로는 인덱스의 내용으로 읽음
+│   │       └── git show ":0:${file}"                                             # 표시한 경로는 인덱스의 내용으로 읽음
 │   └── 4단계: PR 본문 확인 항목 수집    # "리뷰어 확인 요청"·"완료의 정의 대조"를 뽑아 둠. 없으면 해당 없음, 브랜치 모드는 해당 없음
 ├── 비즈니스 리뷰
 │   ├── 1단계: 참조 문서 확보          # .ai/30_contract·40_domain index → 관련 문서만 읽기
@@ -102,7 +102,7 @@ sequenceDiagram
             Note over SK: 1단계부터 한 번 다시 수집, 그래도 다르면 리뷰를 시작하지 않음
         end
         SK->>G: cat-file -e headRefOid (없으면 fetch refs/pull/PR 번호/head), show headRefOid:경로
-        G-->>SK: PR head 기준 주변 코드 (커밋이 없으면 gh api contents, 실패는 읽기 실패)
+        G-->>SK: PR head 기준 주변 코드 (커밋이 없으면 경로 문자를 본 뒤 gh api contents, 그 밖의 경로와 실패는 읽기 실패)
     else 인자 없음 (브랜치 모드)
         SK->>G: merge-base base HEAD
         G-->>SK: merge-base 커밋 해시 mb (리뷰 끝까지 보관)
