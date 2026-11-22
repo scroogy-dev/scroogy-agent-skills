@@ -291,6 +291,148 @@ assert_update1_reject 'ide-tools update-1 doc 분기 복사 추가 격추' 'doc 
   '{ print } /^if \[ "\$PROFILE" = "doc" \]; then$/ { print "  cp \"$SKILL_DIR/templates/dev/.ai/10_rules/ide-tools.md\" .ai/10_rules/ide-tools.md"; hit = 1 } END { exit !hit }' \
   ide_update1_violations
 
+# --- ide-tools 결정 목록 ---------------------------------------------------------
+#
+# `ide-tools.md`에 적힌 IntelliJ MCP 도구 이름과 도구별 결정 목록(`.ai/40_domain/specs/ide-tools-decisions.md`)이
+# 어긋나면 실패한다 (#144). 도구 이름은 백틱 코드 스팬 내용이 `^[a-z][a-z0-9]*(_[a-z0-9]+)+(\(.*\))?$`에
+# 맞는 것의 `(` 앞부분이다. 네 조건을 모두 만족해야 통과다.
+#   1. 이름은 모두 결정 목록에 있다.
+#   2. `## 사용자가 요청할 때만 쓰는 도구` 절 안의 이름은 결정이 `쓰지 않음`이다.
+#   3. 그 절 밖의 이름은 결정이 `표에 둠`이다.
+#   4. 결정이 `표에 둠`인 도구는 모두 그 절 밖에 이름이 있다.
+# 결정 목록은 일치 검사의 입력이라, 없으면 건너뛰지 않고 위반으로 보고한다 (저장소 사본 검사의 건너뛰기 관례를 쓰지 않는다).
+# 목록 대조 헬퍼(`check-ide-tool-list.sh`)는 IntelliJ 업데이트 때 새 도구·사라진 도구를 찾는 저장소 전용 도구다.
+
+IDE_TPL="$TPL_DIR/dev/$IDE_RULE"
+IDE_DEC="$HERE/../../.ai/40_domain/specs/ide-tools-decisions.md"
+LISTCHK="$HERE/check-ide-tool-list.sh"
+IDE_LIST="$HERE/fixtures/ide-tool-list/intellij-mcp-tools.txt"
+
+# ide_decision_violations <ide-tools.md> <결정 목록> — 어긋난 곳을 1행씩 출력한다. 무출력이면 통과.
+ide_decision_violations() {
+  local f
+  for f in "$1" "$2"; do
+    if [ ! -f "$f" ] || [ ! -r "$f" ]; then echo "파일 없음: $f"; return; fi
+  done
+  awk -F'|' '
+    function t(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    FNR == NR { if ($0 ~ /^\| `[a-z0-9_]+` \|/) { k = t($2); gsub(/`/, "", k); dec[k] = t($3) } next }
+    /^## / { sec = ($0 ~ /^## 사용자가 요청할 때만 쓰는 도구[[:space:]]*$/) }
+    { line = $0
+      while (match(line, /`[^`]+`/)) {
+        c = substr(line, RSTART + 1, RLENGTH - 2); line = substr(line, RSTART + RLENGTH)
+        if (c !~ /^[a-z][a-z0-9]*(_[a-z0-9]+)+(\(.*\))?$/) continue
+        sub(/\(.*/, "", c)
+        if (!(c in dec)) { print "결정 목록에 없음: " c; continue }
+        if (sec) { if (dec[c] != "쓰지 않음") print "요청 전용 절 안인데 " dec[c] ": " c }
+        else { seen[c] = 1; if (dec[c] != "표에 둠") print "요청 전용 절 밖인데 " dec[c] ": " c }
+      } }
+    END { for (k in dec) if (dec[k] == "표에 둠" && !(k in seen)) print "표에 둠인데 절 밖에 이름 없음: " k }
+  ' "$2" "$1" | LC_ALL=C sort -u
+}
+
+out="$(ide_decision_violations "$IDE_TPL" "$IDE_DEC")"
+if [ -z "$out" ]; then
+  ok "ide-tools 결정 목록 일치 통과"
+else
+  ng "ide-tools 결정 목록 일치 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+# assert_ide_decision_reject <설명> <기대 위반 문구> <변형 함수> — 사본에 변형을 적용하고 기대 위반이 나오는지 본다.
+# 변형 함수는 `<ide-tools.md 사본> <결정 목록 사본>`을 받고, 바꾼 결정 목록 경로를 출력한다(결정 목록 없음 변형용).
+assert_ide_decision_reject() {
+  local w dec out
+  w="$(mktemp -d "$TMP/dec.XXXXXX")"
+  cp "$IDE_TPL" "$w/ide-tools.md"; cp "$IDE_DEC" "$w/decisions.md" 2>/dev/null
+  if ! dec="$("$3" "$w/ide-tools.md" "$w/decisions.md")"; then
+    ng "ide-tools 결정 목록 일치: $1 격추 — 변형 적용 실패"
+    return
+  fi
+  out="$(ide_decision_violations "$w/ide-tools.md" "$dec")"
+  if printf '%s\n' "$out" | grep -qF -- "$2"; then
+    ok "ide-tools 결정 목록 일치: $1 격추"
+  else
+    ng "ide-tools 결정 목록 일치: $1 격추 — 기대 위반 [$2] 없음, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+}
+
+# 변형은 모두 실제로 바뀌었는지 확인한다. 바뀌지 않으면 원본이 그대로 통과해 격추가 실패로 보이지 않을 수 있다.
+dv_append()   { printf '%s\n' "- \`$3\`를 쓴다." >> "$1" && echo "$2"; }
+dv_unknown()  { dv_append "$1" "$2" zz_unknown_tool; }
+dv_hold()     { grep -qE '^\| `coverage_get_stats` \| 보류 \|' "$2" && dv_append "$1" "$2" coverage_get_stats; }
+dv_existing() { grep -qE '^\| `search_text` \| 기존 도구 \|' "$2" && dv_append "$1" "$2" search_text; }
+dv_unused()   { grep -qE '^\| `reformat_file` \| 쓰지 않음 \|' "$2" && dv_append "$1" "$2" reformat_file; }
+dv_delete() {
+  grep -qF '·`get_project_modules`' "$1" || return 1
+  sed -i.bak 's/·`get_project_modules`//g' "$1" && rm -f "$1.bak"
+  ! grep -qF '`get_project_modules`' "$1" && echo "$2"
+}
+dv_to_unused() {
+  grep -qE '^\| `lint_files` \| 표에 둠 \|' "$2" || return 1
+  sed -i.bak 's/^| `lint_files` | 표에 둠 |/| `lint_files` | 쓰지 않음 |/' "$2" && rm -f "$2.bak" && echo "$2"
+}
+dv_in_section() {
+  awk '{ print } /^- `convert_java_to_kotlin`: / { print "- `lint_files`: 요청할 때만 쓴다."; hit = 1 } END { exit !hit }' "$1" > "$1.tmp" \
+    && mv "$1.tmp" "$1" && echo "$2"
+}
+dv_no_list() { rm -f "$2" && echo "$2"; }
+
+assert_ide_decision_reject '결정 목록에 없는 이름 추가' '결정 목록에 없음: zz_unknown_tool' dv_unknown
+assert_ide_decision_reject '표에 둠 도구 삭제' '표에 둠인데 절 밖에 이름 없음: get_project_modules' dv_delete
+assert_ide_decision_reject '보류 도구 추가' '요청 전용 절 밖인데 보류: coverage_get_stats' dv_hold
+assert_ide_decision_reject '기존 도구 도구 추가' '요청 전용 절 밖인데 기존 도구: search_text' dv_existing
+assert_ide_decision_reject '표에 둠 도구를 쓰지 않음으로 변경' '요청 전용 절 밖인데 쓰지 않음: lint_files' dv_to_unused
+assert_ide_decision_reject '쓰지 않음 도구를 요청 전용 절 밖에 추가' '요청 전용 절 밖인데 쓰지 않음: reformat_file' dv_unused
+assert_ide_decision_reject '표에 둠 도구를 요청 전용 절에 추가' '요청 전용 절 안인데 표에 둠: lint_files' dv_in_section
+assert_ide_decision_reject '결정 목록 없음' '파일 없음: ' dv_no_list
+
+# 목록 대조 헬퍼: 종료 코드와 출력 행을 함께 본다.
+if [ ! -x "$LISTCHK" ]; then
+  ng "ide 도구 목록 대조: 헬퍼 실행 권한 없음 — $LISTCHK"
+else
+  out="$("$LISTCHK" "$IDE_LIST" 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ "$(grep -c . "$IDE_LIST")" -eq 101 ]; then
+    ok "ide 도구 목록 대조: 저장소 사본 통과"
+  else
+    ng "ide 도구 목록 대조: 저장소 사본 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  w="$(mktemp -d "$TMP/lst.XXXXXX")"
+  awk -F'|' '/^\| `[a-z0-9_]+` \|/ { c = $2; gsub(/[ `]/, "", c); print c }' "$IDE_DEC" > "$w/names"
+  first="$(LC_ALL=C sort "$w/names" | sed -n 1p)"
+  # 같은 목록: 순서를 뒤집고 앞뒤 공백·빈 줄·주석 줄을 섞어도 차이가 없어야 한다.
+  { echo '# 주석'; echo; sed 's/^/  /; s/$/ /' "$w/names" | sort -r; } > "$w/same"
+  out="$("$LISTCHK" "$w/same" "$IDE_DEC" 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -s "$w/names" ]; then
+    ok "ide 도구 목록 대조: 같은 목록 통과"
+  else
+    ng "ide 도구 목록 대조: 같은 목록 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  { cat "$w/names"; echo zz_new_tool; } > "$w/new"
+  out="$("$LISTCHK" "$w/new" "$IDE_DEC" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && [ "$out" = '새 도구: zz_new_tool' ]; then
+    ok "ide 도구 목록 대조: 새 도구 격추"
+  else
+    ng "ide 도구 목록 대조: 새 도구 격추 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  grep -vxF -- "$first" "$w/names" > "$w/gone"
+  out="$("$LISTCHK" "$w/gone" "$IDE_DEC" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && [ -n "$first" ] && [ "$out" = "사라진 도구: ${first}" ]; then
+    ok "ide 도구 목록 대조: 사라진 도구 격추"
+  else
+    ng "ide 도구 목록 대조: 사라진 도구 격추 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  "$LISTCHK" "$w/없는 파일" "$IDE_DEC" > "$w/stdout" 2> "$w/stderr"; rc=$?
+  if [ "$rc" -eq 2 ] && [ ! -s "$w/stdout" ] && [ -s "$w/stderr" ]; then
+    ok "ide 도구 목록 대조: 목록 읽기 실패 격추"
+  else
+    ng "ide 도구 목록 대조: 목록 읽기 실패 격추 — rc=$rc, 표준 출력 [$(tr '\n' ' ' < "$w/stdout")]"
+  fi
+fi
+
 # --- 이 저장소 안내도 -----------------------------------------------------------
 
 REPO_CTX="$HERE/../../.ai/AI-CONTEXT.md"
@@ -990,14 +1132,21 @@ fi
 # 어긋나지 않게 `50_adr/superseded/` 제외를 담는지 본다 (#121). `context-loading.md`는 update-1이 항상 덮어쓰는
 # 파일이라 이 저장소 사본(`.ai/10_rules/context-loading.md`)은 템플릿과 바이트 단위로 같아야 한다 (파일이 없으면 건너뛴다).
 #
-# 테스트 라우팅(#122): "테스트 작성·실행 시" 섹션이 하나 있고 테스트 원칙 두 파일을 순서대로 가리키는 항목 2개만 갖는지 본다.
-# 섹션이 "존재하면 읽는다" 안내 아래에 있어야 파일이 없는 doc repo에서 건너뛰므로 그 안내와 SSoT 문장 사이에 있는지도 본다.
+# 테스트 라우팅(#122, #144): "테스트 작성·실행 시" 섹션이 하나 있고 테스트 원칙 두 파일과 `ide-tools.md`를 순서대로 가리키는
+# 항목 3개만 갖는지 본다. 섹션이 "존재하면 읽는다" 안내 아래에 있어야 파일이 없는 doc repo에서 건너뛰므로 그 안내와 SSoT 문장 사이에 있는지도 본다.
 #
-# IDE 도구 라우팅(#136): `ide-tools.md`가 "코드 수정·리뷰·분석 시" 절의 목록 항목 1개로만 나오고 파일 전체에서도 1곳인지 본다.
-# 다른 절로 옮기거나 중복으로 적으면 코드 작업에서 읽는 위치가 흐려진다.
+# IDE 도구 라우팅(#136, #144): `ide-tools.md`가 "코드 수정·리뷰·분석 시" 절의 목록 항목 1개와 "테스트 작성·실행 시" 절의 목록 항목 1개로
+# 나오고 파일 전체에서 2곳인지 본다. #144에서 테스트·서버 실행과 디버깅도 이 규칙을 따르게 되어 테스트 절에도 둔다.
+# 그 밖의 절로 옮기거나 중복으로 적으면 읽는 위치가 흐려진다.
 
 CTX_TPL="$TPL_DIR/shared/.ai/10_rules/context-loading.md"
 REPO_CTX="$HERE/../../.ai/10_rules/context-loading.md"
+
+# ctx_ide_items <파일> <절 제목 행> — 그 절에서 `ide-tools.md`를 가리키는 목록 항목 수를 출력한다.
+ctx_ide_items() {
+  awk -v h="$2" '$0 == h { f = 1; next } f && /^(## |---)/ { exit }
+    f && /^([0-9]+\.|-) `\.ai\/10_rules\/ide-tools\.md`/ { n++ } END { print n + 0 }' "$1"
+}
 
 # ctx_violations <템플릿> [<사본>] — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
 ctx_violations() {
@@ -1009,12 +1158,18 @@ ctx_violations() {
   e="$(grep -nF '**SSoT는 `AI-CONTEXT.md`' "$1" | head -1 | cut -d: -f1)"
   { [ "$(printf '%s\n' "$s" | grep -c .)" -eq 1 ] && [ -n "$p" ] && [ -n "$e" ] && [ "$s" -gt "$p" ] && [ "$s" -lt "$e" ] \
     && [ "$(awk '/^## 테스트 작성·실행 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit } f && /^- / { sub(/ —.*/, ""); print }' "$1")" \
-         = "$(printf '%s\n' '- `.ai/10_rules/testing-principles.md`' '- `.ai/10_rules/testing-principles-local.md`')" ]; } \
+         = "$(printf '%s\n' '- `.ai/10_rules/testing-principles.md`' '- `.ai/10_rules/testing-principles-local.md`' '- `.ai/10_rules/ide-tools.md`')" ]; } \
     || echo '테스트 라우팅'
-  { [ "$(awk '/^## 코드 수정·리뷰·분석 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit }
-           f && /^([0-9]+\.|-) `\.ai\/10_rules\/ide-tools\.md`/ { n++ } END { print n + 0 }' "$1")" -eq 1 ] \
-    && [ "$(grep -cF '.ai/10_rules/ide-tools.md' "$1")" -eq 1 ]; } || echo 'IDE 도구 라우팅'
+  { [ "$(ctx_ide_items "$1" '## 코드 수정·리뷰·분석 시')" -eq 1 ] && [ "$(ctx_ide_items "$1" '## 테스트 작성·실행 시')" -eq 1 ] \
+    && [ "$(grep -cF '.ai/10_rules/ide-tools.md' "$1")" -eq 2 ]; } || echo 'IDE 도구 라우팅'
   [ -z "${2:-}" ] || cmp -s "$1" "$2" || echo '사본 불일치'
+}
+
+# ctx_drop_ide_in <파일> <절 제목 행> — 그 절 안에서 `ide-tools.md` 경로가 든 행만 지운다. 다른 절의 행은 남긴다.
+ctx_drop_ide_in() {
+  awk -v h="$2" -v k='`.ai/10_rules/ide-tools.md`' '
+    $0 == h { f = 1; print; next } f && /^(## |---)/ { f = 0 }
+    f && index($0, k) { hit = 1; next } { print } END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
 # ctx_move_ide <파일> — 코드 절의 `ide-tools.md` 항목을 지우고 "정책·명세 문서 수정 시" 절 첫 항목 뒤로 옮긴다.
@@ -1060,8 +1215,10 @@ if [ -r "$CTX_TPL" ]; then
     sub_str "$C_CTX_COPY" '이력 확인에만 읽는다.' '이력 확인에만 읽는다. 사본에만 있는 문장이다.'
   assert_ctx_reject 'context-loading 테스트 라우팅 삭제 격추' '테스트 라우팅' \
     drop_sec "$C_CTX" '## 테스트 작성·실행 시'
-  assert_ctx_reject 'context-loading ide-tools 라우팅 항목 삭제 격추' 'IDE 도구 라우팅' \
-    drop_line "$C_CTX" '`.ai/10_rules/ide-tools.md`'
+  assert_ctx_reject 'context-loading ide-tools 라우팅 코드 절 항목 삭제 격추' 'IDE 도구 라우팅' \
+    ctx_drop_ide_in "$C_CTX" '## 코드 수정·리뷰·분석 시'
+  assert_ctx_reject 'context-loading ide-tools 라우팅 테스트 절 항목 삭제 격추' 'IDE 도구 라우팅' \
+    ctx_drop_ide_in "$C_CTX" '## 테스트 작성·실행 시'
   assert_ctx_reject 'context-loading ide-tools 라우팅 다른 절로 이동 격추' 'IDE 도구 라우팅' \
     ctx_move_ide "$C_CTX"
   assert_ctx_reject 'context-loading ide-tools 라우팅 다른 절에 중복 격추' 'IDE 도구 라우팅' \
