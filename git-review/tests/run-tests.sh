@@ -401,6 +401,22 @@ need_row() {
   [ -n "$rows" ] || echo "${where}에 [$*]가 함께 든 행 없음"
 }
 
+# contents_guard <3단계 본문> → 3단계 코드 블록의 contents 조회 판정(`case "$file" in` … `esac`)을 실행해 위반을 1행씩 출력.
+# gh 는 마지막 인자를 내는 함수로 바꾼다. 쓸 수 있는 경로는 고정한 SHA 로 한 번 조회하고, 다른 문자가 든 경로는
+# 조회하지 않아야 한다(최종 감사 1차 F-3·F-7). 문구만 찾으면 `?ref=` 를 빼거나 판정 문자를 넓힌 사본이 통과한다.
+contents_guard() {
+  local snip="$tmpdir/contents-guard.sh" p got
+  printf '%s\n' "$1" | awk '/^case "\$file" in$/{f=1} f{print} f&&/^esac$/{exit}' > "$snip"
+  if ! grep -qx 'esac' "$snip"; then echo '3단계에 contents 조회 판정(case "$file" in … esac) 없음'; return; fi
+  run_guard() { bash -c 'sha=0123abc; file="$1"; gh() { for a; do l="$a"; done; printf "GH %s\n" "$l"; }; . "$2"' _ "$1" "$snip" 2>/dev/null | grep '^GH '; }
+  got="$(run_guard 'app/a.py')"
+  [ "$got" = 'GH repos/<소유자>/<저장소>/contents/app/a.py?ref=0123abc' ] \
+    || echo "contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음 [$(printf '%s' "$got" | tr '\n' '|')]"
+  for p in 'app/a#b.py' 'a?b.py' 'x%20.py' 'my file.py' '새 파일.txt'; do
+    [ -z "$(run_guard "$p")" ] || echo "contents 조회가 URL에 그대로 넣을 수 없는 경로 [${p}]를 조회함"
+  done
+}
+
 # check_collect_clause <SKILL.md> → 위반을 1행씩 출력 (0건이면 통과)
 check_collect_clause() {
   local f="$1" head rows one two three four miss got
@@ -434,6 +450,9 @@ check_collect_clause() {
     'git show ":0:' '인덱스의 내용으로 읽습니다' 'git show "${mb}:' '수집한 내용을 따릅니다' '목록의 경로를 그대로' '큰따옴표로 시작'
   need_row "$three" '3단계' '브랜치 모드' '변경 줄' 'patch'
   if printf '%s\n' "$three" | grep -qF 'git merge-base'; then echo '3단계에 [git merge-base] 있음 (merge-base를 다시 구함)'; fi
+  need "$three" '3단계' '?ref=${sha}'
+  need_row "$three" '3단계' 'contents 조회' '영문자·숫자'
+  contents_guard "$three"
 
   four="$(sec "$f" '대상 수집' '4단계: PR 본문 확인 항목 수집')"
   need "$four" '4단계' '리뷰어 확인 요청' '완료의 정의 대조'
@@ -510,6 +529,10 @@ edit_in "$SKILL" "$S1" "$T3" drop-row '브랜치 모드|변경 줄|patch'       
 edit_in "$SKILL" "$S1" "$T3" drop-str '--marked'                                   > "$C/three-marked.md"
 edit_in "$SKILL" "$S1" "$T3" drop-str '인덱스의 내용으로 읽습니다'                 > "$C/three-index.md"
 edit_in "$SKILL" "$S1" "$T3" add-code "gh pr checkout '<PR 번호>'"                 > "$C/three-checkout.md"
+edit_in "$SKILL" "$S1" "$T3" drop-str '?ref=${sha}'                                > "$C/three-ref.md"
+edit_in "$SKILL" "$S1" "$T3" replace  '0123456789._~/-]' '0123456789._~/#?%-]'     > "$C/three-guard-wide.md"
+edit_in "$SKILL" "$S1" "$T3" drop-row 'case "$file" in'                            > "$C/three-guard-drop.md"
+edit_in "$SKILL" "$S1" "$T3" drop-row 'contents 조회|영문자·숫자'                  > "$C/three-guard-rule.md"
 edit_in "$SKILL" "$S1" "$T4" drop-str '완료의 정의 대조'                           > "$C/four-dod.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-row 'PR 모드|수행하지 않습니다' > "$C/miss-pr.md"
 edit_in "$SKILL" '비즈니스 리뷰' '문서 부재 시 처리' drop-str '참조 문서 없음:'          > "$C/miss-line.md"
@@ -542,6 +565,10 @@ assert_collect "$C/three-patch.md"         fail '대상 수집 조항: 3단계�
 assert_collect "$C/three-marked.md"        fail '대상 수집 조항: 3단계의 --marked 삭제 격추'                            '3단계에 [--marked] 없음'
 assert_collect "$C/three-index.md"         fail '대상 수집 조항: 3단계의 인덱스의 내용으로 읽는다는 문구 삭제 격추'     '3단계에 [인덱스의 내용으로 읽습니다] 없음'
 assert_collect "$C/three-checkout.md"      fail '대상 수집 조항: 코드 블록에 gh pr checkout 행 추가 격추'               '코드 블록의 작업 트리 변경 명령'
+assert_collect "$C/three-ref.md"           fail '대상 수집 조항: 3단계 contents 조회의 ?ref=${sha} 삭제 격추'           'contents 조회가 쓸 수 있는 경로를 고정한 SHA로 한 번 조회하지 않음'
+assert_collect "$C/three-guard-wide.md"    fail '대상 수집 조항: contents 조회 판정 문자에 # ? %를 더함 격추'           'URL에 그대로 넣을 수 없는 경로 [app/a#b.py]를 조회함'
+assert_collect "$C/three-guard-drop.md"    fail '대상 수집 조항: contents 조회 판정의 case 행 삭제 격추'                '3단계에 contents 조회 판정(case "$file" in … esac) 없음'
+assert_collect "$C/three-guard-rule.md"    fail '대상 수집 조항: contents 조회의 경로 문자 조건 행 삭제 격추'           '[contents 조회 영문자·숫자]가 함께 든 행 없음'
 assert_collect "$C/four-dod.md"            fail '대상 수집 조항: 4단계의 완료의 정의 대조 삭제 격추'                    '4단계에 [완료의 정의 대조] 없음'
 assert_collect "$C/miss-pr.md"             fail '대상 수집 조항: 문서 부재 시 처리의 PR 모드 행 삭제 격추'              '[PR 모드 수행하지 않습니다]가 함께 든 행 없음'
 assert_collect "$C/miss-line.md"           fail '대상 수집 조항: 문서 부재 시 처리의 참조 문서 없음: 삭제 격추'         '문서 부재 시 처리에 [참조 문서 없음:] 없음'
@@ -561,6 +588,7 @@ check_code_level_clause() {
   read2="$(sec "$f" '테크 리뷰' '2단계: 변경 줄 읽기')"
   need_row "$read2" '2단계' '삭제 줄' '빠짐없이'
   need "$read2" '2단계' '잠금 파일' '생성 파일'
+  need_row "$read2" '2단계' '바이너리:' 'Git이 바이너리로 보아'
 
   cat3="$(sec "$f" '테크 리뷰' '3단계: 카테고리별 검증')"
   need_row "$cat3" '3단계' '버그·보안·성능' '2단계'
@@ -599,6 +627,7 @@ awk 'index($0, "삭제 줄") && index($0, "빠짐없이") { i = index($0, "삭�
   "$SKILL" > "$L/read-deleted.md"
 edit_in "$SKILL" '테크 리뷰' "$S2" drop-str '잠금 파일'               > "$L/read-lock.md"
 edit_in "$SKILL" '테크 리뷰' "$S2" drop-str '생성 파일'               > "$L/read-generated.md"
+edit_in "$SKILL" '테크 리뷰' "$S2" replace 'Git이 바이너리로 보아' '내용이 바이너리라' > "$L/read-binary.md"
 edit_in "$SKILL" '테크 리뷰' "$S3" drop-row '버그·보안·성능|2단계'    > "$L/judge-drop.md"
 awk '!/^\*\*확인 관점\*\*/' "$SKILL" > "$L/view-head.md"
 awk '$0 != "- **보안**:"' "$SKILL" > "$L/view-security.md"
@@ -616,6 +645,7 @@ assert_code_level "$L/order-swap.md"        fail '코드 레벨 조항: 2단계�
 assert_code_level "$L/read-deleted.md"      fail '코드 레벨 조항: 빠짐없이 읽는 행의 삭제 줄 삭제 격추'                '[삭제 줄 빠짐없이]가 함께 든 행 없음'
 assert_code_level "$L/read-lock.md"         fail '코드 레벨 조항: 2단계의 잠금 파일 삭제 격추'                         '2단계에 [잠금 파일] 없음'
 assert_code_level "$L/read-generated.md"    fail '코드 레벨 조항: 2단계의 생성 파일 삭제 격추'                         '2단계에 [생성 파일] 없음'
+assert_code_level "$L/read-binary.md"       fail '코드 레벨 조항: 바이너리 사유를 내용 기준으로 되돌림 격추'           '[바이너리: Git이 바이너리로 보아]가 함께 든 행 없음'
 assert_code_level "$L/judge-drop.md"        fail '코드 레벨 조항: 3단계의 판정 문장 삭제 격추'                         '[버그·보안·성능 2단계]가 함께 든 행 없음'
 assert_code_level "$L/view-head.md"         fail '코드 레벨 조항: 확인 관점 머리 행 삭제 격추'                         '`**확인 관점**` 행이 0개'
 assert_code_level "$L/view-security.md"     fail '코드 레벨 조항: 확인 관점의 보안 항목 삭제 격추'                     '확인 관점 항목이 버그·보안·성능 순서의 3개가 아님'
@@ -1233,6 +1263,71 @@ done < "$tmpdir/marked6"
 if [ "$read_ok" = 3 ] && [ "$read_bad" = 0 ] && [ "$saw_stage_name" = 1 ]; then
   ok '브랜치 수집: 표시한 실제 경로를 그대로 넘겨 :0: 인덱스 내용을 읽음 통과'
 else ng "브랜치 수집: 표시한 실제 경로를 그대로 넘겨 :0: 인덱스 내용을 읽음 (읽음 ${read_ok}·실패 ${read_bad}·2:x.txt ${saw_stage_name})"; fi
+
+# 호출 환경의 Git 환경 변수(최종 감사 1차 F-4·F-5): 헬퍼가 적은 pathspec·patch 형식의 해석을 바꾸는 변수가 호출 셸에
+# 있어도, 대체 객체 디렉토리를 환경 변수로 준 저장소에서도 출력이 그 변수가 없을 때와 같다. 변수가 실제로 Git 의
+# 동작을 바꾸는 사례인지 먼저 본다(GLOB·NOGLOB·ICASE 는 이 저장소에서 차이가 드러나지 않아 출력만 견준다).
+r7="$tmpdir/bc-env"
+{ newrepo "$r7" && printf '1\n2\n3\n4\n5\n6\n7\n' > "$r7/n.txt" && mkdir -p "$r7/.ai/99_workspace" \
+  && printf 'w\n' > "$r7/.ai/99_workspace/tracked.md" && g "$r7" add -A && g "$r7" commit -m base && g "$r7" checkout -b work; } \
+  || ng '브랜치 수집: 환경 변수 저장소를 만들지 못함'
+printf '1\n2\n3\nfour\n5\n6\n7\n' > "$r7/n.txt"; printf 'more\n' >> "$r7/.ai/99_workspace/tracked.md"
+printf 'x\n' > "$r7/.ai/99_workspace/untracked.md"; printf 'n\n' > "$r7/new.txt"
+collect "$r7" --base main; env_base="$out"
+want7="$(want_rows "A${TAB}new.txt" "M${TAB}.ai/99_workspace/tracked.md" "M${TAB}n.txt")"
+if [ "$rc" = 0 ] && [ "$(list_of)" = "$want7" ] && has_line "$(patch_of)" '@@ -1,7 +1,7 @@'; then
+  ok '브랜치 수집: 환경 변수 사례의 기준 출력(작업공간 미추적 파일 빠지고 추적 파일 수정 들어감, 맥락 줄 3) 통과'
+else ng "브랜치 수집: 환경 변수 사례의 기준 출력 (rc=${rc} [$(show "$(list_of)")])"; fi
+# env_case <설명> <변수=값…> — 그 변수를 둔 호출 셸에서 헬퍼의 표준 출력이 기준 출력과 같은가
+env_case() {
+  local desc="$1"; shift
+  out="$(cd "$r7" && env "$@" "$COLLECT" --base main 2> "$tmpdir/collect.err")"; rc=$?
+  if [ "$rc" = 0 ] && [ -n "$env_base" ] && [ "$out" = "$env_base" ]; then ok "브랜치 수집: ${desc} 출력이 변수 없을 때와 같음 통과"
+  else ng "브랜치 수집: ${desc} 출력이 변수 없을 때와 같음 (rc=${rc} $(head -n 1 "$tmpdir/collect.err"))"; fi
+}
+if (cd "$r7" && GIT_LITERAL_PATHSPECS=1 git add -n -A -- . ':(exclude).ai/99_workspace' >/dev/null 2>&1); then
+  ng '브랜치 수집: GIT_LITERAL_PATHSPECS 가 pathspec 매직을 끄는 상태를 만들지 못함'
+else env_case 'GIT_LITERAL_PATHSPECS=1' GIT_LITERAL_PATHSPECS=1; fi
+env_case 'GIT_GLOB_PATHSPECS=1' GIT_GLOB_PATHSPECS=1
+env_case 'GIT_NOGLOB_PATHSPECS=1' GIT_NOGLOB_PATHSPECS=1
+env_case 'GIT_ICASE_PATHSPECS=1' GIT_ICASE_PATHSPECS=1
+if ! (cd "$r7" && GIT_DIFF_OPTS=-u0 git diff-index -p HEAD -- n.txt 2>/dev/null) | grep -qxF '@@ -4 +4 @@'; then
+  ng '브랜치 수집: GIT_DIFF_OPTS 가 맥락 줄 수를 바꾸는 상태를 만들지 못함'
+else env_case 'GIT_DIFF_OPTS=-u0' GIT_DIFF_OPTS=-u0; fi
+# 대체 객체 디렉토리: r8 의 객체는 환경 변수로 준 r7 의 객체 디렉토리에만 있다. 작업 트리는 r7 과 같게 맞춘다.
+r8="$tmpdir/bc-alt"
+alt_env="GIT_ALTERNATE_OBJECT_DIRECTORIES=${r7}/.git/objects"
+{ newrepo "$r8" \
+  && env "$alt_env" git -C "$r8" update-ref refs/heads/main "$(git -C "$r7" rev-parse main)" \
+  && env "$alt_env" git -C "$r8" update-ref refs/heads/work "$(git -C "$r7" rev-parse work)" \
+  && git -C "$r8" symbolic-ref HEAD refs/heads/work && env "$alt_env" git -C "$r8" reset -q --hard work \
+  && cp -p "$r7/n.txt" "$r7/new.txt" "$r8/" && mkdir -p "$r8/.ai/99_workspace" \
+  && cp -p "$r7/.ai/99_workspace/tracked.md" "$r7/.ai/99_workspace/untracked.md" "$r8/.ai/99_workspace/"; } >/dev/null 2>&1 \
+  || ng '브랜치 수집: 대체 객체 디렉토리 저장소를 만들지 못함'
+if git -C "$r8" rev-parse --verify --quiet 'main^{tree}' >/dev/null 2>&1; then
+  ng '브랜치 수집: 객체가 환경 변수로 준 대체 객체 디렉토리에만 있는 상태를 만들지 못함'
+else
+  out="$(cd "$r8" && env "$alt_env" "$COLLECT" --base main 2> "$tmpdir/collect.err")"; rc=$?
+  if [ "$rc" = 0 ] && [ -n "$env_base" ] && [ "$out" = "$env_base" ]; then
+    ok '브랜치 수집: 환경 변수로 준 대체 객체 디렉토리에만 객체가 있어도 출력 같음 통과'
+  else ng "브랜치 수집: 환경 변수로 준 대체 객체 디렉토리에만 객체가 있어도 출력 같음 (rc=${rc} $(head -n 1 "$tmpdir/collect.err"))"; fi
+fi
+
+# Git 이 바이너리로 보는 텍스트 파일(최종 감사 1차 F-2): 목록에 나오고 patch 에는 `Binary files` 행만 나온다.
+# 같은 파일이 설정 전에는 텍스트 patch 로 나오는지 먼저 본다.
+r9="$tmpdir/bc-binary"
+{ newrepo "$r9" && printf 'keep\n' > "$r9/keep.txt" && g "$r9" add -A && g "$r9" commit -m base && g "$r9" checkout -b work; } \
+  || ng '브랜치 수집: 바이너리 판정 저장소를 만들지 못함'
+printf 'print(123456789)\n' > "$r9/job.py"
+collect "$r9" --base main; text_patch="$(patch_of)"
+g "$r9" config core.bigFileThreshold 8
+collect "$r9" --base main
+if ! has_line "$text_patch" '+print(123456789)'; then
+  ng '브랜치 수집: 설정 전에 텍스트 patch 로 나오는 파일을 만들지 못함'
+elif [ "$rc" = 0 ] && [ "$(list_of)" = "A${TAB}job.py" ] && has_line "$(patch_of)" 'Binary files /dev/null and b/job.py differ' \
+     && ! patch_of | grep -qF 'print('; then
+  ok '브랜치 수집: Git 이 바이너리로 보는 텍스트 파일이 목록에 나오고 patch 에 Binary files 행만 나옴 통과'
+else ng "브랜치 수집: Git 이 바이너리로 보는 텍스트 파일이 목록에 나오고 patch 에 Binary files 행만 나옴 (rc=${rc} [$(show "$(patch_of)")])"; fi
 
 # 수집 실패와 사용오류: 표준 출력 없이 종료 코드 1·2 와 표준 오류 1행
 mkdir -p "$tmpdir/outside"

@@ -17,6 +17,15 @@
 # 파일 시스템 감시를 끄고 실행한다(`-c core.splitIndex=false -c core.hooksPath=/dev/null -c core.fsmonitor=false`).
 # 켜 두면 임시 인덱스에 쓸 때도 Git 이 원본 `.git` 에 공유 인덱스 파일을 쓰거나, 저장소의 훅과 변경 조회를 부른다.
 # 저장소 설정은 바꾸지 않는다. gh 를 부르지 않는다.
+# 내용 변환 필터(`filter.<이름>.clean`·`.process`)는 끄지 않는다. 끄면 "커밋하면 들어갈 내용"이 달라진다.
+#   필터 프로그램이 스스로 남기는 파일(Git LFS 의 객체 캐시 등)은 사용자가 직접 스테이징할 때처럼 생길 수 있다.
+#   헬퍼와 Git 이 쓰는 파일이 아니므로 위의 `.git` 보장에 들지 않는다.
+#
+# 호출 환경의 Git 환경 변수: 헬퍼가 값을 정하는 `GIT_INDEX_FILE`·`GIT_OBJECT_DIRECTORY`·`GIT_ALTERNATE_OBJECT_DIRECTORIES`
+#   는 호출 쪽 값을 이어받는다(인덱스와 객체 디렉토리는 `--git-path` 로 얻고, 대체 객체 디렉토리는 뒤에 이어 붙인다).
+#   헬퍼가 적은 pathspec 과 patch 형식의 해석을 바꾸는 `GIT_LITERAL_PATHSPECS`·`GIT_GLOB_PATHSPECS`·
+#   `GIT_NOGLOB_PATHSPECS`·`GIT_ICASE_PATHSPECS`·`GIT_DIFF_OPTS` 는 끈다. 그 밖의 변수(`GIT_DIR`·`GIT_WORK_TREE` 등)는
+#   Git 의 결과를 따른다.
 #
 # 사용법:
 #   collect-branch-changes.sh --base <브랜치|커밋>
@@ -25,6 +34,8 @@
 # 출력:
 #   --base    변경 파일 목록(`<변경 종류><탭><경로>` 1행씩, 변경 종류는 A·M·D·T), 빈 줄 1행, patch 순서.
 #             변경 파일이 0개면 아무것도 쓰지 않는다. 이름 변경은 삭제와 추가로 나온다.
+#             Git 이 바이너리로 보는 파일(내용 판정, `binary`·`-diff` 속성, `core.bigFileThreshold` 초과 등)은 목록에 나오고
+#             patch 에는 `Binary files … differ` 행만 나온다.
 #   --marked  `<표지><공백><경로>` 1행씩. 표지는 `git ls-files -v` 가 내는 첫 글자이며
 #             소문자(assume-unchanged)이거나 `S`(skip-worktree)다. 표시한 경로가 없으면 아무것도 쓰지 않는다.
 #   경로 표기(두 목록 공통): 큰따옴표로 시작하지 않는 경로는 저장소 루트 기준의 실제 경로이고, 큰따옴표로 시작하는
@@ -37,6 +48,8 @@
 
 set -o pipefail
 export LC_ALL=C   # 경로를 바이트 단위로 다룬다 (substring·패턴 판정이 로캘에 따라 갈리지 않게)
+# 헬퍼가 적은 pathspec·patch 형식의 해석을 바꾸는 호출 환경 변수를 끈다 (헤더 주석 참조)
+unset GIT_LITERAL_PATHSPECS GIT_GLOB_PATHSPECS GIT_NOGLOB_PATHSPECS GIT_ICASE_PATHSPECS GIT_DIFF_OPTS
 
 # fail <사유> <종료 코드> — 사유를 표준 오류에 1행으로 쓰고 끝낸다.
 fail() { printf 'collect-branch-changes.sh: %s\n' "$1" >&2; exit "$2"; }
@@ -130,7 +143,9 @@ mkdir "$tmp/objects" || fail '임시 객체 디렉토리를 만들지 못했다'
 if [ -f "$index" ]; then
   cp -p "$index" "$tmp/index" || fail "인덱스를 복사하지 못했다: ${index}" 1
 fi
-export GIT_INDEX_FILE="$tmp/index" GIT_OBJECT_DIRECTORY="$tmp/objects" GIT_ALTERNATE_OBJECT_DIRECTORIES="$objects"
+# 호출 환경에 대체 객체 디렉토리가 있으면 뒤에 이어 붙인다. 덮어쓰면 그 디렉토리에만 있는 객체를 읽지 못한다.
+export GIT_INDEX_FILE="$tmp/index" GIT_OBJECT_DIRECTORY="$tmp/objects" \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES="${objects}${GIT_ALTERNATE_OBJECT_DIRECTORIES:+:${GIT_ALTERNATE_OBJECT_DIRECTORIES}}"
 
 # 스냅샷: 추적 파일을 작업 트리의 내용·모드로 갱신하고, `.ai/99_workspace/` 밖의 미추적 파일을 더한다.
 # `git add -u` 에는 경로를 주지 않는다. 인덱스가 비어 있으면 `.` 에 맞는 파일이 없어 명령이 실패한다.
