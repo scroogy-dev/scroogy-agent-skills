@@ -1,6 +1,6 @@
 ---
 last_synced: 2026-11-22
-source_hash: 15c956b
+source_hash: 5f602f7
 status: current
 ---
 
@@ -34,7 +34,8 @@ git-review/SKILL.md
 │   │   ├── PR 모드
 │   │   │   ├── git cat-file -e "${sha}^{commit}" · git fetch <원격> 'refs/pull/<PR 번호>/head'   # sha는 headRefOid. 로컬에 없을 때만 객체를 받음
 │   │   │   ├── git show "${sha}:${file}"                                         # PR head 기준 주변 코드
-│   │   │   └── gh api --hostname <호스트> 'repos/<소유자>/<저장소>/contents/<경로>?ref=<SHA>'   # 고정한 커밋이 로컬에 없을 때, 경로가 영문자·숫자·._~/-로만 된 파일만. 그 밖의 경로와 실패는 읽지 않은 파일(읽기 실패). diff에서 모드 120000(심볼릭 링크)인 파일은 조회하지 않고 diff의 변경 줄로 읽음
+│   │   │   ├── gh api --hostname <호스트> 'repos/<소유자>/<저장소>/git/trees/<SHA>?recursive=1'   # 고정한 커밋이 로컬에 없을 때, 경로가 영문자·숫자·._~/-로만 된 파일의 모드를 고정한 커밋의 트리에서 읽음
+│   │   │   └── gh api --hostname <호스트> 'repos/<소유자>/<저장소>/contents/<경로>?ref=<SHA>'   # 트리의 모드가 100644·100755인 파일만. 모드 120000(심볼릭 링크)은 가리키는 경로가 diff의 변경 줄에 나올 때만 그 줄로 읽음. 그 밖의 경로·모드와 실패는 읽지 않은 파일(읽기 실패)
 │   │   └── 브랜치 모드                # 읽기 기준은 수집한 내용(patch와 merge-base 커밋), 목록의 경로를 그대로 넘김
 │   │       ├── git show "${mb}:${file}"                                          # patch에 나오지 않은 줄
 │   │       ├── scripts/collect-branch-changes.sh --marked                        # 변경을 보지 않도록 표시한 경로 "<표지> <경로>"
@@ -102,7 +103,7 @@ sequenceDiagram
             Note over SK: 1단계부터 한 번 다시 수집, 그래도 다르면 리뷰를 시작하지 않음
         end
         SK->>G: cat-file -e headRefOid (없으면 fetch refs/pull/PR 번호/head), show headRefOid:경로
-        G-->>SK: PR head 기준 주변 코드 (커밋이 없으면 경로 문자와 심볼릭 링크 여부를 본 뒤 gh api contents, 그 밖의 경로와 실패는 읽기 실패)
+        G-->>SK: PR head 기준 주변 코드 (커밋이 없으면 경로 문자와 고정한 커밋 트리의 모드를 본 뒤 gh api contents, 그 밖의 경로와 모드와 실패는 읽기 실패)
     else 인자 없음 (브랜치 모드)
         SK->>G: merge-base base HEAD
         G-->>SK: merge-base 커밋 해시 mb (리뷰 끝까지 보관)
