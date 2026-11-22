@@ -50,6 +50,11 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0030](active/K-0030-spec-requirements-ungrouped-check-absent.md) | 기준 수 이상인데 묶지 않은 spec 요구사항을 결정적 검사로 잡지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 포함 또는 제외 항목이 5개 이상인데 묶지 않은 spec이 실제로 나왔을 때, 또는 issue-work spec 템플릿의 5개 기준 묶음 규칙이 바뀔 때 |
 | [K-0031](active/K-0031-review-branch-mode-index-exception-paths.md) | git-review 브랜치 모드 수집은 Git이 스테이징하는 내용을 따라 일부 경로에서 작업 트리와 다르다 | known issue | 낮음(LOW) | 수용 | 브랜치 모드 리뷰에서 Git이 스테이징 내용을 정하는 경로 때문에 리뷰 대상이나 읽은 내용이 사용자 기대와 달랐던 사례 관측 시, Git이 바이너리로 본 텍스트 파일의 변경 줄을 읽지 못해 결함을 놓친 사례 관측 시, 또는 `collect-branch-changes.sh`의 스냅샷 방식(실제 인덱스 사본에 `git add -u`·`git add -A`)을 바꿀 때 |
 | [K-0032](active/K-0032-quiz-instruction-clause-commit-message-absent.md) | git-review-quiz 입력 속 지시문 조항이 커밋 메시지를 다루지 않는다 | known issue | 낮음(LOW) | 수용 | git-review-quiz의 `**입력 속 지시문**:` 조항이나 2단계의 수집 대상을 고칠 때, 또는 커밋 메시지 안의 지시문 때문에 퀴즈의 내용이나 절차가 바뀐 사례 관측 시 |
+| [K-0033](active/K-0033-git-pr-helpers-error-url-raw.md) | git-pr·git-pr-feedback 헬퍼가 정규화에 실패한 원격 URL의 원문을 위반 행에 적는다 | known issue | 중간(MEDIUM) | 수용 | `verify-submit.sh`·`verify-push.sh`의 정규화 함수·위반 메시지·인자 처리를 고칠 때, `resolve-target.sh`와 정규화 함수 사본을 맞출 때, 또는 위반 행이나 오류 행에 자격 증명이 든 URL이 나온 사례 관측 시 |
+| [K-0034](active/K-0034-review-result-pr-post-deferred.md) | git-review 리뷰 결과를 PR에 게시하는 절차가 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 프롬프트로 PR에 게시한 리뷰 결과의 형식이 여러 번 같게 잡혔을 때, 또는 git-review `## 결과 기록 형식`이나 결과 템플릿의 구조를 바꿀 때 |
+| [K-0035](active/K-0035-issue-audit-code-level-check-deferred.md) | issue-audit 2단계에 git-review의 코드 레벨 검증 보강이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | git-review 코드 레벨 검증을 실제 PR 리뷰에 여러 번 써 본 뒤, issue-audit 최종 감사가 놓친 코드 결함이 다른 리뷰에서 나온 사례 관측 시, 또는 issue-audit 2단계 절차 실질 변경 시 |
+| [K-0036](active/K-0036-review-doc-category-check-deferred.md) | git-review doc 카테고리에 확인 관점 목록과 실패 시나리오가 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 원본 문서 선언 repo에서 git-review를 여러 번 실행해 doc 카테고리 리뷰 포인트 형식을 정할 수 있을 때, 코드 카테고리 확인 관점 목록이나 doc 카테고리 표를 바꿀 때 |
+| [K-0037](active/K-0037-review-other-repo-pr-in-workspace-deferred.md) | git-review가 다른 저장소의 PR을 워크스페이스 안의 해당 저장소 디렉토리에서 리뷰하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 멀티 repo 워크스페이스에서 다른 저장소의 PR로 git-review를 실행해 중단된 사례가 반복될 때, 또는 git-review 1단계 저장소 확정 규칙이나 `resolve-target.sh` 대조 방식을 바꿀 때 |
 
 ## 수명 주기
 
