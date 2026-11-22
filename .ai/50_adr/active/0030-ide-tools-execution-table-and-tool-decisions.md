@@ -16,7 +16,7 @@ last_harvested: 2026-11-22
   - **테스트 실행**: `get_run_configurations(filePath)`로 run point를 찾고 `execute_run_configuration(filePath, line, waitForExit=true, timeout)`으로 실행한다. `exitCode`와 `fullOutputPath` 로그의 실패 건수로 판정하고, `exitCode`가 없으면 판정하지 않는다. 실패 건수를 확인할 수 없으면 러너 명령으로 판정한다.
   - **커버리지 확인**: `coverage_run_configuration(filePath, line)`으로 실행하고 `coverage_get_file`로 변경한 줄이 실행됐는지 본다.
   - **로컬 서버 기동**: `testing-principles-local.md`의 `## 로컬 서버` 절에 적힌 Run Configuration 이름으로 `execute_run_configuration(configurationName, waitForExit=false)`를 호출한다. 이름이 없으면 `get_run_configurations()` 목록에서 구성 이름만 보여 주고 사용자에게 고르게 한다.
-  - **디버깅**: 사용자가 요청할 때만 시작한다. 순서는 표 아래 `#### 디버깅 순서`에 둔다. 예외·메서드 중단점은 걸기 전에 같은 대상의 사용자 중단점을 확인하고, 끝나면 `xdebug_control_session(action=STOP)`과 `owner=agent`만 준 `xdebug_remove_breakpoints`로 정리한다.
+  - **디버깅**: 사용자가 요청할 때만 시작한다. 순서는 표 아래 `#### 디버깅 순서`에 둔다. 예외·메서드 중단점은 걸기 전에 같은 대상의 사용자 중단점을 확인하고, 끝나면 `xdebug_control_session(action=STOP)`과, 이번 작업에서 건 중단점의 ID를 `owner=agent`와 함께 준 `xdebug_remove_breakpoints`로 정리한다.
   - **실행 흔적**: 테스트·커버리지 실행이 남기는 임시 Run Configuration과 에디터의 커버리지 표시는 그대로 둔다(이슈 `검토 필요` 1). IDE로 띄운 프로세스(로컬 서버, `timeout` 안에 끝나지 않은 테스트)는 계속 돌고 있다고 사용자에게 알리고 종료를 요청한다(이슈 `검토 필요` 2).
 - 표에 없는 작업은 IDE 도구가 있어도 기존 도구(grep·파일 읽기·편집 도구·셸 명령)를 쓴다. "IDE로 할 수 있으면 IDE 우선" 같은 포괄 원칙은 두지 않는다.
 - IDE 실행과 러너 판정을 나눈다. 검증 레벨 `[D]` 판정과 이슈 완료·PR 전 회귀 판정은 IDE 실행이 있어도 `testing-principles-local.md` 테스트 층 표의 러너 명령으로 한다. `testing-principles.md` 본문은 바꾸지 않는다.
@@ -43,7 +43,7 @@ last_harvested: 2026-11-22
 - 공통 규칙은 `ide-tools.md`에, repo별 값은 `testing-principles-local.md`에 둔 이유(같은 날 사용자 결정): Run Configuration 이름과 셸 명령은 repo마다 다르고, 테스트 실행 값을 이미 맡는 local 파일이 있다. ADR 0029의 단일 파일 결정을 유지할 수 있다.
 - 러너 판정을 나눈 이유: IDE 실행은 IDE 빌드 설정과 IDE에서 고른 빌드 profile을 따른다. profile별 리소스를 쓰는 repo는 셸 러너와 결과가 달라질 수 있어, `[D]` 판정과 최종 회귀 판정은 CI와 같은 조건의 러너로 한다.
 - `fullOutputPath`가 없으면 러너로 판정하는 이유: `fullOutputPath`는 선택 필드이고, 결과의 출력은 그 순간의 일부만 담는다(2026-11-22 계획 감사 F-13).
-- 실행 흔적을 그대로 두는 이유(2026-11-22 Task 1 사용자 결정): IntelliJ는 임시 구성을 최대 5개까지 두고 새 구성이 생기면 오래된 것부터 지운다. Run Configuration을 지우는 도구와 커버리지 표시를 끄는 도구가 IntelliJ MCP 도구에 없다. 사용자는 실제 호출 없이 도구 정의와 공식 문서(IntelliJ IDEA 2026.3 MCP Server·Run/Debug Configuration)로 결정했다.
+- 실행 흔적을 그대로 두는 이유(2026-11-22 Task 1 사용자 결정): IntelliJ는 임시 구성을 기본 5개까지 두고(한도는 IDE 설정에서 바꿀 수 있다) 새 구성이 생기면 오래된 것부터 지운다. Run Configuration을 지우는 도구와 커버리지 표시를 끄는 도구가 IntelliJ MCP 도구에 없다. 사용자는 실제 호출 없이 도구 정의와 공식 문서(IntelliJ IDEA 2026.3 MCP Server·Run/Debug Configuration)로 결정했다.
 - 띄운 프로세스의 종료를 사용자에게 요청하는 이유(같은 Task 1 사용자 결정): 일반 실행 프로세스를 끄는 MCP 도구가 없고 `execute_run_configuration` 결과에 프로세스 ID가 없다. `timeout`이 지나도 프로세스는 계속 돈다. AC에 없던 결과라 변경 통제(확장)로 이슈 본문에 AC31을 더했다.
 - 디버깅을 사용자 요청 시로 한정한 이유(2026-11-22 요구사항 승인에서 이슈 `검토 필요` 3 결정): 디버그 세션은 프로그램을 띄우고 IDE에 디버그 창과 중단점을 남긴다.
 - 예외·메서드 중단점을 걸기 전에 확인하는 이유: 그 도구는 같은 대상의 기존 설정을 덮어쓰고 소유자를 `user`로 남겨, `owner=agent` 뒷정리로 되돌릴 수 없다.

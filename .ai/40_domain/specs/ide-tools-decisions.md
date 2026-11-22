@@ -99,7 +99,7 @@ IntelliJ MCP 도구마다 `ide-tools.md`(dev 템플릿 `ai-workspace/templates/d
 | `xdebug_get_threads` | 표에 둠 | 디버깅 중 스레드 목록을 본다 |
 | `xdebug_get_value_by_path` | 표에 둠 | 디버깅 중 중첩 값을 경로로 본다 |
 | `xdebug_list_breakpoints` | 표에 둠 | 디버깅 중 중단점 목록을 본다 |
-| `xdebug_remove_breakpoints` | 표에 둠 | 뒷정리에서 `owner=agent`로 에이전트가 건 중단점만 지운다 |
+| `xdebug_remove_breakpoints` | 표에 둠 | 뒷정리에서 이번 작업에서 건 중단점의 ID와 `owner=agent`를 함께 주어 그 중단점만 지운다 |
 | `xdebug_run_to_line` | 표에 둠 | 디버깅 중 지정한 줄까지 실행한다 |
 | `xdebug_set_breakpoints` | 표에 둠 | 줄 중단점과 로그 지점을 건다 |
 | `xdebug_start_debugger_session` | 표에 둠 | 디버그 세션을 시작한다 |
