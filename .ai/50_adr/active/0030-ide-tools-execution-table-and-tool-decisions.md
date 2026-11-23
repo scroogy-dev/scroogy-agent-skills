@@ -16,7 +16,7 @@ last_harvested: 2026-11-22
   - **테스트 실행**: `get_run_configurations(filePath)`로 run point를 찾고 `execute_run_configuration(filePath, line, waitForExit=true, timeout)`으로 실행한다. `exitCode`와 `fullOutputPath` 로그의 실패 건수로 판정하고, `exitCode`가 없으면 판정하지 않는다. 실패 건수를 확인할 수 없으면 러너 명령으로 판정한다.
   - **커버리지 확인**: `coverage_run_configuration(filePath, line)`으로 실행하고 `coverage_get_file`로 변경한 줄이 실행됐는지 본다.
   - **로컬 서버 기동**: `testing-principles-local.md`의 `## 로컬 서버` 절에 적힌 Run Configuration 이름으로 `execute_run_configuration(configurationName, waitForExit=false)`를 호출한다. 이름이 없으면 `get_run_configurations()` 목록에서 구성 이름만 보여 주고 사용자에게 고르게 한다.
-  - **디버깅**: 사용자가 요청할 때만 시작한다. 순서는 표 아래 `#### 디버깅 순서`에 둔다. 예외·메서드 중단점은 걸기 전에 같은 대상의 사용자 중단점을 확인하고, 끝나면 `xdebug_control_session(action=STOP)`과, 이번 작업에서 건 중단점의 ID를 `owner=agent`와 함께 준 `xdebug_remove_breakpoints`로 정리한다.
+  - **디버깅**: 사용자가 요청할 때만 시작한다. 순서는 표 아래 `#### 디버깅 순서`에 둔다. 예외·메서드 중단점은 걸기 전에 같은 대상의 중단점을 확인해 있으면 소유자와 관계없이 건드리지 않고, 끝나면 `xdebug_control_session(action=STOP)`과, 이번 작업에서 건 중단점의 ID를 `owner=agent`와 함께 준 `xdebug_remove_breakpoints`로 정리한다.
   - **실행 흔적**: 테스트·커버리지 실행이 남기는 임시 Run Configuration과 에디터의 커버리지 표시는 그대로 둔다(이슈 `검토 필요` 1). IDE로 띄운 프로세스(로컬 서버, `timeout` 안에 끝나지 않은 테스트)는 계속 돌고 있다고 사용자에게 알리고 종료를 요청한다(이슈 `검토 필요` 2).
 - 표에 없는 작업은 IDE 도구가 있어도 기존 도구(grep·파일 읽기·편집 도구·셸 명령)를 쓴다. "IDE로 할 수 있으면 IDE 우선" 같은 포괄 원칙은 두지 않는다.
 - IDE 실행과 러너 판정을 나눈다. 검증 레벨 `[D]` 판정과 이슈 완료·PR 전 회귀 판정은 IDE 실행이 있어도 `testing-principles-local.md` 테스트 층 표의 러너 명령으로 한다. `testing-principles.md` 본문은 바꾸지 않는다.
@@ -46,7 +46,7 @@ last_harvested: 2026-11-22
 - 실행 흔적을 그대로 두는 이유(2026-11-22 Task 1 사용자 결정): IntelliJ는 임시 구성을 기본 5개까지 두고(한도는 IDE 설정에서 바꿀 수 있다) 새 구성이 생기면 오래된 것부터 지운다. Run Configuration을 지우는 도구와 커버리지 표시를 끄는 도구가 IntelliJ MCP 도구에 없다. 사용자는 실제 호출 없이 도구 정의와 공식 문서(IntelliJ IDEA 2026.3 MCP Server·Run/Debug Configuration)로 결정했다.
 - 띄운 프로세스의 종료를 사용자에게 요청하는 이유(같은 Task 1 사용자 결정): 일반 실행 프로세스를 끄는 MCP 도구가 없고 `execute_run_configuration` 결과에 프로세스 ID가 없다. `timeout`이 지나도 프로세스는 계속 돈다. AC에 없던 결과라 변경 통제(확장)로 이슈 본문에 AC31을 더했다.
 - 디버깅을 사용자 요청 시로 한정한 이유(2026-11-22 요구사항 승인에서 이슈 `검토 필요` 3 결정): 디버그 세션은 프로그램을 띄우고 IDE에 디버그 창과 중단점을 남긴다.
-- 예외·메서드 중단점을 걸기 전에 확인하는 이유: 그 도구는 같은 대상의 기존 설정을 덮어쓰고 소유자를 `user`로 남겨, `owner=agent` 뒷정리로 되돌릴 수 없다.
+- 예외·메서드 중단점을 걸기 전에 확인하는 이유: 그 도구는 같은 대상의 기존 설정을 덮어쓴다. 사용자 중단점은 소유자가 `user`로 남아 `owner=agent` 뒷정리로 되돌릴 수 없고, 앞선 작업이 건 에이전트 중단점은 이번 작업이 건 것으로 기록돼 뒷정리에서 지워진다. 그래서 소유자와 관계없이 기존 중단점을 건드리지 않는다(#144 최종 감사 2차 F-9).
 - 도구를 한 번에 불러오는 이유: #136에서 IDE 도구를 쓰지 않은 원인이 지연 로드였고, 디버깅은 도구가 6~8개 필요하다.
 - 101개 도구를 모두 검토한 이유(2026-11-22 사용자 결정): 규칙에 이름이 있는 도구가 7개라 일부 도구만 쓰게 될 수 있었다. 검토에서 나온 디버깅 보강·커버리지 확인·모듈 구조·열린 파일 확인·import 정리 조건·한 번에 불러오기를 범위에 넣었다.
 - 결정 목록을 ADR 밖 `40_domain/specs/`에 둔 이유(같은 날 사용자 결정): IntelliJ 업데이트로 도구가 바뀌면 목록을 고쳐야 한다. ADR 근거에 두면 바뀔 때마다 ADR 이력이 늘어난다. 목록과 대조하면 새 도구만 판단하면 된다.
