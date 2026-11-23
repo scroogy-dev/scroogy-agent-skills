@@ -53,7 +53,7 @@
 - 멈춘 뒤에는 `xdebug_get_stack` → `xdebug_get_frame_values` → `xdebug_evaluate_expression` 순서로 확인한다.
 - 프로그램이 멈추거나 느린 원인은 `jvm_debug_get_thread_dump`로 본다.
 - `xdebug_get_threads`·`xdebug_get_value_by_path`·`xdebug_get_debugger_status`·`xdebug_get_process_output`·`xdebug_list_breakpoints`·`xdebug_run_to_line`과 `xdebug_control_session`의 단계 실행(`STEP_INTO`·`STEP_OVER`·`STEP_OUT`)은 디버깅 중에 필요하면 쓴다.
-- 중단점을 걸면 그 ID를 기록해 둔다. `xdebug_set_breakpoints`는 결과로 ID를 돌려주고, 예외·메서드 중단점은 건 뒤 `xdebug_list_breakpoints`에서 ID를 찾는다.
+- 중단점을 걸면 그 ID를 기록해 둔다. `xdebug_set_breakpoints`는 결과로 ID를 돌려준다. 예외·메서드 중단점은 건 뒤 `jvm_debug_list_exception_breakpoints`·`jvm_debug_list_method_breakpoints`에서 건 대상(예외 클래스, 클래스·메서드 패턴)과 같은 항목의 ID를 찾는다. `xdebug_list_breakpoints`에는 대상이 나오지 않아 앞선 작업이 남긴 에이전트 중단점과 가릴 수 없기 때문이다.
 - 끝나면 `xdebug_control_session(action=STOP)`으로 세션을 멈추고, 기록한 ID마다 `breakpointId`와 `owner=agent`를 함께 준 `xdebug_remove_breakpoints`로 이번 작업에서 건 중단점만 지운다. `owner`만 주면 앞선 작업이나 다른 세션이 건 에이전트 중단점까지 모두 지워지기 때문이다.
   - 이번 작업에서 건 중단점이 없으면 지우지 않는다.
   - 건 중단점의 ID를 잃었으면 `xdebug_list_breakpoints`로 `owner=agent` 중단점을 보여 주고 지울지 사용자에게 묻는다.
