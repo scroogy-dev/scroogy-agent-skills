@@ -55,6 +55,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0035](active/K-0035-issue-audit-code-level-check-deferred.md) | issue-audit 2단계에 git-review의 코드 레벨 검증 보강이 없다 | 기술부채 | 중간(MEDIUM) | 수용 | git-review 코드 레벨 검증을 실제 PR 리뷰에 여러 번 써 본 뒤, issue-audit 최종 감사가 놓친 코드 결함이 다른 리뷰에서 나온 사례 관측 시, 또는 issue-audit 2단계 절차 실질 변경 시 |
 | [K-0036](active/K-0036-review-doc-category-check-deferred.md) | git-review doc 카테고리에 확인 관점 목록과 실패 시나리오가 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 원본 문서 선언 repo에서 git-review를 여러 번 실행해 doc 카테고리 리뷰 포인트 형식을 정할 수 있을 때, 코드 카테고리 확인 관점 목록이나 doc 카테고리 표를 바꿀 때 |
 | [K-0037](active/K-0037-review-other-repo-pr-in-workspace-deferred.md) | git-review가 다른 저장소의 PR을 워크스페이스 안의 해당 저장소 디렉토리에서 리뷰하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 멀티 repo 워크스페이스에서 다른 저장소의 PR로 git-review를 실행해 중단된 사례가 반복될 때, 또는 git-review 1단계 저장소 확정 규칙이나 `resolve-target.sh` 대조 방식을 바꿀 때 |
+| [K-0038](active/K-0038-debug-breakpoint-precheck-race.md) | 예외·메서드 중단점의 사전 확인과 설정 사이에 다른 세션이 같은 대상을 걸면 그 중단점을 지울 수 있다 | known issue | 낮음(LOW) | 수용 | IntelliJ MCP 도구 설명에 설정 응답의 신규 여부가 적히거나 조건부 생성 옵션이 생길 때, 또는 여러 에이전트 세션이 함께 디버깅하다 중단점이 사라진 사례가 보고될 때 |
 
 ## 수명 주기
 
