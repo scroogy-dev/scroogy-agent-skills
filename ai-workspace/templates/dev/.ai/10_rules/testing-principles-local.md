@@ -48,6 +48,18 @@
 - 호출 형식: repo 루트에서 `bash -s <<'EOF' ... EOF`
 -->
 
+## 로컬 서버
+
+- **Run Configuration 이름**:
+- **IDE 미연결 시 실행 명령**:
+
+<!-- 로컬 서버를 띄우는 방법을 적으세요. IntelliJ MCP가 연결돼 있으면 `ide-tools.md` 실행 표에 따라 이 이름의 Run Configuration으로 띄우고,
+연결돼 있지 않으면 실행 명령으로 띄웁니다. 이름이 비어 있으면 에이전트가 IDE의 Run Configuration 목록에서 이름만 보여 주고 고르게 합니다.
+비밀값은 적지 않고 변수명·파일 경로만 적습니다. 예:
+- Run Configuration 이름: `Application (local)`
+- IDE 미연결 시 실행 명령: `./gradlew bootRun --args='--spring.profiles.active=local'`
+-->
+
 ## 기기 확인 (모바일 앱 repo만)
 
 > 선택 섹션이다. 모바일 앱 repo가 아니면 이 섹션을 지운다.

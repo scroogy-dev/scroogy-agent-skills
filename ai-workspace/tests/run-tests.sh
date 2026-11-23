@@ -291,6 +291,220 @@ assert_update1_reject 'ide-tools update-1 doc 분기 복사 추가 격추' 'doc 
   '{ print } /^if \[ "\$PROFILE" = "doc" \]; then$/ { print "  cp \"$SKILL_DIR/templates/dev/.ai/10_rules/ide-tools.md\" .ai/10_rules/ide-tools.md"; hit = 1 } END { exit !hit }' \
   ide_update1_violations
 
+# --- ide-tools 결정 목록 ---------------------------------------------------------
+#
+# `ide-tools.md`에 적힌 IntelliJ MCP 도구 이름과 도구별 결정 목록(`.ai/40_domain/specs/ide-tools-decisions.md`)이
+# 어긋나면 실패한다 (#144). 도구 이름은 백틱 코드 스팬 내용이 `^[a-z][a-z0-9]*(_[a-z0-9]+)+(\(.*\))?$`에
+# 맞는 것의 `(` 앞부분이다. 다섯 조건을 모두 만족해야 통과다.
+#   0. 결정 목록에 같은 이름의 행이 두 개 이상 없다. 겹치면 마지막 행의 결정만 남아 모순이 통과하기 때문이다.
+#   1. 이름은 모두 결정 목록에 있다.
+#   2. `## 사용자가 요청할 때만 쓰는 도구` 절 안의 이름은 결정이 `쓰지 않음`이다.
+#   3. 그 절 밖의 이름은 결정이 `표에 둠`이다.
+#   4. 결정이 `표에 둠`인 도구는 모두 그 절 밖에 이름이 있다.
+# 결정 목록은 일치 검사의 입력이라, 없으면 건너뛰지 않고 위반으로 보고한다 (저장소 사본 검사의 건너뛰기 관례를 쓰지 않는다).
+# 목록 대조 헬퍼(`check-ide-tool-list.sh`)는 IntelliJ 업데이트 때 새 도구·사라진 도구를 찾는 저장소 전용 도구다.
+
+IDE_TPL="$TPL_DIR/dev/$IDE_RULE"
+IDE_DEC="$HERE/../../.ai/40_domain/specs/ide-tools-decisions.md"
+LISTCHK="$HERE/check-ide-tool-list.sh"
+IDE_LIST="$HERE/fixtures/ide-tool-list/intellij-mcp-tools.txt"
+
+# ide_decision_violations <ide-tools.md> <결정 목록> — 어긋난 곳을 1행씩 출력한다. 무출력이면 통과.
+ide_decision_violations() {
+  local f
+  for f in "$1" "$2"; do
+    if [ ! -f "$f" ] || [ ! -r "$f" ]; then echo "파일 없음: $f"; return; fi
+  done
+  awk -F'|' '
+    function t(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    FNR == NR { if ($0 ~ /^\| `[a-z0-9_]+` \|/) { k = t($2); gsub(/`/, "", k)
+                  if (k in dec) print "결정 행 중복: " k
+                  dec[k] = t($3) }
+                next }
+    /^## / { sec = ($0 ~ /^## 사용자가 요청할 때만 쓰는 도구[[:space:]]*$/) }
+    { line = $0
+      while (match(line, /`[^`]+`/)) {
+        c = substr(line, RSTART + 1, RLENGTH - 2); line = substr(line, RSTART + RLENGTH)
+        if (c !~ /^[a-z][a-z0-9]*(_[a-z0-9]+)+(\(.*\))?$/) continue
+        sub(/\(.*/, "", c)
+        if (!(c in dec)) { print "결정 목록에 없음: " c; continue }
+        if (sec) { if (dec[c] != "쓰지 않음") print "요청 전용 절 안인데 " dec[c] ": " c }
+        else { seen[c] = 1; if (dec[c] != "표에 둠") print "요청 전용 절 밖인데 " dec[c] ": " c }
+      } }
+    END { for (k in dec) if (dec[k] == "표에 둠" && !(k in seen)) print "표에 둠인데 절 밖에 이름 없음: " k }
+  ' "$2" "$1" | LC_ALL=C sort -u
+}
+
+out="$(ide_decision_violations "$IDE_TPL" "$IDE_DEC")"
+if [ -z "$out" ]; then
+  ok "ide-tools 결정 목록 일치 통과"
+else
+  ng "ide-tools 결정 목록 일치 통과 — 위반: $(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+# assert_ide_decision_reject <설명> <기대 위반 문구> <변형 함수> — 사본에 변형을 적용하고 기대 위반이 나오는지 본다.
+# 변형 함수는 `<ide-tools.md 사본> <결정 목록 사본>`을 받고, 바꾼 결정 목록 경로를 출력한다(결정 목록 없음 변형용).
+assert_ide_decision_reject() {
+  local w dec out
+  w="$(mktemp -d "$TMP/dec.XXXXXX")"
+  cp "$IDE_TPL" "$w/ide-tools.md"; cp "$IDE_DEC" "$w/decisions.md" 2>/dev/null
+  if ! dec="$("$3" "$w/ide-tools.md" "$w/decisions.md")"; then
+    ng "ide-tools 결정 목록 일치: $1 격추 — 변형 적용 실패"
+    return
+  fi
+  out="$(ide_decision_violations "$w/ide-tools.md" "$dec")"
+  if printf '%s\n' "$out" | grep -qF -- "$2"; then
+    ok "ide-tools 결정 목록 일치: $1 격추"
+  else
+    ng "ide-tools 결정 목록 일치: $1 격추 — 기대 위반 [$2] 없음, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+}
+
+# 변형은 모두 실제로 바뀌었는지 확인한다. 바뀌지 않으면 원본이 그대로 통과해 격추가 실패로 보이지 않을 수 있다.
+# 변형은 실제 결정 목록의 특정 도구·결정에 기대지 않는다. 기대면 도구를 일관되게 재분류해도 변형 준비가
+# 실패한다 (#144 최종 감사 2차 F-8). 보류·기존 도구·쓰지 않음 변형은 사본에 가상의 `zz_*` 행을 더하고,
+# 표에 둠 변형은 결정 목록의 첫 `표에 둠` 행 도구(DV_TBL)를 실행할 때 골라 쓴다.
+DV_TBL="$(awk -F'|' '/^\| `[a-z0-9_]+` \| 표에 둠 \|/ { k = $2; gsub(/[ `]/, "", k); print k; exit }' "$IDE_DEC" 2>/dev/null)"
+dv_append()   { printf '%s\n' "- \`$3\`를 쓴다." >> "$1" && echo "$2"; }
+# dv_synth <ide-tools.md> <결정 목록> <이름> <결정> — 결정 목록에 가상 행을 더하고 절 밖 본문에 이름을 더한다.
+dv_synth()    { printf '%s\n' "| \`$3\` | $4 | 변형 |" >> "$2" && dv_append "$1" "$2" "$3"; }
+dv_unknown()  { dv_append "$1" "$2" zz_unknown_tool; }
+dv_hold()     { dv_synth "$1" "$2" zz_hold_tool 보류; }
+dv_existing() { dv_synth "$1" "$2" zz_existing_tool '기존 도구'; }
+dv_unused()   { dv_synth "$1" "$2" zz_unused_tool '쓰지 않음'; }
+dv_delete() {
+  [ -n "$DV_TBL" ] && grep -qE "\`${DV_TBL}(\`|\()" "$1" || return 1
+  sed -E -i.bak "s/\`${DV_TBL}(\([^\`]*\))?\`//g" "$1" && rm -f "$1.bak"
+  ! grep -qE "\`${DV_TBL}(\`|\()" "$1" && echo "$2"
+}
+dv_to_unused() {
+  [ -n "$DV_TBL" ] && grep -qE "^\| \`${DV_TBL}\` \| 표에 둠 \|" "$2" || return 1
+  sed -i.bak "s/^| \`${DV_TBL}\` | 표에 둠 |/| \`${DV_TBL}\` | 쓰지 않음 |/" "$2" && rm -f "$2.bak" && echo "$2"
+}
+dv_in_section() {
+  [ -n "$DV_TBL" ] || return 1
+  awk -v n="$DV_TBL" '{ print } /^## 사용자가 요청할 때만 쓰는 도구[[:space:]]*$/ { print "- `" n "`: 요청할 때만 쓴다."; hit = 1 } END { exit !hit }' "$1" > "$1.tmp" \
+    && mv "$1.tmp" "$1" && echo "$2"
+}
+dv_no_list() { rm -f "$2" && echo "$2"; }
+# 결정 중복: `표에 둠` 행 앞이나 뒤에 같은 이름의 `보류` 행을 더한다. 행 순서와 관계없이 격추해야 한다.
+dv_dup() {
+  [ -n "$DV_TBL" ] || return 1
+  awk -v where="$3" -v n="$DV_TBL" '
+    BEGIN { row = "| `" n "` | 보류 | 중복 변형 |"; pre = "| `" n "` | 표에 둠 |" }
+    index($0, pre) == 1 { if (where == "before") print row
+                          print; if (where == "after") print row; hit = 1; next }
+    { print } END { exit !hit }' "$2" > "$2.tmp" && mv "$2.tmp" "$2" && echo "$2"
+}
+dv_dup_before() { dv_dup "$1" "$2" before; }
+dv_dup_after()  { dv_dup "$1" "$2" after; }
+
+assert_ide_decision_reject '결정 목록에 없는 이름 추가' '결정 목록에 없음: zz_unknown_tool' dv_unknown
+assert_ide_decision_reject '표에 둠 도구 삭제' "표에 둠인데 절 밖에 이름 없음: ${DV_TBL}" dv_delete
+assert_ide_decision_reject '보류 도구 추가' '요청 전용 절 밖인데 보류: zz_hold_tool' dv_hold
+assert_ide_decision_reject '기존 도구 도구 추가' '요청 전용 절 밖인데 기존 도구: zz_existing_tool' dv_existing
+assert_ide_decision_reject '표에 둠 도구를 쓰지 않음으로 변경' "요청 전용 절 밖인데 쓰지 않음: ${DV_TBL}" dv_to_unused
+assert_ide_decision_reject '쓰지 않음 도구를 요청 전용 절 밖에 추가' '요청 전용 절 밖인데 쓰지 않음: zz_unused_tool' dv_unused
+assert_ide_decision_reject '표에 둠 도구를 요청 전용 절에 추가' "요청 전용 절 안인데 표에 둠: ${DV_TBL}" dv_in_section
+assert_ide_decision_reject '결정 목록 없음' '파일 없음: ' dv_no_list
+assert_ide_decision_reject '보류 행을 앞에 둔 결정 중복' "결정 행 중복: ${DV_TBL}" dv_dup_before
+assert_ide_decision_reject '보류 행을 뒤에 둔 결정 중복' "결정 행 중복: ${DV_TBL}" dv_dup_after
+
+# ide_count_violations <목록 사본> <결정 목록> — 목록 사본 줄 수·결정 목록 머리의 `도구 수`·표의 도구 행 수가
+# 모두 같은지 본다. 어긋나면 1행을 출력한다. 도구 수를 고정값으로 두면 IntelliJ 업데이트 뒤 목록을 정상 갱신해도
+# 실패하므로 세 값끼리 맞춘다 (#144 최종 감사 F-2).
+ide_count_violations() {
+  local lines declared rows
+  lines="$(grep -c . "$1")"
+  declared="$(sed -n 's/^- \*\*도구 수\*\*: \([0-9][0-9]*\)[[:space:]]*$/\1/p' "$2" | sed -n 1p)"
+  rows="$(grep -cE '^\| `[a-z0-9_]+` \|' "$2")"
+  if [ -z "$declared" ] || [ "$lines" != "$declared" ] || [ "$rows" != "$declared" ]; then
+    echo "도구 수 불일치: 목록 사본 ${lines}, 머리 ${declared:-없음}, 표 ${rows}"
+  fi
+}
+
+# 목록 대조 헬퍼: 종료 코드와 출력 행을 함께 본다.
+if [ ! -x "$LISTCHK" ]; then
+  ng "ide 도구 목록 대조: 헬퍼 실행 권한 없음 — $LISTCHK"
+else
+  out="$("$LISTCHK" "$IDE_LIST" 2>&1)"; rc=$?
+  cnt="$(ide_count_violations "$IDE_LIST" "$IDE_DEC")"
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -z "$cnt" ]; then
+    ok "ide 도구 목록 대조: 저장소 사본 통과"
+  else
+    ng "ide 도구 목록 대조: 저장소 사본 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')] ${cnt}"
+  fi
+
+  # 도구 하나를 목록 사본·표·머리에 함께 더하면 통과하고, 머리의 수만 그대로면 격추한다.
+  wc_="$(mktemp -d "$TMP/cnt.XXXXXX")"
+  { cat "$IDE_LIST"; echo zz_new_tool; } > "$wc_/list"
+  declared="$(sed -n 's/^- \*\*도구 수\*\*: \([0-9][0-9]*\)[[:space:]]*$/\1/p' "$IDE_DEC" | sed -n 1p)"
+  { cat "$IDE_DEC"; echo '| `zz_new_tool` | 보류 | 도구 수 변형 |'; } > "$wc_/stale.md"
+  sed "s/^- \*\*도구 수\*\*: ${declared}[[:space:]]*\$/- **도구 수**: $((declared + 1))/" "$wc_/stale.md" > "$wc_/grown.md"
+  out="$("$LISTCHK" "$wc_/list" "$wc_/grown.md" 2>&1)"; rc=$?
+  cnt="$(ide_count_violations "$wc_/list" "$wc_/grown.md")"
+  if [ -n "$declared" ] && [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -z "$cnt" ]; then
+    ok "ide 도구 목록 대조: 도구 수를 함께 늘린 목록 통과"
+  else
+    ng "ide 도구 목록 대조: 도구 수를 함께 늘린 목록 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')] ${cnt}"
+  fi
+  cnt="$(ide_count_violations "$wc_/list" "$wc_/stale.md")"
+  if [ -n "$cnt" ]; then
+    ok "ide 도구 목록 대조: 머리 도구 수만 그대로인 목록 격추"
+  else
+    ng "ide 도구 목록 대조: 머리 도구 수만 그대로인 목록 격추 — 불일치 보고 없음"
+  fi
+
+  w="$(mktemp -d "$TMP/lst.XXXXXX")"
+  awk -F'|' '/^\| `[a-z0-9_]+` \|/ { c = $2; gsub(/[ `]/, "", c); print c }' "$IDE_DEC" > "$w/names"
+  first="$(LC_ALL=C sort "$w/names" | sed -n 1p)"
+  # 같은 목록: 순서를 뒤집고 앞뒤 공백·빈 줄·주석 줄을 섞어도 차이가 없어야 한다.
+  { echo '# 주석'; echo; sed 's/^/  /; s/$/ /' "$w/names" | sort -r; } > "$w/same"
+  out="$("$LISTCHK" "$w/same" "$IDE_DEC" 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ -s "$w/names" ]; then
+    ok "ide 도구 목록 대조: 같은 목록 통과"
+  else
+    ng "ide 도구 목록 대조: 같은 목록 통과 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  { cat "$w/names"; echo zz_new_tool; } > "$w/new"
+  out="$("$LISTCHK" "$w/new" "$IDE_DEC" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && [ "$out" = '새 도구: zz_new_tool' ]; then
+    ok "ide 도구 목록 대조: 새 도구 격추"
+  else
+    ng "ide 도구 목록 대조: 새 도구 격추 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  grep -vxF -- "$first" "$w/names" > "$w/gone"
+  out="$("$LISTCHK" "$w/gone" "$IDE_DEC" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && [ -n "$first" ] && [ "$out" = "사라진 도구: ${first}" ]; then
+    ok "ide 도구 목록 대조: 사라진 도구 격추"
+  else
+    ng "ide 도구 목록 대조: 사라진 도구 격추 — rc=$rc, 출력 [$(printf '%s' "$out" | tr '\n' ' ')]"
+  fi
+
+  "$LISTCHK" "$w/없는 파일" "$IDE_DEC" > "$w/stdout" 2> "$w/stderr"; rc=$?
+  if [ "$rc" -eq 2 ] && [ ! -s "$w/stdout" ] && [ -s "$w/stderr" ]; then
+    ok "ide 도구 목록 대조: 목록 읽기 실패 격추"
+  else
+    ng "ide 도구 목록 대조: 목록 읽기 실패 격추 — rc=$rc, 표준 출력 [$(tr '\n' ' ' < "$w/stdout")]"
+  fi
+
+  # 인자 수 경계: 0개와 3개는 사용 오류다 (#144 최종 감사 F-7).
+  for n in 0 3; do
+    if [ "$n" -eq 0 ]; then
+      "$LISTCHK" > "$w/stdout" 2> "$w/stderr"; rc=$?
+    else
+      "$LISTCHK" "$w/names" "$IDE_DEC" "$w/names" > "$w/stdout" 2> "$w/stderr"; rc=$?
+    fi
+    if [ "$rc" -eq 2 ] && [ ! -s "$w/stdout" ] && [ -s "$w/stderr" ]; then
+      ok "ide 도구 목록 대조: 인자 ${n}개 격추"
+    else
+      ng "ide 도구 목록 대조: 인자 ${n}개 격추 — rc=$rc, 표준 출력 [$(tr '\n' ' ' < "$w/stdout")]"
+    fi
+  done
+fi
+
 # --- 이 저장소 안내도 -----------------------------------------------------------
 
 REPO_CTX="$HERE/../../.ai/AI-CONTEXT.md"
@@ -990,14 +1204,21 @@ fi
 # 어긋나지 않게 `50_adr/superseded/` 제외를 담는지 본다 (#121). `context-loading.md`는 update-1이 항상 덮어쓰는
 # 파일이라 이 저장소 사본(`.ai/10_rules/context-loading.md`)은 템플릿과 바이트 단위로 같아야 한다 (파일이 없으면 건너뛴다).
 #
-# 테스트 라우팅(#122): "테스트 작성·실행 시" 섹션이 하나 있고 테스트 원칙 두 파일을 순서대로 가리키는 항목 2개만 갖는지 본다.
-# 섹션이 "존재하면 읽는다" 안내 아래에 있어야 파일이 없는 doc repo에서 건너뛰므로 그 안내와 SSoT 문장 사이에 있는지도 본다.
+# 테스트 라우팅(#122, #144): "테스트 작성·실행 시" 섹션이 하나 있고 테스트 원칙 두 파일과 `ide-tools.md`를 순서대로 가리키는
+# 항목 3개만 갖는지 본다. 섹션이 "존재하면 읽는다" 안내 아래에 있어야 파일이 없는 doc repo에서 건너뛰므로 그 안내와 SSoT 문장 사이에 있는지도 본다.
 #
-# IDE 도구 라우팅(#136): `ide-tools.md`가 "코드 수정·리뷰·분석 시" 절의 목록 항목 1개로만 나오고 파일 전체에서도 1곳인지 본다.
-# 다른 절로 옮기거나 중복으로 적으면 코드 작업에서 읽는 위치가 흐려진다.
+# IDE 도구 라우팅(#136, #144): `ide-tools.md`가 "코드 수정·리뷰·분석 시" 절의 목록 항목 1개와 "테스트 작성·실행 시" 절의 목록 항목 1개로
+# 나오고 파일 전체에서 2곳인지 본다. #144에서 테스트·서버 실행과 디버깅도 이 규칙을 따르게 되어 테스트 절에도 둔다.
+# 그 밖의 절로 옮기거나 중복으로 적으면 읽는 위치가 흐려진다.
 
 CTX_TPL="$TPL_DIR/shared/.ai/10_rules/context-loading.md"
 REPO_CTX="$HERE/../../.ai/10_rules/context-loading.md"
+
+# ctx_ide_items <파일> <절 제목 행> — 그 절에서 `ide-tools.md`를 가리키는 목록 항목 수를 출력한다.
+ctx_ide_items() {
+  awk -v h="$2" '$0 == h { f = 1; next } f && /^(## |---)/ { exit }
+    f && /^([0-9]+\.|-) `\.ai\/10_rules\/ide-tools\.md`/ { n++ } END { print n + 0 }' "$1"
+}
 
 # ctx_violations <템플릿> [<사본>] — 어긋난 항목을 1행씩 출력한다. 무출력이면 통과.
 ctx_violations() {
@@ -1009,12 +1230,18 @@ ctx_violations() {
   e="$(grep -nF '**SSoT는 `AI-CONTEXT.md`' "$1" | head -1 | cut -d: -f1)"
   { [ "$(printf '%s\n' "$s" | grep -c .)" -eq 1 ] && [ -n "$p" ] && [ -n "$e" ] && [ "$s" -gt "$p" ] && [ "$s" -lt "$e" ] \
     && [ "$(awk '/^## 테스트 작성·실행 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit } f && /^- / { sub(/ —.*/, ""); print }' "$1")" \
-         = "$(printf '%s\n' '- `.ai/10_rules/testing-principles.md`' '- `.ai/10_rules/testing-principles-local.md`')" ]; } \
+         = "$(printf '%s\n' '- `.ai/10_rules/testing-principles.md`' '- `.ai/10_rules/testing-principles-local.md`' '- `.ai/10_rules/ide-tools.md`')" ]; } \
     || echo '테스트 라우팅'
-  { [ "$(awk '/^## 코드 수정·리뷰·분석 시[[:space:]]*$/ { f = 1; next } f && /^(## |---)/ { exit }
-           f && /^([0-9]+\.|-) `\.ai\/10_rules\/ide-tools\.md`/ { n++ } END { print n + 0 }' "$1")" -eq 1 ] \
-    && [ "$(grep -cF '.ai/10_rules/ide-tools.md' "$1")" -eq 1 ]; } || echo 'IDE 도구 라우팅'
+  { [ "$(ctx_ide_items "$1" '## 코드 수정·리뷰·분석 시')" -eq 1 ] && [ "$(ctx_ide_items "$1" '## 테스트 작성·실행 시')" -eq 1 ] \
+    && [ "$(grep -cF '.ai/10_rules/ide-tools.md' "$1")" -eq 2 ]; } || echo 'IDE 도구 라우팅'
   [ -z "${2:-}" ] || cmp -s "$1" "$2" || echo '사본 불일치'
+}
+
+# ctx_drop_ide_in <파일> <절 제목 행> — 그 절 안에서 `ide-tools.md` 경로가 든 행만 지운다. 다른 절의 행은 남긴다.
+ctx_drop_ide_in() {
+  awk -v h="$2" -v k='`.ai/10_rules/ide-tools.md`' '
+    $0 == h { f = 1; print; next } f && /^(## |---)/ { f = 0 }
+    f && index($0, k) { hit = 1; next } { print } END { exit !hit }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
 }
 
 # ctx_move_ide <파일> — 코드 절의 `ide-tools.md` 항목을 지우고 "정책·명세 문서 수정 시" 절 첫 항목 뒤로 옮긴다.
@@ -1060,8 +1287,10 @@ if [ -r "$CTX_TPL" ]; then
     sub_str "$C_CTX_COPY" '이력 확인에만 읽는다.' '이력 확인에만 읽는다. 사본에만 있는 문장이다.'
   assert_ctx_reject 'context-loading 테스트 라우팅 삭제 격추' '테스트 라우팅' \
     drop_sec "$C_CTX" '## 테스트 작성·실행 시'
-  assert_ctx_reject 'context-loading ide-tools 라우팅 항목 삭제 격추' 'IDE 도구 라우팅' \
-    drop_line "$C_CTX" '`.ai/10_rules/ide-tools.md`'
+  assert_ctx_reject 'context-loading ide-tools 라우팅 코드 절 항목 삭제 격추' 'IDE 도구 라우팅' \
+    ctx_drop_ide_in "$C_CTX" '## 코드 수정·리뷰·분석 시'
+  assert_ctx_reject 'context-loading ide-tools 라우팅 테스트 절 항목 삭제 격추' 'IDE 도구 라우팅' \
+    ctx_drop_ide_in "$C_CTX" '## 테스트 작성·실행 시'
   assert_ctx_reject 'context-loading ide-tools 라우팅 다른 절로 이동 격추' 'IDE 도구 라우팅' \
     ctx_move_ide "$C_CTX"
   assert_ctx_reject 'context-loading ide-tools 라우팅 다른 절에 중복 격추' 'IDE 도구 라우팅' \

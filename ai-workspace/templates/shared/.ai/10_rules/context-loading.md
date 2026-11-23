@@ -17,7 +17,7 @@
 ## 코드 수정·리뷰·분석 시
 
 1. `.ai/10_rules/architecture.md` — 아키텍처 제약 준수 여부 확인
-2. `.ai/10_rules/ide-tools.md` — 코드 탐색·수정에 쓸 도구 확인 (IntelliJ MCP 연결 시 IDE 도구 우선)
+2. `.ai/10_rules/ide-tools.md` — 코드 탐색·수정·실행에 쓸 도구 확인 (IntelliJ MCP 연결 시 IDE 도구 우선)
 3. `.ai/60_codebase/index.md` — 대상 기능의 엔트리포인트·호출 흐름 파악
 4. 색인 행의 "관련 문서" 열에 링크된 `40_domain/`, `50_adr/`, `30_contract/` 문서를 따라 읽는다
 5. 링크가 없더라도 변경 내용이 아래에 해당하면 해당 index.md를 연다:
@@ -46,6 +46,7 @@ SSoT 선언이 원본 문서인 repo에서 문서를 작성·수정·리뷰·분
 
 - `.ai/10_rules/testing-principles.md` — 테스트 실행 원칙 (층·수단·환경)
 - `.ai/10_rules/testing-principles-local.md` — repo 고유 테스트 층 표·대상 환경·실행 셸 (원칙과 충돌하면 local 우선)
+- `.ai/10_rules/ide-tools.md` — 테스트·서버 실행과 디버깅에 쓸 도구 확인 (IntelliJ MCP 연결 시 IDE 도구 우선)
 
 ## 산출 문서·PR·이슈·리뷰 코멘트 작성 시
 

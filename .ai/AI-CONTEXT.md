@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-11-21
+> last updated: 2026-11-22
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -42,7 +42,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Codex 등 다양한 AI 도
 | `.ai/10_rules/architecture.md`       | 프로젝트 아키텍처 방향     | 코드 작성·리뷰·아키텍처 변경 시 |
 | `.ai/10_rules/context-loading.md`    | 작업 전 컨텍스트 확인 절차 | 코드·문서 작업 전 |
 | `.ai/10_rules/file-change-policy.md` | 파일 변경 규칙             | 파일 추가·삭제 시 |
-| `.ai/10_rules/ide-tools.md`          | IDE 도구 우선 규칙 (IntelliJ MCP 연결 시 심볼·호출 관계·이름 변경·수정 후 검증은 IDE 도구 먼저, 연결 실패·문서·문자열 검색은 grep, 빈 결과는 grep으로 재확인) | 코드 탐색·수정 전 |
+| `.ai/10_rules/ide-tools.md`          | IDE 도구 우선 규칙 (IntelliJ MCP 연결 시 심볼·호출 관계·이름 변경·수정 후 검증과 테스트·커버리지·로컬 서버·디버깅 실행은 IDE 도구 먼저, 표에 없는 작업은 기존 도구, 연결 실패·문서·문자열 검색은 grep, 빈 결과는 grep으로 재확인, `[D]`·회귀 판정은 러너 명령) | 코드 탐색·수정·실행 전 |
 | `.ai/10_rules/testing-principles.md` | 테스트 실행 원칙 (층·수단·환경) | 테스트 작성·실행 시 |
 | `.ai/10_rules/writing-principles.md` | 산출물 작성 원칙 (소스 코드 미적용) | 산출 문서·PR·이슈·리뷰 코멘트 작성 시 |
 
@@ -64,7 +64,7 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Codex 등 다양한 AI 도
 │   ├── references/             # 구버전 마이그레이션 참조 문서
 │   ├── scripts/                # 멱등 보강 검사·프로파일 판정 헬퍼, 소유 파일·구간 동기화 헬퍼 (check-context.sh, sync-owned.sh)
 │   ├── templates/              # 프로파일별 템플릿 (원장 index 골격·항목 템플릿 포함)
-│   └── tests/                  # 헬퍼 테스트(검사·프로파일 판정·소유 구간 동기화)·문서 구조 검사 + update-3 파일 정리·update-4 멱등 보강 fixture (배포 제외)
+│   └── tests/                  # 헬퍼 테스트(검사·프로파일 판정·소유 구간 동기화)·문서 구조 검사 + IDE 도구 목록 대조 헬퍼(check-ide-tool-list.sh)와 도구 이름 목록 사본 + update-3 파일 정리·update-4 멱등 보강 fixture (배포 제외)
 ├── ai-workspace-directory/     # 워크스페이스 로비 .ai/AI-CONTEXT.md 생성·재구성 스킬
 │   ├── references/             # 표준 섹션 구조·SSoT 체크리스트·예시
 │   ├── scripts/                # 로비 형식·분량 검사 헬퍼 (check-lobby.sh)
