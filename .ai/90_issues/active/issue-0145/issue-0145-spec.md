@@ -1,0 +1,676 @@
+# Issue #145 스펙 issue-work: 요구사항·완료의 정의를 한 문장으로 줄이고 진행을 계획·검증·구현 루프로 바꾼다
+
+## 목표 (Goal)
+
+issue-work의 요구사항과 완료의 정의를 사람이 읽는 한 문장 수준으로 줄이고, 이슈 진행을 계획 수립 → 계획 검증 → 구현 → 구현 검증 → 완료 확인을 빠르게 도는 루프로 바꾼다.
+
+---
+
+## 요구사항 (Requirements)
+
+### 포함
+
+#### 이슈 본문과 spec
+
+- R1: 이슈 본문의 포함과 완료의 정의를 같은 묶음 제목으로 나누고, 포함 항목을 한 문장으로 쓴다.
+- R2: spec 요구사항과 완료의 정의가 이슈 본문의 묶음 제목·문장·AC 번호를 그대로 쓰고, 검증 명령과 케이스 목록을 담지 않는다.
+- R3: spec에 `결정 사항` 섹션을 두어 경계 규칙·계산식·합의한 값·버린 대안을 적는다.
+- R4: spec에 `변경 이력` 섹션을 두어 승인 뒤에 바뀐 요구사항·AC·결정을 적는다.
+
+#### plan과 검증
+
+- R5: plan에 선택 섹션 `설계 결정`을 두어 소프트웨어 설계와 아키텍처 결정(구조, 영향 모듈, 순서의 근거, 관례)을 적는다.
+- R6: plan에 `테스트 계획`을 두어 AC마다 어느 층의 어느 테스트가 보는지와 테스트로 못 보는 항목을 적는다.
+- R7: 테스트 계획은 단위 테스트를 먼저 고르고, 단위보다 위 층을 쓰면 단위로 못 보는 이유를 적는다.
+- R8: 기능을 바꾸는 Task를 테스트 작성 → 실패 확인 → 구현 → 통과 확인 순서로 진행하고 테스트 커밋과 구현 커밋을 나눈다.
+- R9: 커밋한 테스트의 기대값을 바꾸는 변경을 변경 통제의 완화로 다룬다.
+
+#### 루프
+
+- R10: 이슈 진행을 계획 수립 → 계획 검증 → 구현 → 구현 검증 → 완료 확인의 다섯 단계로 두고, 완료 확인에서 사용자가 다음 회차로 정하면 계획 수립으로 돌아간다.
+- R11: 계획 수립 단계는 spec·plan이 없으면 쓰고, 지난 회차에서 바꿀 것이 나왔으면 고친다.
+- R12: 계획 검증 단계는 지난 검증 뒤에 AC·요구사항, `설계 결정`, `테스트 계획` 가운데 하나가 바뀌었을 때 계획 감사를 다시 받는다.
+- R13: 기존 AC 안에서 발견을 고치는 Task를 더한 것만으로는 계획 검증을 다시 받지 않는다.
+- R14: 구현 검증 단계는 구현이 지난 검증 뒤에 바뀌었을 때 교차 감사를 전체로 다시 받는다.
+- R15: 완료 확인 단계는 마지막 교차 감사의 상태와 plan `테스트 계획`의 확인한 줄 수를 보이고 정한 기준으로 마무리나 다음 회차를 권장하며, 루프를 나갈지는 사용자가 정한다.
+- R16: 완료 확인에서 사용자가 마무리로 정한 뒤에만 Task N에 들어가고, Task N은 마무리(코드맵, `--clear`, PR)만 맡는다.
+- R17: 같은 종류의 발견이 이어지면 다음 회차의 계획 수립에서 설계 결정부터 고친다.
+- R18: 루프에서 더한 Task는 plan에 이어 붙이고, summary에 회차마다 한 줄(바뀐 것, 다시 시작한 단계, 검증 결과)을 적는다.
+- R19: summary에 종류별 발견 기록을 두고, Task 블록에 테스트와 대응 발견을 적는다.
+- R20: PR 뒤의 리뷰 피드백은 git-pr-feedback으로 처리하고, 처리 기록은 지금 방식대로 둔다.
+
+#### 연동
+
+- R21: issue-audit의 최종 감사와 `--plan`이 새 구조의 spec·plan을 읽어 판정한다. (함께 해소: K-0009)
+- R22: git-pr의 완료의 정의 대조가 새 구조의 spec을 읽는다.
+- R23: issue-work·issue-audit의 스크립트와 스킬 테스트가 새 구조를 다룬다.
+- R24: issue-workflow 템플릿, README, 도메인 명세가 새 흐름을 설명한다.
+- R25: 이슈 산출물이나 그것을 옮겨 적은 PR 본문을 읽는 다른 스킬에 영향이 없는지 확인하고, 영향이 있으면 함께 고친다.
+- R26: issue-workflow 템플릿에 다섯 단계와 돌아가는 길을 보이는 아스키 그림을 둔다.
+  - 2026-11-23 대화에서 사용자가 제안하고 확정한 범위 확장이다. 이슈 본문에는 갱신 초안(`.ai/99_workspace/issue-0145-body.md`)의 포함 항목과 AC22로 더한다.
+  - 그림은 템플릿에만 두고 SKILL.md에는 두지 않는다. 그림 안은 `.ai/99_workspace/issue-0145-loop-preview.html` 5절의 안 A(세로형)다.
+
+### 제외
+
+#### 불필요
+
+- 이미 끝난 이슈(archive)의 문서를 새 구조로 다시 쓰기: 불필요(이력은 쓴 때의 구조로 둔다)
+- 테스트 러너나 테스트 층을 스킬이 정하기: 불필요(층과 러너는 repo의 `testing-principles-local.md`가 정한다)
+- 교차 감사의 자동 실행: 불필요(감사는 지금처럼 사용자가 다른 벤더 모델로 직접 실행한다)
+- 바뀐 구현만 보는 부분 감사: 불필요(구현 검증은 매번 전체 감사로 둔다)
+- plan·summary의 Task를 사이클 블록으로 묶기: 불필요(Task는 이어 붙이고 회차는 summary 루프 기록 표가 맡는다)
+- 이 이슈를 문서 구조·테스트 먼저·루프로 나누기: 불필요(한 이슈로 진행한다)
+
+---
+
+## 완료의 정의 (Definition of Done)
+
+> **검증 레벨** — 낮을수록 좋다(자동 검증에 가까움). 기본은 L1, 한 레벨 내릴 때마다 강등 사유를 함께 적는다.
+>
+> - `[D]`  L1 결정적   — 명령이 합/불을 판정, 사람 판단 없음
+> - `[QD]` L2 준결정적 — 다른 AI·기준 체크리스트가 채점
+> - `[ND]` L3 비결정적 — 사람이 직접 읽고 판단
+
+`[D]` 항목은 스킬 테스트 러너의 케이스 라벨을 경계로 삼는다. 라벨마다 실제 파일이 통과하는 케이스(`통과`)와 구조를 무너뜨린 사본이 걸리는 케이스(`격추`)가 하나 이상 있어야 한다. 라벨은 이 문서가 정하고 구현이 그 이름으로 케이스를 쓴다.
+
+### R1: 본문의 묶음과 한 문장
+
+- [ ] [D]  이슈 본문 템플릿의 포함과 완료의 정의가 같은 묶음 제목으로 나뉘고 포함 항목이 하위 목록 없는 한 문장이며, `정한 것` 섹션이 있다 (AC1)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '본문 묶음 대응'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R2: spec의 문장과 AC 번호
+
+- [ ] [D]  spec 템플릿의 요구사항이 한 문장 항목이고, 완료의 정의가 묶음 제목 아래 `- [ ] AC<n>: ` 행이며 레벨 태그·검증 명령·케이스 목록이 없다 (AC2)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in 'spec AC 행'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R3: 결정 사항 섹션
+
+- [ ] [D]  spec 템플릿에 `## 결정 사항` 섹션이 있고 `## 전제` 섹션이 없다 (AC3)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '결정 사항 섹션'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+- [ ] [QD] `결정 사항` 안내가 적을 것(경계 규칙·계산식·합의한 값·버린 대안)과 적지 않을 것(구현 방법)을 가른다 (AC3)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 안내 문장이 두 가지를 실제로 가르는지는 의미 판단이다
+
+### R4: 변경 이력 섹션
+
+- [ ] [D]  spec 템플릿에 `## 변경 이력` 섹션이 있고 표 머리가 시점·바뀐 것·분류·계기다 (AC3)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '변경 이력 섹션'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R5: 설계 결정 섹션
+
+- [ ] [D]  plan 템플릿에 선택 섹션 `## 설계 결정`이 있고, 적는 것 네 가지와 섹션을 두지 않는 기준이 안내에 있다 (AC4)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '설계 결정 섹션'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R6: 테스트 계획
+
+- [ ] [D]  plan 템플릿에 `## 테스트 계획`이 있고, 테스트 표와 `테스트로 못 보는 항목` 표가 AC·레벨 칸을 가진다 (AC5)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '테스트 계획 표'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R7: 단위 먼저와 이유
+
+- [ ] [D]  plan 템플릿의 테스트 표에 단위로 못 보는 이유 칸이 있고, 단위를 먼저 고른다는 안내가 있다 (AC5)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '테스트 층 이유'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R8: 테스트 먼저 Task
+
+- [ ] [D]  plan 템플릿의 일반 Task가 테스트 작성·실패 확인·구현·통과 확인 단계와 커밋 두 개를 가지고, 테스트를 먼저 쓰지 않는 Task의 기준과 두 단계 진행이 적혀 있다 (AC6)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '테스트 먼저 Task'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R9: 기대값 변경의 분류
+
+- [ ] [D]  SKILL.md의 변경 통제가 커밋한 테스트의 기대값 변경·단언 축소·테스트 삭제를 완화로 분류하고, 결과가 그대로인 수정을 질의 대상에서 뺀다 (AC7)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '기대값 완화'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R10: 다섯 단계와 돌아가는 길
+
+- [ ] [D]  SKILL.md 절차가 계획 수립·계획 검증·구현·구현 검증·완료 확인을 이 순서로 두고, 완료 확인에서 사용자가 다음 회차로 정하면 계획 수립으로 돌아간다고 적는다 (AC8)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '루프 다섯 단계'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R11: 계획 수립 단계
+
+- [ ] [D]  SKILL.md의 계획 수립 단계가 spec·plan이 없을 때의 작성과 지난 회차의 결정을 반영하는 수정을 함께 다룬다 (AC8)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '계획 수립 단계'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R12: 계획 검증을 다시 받는 조건
+
+- [ ] [D]  SKILL.md가 계획 감사를 다시 받는 변경을 AC·요구사항, `설계 결정`, `테스트 계획` 세 가지로 적는다 (AC9)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '계획 검증 조건'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R13: 계획 검증을 받지 않는 변경
+
+- [ ] [D]  SKILL.md가 기존 AC 안에서 발견을 고치는 Task 추가를 계획 감사 대상에서 뺀다 (AC9)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '계획 검증 제외'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R14: 구현 검증
+
+- [ ] [D]  SKILL.md의 구현 검증 단계가 지난 검증 뒤에 구현이 바뀌었으면 교차 감사를 전체로 다시 받게 하고, 위험도에 따른 예외를 두지 않는다 (AC10)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '구현 검증 단계'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R15: 완료 확인
+
+- [ ] [D]  SKILL.md의 완료 확인 단계가 보이는 값 네 가지와 권장 기준 네 가지를 적고, 결정은 사용자가 한다고 적는다 (AC11)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '완료 확인 단계'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R16: 마무리 Task
+
+- [ ] [D]  plan 템플릿의 Task N이 마무리 작업만 담고 교차 감사 실행을 담지 않으며, SKILL.md가 사용자가 마무리로 정한 뒤에만 Task N에 들어간다고 적는다 (AC11, AC12)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '마무리 Task'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R17: 같은 종류의 발견
+
+- [ ] [D]  SKILL.md에 같은 종류의 발견이 두 회차 이어지면 다음 회차의 계획 수립이 `설계 결정`부터 고친다는 규칙이 있고, 종류를 `--response`에서 붙인다 (AC13)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '같은 종류 발견'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+- [ ] [QD] summary의 종류별 발견 기록만 읽고 "두 회차 연속"을 판정할 수 있다 (AC13)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 기록의 칸이 판정에 충분한지는 예시 기록으로 따져 보는 의미 판단이다
+
+### R18: 이어 붙인 Task와 루프 기록
+
+- [ ] [D]  plan 템플릿의 Task 헤더에 회차 묶음이 없고, summary 템플릿에 회차마다 한 줄을 적는 루프 기록 표가 있다 (AC14, AC15)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '루프 기록 표'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R19: 발견 기록과 Task 블록 필드
+
+- [ ] [D]  summary 템플릿에 종류별 발견 기록이 있고 발견이 없으면 두지 않는다는 안내가 있으며, 일반 Task 블록에 `테스트`·`대응 발견` 필드가 있다 (AC14, AC15)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '발견 기록'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R20: PR 뒤 피드백
+
+- [ ] [D]  SKILL.md와 issue-workflow 템플릿이 PR을 Task N에서 만들고 PR 뒤의 피드백을 git-pr-feedback으로 처리한다고 안내한다 (AC16)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in 'PR 뒤 피드백'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R21: issue-audit의 새 구조 판정
+
+- [ ] [D]  `check-plan.sh`가 새 구조의 이슈 본문·spec·plan에서 AC 문장 일치, AC와 `테스트 계획`의 대응, R과 Task의 대응을 세고, SKILL.md와 리포트 템플릿이 AC 대조와 `결정 사항` 대조를 두며 가짜 `[D]` 사전 판별 절차가 없다 (AC17)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-audit/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '새 구조 추적' '새 구조 감사 조항'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+- [ ] [QD] 새 구조로 쓴 예시 spec·plan에 계획 감사와 최종 감사 절차를 적용하면 적합성 판정 표와 추적성 점검이 막힘 없이 나온다 (AC17)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 절차를 문서에 적용해 판정이 나오는지는 모의 실행으로만 본다
+
+### R22: git-pr의 대조
+
+- [ ] [D]  git-pr SKILL.md의 완료의 정의 대조가 감사 리포트 표의 AC 번호로 행을 잇고 리포트 판정을 그대로 옮기며, PR 본문의 항목 이름·표 머리·상태 이름이 그대로다 (AC18)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash git-pr/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in 'AC 번호 대조'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R23: 스크립트와 테스트
+
+- [ ] [D]  issue-work의 `check-clear.sh`·`summarize-metrics.sh`가 새 구조의 plan·summary fixture를 읽어 통과와 위반을 가른다 (AC19)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '새 구조 fixture'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+- [ ] [D]  issue-audit의 `check-plan.sh`가 새 구조 fixture를 읽어 통과와 위반을 가른다 (AC19)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-audit/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '새 구조 fixture'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### R24: 새 흐름을 설명하는 문서
+
+- [ ] [D]  issue-workflow 템플릿이 다섯 단계, 완료 확인의 결정 주체, 마무리 Task를 새 절차대로 적는다 (AC20)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '워크플로우 흐름'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+- [ ] [QD] README와 도메인 명세(`issue-workflow.md`·`issue-audit.md`)의 서술이 SKILL.md의 새 절차와 어긋나지 않는다 (AC20)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 서술과 절차의 일치는 의미 대조다
+
+### R25: 다른 스킬의 영향 확인
+
+- [ ] [D]  도메인 명세 `issue-workflow.md`의 `## 산출물 구조를 읽는 스킬` 표에 저장소의 모든 스킬이 한 행씩 있다 (AC21)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  F=.ai/40_domain/specs/issue-workflow.md
+  grep -qE '^## 산출물 구조를 읽는 스킬[[:space:]]*$' "$F" || echo '위반: 섹션 없음'
+  for d in */SKILL.md; do
+    k="${d%/SKILL.md}"
+    grep -qE "^\| \`${k}\` \|" "$F" || echo "위반: ${k} 행 없음"
+  done
+  ```
+
+  </details>
+- [ ] [QD] 표의 행마다 읽는 대상과 영향 여부가 실제 SKILL.md·스크립트·테스트와 맞고, 영향이 있다고 적은 스킬이 새 구조를 읽는다 (AC21)  (검증: 다른 AI가 채점, 별도 세션)  ← 강등 사유: 읽는 곳을 빠짐없이 찾았는지는 검색 결과를 읽고 내리는 의미 판단이다
+
+### R26: 루프 아스키 그림
+
+- [ ] [D]  issue-workflow 템플릿의 코드 블록 그림에 다섯 단계 이름이 순서대로 있고 완료 확인에서 계획 수립으로 돌아가는 선이 있으며, 그림의 줄에 선 그리기 문자(U+2500~U+257F)가 없다 (AC22)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  out=$(bash issue-work/tests/run-tests.sh 2>&1)
+  printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+  for l in '루프 그림'; do for w in 통과 격추; do
+    printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+  done; done
+  ```
+
+  </details>
+
+### 공통
+
+- [ ] [D]  repo 전체 스킬 테스트가 통과한다 (회귀 방지 항목)
+  <details>
+  <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+  ```bash
+  for t in */tests/run-tests.sh; do bash "$t" >/dev/null 2>&1 || echo "위반: $t 실패"; done
+  ```
+
+  </details>
+
+---
+
+## 전제 (Assumptions)
+
+이슈 본문과 댓글의 `검토 필요` 항목에 사용자가 정한 답을 여기에 적는다. 아직 답하지 않은 항목은 묶음별로 질의한 뒤 더한다.
+
+### 2026-11-23 대화에서 정한 것
+
+- **요구사항 승인**: R1~R26과 제외 6건을 승인했다. R26은 대화에서 더한 범위 확장이다.
+- **이 이슈의 문서 구조**: 이 이슈의 spec·plan·summary는 지금 템플릿 구조로 쓴다. 새 구조는 이 이슈가 만드는 결과물이다.
+- **함께 해소**: K-0009를 포함하고 K-0030은 포함하지 않는다.
+  - K-0009의 해소는 "테스트 먼저 Task의 실패 확인이 계획 감사의 가짜 `[D]` 사전 판별을 대신한다"는 결정에 달려 있다. 이 결정은 이슈 본문 `검토 필요`(plan과 검증, 실패 확인)에 남아 있고, 판별을 남기기로 정하면 R21의 표기를 뺀다.
+- **완료 확인의 결정 주체**: 루프를 나갈지는 사용자가 정한다. 에이전트는 아래 기준으로 `마무리`나 `다음 회차`를 권장한다.
+- **완료 확인이 보이는 값**: 마지막 교차 감사 리포트의 1단계 상태, 2단계 상태, 종합 판정과 plan `테스트 계획`의 확인한 줄 수다. 새 판정 값을 만들지 않는다.
+- **권장 기준**: 아래 네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`다.
+  - 1단계 상태가 충족이다.
+  - 2단계 상태가 통과나 주의다.
+  - `테스트 계획`의 모든 줄을 확인했다.
+  - `--response`에서 반영으로 정한 발견을 모두 닫았다. 이관이나 보류로 정한 발견은 세지 않는다.
+- **기준을 종합 판정으로 적지 않는다**: 조건부 적합은 1단계 부분 충족에서도 나온다. "조건부 적합 이상"으로 적으면 AC가 부분 충족인 회차도 `마무리` 권장이 된다.
+- **권장과 다르게 나갈 때**: 기준에 못 미친 채 `마무리`로 정하면 남은 AC와 발견마다 완화, 원장 등재, 새 이슈 가운데 결정을 받는다.
+- **이슈 본문 갱신 (2026-11-23)**: 위 결정은 처음 본문의 문장보다 약해 변경 통제의 완화이고, R26은 범위 확장이다. 사용자 승인을 받아 이슈 본문의 포함 3줄, AC8, AC11, 현재 → 기대 표 1행을 고치고 포함 1줄(R26)과 AC22를 더했다. R10·R15·R16은 갱신한 본문의 문장이다.
+- **`--response` 뒤의 순서**: `--response`는 결정만 받고 소스를 고치지 않는다. 반영으로 정한 발견은 다음 회차의 계획 수립에서 plan에 Task로 더하고, 구현 단계에서 재현 테스트를 먼저 쓴 뒤 고친다. spec은 요구사항·AC·결정이 바뀔 때만 고친다.
+- **구현 검증의 예외 (검토 필요, 루프)**: 예외를 두지 않는다. 구현이 바뀌면 고친 발견의 위험도와 관계없이 교차 감사를 전체로 다시 받는다. 고치지 않을 발견은 `--response`에서 이관이나 보류로 정한다.
+- **계획 감사 발견을 고친 뒤**: 예외를 두지 않고 R12·R13대로 둔다. 고친 결과로 AC·요구사항, `설계 결정`, `테스트 계획`이 바뀌었으면 다시 받는다.
+- **루프 기록의 `다시 시작한 단계` 칸**: 계획 수립 뒤에 처음으로 다시 한 단계를 적는다. 값은 `계획 검증`이나 `구현`이다.
+- **"지난 검증 뒤에 바뀌었다"의 판별 (검토 필요, 루프)**: 검증한 커밋을 summary 루프 기록에 적고 그 커밋 뒤의 diff로 가린다. 구현 검증은 코드 경로의 diff를, 계획 검증은 spec의 요구사항·완료의 정의와 plan의 `설계 결정`·`테스트 계획` diff를 본다.
+- **계획 감사 수행 여부를 묻는 시점 (검토 필요, 루프)**: 이슈에 한 번 묻는다. 수행으로 정한 이슈만 뒤 회차에서 R12의 조건에 따라 다시 받는다.
+- **같은 종류의 발견 (검토 필요, 루프)**: 종류는 `--response` 분류에서 붙인다. 같은 종류가 두 회차 연속으로 나오면 다음 회차의 계획 수립이 `설계 결정`부터 고친다.
+- **루프를 나간 뒤 구현이 바뀔 때 (검토 필요, 루프)**: Task N에서 구현을 고치면 계획 수립으로 돌아간다. PR 뒤 피드백으로 구현을 고쳤을 때 교차 감사를 다시 받을지는 사용자가 고른다.
+
+### 검토 필요의 답: 이슈 본문과 spec (2026-11-23)
+
+- **등록 때 정한 세부를 두는 자리**: 이슈 본문에 `정한 것` 섹션을 둔다. 포함 항목 아래에 하위 목록을 두지 않는다.
+- **spec `전제` 섹션**: 없앤다. 제품·도메인 내용은 spec `결정 사항`에, 설계 내용은 plan `설계 결정`에 적는다.
+  - 계획 종료 게이트와 Task 0은 남긴다. 찾은 것은 위 두 자리에 나눠 적고, 찾은 것이 없으면 plan의 게이트 체크박스와 summary Task 0 줄에 남긴다.
+- **`결정 사항`이 커질 때**: spec 안 섹션으로만 두고 파일로 빼는 기준을 만들지 않는다. 오래 갈 결정은 이슈를 마칠 때 ADR·계약·도메인 문서로 올린다.
+- **AC 문장 형식**: 지금의 관찰할 수 있는 결과 문장을 쓴다.
+- **spec `변경 이력`과 summary 루프 기록의 구분**: `변경 이력`은 spec의 요구사항·AC·결정 문장이 바뀐 회차만 적고 분류(구체화·확장·완화)와 계기를 적는다. 루프 기록은 모든 회차를 적고, spec이 바뀐 회차는 바뀐 번호(R·AC·D)만 적는다.
+
+### 검토 필요의 답: plan과 검증 (2026-11-23)
+
+- **`설계 결정`에 적는 것**: 이 이슈가 정한 설계와 아키텍처 결정을 적는다.
+  - 시스템 구성: 이 이슈가 더하거나 바꾸는 구성 요소
+  - 다른 시스템과의 연결: 어디와 무엇으로 연결하고, 그 연결을 어느 레이어·모듈에 두는지
+  - 애플리케이션 구조 안의 자리: repo의 아키텍처 규칙 문서 안에서 이 이슈가 고른 것. 규칙 문서의 내용은 다시 적지 않고 가리키며, 규칙과 다르게 가면 이유를 적는다.
+  - 영향 모듈, 순서의 근거, 이 repo의 관례
+- **`설계 결정`과 다른 자리의 구분**: 무엇을 만드는지(동작, 값, 경계 규칙)는 spec `결정 사항`에 적는다. 이 이슈가 끝난 뒤에도 다른 작업이 따라야 하는 결정은 이슈를 마칠 때 ADR로 올린다.
+- **`설계 결정`을 두지 않는 기준**: 바꾸는 모듈이 하나이고 구조나 순서에서 고를 것이 없으면 두지 않는다. 같은 종류의 발견이 두 회차 이어지면 그때 만든다.
+- **섹션 이름**: `설계 결정`으로 한다. 등록 때의 이름 "디자인 결정"은 화면 디자인으로도 읽힌다. 사용자 승인을 받아 이슈 본문 10곳과 이 문서의 이름을 바꿨다.
+- **테스트를 먼저 쓰지 않는 Task**: 동작을 바꾸지 않는 Task다. 문서만 고치는 Task, 자동 테스트가 보지 못하는 화면 배치, 버릴 코드를 쓰는 스파이크, 기존 테스트가 그대로 통과해야 하는 리팩터링이 든다. Task에 먼저 쓰지 않는 이유를 한 줄 적는다.
+  - 이런 Task는 구현 → 통과 확인 두 단계로 진행하고, 통과 확인은 기존 테스트 전체 통과다. 러너도 결정적 명령도 없는 repo만 통과 확인을 건너뛴다.
+- **러너가 없는 repo**: 결정적 명령(bash 등)으로 볼 수 있는 AC는 테스트 표에 `[D]`로 적고, 볼 수 없는 AC만 `테스트로 못 보는 항목` 표에 누가 보는지와 함께 적는다.
+- **실패 확인의 기록**: 커밋 순서로 남긴다. 테스트 커밋이 구현 커밋보다 앞에 있고, summary Task 블록에 테스트 커밋과 실패한 테스트 수를 한 줄 적는다. 실행 로그 파일은 두지 않는다.
+- **가짜 `[D]` 사전 판별과 통과 건수 하한 검사**: 실패 확인이 둘을 대신한다. issue-audit `--plan`에서 판별 절차를 뺀다. 최종 감사는 커밋 순서와 기록이 있는지만 보고, 테스트 커밋으로 돌아가 실패를 다시 실행하지 않는다. 이 결정으로 K-0009가 해소 대상이 된다.
+- **검증 레벨**: AC 문장은 이슈 본문과 같은 문장이라 태그를 붙이지 않는다. `테스트 계획`의 두 표에 `레벨` 칸을 두고 테스트 표의 줄에 `[D]`를, `테스트로 못 보는 항목` 표의 줄에 `[QD]`나 `[ND]`를 적는다. 강등 사유는 `이유` 칸이 맡는다.
+  - `[D]`를 생략하지 않고 적는다. 테스트 케이스가 아닌 결정적 수단(bash 명령 등)도 같은 표에 들어가기 때문이다.
+- **테스트 기대값 변경과 리팩터링의 구분**: 같은 입력에 기대하는 결과가 달라지거나, 단언이 줄거나, 테스트가 지워지면 완화다. 결과는 그대로이고 이름, 위치, 준비 코드, 호출 방식만 바뀌면 질의 없이 반영한다. 기대값이 처음부터 틀렸던 경우도 완화로 다룬다.
+
+### 검토 필요의 답: 루프와 연동 (2026-11-23)
+
+- **summary 지표를 세는 Task**: 지금처럼 발견이 나온 Task에 `audit 발견`과 `보정 반영`을 센다. 고친 Task는 `대응 발견` 필드에 발견 번호만 적는다.
+- **마무리(Task N)로 미루는 작업**: AC가 직접 가리키는 산출물(명세, ADR 등)은 루프 안의 Task로 둔다. 구현을 따라 적는 문서(색인, 목록, 판 번호)만 마무리로 미룬다. 템플릿은 전체 회귀, 색인, `--clear`, PR을 고정하고 repo마다 다른 작업은 빈 자리 한 줄로 둔다.
+- **감사 리포트 회차와 루프 회차 번호**: 맞추지 않는다. 리포트 보존 규칙은 그대로 두고, 루프 기록의 `검증 결과` 칸에 그 회차가 받은 리포트 파일 이름을 적는다.
+- **PR 뒤 피드백의 처리 기록**: 지금 방식대로 둔다. 이슈 문서는 PR 전에 archive로 옮겨지므로 PR 뒤에는 고치지 않는다.
+- **issue-audit 1단계 대조**: plan `테스트 계획`이 AC마다 가리키는 테스트와 `[D]` 명령을 구현 뒤 트리에서 실행해 판정한다. 대응은 R 그룹 대신 AC 번호로 보고, 리포트 대조 표의 행이 AC가 된다.
+- **git-pr의 대조 규칙**: AC 번호로 바로 잇고 리포트 판정을 그대로 옮긴다. PR 본문의 항목 이름, 표 머리, 상태 이름은 그대로 둔다. git-review는 고치지 않는다.
+- **옛 구조 문서와 전환**: 두 구조를 함께 읽는 규칙을 스킬에 남기지 않는다. 새 버전을 설치한 뒤 시작하는 이슈부터 새 구조를 쓰고, 진행 중인 옛 구조 이슈는 마친 뒤에 재설치한다고 README에 안내한다.
+  - 이 이슈(#145)의 문서는 옛 구조다. 이 이슈의 계획 감사, 교차 감사, `--clear`, PR은 설치본(옛 버전)의 절차로 진행한다.
+- **댓글의 예시**: 저장소의 예시 문서로 두지 않는다.
+
+### 검토 필요의 답: 댓글의 영향 확인 (2026-11-23)
+
+- **`결정 사항`과 1단계 판정**: 2단계 발견이 spec `결정 사항`의 결정을 어기면 1단계 판정을 낮추는 근거로 본다.
+- **1단계 대조 표**: 요구사항 대조 표를 `결정 사항` 대조 표로 바꾼다. 1단계는 AC 대조와 `결정 사항` 대조 두 표이고, `결정 사항`이 없는 spec은 AC 대조만 둔다.
+- **원본 문서가 기준인 repo의 `테스트 계획`**: 더 정하지 않는다. 결정적 명령은 `[D]`, 나머지는 `테스트로 못 보는 항목`으로 적는 답을 그대로 쓰고 issue-audit의 문서 카테고리는 고치지 않는다.
+- **감사 리포트 대조 표의 AC 번호 열**: 첫 열을 AC 번호로 둔다. git-pr이 번호로 읽는다.
+- **spec의 AC 체크박스**: Task N에서 마지막 리포트가 충족으로 판정한 AC를 체크한다. git-pr의 근거는 지금처럼 감사 리포트만 쓴다.
+- **`이번 PR에서 하지 않는 것`의 근거**: 지금 그대로 둔다.
+- **AC가 없는 이슈**: 지금 흐름을 유지한다. spec이 AC를 직접 쓰고 이슈 본문에 올릴지 묻는다. 거절하면 spec의 AC가 기준이고 git-pr도 spec의 AC를 읽는다.
+- **대조 표의 묶음 제목**: PR 본문과 리뷰 결과의 대조 표에 보이지 않는다. 표 머리를 그대로 둔다.
+- **앞의 답으로 정해진 항목**: 루프를 나가는 조건, 같은 종류의 발견을 가리는 방법, 감사 회차 번호, 옛 구조를 읽는 규칙, PR을 만드는 시점(Task N에서 한 번)이다.
+
+### 나머지 스킬의 영향 확인 (2026-11-23, 계획 전 조사)
+
+AC21의 기록은 구현 Task에서 다시 확인해 남긴다. 아래는 계획을 쓰기 전에 SKILL.md, 템플릿, 스크립트, 테스트를 검색해 읽은 결과다.
+
+- **영향 없음**: ai-workspace-directory, code-map, context-harvest, context-save, git-commit, git-qa, git-review-context, install-skills, readme-sync
+  - context-save는 `active/` 디렉토리 이름으로 이슈 번호만 읽는다. context-harvest, git-qa는 이슈 본문을 구조 없이 글로 읽는다.
+- **조건을 지키면 영향 없음**
+  - ai-workspace: update-3 기존 파일 정리가 옛 평면 파일을 plan의 Task 체크박스와 summary의 완료 표시로 가른다. plan Task의 `- [ ] 완료` 체크박스와 summary의 완료 표시 문구를 그대로 두면 고칠 곳이 없다.
+  - git-review-quiz: PR 본문과 연결 이슈 본문을 설명의 소재로만 읽는다. 산출 파일이 `--clear`의 작업공간 정리 대상이라는 문장이 있어, `--clear`의 정리 동작을 그대로 두면 고칠 곳이 없다.
+  - git-pr-feedback: 이슈 문서를 읽지 않는다. PR 뒤 피드백으로 구현을 고쳤을 때 교차 감사를 다시 받을지 묻는 안내는 issue-work의 SKILL.md와 issue-workflow 템플릿에만 두고 git-pr-feedback은 고치지 않는다.
+- **단계 번호를 가리키는 곳**: issue-work의 단계 번호가 바뀌면 함께 고친다.
+  - `ai-workspace/templates/shared/.ai/70_ledger/ledger-entry-template.md`와 이 repo의 사본: `--clear` 5단계
+  - `git-pr/SKILL.md`: `--clear` 5단계
+  - `issue-audit/SKILL.md`: "새 이슈 시작 시" 5단계, 6단계
+  - `.ai/40_domain/specs/issue-workflow.md`, `.ai/40_domain/policies/local/external-action-approval-gate.md`, `.ai/60_codebase/issue-work/`의 흐름 문서
+
+### 계획을 쓰며 정한 것 (2026-11-23, 계획 모델)
+
+사용자 결정이 아닌 설계 선택이다. 계획 감사나 Task 0에서 바꿀 수 있다.
+
+- **spec AC 행의 R 표기**: 새 spec 템플릿의 AC 행은 이슈 본문의 문장 뒤에 대응하는 요구사항을 `(R<n>)`이나 `(R<n>, R<m>)`으로 붙인다. `check-plan.sh --ac`는 이 표기를 뺀 문장을 이슈 본문의 AC 문장과 견준다. 근거는 댓글의 issue-audit 영향 확인이다.
+- **Task 체크박스**: 새 plan의 Task는 지금처럼 `- [ ] 완료` 체크박스를 하나만 둔다. 테스트 작성·실패 확인·구현·통과 확인은 필드와 번호 목록으로 적는다. `check-clear.sh --completion`과 ai-workspace의 기존 파일 정리가 이 체크박스를 읽는다.
+- **Task 필드 이름**: `대상 요구사항`을 그대로 쓴다. 댓글의 예시 plan이 쓴 `대상`은 `check-plan.sh --trace`가 읽지 못했다.
+- **Task N**: 헤더는 `### Task N (고정): 마무리`다. 지금 Task N의 summary 게이트 세 개(`[D]`)와 벤더 교차 조건(`[QD]`)은 마무리의 완료 기준에 남긴다. 감사 기록이 다 적혔는지를 마무리에서 한 번 본다.
+- **루프 기록 표의 칸**: 회차, 바뀐 것, 다시 시작한 단계, 검증한 커밋, 검증 결과, 결정이다. 검증 결과에는 리포트 파일 이름과 1단계 상태·2단계 상태·종합 판정·테스트 계획 줄 수를 적고, 결정에는 `마무리`나 `다음 회차`를 적는다.
+- **단계 번호**: SKILL.md의 "새 이슈 시작 시" 1~6단계, `--response` 1~5단계, `--clear` 1~6단계의 번호를 바꾸지 않는다. 다섯 단계와 돌아가는 길은 새 절 `## 진행 루프`에 적는다. 번호를 가리키는 다른 스킬과 문서를 고치지 않기 위해서다.
+- **영향 확인 기록의 자리 (AC21)**: 도메인 명세 `issue-workflow.md`의 `## 산출물 구조를 읽는 스킬` 표에 스킬마다 한 행으로 남긴다. 구조를 다시 바꿀 때 읽을 자리이기 때문이다.
+- **결정 기록**: ADR 0031을 새로 써 한 문장 요구사항·AC와 루프 결정을 적는다. 일부가 바뀌는 ADR 0003·0004·0005·0016·0019·0026은 상태를 유효로 두고 0031을 가리키는 줄을 더한다.
+- **테스트 라벨**: 완료의 정의의 `[D]`가 읽는 라벨 이름은 이 문서가 정한 그대로 쓴다. 옛 구조의 계약을 검사하던 케이스는 새 구조 기준으로 고치거나 지운다.
+- **이 repo의 `active/issue-workflow.md`**: 이 이슈를 진행하는 동안 새 템플릿으로 갱신하지 않는다. 이 이슈는 옛 절차로 진행한다.
+- **이 이슈의 Task 진행**: Task마다 러너 케이스를 먼저 쓰고 실패를 본 뒤 구현한다. 커밋 분리와 기록은 옛 구조대로 Task 단위로 둔다.
+- **코드맵**: 이 이슈는 옛 절차라 코드맵 흐름 문서를 감사 전에 Task로 갱신한다.
+
+### 계획 종료 게이트에서 더한 전제 (2026-11-23)
+
+- **테스트 러너의 관례**: 스킬마다 `<스킬>/tests/run-tests.sh` 하나가 러너다. 케이스는 `ok     - <라벨>: <설명>` 행을 내고 끝에 `passed: <n>, failed: <m>`을 낸다. 구조 검사는 검사 함수에 실제 파일과 구조를 무너뜨린 사본을 넣어 통과와 격추를 한 쌍으로 둔다. 케이스 설명에는 `통과`와 `격추` 가운데 한 낱말만 쓴다.
+- **계획 전 기준값**: 2026-11-23 기준 러너 통과 수는 issue-work 325, issue-audit 287, git-pr 129이고 실패는 0이다.
+- **셸 제약**: 스크립트와 검증 명령은 macOS의 bash 3.2와 zsh에서 돌아야 한다. `$( )` 안의 `case`는 `(패턴)` 형태로 쓰고, 변수 이름으로 `path`를 쓰지 않으며, 변수 뒤에 한글이나 콜론이 오면 `${VAR}`로 쓴다.
+- **같은 사본을 둔 파일**: `check-ledger-links.sh`는 issue-work·git-pr·git-pr-feedback에 바이트 단위로 같은 사본이 있다. 이 이슈는 이 파일을 고치지 않는다.
+- **설치본과 repo**: 재설치는 PR이 머지된 뒤에 한다. 이 이슈의 문서는 옛 구조라 계획 감사, 교차 감사, `--clear`, PR은 설치본(`~/.claude/skills/`)의 옛 절차로 진행한다. repo의 SKILL.md는 구현 대상이다.
+- **글 규칙**: 템플릿과 SKILL.md의 문장은 `.ai/10_rules/writing-principles.md`를 따른다. 분류 값은 한글을 먼저 적고 영어를 괄호에 둔다(`.ai/40_domain/policies/local/notation-conventions.md`).
+- **참고 자료**: 이슈 #145의 댓글에 새 구조의 예시 5개와 영향 확인 3개가 있다. 예시는 섹션 이름이 `접근`이고 Task를 사이클 블록으로 묶어 이 문서와 다르다. 다른 곳은 이 문서를 따른다.
+- **예상안 파일**: `.ai/99_workspace/issue-0145-loop-preview.html`은 작업공간의 임시 파일이다. 아스키 그림의 원본이므로 `--clear` 때 archive로 옮긴다.
+
+---
+
+## 연관 문서
+
+| 문서 | 역할 |
+|------|------|
+| `.ai/50_adr/active/0016-spec-requirements-layer-and-plan-audit.md` | spec 요구사항 층, DoD R 그룹, Task 대상 요구사항, 계획 감사(선택) 결정. 완료의 정의 구조와 계획 감사 시점이 바뀌는 일부 변경 대상 |
+| `.ai/50_adr/active/0026-acceptance-criteria-across-issue-spec-pr.md` | 이슈 본문 템플릿, AC 정제·출처 표기, 변경 통제 3분류, PR 완료의 정의 대조 결정. AC 2단계 해상도가 한 문장 AC로 바뀌는 일부 변경 대상 |
+| `.ai/50_adr/active/0004-cross-model-audit-and-response-gate.md` | Task N 교차모델 audit, `--response` 게이트, 전체 재감사 유지 결정. 교차 감사 위치가 구현 검증 단계로 바뀌는 일부 변경 대상 |
+| `.ai/50_adr/active/0005-model-separation-gates.md` | 계획 종료 게이트, Task 0, spec 전제 섹션 결정. 전제 섹션과 두 게이트의 자리를 다시 정할 때의 기준 |
+| `.ai/50_adr/active/0003-verification-levels-and-determinization.md` | 검증 레벨 `[D]`/`[QD]`/`[ND]`와 완료 기준 접기 형식 결정. 완료의 정의에서 검증 명령이 빠질 때 레벨을 남기는 자리의 기준 |
+| `.ai/50_adr/active/0019-test-perspectives-and-task-level-placement.md` | 테스트 관점 구분과 Task별 테스트 배치 결정. 테스트 계획과 테스트 먼저 순서가 더해지는 일부 변경 대상 |
+| `.ai/50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md` | 테스트 실행 원칙 파일 쌍. 테스트 계획의 층을 고르는 근거 |
+| `.ai/50_adr/active/0006-risk-matrix-and-treatment.md` | 위험도 매트릭스와 등급별 기본 처리. 다시 감사받지 않는 변경의 기준을 정할 때 참조 |
+| `.ai/50_adr/active/0014-inverted-pyramid-and-verdict-derivation.md` | 상태·판정 산출 결정. 완료 확인의 판정 근거를 정할 때 참조 |
+| `.ai/50_adr/active/0015-issue-clear-timing-and-archive-rules.md` | `--clear` 시점과 archive 이관 규칙. Task N 마무리 구성의 기준 |
+| `.ai/50_adr/active/0002-skill-independence-intentional-duplication.md` | 스킬 독립과 의도적 복제. issue-workflow 템플릿·SKILL.md에 같은 그림과 규칙을 둘 때의 기준 |
+| `.ai/50_adr/active/0001-skill-deterministic-helper-test-convention.md` | 헬퍼 테스트 위치와 러너 규칙 |
+| `.ai/40_domain/specs/issue-workflow.md` | issue-work 절차·게이트·산출물 구성 명세. 새 흐름으로 고칠 대상 |
+| `.ai/40_domain/specs/issue-audit.md` | issue-audit 단계 요건과 `--plan` 명세. 새 구조 대조로 고칠 대상 |
+| `.ai/40_domain/specs/git-pr-submission.md` | PR 본문 첫 화면과 완료의 정의 대조 근거. 대조 규칙을 AC 행 기준으로 고칠 대상 |
+| `.ai/40_domain/specs/git-pr-feedback.md` | PR 뒤 피드백 처리 요건. R20의 안내가 가리키는 절차 |
+| `.ai/40_domain/policies/local/external-action-approval-gate.md` | 이슈 본문 갱신·PR·댓글의 승인 게이트 정책 |
+| `.ai/40_domain/policies/local/notation-conventions.md` | 분류 값 한글 우선 병기, 스킬·옵션 명명 기준 |
+| `.ai/30_contract/github-integration.md` | 이슈 본문 갱신의 기준 본문 재대조 규약 |
+| `.ai/10_rules/architecture.md` | 결정화 판단 체크리스트. 새 검사를 스크립트로 둘지 정하는 기준 |
+| `.ai/10_rules/testing-principles.md`, `.ai/10_rules/testing-principles-local.md` | 테스트 층·러너·실행 셸 |
