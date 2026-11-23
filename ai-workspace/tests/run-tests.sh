@@ -361,45 +361,54 @@ assert_ide_decision_reject() {
 }
 
 # 변형은 모두 실제로 바뀌었는지 확인한다. 바뀌지 않으면 원본이 그대로 통과해 격추가 실패로 보이지 않을 수 있다.
+# 변형은 실제 결정 목록의 특정 도구·결정에 기대지 않는다. 기대면 도구를 일관되게 재분류해도 변형 준비가
+# 실패한다 (#144 최종 감사 2차 F-8). 보류·기존 도구·쓰지 않음 변형은 사본에 가상의 `zz_*` 행을 더하고,
+# 표에 둠 변형은 결정 목록의 첫 `표에 둠` 행 도구(DV_TBL)를 실행할 때 골라 쓴다.
+DV_TBL="$(awk -F'|' '/^\| `[a-z0-9_]+` \| 표에 둠 \|/ { k = $2; gsub(/[ `]/, "", k); print k; exit }' "$IDE_DEC" 2>/dev/null)"
 dv_append()   { printf '%s\n' "- \`$3\`를 쓴다." >> "$1" && echo "$2"; }
+# dv_synth <ide-tools.md> <결정 목록> <이름> <결정> — 결정 목록에 가상 행을 더하고 절 밖 본문에 이름을 더한다.
+dv_synth()    { printf '%s\n' "| \`$3\` | $4 | 변형 |" >> "$2" && dv_append "$1" "$2" "$3"; }
 dv_unknown()  { dv_append "$1" "$2" zz_unknown_tool; }
-dv_hold()     { grep -qE '^\| `coverage_get_stats` \| 보류 \|' "$2" && dv_append "$1" "$2" coverage_get_stats; }
-dv_existing() { grep -qE '^\| `search_text` \| 기존 도구 \|' "$2" && dv_append "$1" "$2" search_text; }
-dv_unused()   { grep -qE '^\| `reformat_file` \| 쓰지 않음 \|' "$2" && dv_append "$1" "$2" reformat_file; }
+dv_hold()     { dv_synth "$1" "$2" zz_hold_tool 보류; }
+dv_existing() { dv_synth "$1" "$2" zz_existing_tool '기존 도구'; }
+dv_unused()   { dv_synth "$1" "$2" zz_unused_tool '쓰지 않음'; }
 dv_delete() {
-  grep -qF '·`get_project_modules`' "$1" || return 1
-  sed -i.bak 's/·`get_project_modules`//g' "$1" && rm -f "$1.bak"
-  ! grep -qF '`get_project_modules`' "$1" && echo "$2"
+  [ -n "$DV_TBL" ] && grep -qE "\`${DV_TBL}(\`|\()" "$1" || return 1
+  sed -E -i.bak "s/\`${DV_TBL}(\([^\`]*\))?\`//g" "$1" && rm -f "$1.bak"
+  ! grep -qE "\`${DV_TBL}(\`|\()" "$1" && echo "$2"
 }
 dv_to_unused() {
-  grep -qE '^\| `lint_files` \| 표에 둠 \|' "$2" || return 1
-  sed -i.bak 's/^| `lint_files` | 표에 둠 |/| `lint_files` | 쓰지 않음 |/' "$2" && rm -f "$2.bak" && echo "$2"
+  [ -n "$DV_TBL" ] && grep -qE "^\| \`${DV_TBL}\` \| 표에 둠 \|" "$2" || return 1
+  sed -i.bak "s/^| \`${DV_TBL}\` | 표에 둠 |/| \`${DV_TBL}\` | 쓰지 않음 |/" "$2" && rm -f "$2.bak" && echo "$2"
 }
 dv_in_section() {
-  awk '{ print } /^- `convert_java_to_kotlin`: / { print "- `lint_files`: 요청할 때만 쓴다."; hit = 1 } END { exit !hit }' "$1" > "$1.tmp" \
+  [ -n "$DV_TBL" ] || return 1
+  awk -v n="$DV_TBL" '{ print } /^## 사용자가 요청할 때만 쓰는 도구[[:space:]]*$/ { print "- `" n "`: 요청할 때만 쓴다."; hit = 1 } END { exit !hit }' "$1" > "$1.tmp" \
     && mv "$1.tmp" "$1" && echo "$2"
 }
 dv_no_list() { rm -f "$2" && echo "$2"; }
 # 결정 중복: `표에 둠` 행 앞이나 뒤에 같은 이름의 `보류` 행을 더한다. 행 순서와 관계없이 격추해야 한다.
 dv_dup() {
-  awk -v where="$3" '
-    /^\| `lint_files` \| 표에 둠 \|/ { if (where == "before") print "| `lint_files` | 보류 | 중복 변형 |"
-                                     print; if (where == "after") print "| `lint_files` | 보류 | 중복 변형 |"; hit = 1; next }
+  [ -n "$DV_TBL" ] || return 1
+  awk -v where="$3" -v n="$DV_TBL" '
+    BEGIN { row = "| `" n "` | 보류 | 중복 변형 |"; pre = "| `" n "` | 표에 둠 |" }
+    index($0, pre) == 1 { if (where == "before") print row
+                          print; if (where == "after") print row; hit = 1; next }
     { print } END { exit !hit }' "$2" > "$2.tmp" && mv "$2.tmp" "$2" && echo "$2"
 }
 dv_dup_before() { dv_dup "$1" "$2" before; }
 dv_dup_after()  { dv_dup "$1" "$2" after; }
 
 assert_ide_decision_reject '결정 목록에 없는 이름 추가' '결정 목록에 없음: zz_unknown_tool' dv_unknown
-assert_ide_decision_reject '표에 둠 도구 삭제' '표에 둠인데 절 밖에 이름 없음: get_project_modules' dv_delete
-assert_ide_decision_reject '보류 도구 추가' '요청 전용 절 밖인데 보류: coverage_get_stats' dv_hold
-assert_ide_decision_reject '기존 도구 도구 추가' '요청 전용 절 밖인데 기존 도구: search_text' dv_existing
-assert_ide_decision_reject '표에 둠 도구를 쓰지 않음으로 변경' '요청 전용 절 밖인데 쓰지 않음: lint_files' dv_to_unused
-assert_ide_decision_reject '쓰지 않음 도구를 요청 전용 절 밖에 추가' '요청 전용 절 밖인데 쓰지 않음: reformat_file' dv_unused
-assert_ide_decision_reject '표에 둠 도구를 요청 전용 절에 추가' '요청 전용 절 안인데 표에 둠: lint_files' dv_in_section
+assert_ide_decision_reject '표에 둠 도구 삭제' "표에 둠인데 절 밖에 이름 없음: ${DV_TBL}" dv_delete
+assert_ide_decision_reject '보류 도구 추가' '요청 전용 절 밖인데 보류: zz_hold_tool' dv_hold
+assert_ide_decision_reject '기존 도구 도구 추가' '요청 전용 절 밖인데 기존 도구: zz_existing_tool' dv_existing
+assert_ide_decision_reject '표에 둠 도구를 쓰지 않음으로 변경' "요청 전용 절 밖인데 쓰지 않음: ${DV_TBL}" dv_to_unused
+assert_ide_decision_reject '쓰지 않음 도구를 요청 전용 절 밖에 추가' '요청 전용 절 밖인데 쓰지 않음: zz_unused_tool' dv_unused
+assert_ide_decision_reject '표에 둠 도구를 요청 전용 절에 추가' "요청 전용 절 안인데 표에 둠: ${DV_TBL}" dv_in_section
 assert_ide_decision_reject '결정 목록 없음' '파일 없음: ' dv_no_list
-assert_ide_decision_reject '보류 행을 앞에 둔 결정 중복' '결정 행 중복: lint_files' dv_dup_before
-assert_ide_decision_reject '보류 행을 뒤에 둔 결정 중복' '결정 행 중복: lint_files' dv_dup_after
+assert_ide_decision_reject '보류 행을 앞에 둔 결정 중복' "결정 행 중복: ${DV_TBL}" dv_dup_before
+assert_ide_decision_reject '보류 행을 뒤에 둔 결정 중복' "결정 행 중복: ${DV_TBL}" dv_dup_after
 
 # ide_count_violations <목록 사본> <결정 목록> — 목록 사본 줄 수·결정 목록 머리의 `도구 수`·표의 도구 행 수가
 # 모두 같은지 본다. 어긋나면 1행을 출력한다. 도구 수를 고정값으로 두면 IntelliJ 업데이트 뒤 목록을 정상 갱신해도

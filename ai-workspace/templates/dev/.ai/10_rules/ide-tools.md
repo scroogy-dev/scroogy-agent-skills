@@ -46,7 +46,7 @@
 
 - 디버깅은 사용자가 요청할 때만 시작한다. 디버그 세션은 프로그램을 띄우고 IDE에 디버그 창과 중단점을 남기기 때문이다.
 - 중단점은 줄이면 `xdebug_set_breakpoints`, 예외면 `jvm_debug_set_exception_breakpoint`, 메서드면 `jvm_debug_set_method_breakpoint`로 건다.
-- 예외·메서드 중단점은 걸기 전에 `jvm_debug_list_exception_breakpoints`·`jvm_debug_list_method_breakpoints`로 같은 대상의 사용자 중단점을 확인하고, 있으면 건드리지 않는다. 도구가 그 설정을 덮어쓰고 소유자는 `user`로 남아 뒷정리로 되돌릴 수 없기 때문이다.
+- 예외·메서드 중단점은 걸기 전에 `jvm_debug_list_exception_breakpoints`·`jvm_debug_list_method_breakpoints`로 같은 대상의 중단점을 확인하고, 있으면 소유자와 관계없이 건드리지 않는다. 도구가 같은 대상의 기존 설정을 덮어쓰기 때문이다. 사용자 중단점은 소유자가 `user`로 남아 뒷정리로 되돌릴 수 없고, 앞선 작업이 건 에이전트 중단점은 이번 작업이 건 것으로 기록돼 뒷정리에서 지워진다.
 - 멈추지 않고 값만 기록할 때는 `logExpression`과 `suspendPolicy=NONE`을 준 로그 지점을 건다.
 - `xdebug_start_debugger_session`으로 시작하고, 멈추는 중단점이 있으면 `xdebug_control_session(action=WAIT_FOR_PAUSE)`로 멈출 때까지 기다린다.
 - 로그 지점만 걸었으면 프로그램이 멈추지 않으므로 기다리지 않고 `xdebug_control_session(action=DRAIN_EVENTS)`로 기록한 값을 읽는다. 기록은 JVM 디버거에서만 돌아온다.
