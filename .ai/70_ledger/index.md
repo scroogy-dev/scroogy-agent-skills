@@ -56,6 +56,12 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0036](active/K-0036-review-doc-category-check-deferred.md) | git-review doc 카테고리에 확인 관점 목록과 실패 시나리오가 없다 | 기술부채 | 중간(MEDIUM) | 수용 | 원본 문서 선언 repo에서 git-review를 여러 번 실행해 doc 카테고리 리뷰 포인트 형식을 정할 수 있을 때, 코드 카테고리 확인 관점 목록이나 doc 카테고리 표를 바꿀 때 |
 | [K-0037](active/K-0037-review-other-repo-pr-in-workspace-deferred.md) | git-review가 다른 저장소의 PR을 워크스페이스 안의 해당 저장소 디렉토리에서 리뷰하지 않는다 | 기술부채 | 낮음(LOW) | 수용 | 멀티 repo 워크스페이스에서 다른 저장소의 PR로 git-review를 실행해 중단된 사례가 반복될 때, 또는 git-review 1단계 저장소 확정 규칙이나 `resolve-target.sh` 대조 방식을 바꿀 때 |
 | [K-0038](active/K-0038-debug-breakpoint-precheck-race.md) | 예외·메서드 중단점의 사전 확인과 설정 사이에 다른 세션이 같은 대상을 걸면 그 중단점의 설정을 덮어쓸 수 있다 | known issue | 낮음(LOW) | 수용 | IntelliJ MCP 설정 도구에 조건부 생성 옵션이 생길 때, 또는 여러 에이전트 세션이 함께 디버깅하다 중단점 설정이 바뀐 사례가 보고될 때 |
+| [K-0039](active/K-0039-ide-tool-list-direct-fetch-deferred.md) | 목록 대조 헬퍼가 IntelliJ MCP 서버의 `tools/list`를 직접 호출하지 않고 사람이 모은 목록 파일로 대조한다 | 기술부채 | 낮음(LOW) | 수용 | IntelliJ 업데이트 때 목록 수집이 번거로워 대조를 미룬 사례가 나올 때, 또는 `check-ide-tool-list.sh`의 입력 방식을 바꿀 때 |
+| [K-0040](active/K-0040-ide-tool-missing-notice-deferred.md) | IntelliJ MCP는 연결됐는데 규칙 표의 도구를 찾지 못해도 사용자에게 알리는 단계가 없다 | known issue | 낮음(LOW) | 수용 | 도구 이름 변경으로 IDE 도구를 쓰지 못하고 기존 도구로 넘어간 사례가 나올 때, 또는 `ide-tools.md`의 기존 도구 전환 조건을 바꿀 때 |
+| [K-0041](active/K-0041-ide-inspection-kts-tools-deferred.md) | IntelliJ MCP의 inspection.kts 도구 6종과 `generate_psi_tree`를 규칙 표에 두지 않았다 | 기술부채 | 정보(INFO) | 수용 | 구조 검색이나 사용자 정의 검사가 필요한 작업에서 이 도구를 써 본 사례가 생길 때, 또는 IntelliJ 업데이트로 결정 목록을 다시 비교할 때 |
+| [K-0042](active/K-0042-ide-jvm-memory-tools-deferred.md) | IntelliJ MCP의 `jvm_debug_memory_*` 도구 4종을 규칙 표에 두지 않았다 | 기술부채 | 정보(INFO) | 수용 | 메모리 누수·과다 사용 원인을 디버깅으로 찾아야 하는 사례가 생길 때, 또는 IntelliJ 업데이트로 결정 목록을 다시 비교할 때 |
+| [K-0043](active/K-0043-ide-debug-attach-process-deferred.md) | IntelliJ MCP의 `xdebug_attach_to_process`를 규칙 표에 두지 않았다 | 기술부채 | 정보(INFO) | 수용 | IDE 밖에서 띄운 프로세스를 디버깅해야 하는 사례가 생길 때, 또는 IntelliJ 업데이트로 결정 목록을 다시 비교할 때 |
+| [K-0044](active/K-0044-deployed-ide-tools-row-description-stale.md) | 이미 배포된 repo 안내도의 `ide-tools.md` 행 설명이 update로 갱신되지 않는다 | known issue | 낮음(LOW) | 수용 | 옛 행 설명 때문에 실행 작업(테스트·커버리지·로컬 서버·디버깅)에서 IDE 도구를 놓친 사례가 나올 때, 또는 update-4의 행 보존 규칙을 바꿀 때 |
 
 ## 수명 주기
 
