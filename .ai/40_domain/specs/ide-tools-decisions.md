@@ -86,10 +86,10 @@ IntelliJ MCP 도구마다 `ide-tools.md`(dev 템플릿 `ai-workspace/templates/d
 | 도구 | 결정 | 이유 |
 |------|------|------|
 | `jvm_debug_get_thread_dump` | 표에 둠 | 프로그램이 멈추거나 느린 원인을 본다 |
-| `jvm_debug_list_exception_breakpoints` | 표에 둠 | 예외 중단점을 걸기 전에 같은 대상의 기존 중단점을 확인하고, 건 뒤 그 대상의 ID를 찾는다 |
-| `jvm_debug_list_method_breakpoints` | 표에 둠 | 메서드 중단점을 걸기 전에 같은 대상의 기존 중단점을 확인하고, 건 뒤 그 대상의 ID를 찾는다 |
-| `jvm_debug_set_exception_breakpoint` | 표에 둠 | 예외 중단점을 건다 |
-| `jvm_debug_set_method_breakpoint` | 표에 둠 | 메서드 중단점을 건다 |
+| `jvm_debug_list_exception_breakpoints` | 표에 둠 | 예외 중단점을 걸기 전에 같은 대상의 기존 중단점을 확인한다 |
+| `jvm_debug_list_method_breakpoints` | 표에 둠 | 메서드 중단점을 걸기 전에 같은 대상의 기존 중단점을 확인한다 |
+| `jvm_debug_set_exception_breakpoint` | 표에 둠 | 예외 중단점을 걸고, 응답의 `created`가 `true`일 때만 `breakpointId`를 기록한다 |
+| `jvm_debug_set_method_breakpoint` | 표에 둠 | 메서드 중단점을 걸고, 응답의 `created`가 `true`일 때만 `breakpointId`를 기록한다 |
 | `xdebug_control_session` | 표에 둠 | 멈출 때까지 기다리기, 로그 지점 기록 읽기, 단계 실행, 세션 멈추기를 한다 |
 | `xdebug_evaluate_expression` | 표에 둠 | 멈춘 뒤 식을 평가한다 |
 | `xdebug_get_debugger_status` | 표에 둠 | 디버깅 중 세션 상태를 조회한다 |
