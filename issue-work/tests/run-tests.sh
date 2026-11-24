@@ -228,6 +228,13 @@ check_response() {
   printf '%s\n' "$s45" | grep -q '순서 게이트'         || echo "4~5단계 범위에 '순서 게이트' 없음"
   printf '%s\n' "$sec" | grep -q '항목 단위로'         || echo "절 전체에 '항목 단위로' 없음"
   printf '%s\n' "$sec" | grep -q '자동 보정하지 않는다' || echo "절 전체에 '자동 보정하지 않는다' 없음"
+  # 5단계는 결정만 받는다 — 소스를 고치는 시점은 다음 회차의 구현이고, 지표는 발견이 나온 Task 에 센다 (issue #145).
+  local s5 t
+  s5="$(printf '%s\n' "$s45" | awk '/^  5\. /{f=1} f')"
+  for t in '결정만 받고 소스를 고치지 않는다' '다음 회차의 계획 수립에서 plan에 Task로 더하고' \
+           '발견이 나온 Task 블록의 `audit 발견`' '고친 Task의 `대응 발견`' '승인분만 그 두 파일에 반영한다'; do
+    printf '%s\n' "$s5" | grep -qF -- "$t" || echo "5단계 범위에 [$t] 없음"
+  done
 }
 
 # assert_response <파일> <기대: pass|fail> <설명>
@@ -257,6 +264,13 @@ assert_response "$sandbox/r-no-split.md"     fail "response 스모크: 2단계 �
 assert_response "$sandbox/r-no-order.md"     fail "response 스모크: 상단 배치·미해소 명시 소실 격추"
 assert_response "$sandbox/r-no-approval.md"  fail "response 스모크: 항목별 승인 원칙 소실 격추"
 assert_response "$sandbox/r-no-section.md"   fail "response 스모크: 절 헤더 소실 격추"
+i=0
+for p in '결정만 받고 소스를 고치지 않는다' '다음 회차의 계획 수립에서 plan에 Task로 더하고' \
+         '발견이 나온 Task 블록의 `audit 발견`' '고친 Task의 `대응 발견`' '승인분만 그 두 파일에 반영한다'; do
+  i=$((i + 1))
+  DL="$p" awk '{ while ((k = index($0, ENVIRON["DL"]))) $0 = substr($0, 1, k - 1) substr($0, k + length(ENVIRON["DL"])); print }' "$SKILL" > "$sandbox/r-drop-$i.md"
+  assert_response "$sandbox/r-drop-$i.md"    fail "response 스모크: 5단계 [$p] 삭제 격추"
+done
 
 # --- 템플릿 구조 계약 스모크 (issue #94 audit F-1·F-2) --------------------------
 #
@@ -3150,6 +3164,284 @@ assert_structure check_expect_relax "$sandbox/er-refine.md" fail "기대값 완�
 assert_structure check_expect_relax "$sandbox/er-dup.md"    fail "기대값 완화: 테스트 수정 항목 중복 격추"
 assert_structure check_expect_relax "$sandbox/er-soft.md"   fail "기대값 완화: 테스트 수정에 기대값 넣기 격추"
 assert_structure check_expect_relax "$sandbox/er-out.md"    fail "기대값 완화: 테스트 수정 항목의 변경 통제 밖 이동 격추"
+
+# --- 진행 루프 (issue #145) -------------------------------------------------------
+#
+# SKILL.md `## 진행 루프`는 다섯 단계와 돌아가는 길, 마무리, PR 뒤 피드백을 정하고 `--response`·`--clear`·
+# "이슈 완료 시"가 그 절차를 따른다. 조항은 절·소제목·항목 범위로 잘라 판정하므로 같은 문구가 다른 자리에 있으면
+# 세지 않는다. 다시 받는 조건·보이는 값·권장 기준처럼 닫힌 목록은 항목 이름을 전부 이어 붙여 견준다.
+
+# loop_section <파일> → `## 진행 루프` 절
+loop_section() { awk '/^## 진행 루프$/ { f = 1; next } f && /^## / { exit } f' "$1"; }
+
+# loop_part <파일> <소제목> → 그 소제목의 본문 (소제목이 빈 값이면 첫 소제목 앞)
+loop_part() { loop_section "$1" | awk -v h="$2" 'BEGIN { s = (h == "") } /^### / { if (s && h == "") exit; s = ($0 == "### " h); next } s'; }
+
+# item_names → 표준 입력에서 첫 행을 뺀 하위 항목 이름(`: ` 앞)을 `|`로 이어 출력
+item_names() { awk 'NR > 1 && /^ +- / { l = $0; sub(/^ +- /, "", l); sub(/: .*/, "", l); printf "%s|", l }'; }
+
+# h2_section <파일> <제목> → `## <제목>` 절, opt_section <파일> <옵션> → `### `<옵션>`` 절
+h2_section()  { awk -v h="## $2" '$0 == h { f = 1; next } f && /^## / { exit } f' "$1"; }
+opt_section() { awk -v h="### \`$2\`" '$0 == h { f = 1; next } f && /^##/ { exit } f' "$1"; }
+
+# opt_step <파일> <옵션> <번호> → 옵션 절의 그 번호 단계
+opt_step() { opt_section "$1" "$2" | awk -v n="  $3. " 'index($0, n) == 1 { s = 1; print; next } s && (/^  [0-9]+\. / || /^[^[:space:]]/) { exit } s'; }
+
+# check_loop_stages <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_loop_stages() {
+  local got b
+  got="$(grep -E '^## ' "$1" | sed 's/^## //' | tr '\n' '|')"
+  case "$got" in
+    *'|새 이슈 시작 시|진행 루프|작업 진행 중|'*) ;;
+    *) echo "## 진행 루프의 자리가 새 이슈 시작 시와 작업 진행 중 사이가 아님" ;;
+  esac
+  got="$(grep -c '^## 진행 루프$' "$1")"
+  [ "$got" -eq 1 ] || echo "## 진행 루프 제목 ${got}개 (기대 1개)"
+  got="$(loop_section "$1" | grep -E '^### ' | sed 's/^### //' | tr '\n' '|')"
+  [ "$got" = '계획 수립|계획 검증|구현|구현 검증|완료 확인|마무리|PR 뒤 피드백|' ] || echo "진행 루프의 소제목 [$got]"
+  b="$(loop_part "$1" '')"
+  need_all "$b" '진행 루프 첫머리' '**계획 수립 → 계획 검증 → 구현 → 구현 검증 → 완료 확인**의 다섯 단계를 이 순서로 지난다' \
+    '계획 수립에서 완료 확인까지 한 번 지나는 것이 한 회차다'
+  need_one "$b" '진행 루프 첫머리' '- **돌아가는 길**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **돌아가는 길**: ')" '돌아가는 길' \
+    '완료 확인에서 사용자가 `다음 회차`로 정하면 계획 수립으로 돌아간다' '`마무리`로 정하면 루프를 나가 Task N'
+  need_all "$(printf '%s\n' "$b" | item_block '- **회차 기록**: ')" '회차 기록' 'summary `루프 기록`에 한 행을 더하고'
+  need_all "$(printf '%s\n' "$b" | item_block '- **검증 기록**: ')" '검증 기록' \
+    '`계획 검증 커밋`이나 `구현 검증 커밋` 칸에 감사 대상 커밋을' '감사 종류와 리포트 머리말의 감사 회차'
+  b="$(loop_part "$1" '계획 수립')"
+  need_all "$b" '계획 수립' 'spec·plan이 없으면 쓰고, 지난 회차에서 바꿀 것이 나왔으면 고친다' '"새 이슈 시작 시" 1~4단계'
+  need_all "$(printf '%s\n' "$b" | item_block '- **발견을 고치는 Task**: ')" '발견을 고치는 Task' \
+    '`--response`에서 반영으로 정한 발견을 plan에 Task로 더한다'
+  need_all "$(loop_part "$1" '계획 검증')" '계획 검증' '"새 이슈 시작 시" 5단계' '조건에 맞지 않으면 구현으로 간다'
+  b="$(loop_part "$1" '구현')"
+  need_one "$b" '구현' '- **테스트 먼저**: '
+  need_one "$b" '구현' '- **테스트를 먼저 쓰지 않는 Task**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **테스트 먼저**: ')" '테스트 먼저' \
+    '테스트 작성 → 실패 확인 → 테스트 커밋 → 구현 → 통과 확인 → 구현 커밋 순서로 진행한다' '재현 테스트'
+  b="$(printf '%s\n' "$b" | item_block '- **테스트를 먼저 쓰지 않는 Task**: ')"
+  need_all "$b" '테스트를 먼저 쓰지 않는 Task' '동작을 바꾸지 않는 Task' '구현 → 통과 확인 두 단계' '통과 확인은 기존 테스트 전체 통과' \
+    '러너도 결정적 명령도 없는 repo만 통과 확인을 건너뛴다' '먼저 쓰지 않는 이유를 한 줄'
+  got="$(printf '%s\n' "$b" | awk 'NR > 1 && /^  - / { sub(/^  - /, ""); printf "%s|", $0 }')"
+  [ "$got" = '문서만 고치는 Task|자동 테스트가 보지 못하는 화면 배치|버릴 코드를 쓰는 스파이크|기존 테스트가 그대로 통과해야 하는 리팩터링|' ] \
+    || echo "테스트를 먼저 쓰지 않는 Task의 기준 목록 [$got]"
+}
+
+# check_impl_verify <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_impl_verify() {
+  local b c got p
+  b="$(loop_part "$1" '구현 검증')"
+  for p in '감사 실행' '바뀌었는지의 판별' '검토'; do need_one "$b" '구현 검증' "- **${p}**: "; done
+  need_all "$(printf '%s\n' "$b" | item_block '- **감사 실행**: ')" '감사 실행' \
+    '지난 검증 뒤에 구현이 바뀌었으면' '교차 감사를 전체로 다시 받는다' '사용자가 구현 모델과 **다른 벤더 모델**' '직접 실행' \
+    '고친 발견의 위험도에 따른 예외는 없다' '구현 AI는 감사를 실행하지 않는다' '스펙 위반·누락·소스코드와의 모순'
+  c="$(printf '%s\n' "$b" | item_block '- **바뀌었는지의 판별**: ')"
+  need_all "$(printf '%s\n' "$c" | head -1)" '판별 첫 행' '`구현 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
+    '하나라도 맞으면 바뀐 것' '조건은 이 셋이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도'
+  got="$(printf '%s\n' "$c" | item_names)"
+  [ "$got" = '제외 경로 밖|제외 경로 안의 산출물|`테스트 계획`의 줄|' ] || echo "구현이 바뀐 조건 목록 [$got]"
+  need_all "$(printf '%s\n' "$c" | item_block '  - 제외 경로 밖: ')" '제외 경로 밖' \
+    '`.ai/90_issues/`' '`.ai/99_workspace/`' '`.ai/70_ledger/`' 'plan Task N이 마무리로 적은 문서'
+  need_all "$(printf '%s\n' "$c" | item_block '  - 제외 경로 안의 산출물: ')" '제외 경로 안의 산출물' 'plan 일반 Task가 고친다고 적은 파일'
+  need_all "$(printf '%s\n' "$c" | item_block '  - `테스트 계획`의 줄: ')" '테스트 계획의 줄' \
+    '`[D]`·`[QD]` 줄이 더해졌거나' '`확인` 외 칸이 바뀌었다' '`확인` 칸만 바뀐 것과 `[ND]` 줄의 변경은 세지 않는다'
+  need_all "$(printf '%s\n' "$b" | item_block '- **검토**: ')" '검토' '`--response`'
+  need_all "$(h2_section "$1" '관련 skill' | item_block '- issue-audit (권장): ')" '관련 skill의 issue-audit' \
+    '구현 검증' '**구현 AI는 감사를 실행하지 않습니다.**'
+  for p in '교차모델 검증으로 고정' 'Task N(교차모델 audit)' 'Task N 교차모델' '마지막 고정 Task(교차모델'; do
+    grep -nF -- "$p" "$1" | sed 's/^/Task N에서 교차 감사를 받는 옛 문구 남음: /' | cut -c1-90
+  done
+}
+
+# check_done_check <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_done_check() {
+  local b c got p
+  b="$(loop_part "$1" '완료 확인')"
+  for p in '보이는 값' '확인 칸' '권장' '결정' '기준에 못 미친 마무리'; do need_one "$b" '완료 확인' "- **${p}**: "; done
+  c="$(printf '%s\n' "$b" | item_block '- **보이는 값**: ')"
+  need_all "$c" '보이는 값' '마지막 교차 감사 리포트' '새 판정 값을 만들지 않는다' '두 표에서 `확인` 칸이 채워진 줄 수'
+  got="$(printf '%s\n' "$c" | item_names)"
+  [ "$got" = '1단계 상태|2단계 상태|종합 판정|확인한 줄 수|' ] || echo "보이는 값 목록 [$got]"
+  c="$(printf '%s\n' "$b" | item_block '- **권장**: ')"
+  need_all "$(printf '%s\n' "$c" | head -1)" '권장 첫 행' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다'
+  got="$(printf '%s\n' "$c" | item_names)"
+  [ "$got" = '1단계 상태|2단계 상태|확인한 줄 수|반영으로 정한 발견|' ] || echo "권장 기준 목록 [$got]"
+  need_one "$c" '권장' '  - 1단계 상태: 충족(PASS)이다.'
+  need_one "$c" '권장' '  - 2단계 상태: 통과(PASS)나 주의(WARN)다.'
+  need_one "$c" '권장' '  - 확인한 줄 수: `테스트 계획`의 모든 줄을 확인했다.'
+  need_all "$(printf '%s\n' "$c" | item_block '  - 반영으로 정한 발견: ')" '반영으로 정한 발견' '모두 닫았다' '이관이나 보류로 정한 발견은 세지 않는다'
+  c="$(printf '%s\n' "$b" | item_block '- **확인 칸**: ')"
+  need_all "$c" '확인 칸' '충족으로 판정한 AC의 `[D]`·`[QD]` 줄에 그 감사 회차를 적' '감사 대상 커밋의 `테스트 계획`에 같은 내용으로 있던 줄에만' \
+    '새 회차로 다시 적' '`확인`이 빈 `[ND]` 줄과 지난 확인 뒤에 구현이 바뀐 `[ND]` 줄은 사용자에게 보여 주고' '사용자가 확인하지 않은 줄은 비워 둔다'
+  need_all "$(printf '%s\n' "$b" | item_block '- **결정**: ')" '결정' '사용자가 정하고' '`결정` 칸에 적는다'
+  need_all "$(printf '%s\n' "$b" | item_block '- **기준에 못 미친 마무리**: ')" '기준에 못 미친 마무리' \
+    '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다'
+}
+
+# check_finish_entry <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_finish_entry() {
+  local b c
+  b="$(loop_part "$1" '마무리')"
+  need_all "$b" '마무리' '사용자가 `마무리`로 정한 뒤에만 Task N에 들어간다' '교차 감사를 받지 않는다' \
+    '전체 회귀, 색인, 충족 AC 체크, repo 고유 마무리, `--clear`, PR'
+  need_one "$b" '마무리' '- **구현을 고칠 때**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **구현을 고칠 때**: ')" '구현을 고칠 때' 'Task N에서 구현을 고치면 계획 수립으로 돌아간다' '체크한 AC의 체크를 지운다'
+  b="$(opt_step "$1" --clear 1)"
+  need_one "$b" '--clear 1단계' '     - **체크박스**: '
+  need_one "$b" '--clear 1단계' '     - **루프 기록의 결정**: '
+  need_all "$(printf '%s\n' "$b" | item_block '     - **체크박스**: ')" '체크박스 검사' \
+    '계획 종료 게이트 `점검 완료`, Task 0, 일반 Task' 'Task N의 미체크는 미완료로 세지 않는다' '`--clear`가 Task N의 한 단계'
+  c="$(printf '%s\n' "$b" | item_block '     - **루프 기록의 결정**: ')"
+  need_all "$c" '루프 기록의 결정 검사' 'summary `루프 기록` 마지막 행의 `결정`이 `마무리`인지 본다' \
+    '결정 전이거나 `다음 회차`' '미완료 항목으로 보여 준다'
+  need_all "$b" '--clear 1단계' '계속 진행할지 질의한다' '"$clear_check" --completion'
+  b="$(opt_step "$1" --clear 4)"
+  need_one "$b" '--clear 4단계' '     - **Task N 기록**: '
+  need_all "$(printf '%s\n' "$b" | item_block '     - **Task N 기록**: ')" 'Task N 기록' \
+    '1단계의 두 검사가 모두 통과' '이관 직전에 plan의 Task N 체크박스를 체크하고' '`결과`에 `완료`를' \
+    '`수행 내용 요약`에 `PR 대기(git-pr로 생성)`를 적는다' '미완료를 안고 진행한 실행(중단·종료)에서는 체크하지 않는다'
+  b="$(h2_section "$1" '이슈 완료 시' | awk '/^1\. / { s = 1 } /^2\. / { exit } s')"
+  need_all "$b" '이슈 완료 시 1단계' 'Task N의 미체크는 미완료로 세지 않는다' \
+    '최종 audit 모델("벤더, 모델명 (모델 ID)")이 summary `모델 기록` 표의 `최종 audit 모델` 행에 기록'
+  b="$(opt_section "$1" --clear)"
+  [ "$(printf '%s\n' "$b" | grep -oE '^  [0-9]+\. ' | tr -d '. ' | tr '\n' '|')" = '1|2|3|4|5|6|' ] || echo '--clear 단계 번호가 1~6 아님'
+  need_all "$(printf '%s\n' "$b" | item_block '- **시점**: ')" '--clear 시점' 'PR을 만들기 직전'
+}
+
+# check_same_kind <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_same_kind() {
+  local b
+  b="$(loop_part "$1" '계획 수립')"
+  need_one "$b" '계획 수립' '- **같은 종류의 발견**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **같은 종류의 발견**: ')" '같은 종류의 발견' \
+    'summary `종류별 발견`' '지난 두 회차에 이어서 나왔으면' 'plan `설계 결정`부터 고친다' '섹션이 없으면 이때 만든다'
+  b="$(opt_step "$1" --response 3)"
+  need_one "$b" '--response 3단계' '     - **종류**: '
+  need_all "$(printf '%s\n' "$b" | item_block '     - **종류**: ')" '종류 칸' '`종류` 칸을 둔다' '이미 있는 이름을 그대로 쓴다'
+  b="$(opt_step "$1" --response 5)"
+  need_one "$b" '--response 5단계' '     - **종류 기록**: '
+  need_all "$(printf '%s\n' "$b" | item_block '     - **종류 기록**: ')" '종류 기록' 'summary `종류별 발견`에 적는다' '루프 회차 번호'
+}
+
+# check_pr_feedback <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_pr_feedback() {
+  local b
+  need_all "$(loop_part "$1" '마무리')" '마무리' 'PR은 Task N에서 git-pr로 만든다'
+  b="$(loop_part "$1" 'PR 뒤 피드백')"
+  need_all "$b" 'PR 뒤 피드백' '리뷰 피드백은 git-pr-feedback으로 처리한다' \
+    '구현을 고쳤을 때 교차 감사를 다시 받을지는 사용자가 고른다' 'PR을 만든 뒤에는 이슈 문서를 고치지 않는다'
+}
+
+# swap_parts <소제목 A> <소제목 B> → 두 소제목 이름을 바꾼 SKILL.md 사본
+swap_parts() { awk -v a="### $1" -v b="### $2" '/^## / { f = ($0 == "## 진행 루프") } f && $0 == a { print b; next } f && $0 == b { print a; next } { print }' "$SKILL"; }
+
+# drop_row <행 머리> → 그 머리로 시작하는 행을 지운 SKILL.md 사본
+drop_row() { awk -v l="$1" 'index($0, l) != 1' "$SKILL"; }
+
+# add_after <행 머리> <더할 행> → 그 머리로 시작하는 행 뒤에 한 행을 더한 SKILL.md 사본
+add_after() { ADD="$2" awk -v l="$1" '{ print } index($0, l) == 1 { print ENVIRON["ADD"] }' "$SKILL"; }
+
+assert_structure check_loop_stages "$SKILL" pass "루프 다섯 단계: 실제 SKILL.md 통과"
+drop_cases check_loop_stages '루프 다섯 단계' \
+  '**계획 수립 → 계획 검증 → 구현 → 구현 검증 → 완료 확인**의 다섯 단계를 이 순서로 지난다' '계획 수립에서 완료 확인까지 한 번 지나는 것이 한 회차다' \
+  '완료 확인에서 사용자가 `다음 회차`로 정하면 계획 수립으로 돌아간다' '`마무리`로 정하면 루프를 나가 Task N' \
+  'summary `루프 기록`에 한 행을 더하고' '`계획 검증 커밋`이나 `구현 검증 커밋` 칸에 감사 대상 커밋을' '감사 종류와 리포트 머리말의 감사 회차' \
+  'spec·plan이 없으면 쓰고, 지난 회차에서 바꿀 것이 나왔으면 고친다' '`--response`에서 반영으로 정한 발견을 plan에 Task로 더한다' \
+  '조건에 맞지 않으면 구현으로 간다' '테스트 작성 → 실패 확인 → 테스트 커밋' '→ 구현 커밋 순서로 진행한다' '재현 테스트' \
+  '동작을 바꾸지 않는 Task' '확인 두 단계' '확인은 기존 테스트 전체' '러너도 결정적 명령도 없는 repo만' '먼저 쓰지 않는 이유를 한 줄'
+for p in '계획 수립' '계획 검증' '구현' '구현 검증' '완료 확인'; do
+  awk -v h="### $p" '$0 != h' "$SKILL" > "$sandbox/lp-no.md"
+  assert_structure check_loop_stages "$sandbox/lp-no.md" fail "루프 다섯 단계: 소제목 [$p] 삭제 격추"
+done
+swap_parts '구현' '구현 검증' > "$sandbox/lp-swap.md"
+drop_row '## 진행 루프' > "$sandbox/lp-no-h2.md"
+awk '/^## 진행 루프$/ { s = 1 } s && /^## 작업 진행 중$/ { s = 0 } s { buf = buf $0 "\n"; next } /^## 이슈 완료 시$/ { printf "%s", buf } { print }' "$SKILL" > "$sandbox/lp-moved.md"
+drop_row '  - 버릴 코드를 쓰는 스파이크' > "$sandbox/lp-no-spike.md"
+add_after '  - 버릴 코드를 쓰는 스파이크' '  - 급한 수정' > "$sandbox/lp-extra.md"
+assert_structure check_loop_stages "$sandbox/lp-swap.md"     fail "루프 다섯 단계: 구현과 구현 검증의 순서 바꾸기 격추"
+assert_structure check_loop_stages "$sandbox/lp-no-h2.md"    fail "루프 다섯 단계: 절 제목 삭제 격추"
+assert_structure check_loop_stages "$sandbox/lp-moved.md"    fail "루프 다섯 단계: 절의 작업 진행 중 뒤 이동 격추"
+assert_structure check_loop_stages "$sandbox/lp-no-spike.md" fail "루프 다섯 단계: 테스트를 먼저 쓰지 않는 기준 한 줄 삭제 격추"
+assert_structure check_loop_stages "$sandbox/lp-extra.md"    fail "루프 다섯 단계: 테스트를 먼저 쓰지 않는 기준 추가 격추"
+
+assert_structure check_impl_verify "$SKILL" pass "구현 검증 단계: 실제 SKILL.md 통과"
+drop_cases check_impl_verify '구현 검증 단계' \
+  '지난 검증 뒤에 구현이 바뀌었으면' '교차 감사를 전체로 다시 받는다' '**다른 벤더 모델**' '고친 발견의 위험도에 따른 예외는 없다' \
+  '구현 AI는 감사를 실행하지 않는다' '스펙 위반·누락·소스코드와의 모순' '`구현 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
+  '하나라도 맞으면 바뀐 것' '조건은 이 셋이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도' \
+  'plan Task N이 마무리로 적은 문서' 'plan 일반 Task가 고친다고 적은 파일' '`[D]`·`[QD]` 줄이 더해졌거나' \
+  '`확인` 칸만 바뀐 것과 `[ND]` 줄의 변경은 세지 않는다' '**구현 AI는 감사를 실행하지 않습니다.**'
+for p in '  - 제외 경로 밖: ' '  - 제외 경로 안의 산출물: ' '  - `테스트 계획`의 줄: '; do
+  drop_row "$p" > "$sandbox/iv-no.md"
+  assert_structure check_impl_verify "$sandbox/iv-no.md" fail "구현 검증 단계: 조건 [${p#  - }] 행 삭제 격추"
+done
+for p in '`.ai/90_issues/`' '`.ai/99_workspace/`' '`.ai/70_ledger/`'; do
+  P="$p" awk 'index($0, "  - 제외 경로 밖: ") == 1 { i = index($0, ENVIRON["P"]); if (i) $0 = substr($0, 1, i - 1) substr($0, i + length(ENVIRON["P"])) } { print }' "$SKILL" > "$sandbox/iv-path.md"
+  assert_structure check_impl_verify "$sandbox/iv-path.md" fail "구현 검증 단계: 제외 경로 [$p] 삭제 격추"
+done
+add_after '  - `테스트 계획`의 줄: ' '  - 위험도: 높음 발견을 고쳤다.' > "$sandbox/iv-extra.md"
+move_item '- **감사 실행**: ' '### 마무리' > "$sandbox/iv-moved.md"
+add_after '## 작업 진행 중' '- 계획의 마지막 Task는 교차모델 검증으로 고정한다.' > "$sandbox/iv-old.md"
+add_after '- **용도**: 세션 종료' '- 최종 감사는 Task N 교차모델 audit에서 받는다.' > "$sandbox/iv-old2.md"
+assert_structure check_impl_verify "$sandbox/iv-extra.md" fail "구현 검증 단계: 조건에 위험도 추가 격추"
+assert_structure check_impl_verify "$sandbox/iv-moved.md" fail "구현 검증 단계: 감사 실행 항목의 완료 확인 이동 격추"
+assert_structure check_impl_verify "$sandbox/iv-old.md"   fail "구현 검증 단계: 작업 진행 중의 옛 교차모델 검증 문구 되돌리기 격추"
+assert_structure check_impl_verify "$sandbox/iv-old2.md"  fail "구현 검증 단계: 옵션 절의 옛 Task N 교차모델 문구 되돌리기 격추"
+
+assert_structure check_done_check "$SKILL" pass "완료 확인 단계: 실제 SKILL.md 통과"
+drop_cases check_done_check '완료 확인 단계' \
+  '마지막 교차 감사 리포트' '새 판정 값을 만들지 않는다' '두 표에서 `확인` 칸이 채워진 줄 수' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다' \
+  '이관이나 보류로 정한 발견은 세지 않는다' '충족으로 판정한 AC의 `[D]`·`[QD]` 줄에 그 감사 회차를 적' '감사 대상 커밋의 `테스트 계획`에 같은 내용으로 있던 줄에만' \
+  '새 회차로 다시 적' '`확인`이 빈 `[ND]` 줄과 지난 확인 뒤에 구현이 바뀐 `[ND]` 줄은 사용자에게 보여 주고' '사용자가 확인하지 않은 줄은 비워 둔다' \
+  '`결정` 칸에 적는다' '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다'
+for p in '보이는 값|  - 1단계 상태' '보이는 값|  - 2단계 상태' '보이는 값|  - 종합 판정' '보이는 값|  - 확인한 줄 수: ' \
+         '권장|  - 1단계 상태: ' '권장|  - 2단계 상태: ' '권장|  - 확인한 줄 수: ' '권장|  - 반영으로 정한 발견: '; do
+  awk -v it="- **${p%%|*}**: " -v l="${p#*|}" '/^- / { s = (index($0, it) == 1) } s && index($0, l) == 1 { next } { print }' "$SKILL" > "$sandbox/dn-no.md"
+  assert_structure check_done_check "$sandbox/dn-no.md" fail "완료 확인 단계: ${p%%|*}의 [${p#*|  - }] 행 삭제 격추"
+done
+awk '/^  - 1단계 상태: 충족\(PASS\)이다\.$/ { $0 = "  - 1단계 상태: 충족(PASS)이나 부분 충족(PARTIAL)이다." } { print }' "$SKILL" > "$sandbox/dn-soft1.md"
+awk '/^  - 2단계 상태: 통과\(PASS\)나 주의\(WARN\)다\.$/ { $0 = "  - 2단계 상태: 보완 필요(FAIL)여도 된다." } { print }' "$SKILL" > "$sandbox/dn-soft2.md"
+add_after '  - 반영으로 정한 발견: ' '  - 종합 판정: 적합(PASS)이다.' > "$sandbox/dn-extra.md"
+awk '/^- \*\*결정\*\*: / { sub(/사용자가 정하고/, "구현 AI가 정하고") } { print }' "$SKILL" > "$sandbox/dn-ai.md"
+assert_structure check_done_check "$sandbox/dn-soft1.md" fail "완료 확인 단계: 1단계 상태 기준을 부분 충족까지 넓히기 격추"
+assert_structure check_done_check "$sandbox/dn-soft2.md" fail "완료 확인 단계: 2단계 상태 기준을 보완 필요까지 넓히기 격추"
+assert_structure check_done_check "$sandbox/dn-extra.md" fail "완료 확인 단계: 권장 기준에 다섯 번째 추가 격추"
+assert_structure check_done_check "$sandbox/dn-ai.md"    fail "완료 확인 단계: 결정 주체를 구현 AI로 바꾸기 격추"
+
+assert_structure check_finish_entry "$SKILL" pass "마무리 진입: 실제 SKILL.md 통과"
+drop_cases check_finish_entry '마무리 진입' \
+  '사용자가 `마무리`로 정한 뒤에만 Task N에 들어간다' '교차 감사를 받지 않는다' '전체 회귀, 색인, 충족 AC 체크, repo 고유 마무리, `--clear`, PR' \
+  'Task N에서 구현을 고치면 계획 수립으로 돌아간다' '체크한 AC의 체크를 지운다' '     - **체크박스**: ' '     - **루프 기록의 결정**: ' \
+  'summary `루프 기록` 마지막 행의 `결정`이 `마무리`인지 본다' '결정 전이거나 `다음 회차`' '미완료 항목으로 보여 준다' '계속 진행할지 질의한다' \
+  '     - **Task N 기록**: ' '1단계의 두 검사가 모두' '이관 직전에 plan의 Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`' \
+  '미완료를 안고 진행한 실행(중단·종료)에서는 체크하지 않는다' '행에 기록' 'PR을 만들기 직전'
+for p in "이슈 완료 시|## 이슈 완료 시" '--clear 1단계|### `--clear`'; do
+  awk -v h="${p#*|}" '/^##/ { s = ($0 == h) } s { gsub(/Task N의 미체크는 미완료로 세지 않는다/, "Task N도 체크되어야 한다") } { print }' "$SKILL" > "$sandbox/fe-n.md"
+  assert_structure check_finish_entry "$sandbox/fe-n.md" fail "마무리 진입: ${p%%|*}에서 Task N 미체크를 미완료로 되돌리기 격추"
+done
+move_item '     - **Task N 기록**: ' '  6. **경로 참조' > "$sandbox/fe-step5.md"
+move_item '     - **루프 기록의 결정**: ' '  3. **이슈 댓글' > "$sandbox/fe-step2.md"
+awk '/^### `--clear`$/ { f = 1 } f && /^  5\. / { sub(/^  5\. /, "  7. "); f = 0 } { print }' "$SKILL" > "$sandbox/fe-renum.md"
+assert_structure check_finish_entry "$sandbox/fe-step5.md" fail "마무리 진입: Task N 기록의 --clear 5단계 이동 격추"
+assert_structure check_finish_entry "$sandbox/fe-step2.md" fail "마무리 진입: 루프 기록 결정 검사의 --clear 2단계 이동 격추"
+assert_structure check_finish_entry "$sandbox/fe-renum.md" fail "마무리 진입: --clear 단계 번호 변경 격추"
+
+assert_structure check_same_kind "$SKILL" pass "같은 종류 발견: 실제 SKILL.md 통과"
+drop_cases check_same_kind '같은 종류 발견' \
+  '- **같은 종류의 발견**: ' '지난 두 회차에 이어서 나왔으면' 'plan `설계 결정`부터 고친다' '섹션이 없으면 이때 만든다' \
+  '     - **종류**: ' '`종류` 칸을 둔다' '이미 있는 이름을 그대로 쓴다' '     - **종류 기록**: ' 'summary `종류별 발견`에 적는다'
+move_item '- **같은 종류의 발견**: ' '### 완료 확인' > "$sandbox/sk-moved.md"
+move_item '     - **종류**: ' '  3. **처리 방향 표' > "$sandbox/sk-step2.md"
+assert_structure check_same_kind "$sandbox/sk-moved.md" fail "같은 종류 발견: 규칙의 구현 검증 이동 격추"
+assert_structure check_same_kind "$sandbox/sk-step2.md" fail "같은 종류 발견: 종류 칸의 --response 2단계 이동 격추"
+
+assert_structure check_pr_feedback "$SKILL" pass "PR 뒤 피드백: 실제 SKILL.md 통과"
+drop_cases check_pr_feedback 'PR 뒤 피드백' \
+  'PR은 Task N에서 git-pr로 만든다' '리뷰 피드백은 git-pr-feedback으로 처리한다' '구현을 고쳤을 때 교차 감사를 다시 받을지는 사용자가 고른다' \
+  'PR을 만든 뒤에는 이슈 문서를 고치지 않는다' '### PR 뒤 피드백'
+swap_parts '마무리' 'PR 뒤 피드백' > "$sandbox/pf-swap.md"
+awk '{ sub(/교차 감사를 다시 받을지는 사용자가 고른다/, "교차 감사를 다시 받는다") } { print }' "$SKILL" > "$sandbox/pf-always.md"
+assert_structure check_pr_feedback "$sandbox/pf-swap.md"   fail "PR 뒤 피드백: 마무리와 내용 바꾸기 격추"
+assert_structure check_pr_feedback "$sandbox/pf-always.md" fail "PR 뒤 피드백: 사용자 선택을 필수로 바꾸기 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
