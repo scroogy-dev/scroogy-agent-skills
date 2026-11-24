@@ -798,7 +798,7 @@ cat > "$plan_done" <<'EOF'
 
 - [x] 완료
 
-### Task N (고정): 교차모델 issue-audit 검증
+### Task N (고정): 마무리
 
 - [x] 완료
 EOF
@@ -813,11 +813,6 @@ gate_out="$("$CLEAR" --completion "$sandbox/plan-gate-open.md" 2>&1)"
 printf '%s\n' "$gate_out" | grep -q '계획 종료 게이트 점검 완료' \
   && ok "clear 완료 확인: 게이트 미완료 사유 출력" \
   || ng "clear 완료 확인: 게이트 미완료 사유가 출력되지 않음 — [$gate_out]"
-
-# Task N 미체크 — 사용자 수동 수행 Task 라 구현 AI 가 대신 닫지 않는다.
-awk 'BEGIN{n=0} /^### Task N/{n=1} n && /^- \[x\] 완료$/{print "- [ ] 완료"; n=0; next} {print}' \
-  "$plan_done" > "$sandbox/plan-taskn-open.md"
-assert_clear fail "clear 완료 확인: Task N 미체크 격추" --completion "$sandbox/plan-taskn-open.md"
 
 # 게이트 항목 자체가 사라진 경우 — 체크박스가 없으면 "미완료 0건"으로 통과해선 안 된다.
 awk '!/점검 완료/' "$plan_done" > "$sandbox/plan-no-gate.md"
@@ -911,7 +906,7 @@ cat > "$metrics_ok" <<'EOF'
 - **보정 반영**: 1건
 - **재시도**: 1회
 
-### Task N (고정): 교차모델 issue-audit 검증
+### Task N (고정): 마무리
 
 - **결과**: 완료
 - **수행 내용 요약**: 감사 리포트 1건
@@ -1568,8 +1563,8 @@ check_body_update_summary() {
          if (n != 1) print "모델 기록의 이슈 본문 갱신 줄 " n + 0 "개 (기대 1개)"
          if (b) print "이슈 본문 갱신 줄이 계획 감사 줄 앞"
          if (n == 1) {
-           if (!index(l, "`갱신 · ")) print "이슈 본문 갱신 줄에 값 [`갱신 · ] 안내 없음"
-           if (!index(l, "`거절`")) print "이슈 본문 갱신 줄에 값 [`거절`] 안내 없음"
+           if (!index(l, "`갱신 · <AC 번호>`")) print "이슈 본문 갱신 줄에 값 [`갱신 · <AC 번호>`] 안내 없음"
+           if (!index(l, "`거절 · <AC 번호>`")) print "이슈 본문 갱신 줄에 값 [`거절 · <AC 번호>`] 안내 없음"
            if (!index(l, "`대상 아님`")) print "이슈 본문 갱신 줄에 값 [`대상 아님`] 안내 없음"
          }
        }' "$1"
@@ -1614,8 +1609,8 @@ BU_LINE="$(grep -E '^- \*\*이슈 본문 갱신\*\*: ' "$SUMMARY_TPL")" \
 BU_LINE="$(grep -E '^- \*\*이슈 본문 갱신\*\*: ' "$SUMMARY_TPL")" \
   awk '/^- \*\*이슈 본문 갱신\*\*: / { next } { print } /^### Task / && !d { print ""; print ENVIRON["BU_LINE"]; d = 1 }' \
   "$SUMMARY_TPL" > "$sandbox/bu-sum-in-task.md"
-drop_literal "$SUMMARY_TPL" '`갱신 · ' > "$sandbox/bu-sum-no-update.md"
-drop_literal "$SUMMARY_TPL" '`거절`' > "$sandbox/bu-sum-no-reject.md"
+drop_literal "$SUMMARY_TPL" '`갱신 · <AC 번호>`' > "$sandbox/bu-sum-no-update.md"
+drop_literal "$SUMMARY_TPL" '`거절 · <AC 번호>`' > "$sandbox/bu-sum-no-reject.md"
 drop_literal "$SUMMARY_TPL" '`대상 아님`' > "$sandbox/bu-sum-no-na.md"
 
 # 계획 감사 항목 사본 (SKILL.md·workflow 템플릿 각각).
@@ -2515,6 +2510,444 @@ assert_structure check_finish_task "$sandbox/fi-no-back.md"       fail "마무�
 assert_structure check_finish_task "$sandbox/fi-no-tick.md"       fail "마무리 Task: 체크박스 기록 문장 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-vendor.md"     fail "마무리 Task: 벤더 교차 조건 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-box.md"        fail "마무리 Task: 완료 체크박스 삭제 격추"
+
+# --- 루프 기록, 종류별 발견, 새 구조 fixture (issue #145) ---------------------------
+#
+# summary 템플릿은 `## 모델 기록` 뒤, `## Task별 수행 결과` 앞에 `## 루프 기록`과 `## 종류별 발견`을 두고,
+# 일반 Task 블록에 `테스트`·`대응 발견` 필드를 둔다. plan 템플릿의 Task 는 회차 묶음 없이 이어진다.
+
+# check_loop_table <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_loop_table() {
+  awk '
+    /^## / { sec = $0 }
+    /^## 모델 기록$/ { model_at = NR }
+    /^## 루프 기록$/ { loop++; loop_at = NR }
+    /^## Task별 수행 결과$/ { task_at = NR }
+    sec == "## 루프 기록" {
+      if (index($0, "회차마다 한 줄을 적고 회차 1부터 적는다")) g1++
+      if (index($0, "그 회차에 받지 않은 검증의 커밋 칸은 `-`로 둔다")) g2++
+      if (index($0, "값이 있는 가장 최근 행")) g3++
+      if (index($0, "감사 종류와 리포트 머리말의 감사 회차(`계획 2차`, `최종 1차`)")) g4++
+      if (index($0, "1단계 상태·2단계 상태·종합 판정·테스트 계획 줄 수")) g5++
+      if (index($0, "파일 이름은 적지 않는다")) g6++
+      if (/^- 다시 시작한 단계: / && index($0, "`계획 검증`이나 `구현`")) g7++
+      if (/^- 결정: / && index($0, "`마무리`나 `다음 회차`")) g8++
+    }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "## 루프 기록" && /^\|/ {
+      tl++; r = $0; n = gsub(/\|/, "|", r) - 1
+      if (tl == 1 && $0 != "| 회차 | 바뀐 것 | 다시 시작한 단계 | 계획 검증 커밋 | 구현 검증 커밋 | 검증 결과 | 결정 |") print "루프 기록 표 머리가 다름: " $0
+      if (n != 7) print "루프 기록 표 행의 칸 수가 7이 아님: " $0
+      if (tl == 2 && $0 !~ /^[|-]+$/) print "루프 기록 표 구분선이 아님: " $0
+    }
+    END {
+      if (loop != 1) print "루프 기록 헤더 " loop + 0 "개 (기대 1개)"
+      else if (!(model_at && model_at < loop_at && loop_at < task_at)) print "루프 기록 섹션이 모델 기록과 Task별 수행 결과 사이가 아님"
+      if (tl < 3) print "루프 기록 표에 머리·구분선·예시 행이 없음 (" tl + 0 "행)"
+      if (g1 != 1 || g2 != 1 || g3 != 1 || g4 != 1 || g5 != 1 || g6 != 1 || g7 != 1 || g8 != 1)
+        print "루프 기록 안내 " g1 + 0 g2 + 0 g3 + 0 g4 + 0 g5 + 0 g6 + 0 g7 + 0 g8 + 0 " (기대 11111111)"
+    }' "$1"
+}
+
+# check_plan_heads <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# Tasks 뒤의 제목은 Task 헤더가 전부다 — 회차 묶음 제목은 `## `·`### `·`#### ` 어느 수준으로 넣어도 위반이다.
+check_plan_heads() {
+  awk '
+    /^```|^    ```/ { f = !f }
+    f { next }
+    /^## Tasks$/ { s = 1; next }
+    s && /^##+ / {
+      if ($0 ~ /^### Task [0-9]+: / || $0 == "### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)" || $0 == "### Task N (고정): 마무리") n++
+      else print "Task 헤더가 아닌 제목: " $0
+    }
+    END { if (n < 4) print "Task 헤더 " n + 0 "개 (기대 4개 이상)" }' "$1"
+}
+
+LT='/^## / { s = ($0 == "## 루프 기록") }'
+awk '!/^## 루프 기록$/' "$SUMMARY_TPL" > "$sandbox/lt-no-section.md"
+awk "$LT"' s { buf = buf $0 "\n"; next } { print } END { print ""; printf "%s", buf }' "$SUMMARY_TPL" > "$sandbox/lt-late.md"
+awk "$LT"' s && /^\| 회차 / { sub(/ 계획 검증 커밋 \| 구현 검증 커밋 \|/, " 검증한 커밋 |") } { print }' "$SUMMARY_TPL" > "$sandbox/lt-one-commit.md"
+awk "$LT"' s && /^\| 회차 / { sub(/ 결정 \|$/, "") } { print }' "$SUMMARY_TPL" > "$sandbox/lt-no-decision.md"
+awk "$LT"' s && /^\| 1 / { next } { print }' "$SUMMARY_TPL" > "$sandbox/lt-no-row.md"
+awk "$LT"' s && /^\| 1 / { sub(/ [^|]*\|$/, "") } { print }' "$SUMMARY_TPL" > "$sandbox/lt-row-cells.md"
+assert_structure check_loop_table "$SUMMARY_TPL"                 pass "루프 기록 표: 실제 summary 템플릿 통과"
+assert_structure check_loop_table "$sandbox/lt-no-section.md"    fail "루프 기록 표: 섹션 헤더 삭제 격추"
+assert_structure check_loop_table "$sandbox/lt-late.md"          fail "루프 기록 표: 섹션의 Task별 수행 결과 뒤 이동 격추"
+assert_structure check_loop_table "$sandbox/lt-one-commit.md"    fail "루프 기록 표: 검증 커밋 칸 합침 격추"
+assert_structure check_loop_table "$sandbox/lt-no-decision.md"   fail "루프 기록 표: 결정 칸 삭제 격추"
+assert_structure check_loop_table "$sandbox/lt-no-row.md"        fail "루프 기록 표: 회차 1 예시 행 삭제 격추"
+assert_structure check_loop_table "$sandbox/lt-row-cells.md"     fail "루프 기록 표: 예시 행의 칸 소실 격추"
+for p in '회차마다 한 줄을 적고 회차 1부터 적는다' '그 회차에 받지 않은 검증의 커밋 칸은 `-`로 둔다' '값이 있는 가장 최근 행' \
+         '감사 종류와 리포트 머리말의 감사 회차(`계획 2차`, `최종 1차`)' '1단계 상태·2단계 상태·종합 판정·테스트 계획 줄 수' \
+         '파일 이름은 적지 않는다' '`계획 검증`이나 `구현`' '`마무리`나 `다음 회차`'; do
+  drop_literal "$SUMMARY_TPL" "$p" > "$sandbox/lt-drop.md"
+  assert_structure check_loop_table "$sandbox/lt-drop.md" fail "루프 기록 표: 안내의 [${p}] 삭제 격추"
+done
+awk '{ if (/^### Task 1: /) { print "## 회차 1"; print "" } print }' "$TEMPLATE" > "$sandbox/ph-h2.md"
+awk '{ if (/^### Task 1: /) { print "### 회차 1"; print "" } print }' "$TEMPLATE" > "$sandbox/ph-h3.md"
+awk '{ sub(/^### Task 1: /, "### Task 1-1: "); print }' "$TEMPLATE" > "$sandbox/ph-cycle-id.md"
+assert_structure check_plan_heads "$TEMPLATE"               pass "루프 기록 표: 실제 plan 템플릿의 Task 헤더 통과"
+assert_structure check_plan_heads "$sandbox/ph-h2.md"       fail "루프 기록 표: plan의 회차 묶음 제목(##) 추가 격추"
+assert_structure check_plan_heads "$sandbox/ph-h3.md"       fail "루프 기록 표: plan의 회차 묶음 제목(###) 추가 격추"
+assert_structure check_plan_heads "$sandbox/ph-cycle-id.md" fail "루프 기록 표: plan의 회차별 Task 번호 격추"
+
+# check_kind_table <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_kind_table() {
+  awk '
+    function flush() {
+      if (t == "") return
+      if (gen) { if (ts != 1 || fx != 1) print "일반 Task의 테스트·대응 발견 필드 " ts + 0 "/" fx + 0 " (기대 1/1): " t }
+      else if (ts || fx) print "고정 Task에 테스트·대응 발견 필드: " t
+    }
+    /^## / { sec = $0 }
+    /^## 루프 기록$/ { loop_at = NR }
+    /^## 종류별 발견$/ { k++; k_at = NR }
+    /^## Task별 수행 결과$/ { task_at = NR }
+    sec == "## 종류별 발견" {
+      if (index($0, "발견이 없으면 이 섹션을 두지 않는다")) g1++
+      if (index($0, "한 행에 한 종류의 한 회차를 적는다")) g2++
+      if (index($0, "회차 번호가 이어진 두 행")) g3++
+    }
+    /^### Task / { flush(); t = $0; gen = ($0 ~ /^### Task [0-9]+: /); ts = fx = 0 }
+    /<!--/ && !/-->/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "## 종류별 발견" && /^\|/ {
+      tl++; r = $0; n = gsub(/\|/, "|", r) - 1
+      if (tl == 1 && $0 != "| 종류 | 발견 | 회차 | 고친 Task |") print "종류별 발견 표 머리가 다름: " $0
+      if (n != 4) print "종류별 발견 표 행의 칸 수가 4가 아님: " $0
+    }
+    t != "" && /^- \*\*테스트\*\*:/ { ts++ }
+    t != "" && /^- \*\*대응 발견\*\*:/ { fx++ }
+    END {
+      flush()
+      if (k != 1) print "종류별 발견 헤더 " k + 0 "개 (기대 1개)"
+      else if (!(loop_at && loop_at < k_at && k_at < task_at)) print "종류별 발견 섹션이 루프 기록과 Task별 수행 결과 사이가 아님"
+      if (tl < 3) print "종류별 발견 표에 머리·구분선·예시 행이 없음 (" tl + 0 "행)"
+      if (g1 != 1 || g2 != 1 || g3 != 1) print "종류별 발견 안내 " g1 + 0 g2 + 0 g3 + 0 " (기대 111)"
+    }' "$1"
+}
+
+KT='/^## / { s = ($0 == "## 종류별 발견") }'
+awk '!/^## 종류별 발견$/' "$SUMMARY_TPL" > "$sandbox/kt-no-section.md"
+awk "$KT"' s && /^\| 종류 / { sub(/ 회차 \|/, "") } { print }' "$SUMMARY_TPL" > "$sandbox/kt-no-round.md"
+awk "$KT"' s { buf = buf $0 "\n"; next } { print } END { print ""; printf "%s", buf }' "$SUMMARY_TPL" > "$sandbox/kt-late.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /^- \*\*테스트\*\*:/ { next } { print }' "$SUMMARY_TPL" > "$sandbox/kt-no-test.md"
+awk '/^### Task 2: /{s=1} /^### Task N/{s=0} s && /^- \*\*대응 발견\*\*:/ { next } { print }' "$SUMMARY_TPL" > "$sandbox/kt-no-fix.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /^- \*\*테스트\*\*:/ { next } { print } /^### Task 2: /{d=1} d && /^- \*\*테스트\*\*:/ { print; d=0 }' \
+  "$SUMMARY_TPL" > "$sandbox/kt-offset.md"
+awk '{ print } /^### Task N/{s=1} s && /^- \*\*결과\*\*:/ { print "- **대응 발견**: -"; s=0 }' "$SUMMARY_TPL" > "$sandbox/kt-taskn.md"
+assert_structure check_kind_table "$SUMMARY_TPL"              pass "발견 기록: 실제 summary 템플릿 통과"
+assert_structure check_kind_table "$sandbox/kt-no-section.md" fail "발견 기록: 종류별 발견 헤더 삭제 격추"
+assert_structure check_kind_table "$sandbox/kt-no-round.md"   fail "발견 기록: 회차 칸 삭제 격추"
+assert_structure check_kind_table "$sandbox/kt-late.md"       fail "발견 기록: 섹션의 Task별 수행 결과 뒤 이동 격추"
+assert_structure check_kind_table "$sandbox/kt-no-test.md"    fail "발견 기록: 일반 Task의 테스트 필드 삭제 격추"
+assert_structure check_kind_table "$sandbox/kt-no-fix.md"     fail "발견 기록: 일반 Task의 대응 발견 필드 삭제 격추"
+assert_structure check_kind_table "$sandbox/kt-offset.md"     fail "발견 기록: 블록 간 누락+중복 상쇄 격추"
+assert_structure check_kind_table "$sandbox/kt-taskn.md"      fail "발견 기록: Task N의 대응 발견 필드 추가 격추"
+for p in '발견이 없으면 이 섹션을 두지 않는다' '한 행에 한 종류의 한 회차를 적는다' '회차 번호가 이어진 두 행'; do
+  drop_literal "$SUMMARY_TPL" "$p" > "$sandbox/kt-drop.md"
+  assert_structure check_kind_table "$sandbox/kt-drop.md" fail "발견 기록: 안내의 [${p}] 삭제 격추"
+done
+
+# 한 회차만 돈 새 구조 예시 산출물. 변경 이력과 종류별 발견이 없다.
+n_spec="$sandbox/n-spec.md"; n_plan="$sandbox/n-plan.md"; n_sum="$sandbox/n-summary.md"
+cat > "$n_spec" <<'EOF'
+# Issue #99 스펙 목록 정렬 옵션
+
+## 목표 (Goal)
+
+목록을 이름이나 날짜로 정렬해 볼 수 있다.
+
+---
+
+## 요구사항 (Requirements)
+
+### 포함
+
+- R1: 목록을 이름이나 날짜로 정렬한다.
+- R2: 모르는 정렬 값은 오류로 끝난다.
+
+### 제외
+
+- 여러 열 정렬: 보류(쓰는 사람이 없다)
+
+---
+
+## 완료의 정의 (Definition of Done)
+
+- [ ] AC1: 정렬 값으로 준 열의 순서대로 목록이 나온다. (R1)
+- [ ] AC2: 모르는 정렬 값을 주면 종료 코드 2로 끝난다. (R2)
+
+---
+
+## 결정 사항 (Decisions)
+
+- D1 같은 값의 순서: 입력 순서를 유지한다.
+
+---
+
+## 연관 문서
+
+| 문서 | 역할 |
+|------|------|
+| `.ai/40_domain/specs/list.md` | 목록 명세 |
+EOF
+cat > "$n_plan" <<'EOF'
+# Issue #99 실행계획 목록 정렬 옵션
+
+> 스펙: [issue-0099-spec.md](./issue-0099-spec.md)
+
+---
+
+## 계획 종료 게이트 (고정)
+
+> **점검 질문**: 이 spec/plan만 보고 구현할 수 있는가?
+
+- [x] 점검 완료
+
+---
+
+## 테스트 계획
+
+| AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
+|----|------|----|--------|---------------------|------|
+| AC1 | [D] | 단위 | sort_test: 이름순, 날짜순 | - | 최종 1차 |
+| AC2 | [D] | 통합 | cli_test: 모르는 값 | 종료 코드는 실행해야 보인다 | 최종 1차 |
+
+---
+
+## Tasks
+
+### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
+
+- [x] 완료
+- **목표**: 전제를 확인한다.
+
+---
+
+### Task 1: 정렬 함수
+
+- [x] 완료
+- **목표**: 정렬 함수를 만든다.
+- **대상 요구사항**: R1
+- **테스트 먼저**:
+  - sort_test: 이름순, 날짜순
+  - **실패 확인**: 러너에서 2건 실패를 보고 테스트 커밋을 만든다.
+- **구현**:
+  1. 정렬 함수를 더한다.
+  - **통과 확인**: 러너 0 실패를 보고 구현 커밋을 만든다.
+
+---
+
+### Task 2: 명령 인자
+
+- [x] 완료
+- **목표**: 정렬 인자를 읽는다.
+- **대상 요구사항**: R2
+- **테스트 먼저**:
+  - cli_test: 모르는 값
+  - **실패 확인**: 러너에서 1건 실패를 보고 테스트 커밋을 만든다.
+- **구현**:
+  1. 인자를 더한다.
+  - **통과 확인**: 러너 0 실패를 보고 구현 커밋을 만든다.
+
+---
+
+### Task N (고정): 마무리
+
+- [ ] 완료
+- **목표**: 문서와 이슈 기록을 정리하고 PR을 만든다.
+EOF
+cat > "$n_sum" <<'EOF'
+# Issue #99 실행요약 목록 정렬 옵션
+
+## 다음 작업
+
+> ▶️ 다음 작업: Task N (마무리)
+
+## 모델 기록
+
+| 구분 | 모델 | effort |
+|------|------|--------|
+| 계획 모델 | Anthropic, Claude Opus 5 (claude-opus-5) | high |
+| 계획 audit 모델 | 생략 | 생략 |
+| 구현 모델 | Anthropic, Claude Opus 5 (claude-opus-5) | high |
+| 최종 audit 모델 | OpenAI, GPT-6 (gpt-6-astra) | high |
+
+- **계획 감사**: 생략
+- **이슈 본문 갱신**: 대상 아님
+
+---
+
+## 루프 기록
+
+| 회차 | 바뀐 것 | 다시 시작한 단계 | 계획 검증 커밋 | 구현 검증 커밋 | 검증 결과 | 결정 |
+|------|---------|------------------|----------------|----------------|-----------|------|
+| 1 | spec·plan 작성, Task 1~2 | - | - | `abc1234` | 최종 1차: 1단계 충족, 2단계 통과, 종합 적합, 테스트 계획 2/2줄 | 마무리 |
+
+---
+
+## Task별 수행 결과
+
+### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
+
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
+- **audit 발견**: 0건
+- **보정 반영**: 0건
+- **재시도**: 0회
+- **수행 내용 요약**: 전제 누락 없음
+- **특이 사항**:
+
+---
+
+### Task 1: 정렬 함수
+
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
+- **audit 발견**: 2건
+- **보정 반영**: 1건
+- **재시도**: 1회
+- **테스트**: `aaa1111`에서 2건 실패
+- **대응 발견**: F-9
+- **수행 내용 요약**: 정렬 함수를 더했다.
+- **특이 사항**:
+
+---
+
+### Task 2: 명령 인자
+
+- **결과**: 완료
+- **수행 모델**: Anthropic, Claude Opus 5 (claude-opus-5)
+- **수행 effort**: high
+- **audit 발견**: 0건
+- **보정 반영**: 0건
+- **재시도**: 0회
+- **테스트**: `bbb2222`에서 1건 실패
+- **대응 발견**: -
+- **수행 내용 요약**: 인자를 더했다.
+- **특이 사항**:
+
+---
+
+### Task N (고정): 마무리
+
+- **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
+- **수행 내용 요약**:
+- **특이 사항**:
+EOF
+
+# 새 구조 fixture: 두 스크립트와 Task N 게이트 명령이 새 구조 문서를 읽는다.
+assert_clear pass "새 구조 fixture: check-clear --completion의 plan 통과" --completion "$n_plan"
+awk '/^### Task 2: /{s=1} s && /^- \[x\] 완료$/ { print "- [ ] 완료"; s=0; next } { print }' "$n_plan" > "$sandbox/n-plan-open.md"
+assert_clear fail "새 구조 fixture: check-clear --completion의 일반 Task 미완료 plan 격추" --completion "$sandbox/n-plan-open.md"
+n_out="$("$METRICS" "$n_sum" 2>&1)"
+[ "$n_out" = "$(printf 'audit 발견: 2건\n보정 반영: 1건\n재시도: 1회\n보정률: 1/2')" ] \
+  && ok "새 구조 fixture: summarize-metrics의 summary 통과 (새 필드는 세지 않음)" \
+  || ng "새 구조 fixture: summarize-metrics 출력이 다름 — [$(printf '%s' "$n_out" | tr '\n' ' ')]"
+# assert_n_metrics_fail <설명> <사유> <awk 프로그램>
+assert_n_metrics_fail() {
+  local out rc
+  awk "$3" "$n_sum" > "$sandbox/n-sum-case.md"
+  out="$("$METRICS" "$sandbox/n-sum-case.md" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qF -- "$2"; then ok "$1"; else ng "$1 (exit $rc, [$out])"; fi
+}
+assert_n_metrics_fail "새 구조 fixture: summarize-metrics의 재시도 필드 삭제 격추" "'재시도' 필드를" \
+  '/^### Task 1: /{s=1} s && /^- \*\*재시도\*\*:/ { s=0; next } { print }'
+assert_n_metrics_fail "새 구조 fixture: summarize-metrics의 마무리 블록 지표 격추" 'Task N 블록에' \
+  '{ print } END { print "- **audit 발견**: 1건" }'
+assert_pair_gate "$GATE0" "$n_plan" "$n_sum" pass "새 구조 fixture: Task 집합 게이트 통과"
+assert_gate "$GATE1" "$n_sum" pass "새 구조 fixture: 결과 게이트 통과"
+assert_gate "$GATE2" "$n_sum" pass "새 구조 fixture: 수행 모델 게이트 통과"
+assert_pair_gate "$GATE0" "$plan_done" "$n_sum" fail "새 구조 fixture: Task 집합이 다른 plan 격추"
+
+# 마무리 완료 검사: `--clear`가 Task N 의 한 단계라 Task N 의 미체크는 미완료로 세지 않는다.
+# 격추 케이스는 어느 블록이 걸렸는지까지 본다.
+assert_finish_fail() {
+  local out rc
+  out="$("$CLEAR" --completion "$2" 2>&1)"; rc=$?
+  if [ "$rc" -eq 1 ] && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] && printf '%s\n' "$out" | grep -qF -- "$3"; then ok "$1"; else ng "$1 (exit $rc, [$out])"; fi
+}
+assert_clear pass "마무리 완료 검사: Task N만 열린 plan 통과" --completion "$n_plan"
+awk '/^### Task N/{s=1} s && /^- \[ \] 완료$/ { print "- [x] 완료"; s=0; next } { print }' "$n_plan" > "$sandbox/n-plan-n-done.md"
+assert_clear pass "마무리 완료 검사: Task N까지 체크한 plan 통과" --completion "$sandbox/n-plan-n-done.md"
+awk '/^### Task 1: /{s=1} s && /^- \[x\] 완료$/ { print "- [ ] 완료"; s=0; next } { print }' "$n_plan" > "$sandbox/n-plan-1-open.md"
+awk '/^### Task 0 /{s=1} s && /^- \[x\] 완료$/ { print "- [ ] 완료"; s=0; next } { print }' "$n_plan" > "$sandbox/n-plan-0-open.md"
+awk '/^### Task N/{s=1} s && /^- \[ \] 완료$/ { s=0; next } { print }' "$n_plan" > "$sandbox/n-plan-n-nobox.md"
+awk '{ print } /^### Task N/{s=1} s && /^- \[ \] 완료$/ { print; s=0 }' "$n_plan" > "$sandbox/n-plan-n-dup.md"
+awk '{ sub(/^### Task 2: 명령 인자$/, "### Task Next: 명령 인자"); print }' "$sandbox/n-plan-open.md" > "$sandbox/n-plan-next.md"
+assert_finish_fail "마무리 완료 검사: 일반 Task가 열린 plan 격추"             "$sandbox/n-plan-1-open.md" '미완료: Task 1: 정렬 함수'
+assert_finish_fail "마무리 완료 검사: Task 0이 열린 plan 격추"                "$sandbox/n-plan-0-open.md" '미완료: Task 0 (고정)'
+assert_finish_fail "마무리 완료 검사: Task N 블록에 체크박스가 없는 plan 격추" "$sandbox/n-plan-n-nobox.md" '완료 체크박스가 없습니다'
+assert_finish_fail "마무리 완료 검사: Task N 블록에 체크박스가 두 개인 plan 격추" "$sandbox/n-plan-n-dup.md" '완료 체크박스가 2개입니다'
+assert_finish_fail "마무리 완료 검사: Task N으로 시작하는 다른 이름의 Task가 열린 plan 격추" "$sandbox/n-plan-next.md" '미완료: Task Next'
+
+# check_one_round <산출물> <템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 표 머리만 있는 표와 내용 없는 섹션을 센다. 섹션 제목과 표 머리가 템플릿에 있는 것인지도 봐
+# fixture 가 템플릿과 따로 놀지 않게 한다. 내용은 하위 제목·구분선(---)·주석·빈 줄을 뺀 줄이다.
+check_one_round() {
+  awk '
+    function tflush() { if (tl > 0 && tl < 3) print "행이 없는 표: " th; tl = 0 }
+    function hflush(lv) { while (d > 0 && lvl[d] >= lv) { if (!has[d]) print "내용 없는 섹션: " name[d]; d-- } }
+    NR == FNR { if (/^## /) oksec[$0] = 1; if (/^\|/ && !pt) okhead[$0] = 1; pt = /^\|/; next }
+    /<!--/ && !/-->/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    /^#+ / {
+      tflush(); l = index($0, " ") - 1
+      if (l == 2 && !($0 in oksec)) print "템플릿에 없는 섹션: " $0
+      if (l == 2 && ($0 == "## 변경 이력" || $0 == "## 종류별 발견")) print "한 회차 산출물에 없어야 할 섹션: " $0
+      if (l > 1) { hflush(l); d++; lvl[d] = l; name[d] = $0; has[d] = 0 }
+      next
+    }
+    /^\|/ { if (tl == 0) { th = $0; if (!($0 in okhead)) print "템플릿에 없는 표 머리: " $0 } tl++ }
+    !/^\|/ { tflush() }
+    /[^ \t]/ && !/^---$/ { for (i = 1; i <= d; i++) has[i] = 1 }
+    END { tflush(); hflush(0) }
+  ' "$2" "$1"
+}
+assert_round() {
+  local out
+  out="$(check_one_round "$2" "$3")"
+  case "$1" in
+    pass) if [ -z "$out" ]; then ok "$4 (위반 0건)"; else ng "$4 (기대 0건, 실제 [$out])"; fi ;;
+    fail) if printf '%s\n' "$out" | grep -qF -- "$5"; then ok "$4 (위반 검출)"; else ng "$4 (기대 [$5], 실제 [$out])"; fi ;;
+  esac
+}
+awk '{ print } /^\| 1 \| spec·plan/ { print ""; print "## 종류별 발견"; print ""; print "| 종류 | 발견 | 회차 | 고친 Task |"; print "|------|------|------|-----------|" }' \
+  "$n_sum" > "$sandbox/or-sum-headonly.md"
+awk '/^## 연관 문서$/ { print "## 변경 이력"; print "" } { print }' "$n_spec" > "$sandbox/or-spec-empty.md"
+awk '/^## Tasks$/ { print "### 테스트로 못 보는 항목"; print ""; print "| AC | 레벨 | 누가 보나 | 이유 | 확인 |"; print "|----|------|-----------|------|------|"; print "" } { print }' \
+  "$n_plan" > "$sandbox/or-plan-headonly.md"
+awk '/^## 테스트 계획$/ { print "## 설계 결정"; print ""; print "---"; print "" } { print }' "$n_plan" > "$sandbox/or-plan-empty.md"
+assert_round pass "$n_spec" "$SPEC_TPL"    "한 회차 산출물: 새 구조 예시 spec 통과"
+assert_round pass "$n_plan" "$TEMPLATE"    "한 회차 산출물: 새 구조 예시 plan 통과"
+assert_round pass "$n_sum"  "$SUMMARY_TPL" "한 회차 산출물: 새 구조 예시 summary 통과"
+assert_round fail "$sandbox/or-sum-headonly.md"  "$SUMMARY_TPL" "한 회차 산출물: 표 머리만 있는 종류별 발견 격추" '행이 없는 표: | 종류'
+assert_round fail "$sandbox/or-spec-empty.md"    "$SPEC_TPL"    "한 회차 산출물: 내용 없는 변경 이력 격추" '내용 없는 섹션: ## 변경 이력'
+assert_round fail "$sandbox/or-plan-headonly.md" "$TEMPLATE"    "한 회차 산출물: 표 머리만 있는 못 보는 항목 격추" '행이 없는 표: | AC | 레벨 | 누가'
+assert_round fail "$sandbox/or-plan-empty.md"    "$TEMPLATE"    "한 회차 산출물: 내용 없는 설계 결정 격추" '내용 없는 섹션: ## 설계 결정'
+
+# check_finish_block <summary 템플릿> → Task N 블록의 헤더와 `--clear` 기록 안내 (0건이면 통과)
+check_finish_block() {
+  awk '/^### Task / { s = 0 } /^### Task N/ { s = 1; n++; if ($0 != "### Task N (고정): 마무리") print "Task N 헤더가 다름: " $0 }
+       s && index($0, "`--clear`가 `결과`에 `완료`를, `수행 내용 요약`에 `PR 대기(git-pr로 생성)`를 적는다") { g++ }
+       s && /^- \*\*/ { f = $0; sub(/^- \*\*/, "", f); sub(/\*\*:.*/, "", f); q = q f "|" }
+       END { if (n != 1) print "Task N 블록 " n + 0 "개 (기대 1개)"
+             if (g != 1) print "--clear 기록 안내 " g + 0 "개 (기대 1개)"
+             if (q != "결과|수행 내용 요약|특이 사항|") print "Task N 필드 구성이 다름 [" q "]" }' "$1"
+}
+awk '{ sub(/^### Task N \(고정\): 마무리$/, "### Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행)"); print }' "$SUMMARY_TPL" > "$sandbox/fb-old.md"
+drop_literal "$SUMMARY_TPL" '`PR 대기(git-pr로 생성)`' > "$sandbox/fb-no-pr.md"
+assert_structure check_finish_block "$SUMMARY_TPL"          pass "summary 구조: 실제 템플릿 마무리 블록 통과"
+assert_structure check_finish_block "$sandbox/fb-old.md"    fail "summary 구조: 옛 교차모델 감사 블록 되돌리기 격추"
+assert_structure check_finish_block "$sandbox/fb-no-pr.md"  fail "summary 구조: 마무리 블록의 PR 대기 기록 안내 삭제 격추"
+
+# 두 템플릿의 Task 헤더가 같아야 Task 집합 게이트가 새 이슈에서 통과한다.
+diff <(grep -E '^### Task ' "$TEMPLATE") <(grep -E '^### Task ' "$SUMMARY_TPL") >/dev/null \
+  && ok "summary 구조: plan 템플릿과 Task 헤더 집합 일치 통과" || ng "summary 구조: plan 템플릿과 Task 헤더 집합이 다름"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
