@@ -27,7 +27,7 @@ ng() { echo "NOT OK - $1"; fail=$((fail + 1)); }
 
 # 완료 기준 항목의 접기 안 bash 코드 블록에서 게이트 명령을 추출한다.
 # 앵커 문구가 있는 본문 행 다음에 오는 첫 ```bash 블록이 대상이며,
-# `P=`/`S=`/`R=` 경로 할당 행은 제외한다 — fixture 경로는 호출자(run_gate·assert_pair_gate·assert_example)가
+# `P=`/`S=` 경로 할당 행은 제외한다 — fixture 경로는 호출자(run_gate·assert_pair_gate)가
 # 로컬 변수로 주입하는 현행 계약을 그대로 유지하기 위함이다.
 # 블록의 공통 들여쓰기(완료 기준 리스트 하위 배치)는 첫 행 기준으로 벗겨낸다.
 # 블록 서식이 바뀌어 추출이 깨지면 아래 "추출:" 검사가 실패해 드리프트를 알린다.
@@ -39,7 +39,7 @@ extract_gate() {
     inblock {
       if (!measured) { match($0, /^[[:space:]]*/); ind = RLENGTH; measured = 1 }
       line = substr($0, ind + 1)
-      if (line !~ /^[PRS]=/) print line
+      if (line !~ /^[PS]=/) print line
     }
   ' "$TEMPLATE"
 }
@@ -120,7 +120,7 @@ cat > "$base" <<'EOF'
 - **수행 effort**: -
 - **audit 발견**: 0건
 
-### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
+### Task N (고정): 마무리
 
 - **결과**: <!-- 완료 / 부분 완료 / 스킵 -->
 - **수행 내용 요약**:
@@ -145,7 +145,7 @@ cat > "$plan" <<'EOF'
 
 - [ ] 완료
 
-### Task N (고정): 교차모델 issue-audit 검증 — 사용자 수동 수행
+### Task N (고정): 마무리
 
 - [ ] 완료
 EOF
@@ -677,12 +677,11 @@ assert_structure check_test_view_spec  "$sandbox/tv-spec-del.md"   fail "테스�
 assert_structure check_test_view_spec  "$sandbox/tv-spec-no-cmd.md"       fail "테스트 관점: spec 템플릿 검증 명령·케이스 목록 미기재 문구 삭제 격추"
 assert_structure check_test_view_spec  "$sandbox/tv-spec-no-plan.md"      fail "테스트 관점: spec 템플릿 plan 테스트 계획 담당 문구 삭제 격추"
 
-# --- 테스트 배치 (issue #112) ------------------------------------------------------
+# --- 테스트 배치 (issue #112, #145) ------------------------------------------------
 #
-# 구현 테스트를 각 Task 의 `작업 내용`·`완료 기준`에 두는 규칙은 plan 템플릿의 머리말 문단,
-# Task 1 예시 `작업 내용` 주석, Task 1 예시 테스트 [D] 항목이 계약이다 — spec R2 [D] 와 같은 범위·앵커로 판정한다.
-# 테스트 [D] 예시는 모양만 보면 명령이 판정을 못 해도 통과하므로, 예시 명령을 템플릿에서 추출해
-# fixture 러너 5종에 실행한다 (Task N 게이트와 같은 추출 방식, `R=` 행은 떼고 fixture 러너 경로를 주입).
+# 구현 테스트를 그 기능을 만드는 Task 안에 두는 규칙은 plan 템플릿의 머리말 문단이 계약이다.
+# issue #145: 일반 Task 가 테스트 작성·실패 확인 단계를 직접 가지므로 Task 1 의 테스트 [D] 예시와
+# `작업 내용` 주석은 두지 않는다. Task 안의 단계는 아래 `테스트 먼저 Task` 케이스가 판정한다.
 
 # check_placement_header <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 # blockquote 문단이 여러 행에 걸치므로 `>` 빈 행 또는 `>` 아닌 행 전까지를 한 문단으로 모은다.
@@ -692,118 +691,21 @@ check_placement_header() {
        p && (/^>[[:space:]]*$/ || !/^>/) { p = 0 }
        p { t = t $0 }
        END { if (n != 1) print "테스트 배치 규칙 " n + 0 "개 (기대 1개)"
-             else { if (t !~ /테스트 자체가 작업 대상/) print "테스트 배치 규칙에 별도 테스트 Task 조건 문구 없음"
-                    if (t !~ /회귀 방지/) print "테스트 배치 규칙에 공통 회귀 항목 문구 없음" } }' "$1"
-}
-
-# check_placement_comment <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
-# 필드 앵커로 범위를 자르므로 같은 주석을 `완료 기준` 등 다른 필드로 옮기면 실패한다.
-check_placement_comment() {
-  awk '/^### Task 1: / { s = 1 } /^### Task 2: / { s = 0 }
-       s && /^- \*\*작업 내용\*\*:/ { f = 1 }
-       s && /^- \*\*완료 기준\*\*:/ { f = 0 }
-       s && /<!--/ && /테스트 작성/ && /산출물/ { if (f) n++; else o++ }
-       END { if (n != 1) print "Task 1 작업 내용 테스트 배치 주석 " n + 0 "행 (기대 1행)"
-             if (o > 0) print "Task 1 작업 내용 밖에 테스트 배치 주석 " o "행 (기대 0행)" }' "$1"
-}
-
-# check_placement_example <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
-# 접기 구성 요소를 전수 열거한다. 러너 경로·grep 행은 bash 코드 블록 안에서만 세고 주석 행은 건너뛴다.
-check_placement_example() {
-  awk '/^### Task 1: / { s = 1 } /^### Task 2: / { s = 0; c = 0 }
-       s && /^  - \[D\] / && /테스트/ && /0 실패/ { n++; c = 1; next }
-       c && /^  - \[/ { c = 0 }
-       c && /^    <details>/ { d++ }
-       c && /^    <\/details>/ { e++ }
-       c && !inb && /^    ```bash/ { b++; inb = 1; next }
-       c && inb && /^    ```[[:space:]]*$/ { inb = 0; next }
-       c && inb && /^[[:space:]]*#/ { next }
-       c && inb && /run-tests\.sh/ { r++ }
-       c && inb && /grep/ && / 통과/ { g1++ }
-       c && inb && /grep/ && / 격추/ { g2++ }
-       c && /설계 주의/ && /구현 전/ { w++ }
-       END { if (n != 1) print "Task 1 테스트 [D] 예시 " n + 0 "개 (기대 1개)"
-             else { if (d != 1 || e != 1) print "테스트 [D] 예시 접기 details 여닫음 " d + 0 "/" e + 0 " (기대 1/1)"
-                    if (b < 1) print "테스트 [D] 예시 접기에 bash 코드 블록 없음"
-                    if (r < 1) print "테스트 [D] 예시 코드 블록에 러너 경로 행 없음(주석 제외)"
-                    if (g1 < 1 || g2 < 1) print "테스트 [D] 예시 코드 블록에 통과·격추 grep 행 " g1 + 0 "/" g2 + 0 " (기대 각 1 이상, 주석 제외)"
-                    if (w < 1) print "테스트 [D] 예시 접기에 구현 전 통과 설계 주의 없음" } }' "$1"
+             else { if (t !~ /그 기능을 만드는 Task 안에 둡니다/) print "테스트 배치 규칙에 Task 안 배치 문구 없음"
+                    if (t !~ /테스트 자체가 작업 대상/) print "테스트 배치 규칙에 별도 테스트 Task 조건 문구 없음"
+                    if (t !~ /전체 회귀는 Task N이 맡습니다/) print "테스트 배치 규칙에 전체 회귀 담당 문구 없음" } }' "$1"
 }
 
 awk '/^> \*\*테스트 배치\*\*/ { p = 1 } p && /^>[[:space:]]*$/ { p = 0 } !p' "$TEMPLATE" > "$sandbox/tp-header-del.md"
-awk '!(/<!--/ && /테스트 작성/ && /산출물/)' "$TEMPLATE" > "$sandbox/tp-comment-del.md"
-awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0}
-     s && /<!--/ && /테스트 작성/ && /산출물/ { held = $0; next }
-     { print }
-     s && held && /^- \*\*완료 기준\*\*:/ { print held; held = "" }' \
-  "$TEMPLATE" > "$sandbox/tp-comment-moved.md"
-awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0}
-     s && /^  - \[D\] / && /테스트/ && /0 실패/ { d = 1; next }
-     d && /^  - \[/ { d = 0 }
-     !d' "$TEMPLATE" > "$sandbox/tp-example-del.md"
+drop_literal "$TEMPLATE" '그 기능을 만드는 Task 안에 둡니다' > "$sandbox/tp-no-place.md"
+drop_literal "$TEMPLATE" '테스트 자체가 작업 대상' > "$sandbox/tp-no-cond.md"
+drop_literal "$TEMPLATE" '전체 회귀는 Task N이 맡습니다' > "$sandbox/tp-no-regress.md"
 
 assert_structure check_placement_header  "$TEMPLATE"                    pass "테스트 배치: 머리말 문단 통과"
 assert_structure check_placement_header  "$sandbox/tp-header-del.md"    fail "테스트 배치: 머리말 문단 삭제 격추"
-assert_structure check_placement_comment "$TEMPLATE"                    pass "테스트 배치: Task 1 작업 내용 주석 통과"
-assert_structure check_placement_comment "$sandbox/tp-comment-del.md"   fail "테스트 배치: Task 1 작업 내용 주석 삭제 격추"
-assert_structure check_placement_comment "$sandbox/tp-comment-moved.md" fail "테스트 배치: Task 1 주석의 완료 기준 이동 격추"
-assert_structure check_placement_example "$TEMPLATE"                    pass "테스트 배치: Task 1 테스트 [D] 예시 통과"
-assert_structure check_placement_example "$sandbox/tp-example-del.md"   fail "테스트 배치: Task 1 테스트 [D] 예시 삭제 격추"
-
-# 예시 명령 실행: 정상 러너는 출력 0건, `ok` 행 없는 러너·한쪽 행만 있는 러너·종료 1 러너는 위반 행을 내야 한다.
-GATE_T="$(extract_gate '새 케이스를 포함해 0 실패로 통과')"
-
-case "$GATE_T" in
-  *'<skill>'*) ng "추출: 테스트 배치 예시 명령 — 러너 경로 할당 행이 제거되지 않음 (fixture 경로 주입 계약 위반)" ;;
-  out=*) ok "추출: 테스트 배치 예시 명령" ;;
-  *) ng "추출: 테스트 배치 예시 명령 — [$GATE_T]" ;;
-esac
-
-# fixture 러너는 템플릿 예시의 `<라벨>` 자리표시자를 그대로 담은 `ok` 행을 낸다.
-mkdir -p "$sandbox/runners"
-cat > "$sandbox/runners/pair.sh" <<'EOF'
-#!/usr/bin/env bash
-echo 'ok     - <라벨>: 정상 입력 통과'
-echo 'ok     - <라벨>: 반례 격추'
-EOF
-cat > "$sandbox/runners/no-case.sh" <<'EOF'
-#!/usr/bin/env bash
-echo 'passed: 0, failed: 0'
-EOF
-# 한쪽 행만 있는 러너: 통과·격추 하한 중 하나가 무력화되면 이 입력을 받아들인다.
-cat > "$sandbox/runners/pass-only.sh" <<'EOF'
-#!/usr/bin/env bash
-echo 'ok     - <라벨>: 정상 입력 통과'
-EOF
-cat > "$sandbox/runners/fail-only.sh" <<'EOF'
-#!/usr/bin/env bash
-echo 'ok     - <라벨>: 반례 격추'
-EOF
-cat > "$sandbox/runners/exit1.sh" <<'EOF'
-#!/usr/bin/env bash
-echo 'ok     - <라벨>: 정상 입력 통과'
-echo 'ok     - <라벨>: 반례 격추'
-echo 'NOT OK - <라벨>: 다른 케이스'
-exit 1
-EOF
-chmod +x "$sandbox/runners/"*.sh
-
-# assert_example <fixture 러너> <기대: pass|fail> <설명>
-# 예시 명령은 출력 자체로 판정한다 (출력 0건이면 통과). 러너 경로는 로컬 변수 `R` 로 주입한다.
-assert_example() {
-  local out R="$1"
-  out="$(eval "$GATE_T" 2>/dev/null)"
-  case "$2" in
-    pass) if [ -z "$out" ]; then ok "$3 (출력 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi ;;
-    fail) if [ -n "$out" ]; then ok "$3 (위반 출력)"; else ng "$3 (기대 위반 행, 실제 0건)"; fi ;;
-  esac
-}
-
-assert_example "$sandbox/runners/pair.sh"    pass "테스트 배치: 예시 명령 정상 러너 통과"
-assert_example "$sandbox/runners/no-case.sh" fail "테스트 배치: 예시 명령 ok 행 없는 러너 격추"
-assert_example "$sandbox/runners/pass-only.sh" fail "테스트 배치: 예시 명령 정상 행만 있는 러너 격추"
-assert_example "$sandbox/runners/fail-only.sh" fail "테스트 배치: 예시 명령 반례 행만 있는 러너 격추"
-assert_example "$sandbox/runners/exit1.sh"   fail "테스트 배치: 예시 명령 종료 1 러너 격추"
+assert_structure check_placement_header  "$sandbox/tp-no-place.md"      fail "테스트 배치: Task 안 배치 문구 삭제 격추"
+assert_structure check_placement_header  "$sandbox/tp-no-cond.md"       fail "테스트 배치: 별도 테스트 Task 조건 문구 삭제 격추"
+assert_structure check_placement_header  "$sandbox/tp-no-regress.md"    fail "테스트 배치: 전체 회귀 담당 문구 삭제 격추"
 
 # --- 보류 항목 원장 등재 질의 (issue #118) ------------------------------------------
 #
@@ -1294,7 +1196,7 @@ assert_link_rule "$sandbox/lr-no-call.md"    호출 "링크 갱신 규칙: 호�
 #
 # `testing-principles` 파일 쌍을 조건부로 참조하는 조항은 문장이 곧 계약이다 (Task별 테스트 배치).
 # SKILL.md `## 참조 문서`의 두 파일 항목, "새 이슈 시작 시" 3-2 범위의 층 표 참조·기기 확인 Task 문장,
-# plan 템플릿 `**테스트 배치**` 문단의 local 파일 참조를 앵커로 판정하고, 앵커마다 지운 사본과 범위 밖으로 옮긴 사본을 격추한다.
+# plan 템플릿 `## 테스트 계획` 안내의 층 행이 local 파일을 참조하는지를 앵커로 판정하고, 앵커마다 지운 사본과 범위 밖으로 옮긴 사본을 격추한다.
 # 조건·우선순위의 뜻은 판정하지 않는다 (이슈 spec 의 [QD] 몫).
 
 # check_testing_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
@@ -1310,14 +1212,12 @@ check_testing_skill() {
 }
 
 # check_testing_plan <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
-# 문단 범위는 위 check_placement_header 와 같다. 빈 `>` 행 뒤로 밀린 줄은 별도 문단이라 세지 않는다.
+# issue #145: 층과 러너를 고르는 자리가 Task 완료 기준에서 `## 테스트 계획`의 층 칸으로 바뀌었다.
 check_testing_plan() {
-  awk '/^## Tasks$/ { s = 1 } /^### Task 0/ { s = 0 }
-       s && /^> \*\*테스트 배치\*\*/ { p = 1; n++ }
-       p && (/^>[[:space:]]*$/ || !/^>/) { p = 0 }
-       p && index($0, "testing-principles-local.md") { l++ }
-       END { if (n != 1) print "테스트 배치 문단 " n + 0 "개 (기대 1개)"
-             else if (l < 1) print "테스트 배치 문단에 testing-principles-local.md 참조 없음" }' "$1"
+  awk '/^## / { s = ($0 == "## 테스트 계획") }
+       s && /^- 층: / { n++; if (index($0, "`.ai/10_rules/testing-principles-local.md`가 있으면 그 파일의 테스트 층 표를 따른다")) l++ }
+       END { if (n != 1) print "테스트 계획 안내의 층 행 " n + 0 "개 (기대 1개)"
+             else if (l < 1) print "테스트 계획 안내의 층 행에 testing-principles-local.md 참조 없음" }' "$1"
 }
 
 awk '!index($0, "  - `.ai/10_rules/testing-principles.md`·`.ai/10_rules/testing-principles-local.md` — ")' \
@@ -1326,18 +1226,18 @@ drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 p
 drop_literal "$SKILL" '기기 확인 Task는 두지 않는다' > "$sandbox/tr-32-no-device.md"
 awk '/^     - \*\*테스트 층 표\*\*: / { held = $0; next } { print } /^4\. / && held { print held; held = "" }' \
   "$SKILL" > "$sandbox/tr-32-moved.md"
-awk '!index($0, "> `.ai/10_rules/testing-principles-local.md`가 있으면")' "$TEMPLATE" > "$sandbox/tr-plan-del.md"
-awk 'index($0, "> `.ai/10_rules/testing-principles-local.md`가 있으면") { held = $0; next }
-     { print } held && /^>[[:space:]]*$/ { print held; held = "" }' "$TEMPLATE" > "$sandbox/tr-plan-split.md"
+drop_literal "$TEMPLATE" '`.ai/10_rules/testing-principles-local.md`가 있으면 그 파일의 테스트 층 표를 따른다' > "$sandbox/tr-plan-del.md"
+awk '/^- 층: / { held = $0; next } { print } /^## Tasks$/ && held { print ""; print held; held = "" }' \
+  "$TEMPLATE" > "$sandbox/tr-plan-moved.md"
 
 assert_structure check_testing_skill "$SKILL"                      pass "테스트 원칙 조항: SKILL.md 참조 항목·3-2 층 표 문장 통과"
-assert_structure check_testing_plan  "$TEMPLATE"                   pass "테스트 원칙 조항: plan 템플릿 테스트 배치 문단 통과"
+assert_structure check_testing_plan  "$TEMPLATE"                   pass "테스트 원칙 조항: plan 템플릿 테스트 계획 층 안내 통과"
 assert_structure check_testing_skill "$sandbox/tr-ref-del.md"      fail "테스트 원칙 조항: SKILL.md 참조 항목 삭제 격추"
 assert_structure check_testing_skill "$sandbox/tr-32-no-local.md"  fail "테스트 원칙 조항: 3-2 local 층 표 참조 삭제 격추"
 assert_structure check_testing_skill "$sandbox/tr-32-no-device.md" fail "테스트 원칙 조항: 3-2 기기 확인 Task 문장 삭제 격추"
 assert_structure check_testing_skill "$sandbox/tr-32-moved.md"     fail "테스트 원칙 조항: 3-2 층 표 항목의 4단계 이동 격추"
-assert_structure check_testing_plan  "$sandbox/tr-plan-del.md"     fail "테스트 원칙 조항: 테스트 배치 문단 local 참조 삭제 격추"
-assert_structure check_testing_plan  "$sandbox/tr-plan-split.md"   fail "테스트 원칙 조항: 테스트 배치 local 참조의 다음 문단 이동 격추"
+assert_structure check_testing_plan  "$sandbox/tr-plan-del.md"     fail "테스트 원칙 조항: 테스트 계획 층 안내의 local 참조 삭제 격추"
+assert_structure check_testing_plan  "$sandbox/tr-plan-moved.md"   fail "테스트 원칙 조항: 테스트 계획 층 안내의 Tasks 섹션 이동 격추"
 
 # --- 이슈 본문 템플릿 (issue #130) ------------------------------------------------
 #
@@ -2251,6 +2151,370 @@ assert_structure check_spec_history "$sandbox/sh-no-keep.md"       fail "변경 
 assert_structure check_spec_history "$sandbox/sh-no-drop.md"       fail "변경 이력 섹션: 적지 않을 것 문구 삭제 격추"
 assert_structure check_spec_history "$sandbox/sh-no-none.md"       fail "변경 이력 섹션: 섹션을 두지 않는 기준 문구 삭제 격추"
 assert_structure check_spec_history "$sandbox/sh-after-rel.md"     fail "변경 이력 섹션: 섹션의 연관 문서 뒤 이동 격추"
+
+# --- 설계 결정, 테스트 계획, 테스트 먼저 Task, 마무리 (issue #145) ------------------
+#
+# plan 템플릿은 계획 종료 게이트 뒤에 선택 섹션 `## 설계 결정`과 `## 테스트 계획`을 두고,
+# 일반 Task 를 테스트 작성 → 실패 확인 → 구현 → 통과 확인 순서로, Task N 을 마무리로 둔다.
+# 규칙 문장은 주석·머리말 안내라 섹션 범위로 세고, 구조(제목·행·표)는 주석 밖에서만 센다.
+
+# check_plan_design <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_plan_design() {
+  awk '
+    /^## / { sec = $0; task = "" }
+    /^### Task / { task = $0 }
+    index($0, "전제 (Assumptions)") { pre++ }
+    /^## 계획 종료 게이트 \(고정\)$/ { gate_at = NR }
+    /^## 설계 결정$/ { des++; des_at = NR }
+    /^## 테스트 계획$/ { tp_at = NR }
+    sec == "## 계획 종료 게이트 (고정)" && /^- \*\*발견 시 조치\*\*: / {
+      g++
+      if (!index($0, "spec `## 결정 사항`"))      print "계획 종료 게이트의 발견 시 조치에 spec 결정 사항 없음"
+      if (!index($0, "plan `## 설계 결정`"))      print "계획 종료 게이트의 발견 시 조치에 plan 설계 결정 없음"
+      if (!index($0, "발견이 없으면 체크만 한다")) print "계획 종료 게이트의 발견 시 조치에 발견 없을 때의 처리 없음"
+    }
+    task ~ /^### Task 0 \(고정\)/ && index($0, "spec `## 결정 사항`이나 plan `## 설계 결정`") { t0++ }
+    sec == "## 설계 결정" {
+      if (index($0, "선택 섹션이다"))                                  opt++
+      if (/^  - 시스템 구성: /)                                         k1++
+      if (/^  - 다른 시스템과의 연결: /)                                k2++
+      if (/^  - 애플리케이션 구조 안의 자리: /)                         k3++
+      if (/^  - 영향 모듈, 순서의 근거, 관례: /)                        k4++
+      if (/^- 적지 않을 것: / && index($0, "spec `## 결정 사항`에 적는다")) drop++
+      if (index($0, "바꾸는 모듈이 하나이고 구조나 순서에서 고를 것이 없으면 이 섹션을 두지 않는다")) none++
+      if (index($0, "같은 종류의 발견이 두 회차 이어지면 그때 만든다")) later++
+    }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "## 설계 결정" && /^- \*\*[^*]+\*\*: / { rows++ }
+    END {
+      if (pre) print "옛 전제 섹션 참조 " pre "행"
+      if (des != 1) print "설계 결정 헤더 " des + 0 "개 (기대 1개)"
+      else if (!(gate_at && gate_at < des_at && des_at < tp_at)) print "설계 결정 섹션이 계획 종료 게이트와 테스트 계획 사이가 아님"
+      if (g != 1)     print "계획 종료 게이트의 발견 시 조치 행 " g + 0 "개 (기대 1개)"
+      if (t0 < 2)     print "Task 0의 작업 내용·완료 기준이 답을 적는 자리를 가리키지 않음 (" t0 + 0 "행)"
+      if (opt != 1)   print "설계 결정 안내의 선택 섹션 문구 " opt + 0 "개 (기대 1개)"
+      if (k1 != 1 || k2 != 1 || k3 != 1 || k4 != 1) print "설계 결정 안내의 적을 것 네 가지 " k1 + 0 "/" k2 + 0 "/" k3 + 0 "/" k4 + 0 " (기대 각 1개)"
+      if (drop != 1)  print "설계 결정 안내의 적지 않을 것 " drop + 0 "개 (기대 1개)"
+      if (none != 1)  print "설계 결정 안내의 섹션을 두지 않는 기준 " none + 0 "개 (기대 1개)"
+      if (later != 1) print "설계 결정 안내의 뒤에 만드는 기준 " later + 0 "개 (기대 1개)"
+      if (rows != 4)  print "설계 결정 예시 행 " rows + 0 "개 (기대 4개)"
+    }' "$1"
+}
+
+awk '!/^## 설계 결정$/' "$TEMPLATE" > "$sandbox/pd-no-section.md"
+drop_literal "$TEMPLATE" '선택 섹션이다' > "$sandbox/pd-no-opt.md"
+for k in '시스템 구성' '다른 시스템과의 연결' '애플리케이션 구조 안의 자리' '영향 모듈, 순서의 근거, 관례'; do
+  awk -v k="  - ${k}: " 'index($0, k) != 1' "$TEMPLATE" > "$sandbox/pd-no-key.md"
+  assert_structure check_plan_design "$sandbox/pd-no-key.md" fail "설계 결정 섹션: 적을 것 안내의 ${k} 삭제 격추"
+done
+awk '/^## 설계 결정$/ { s = 1 } s && /^- 적지 않을 것: / { s = 0; next } { print }' "$TEMPLATE" > "$sandbox/pd-no-drop.md"
+drop_literal "$TEMPLATE" '바꾸는 모듈이 하나이고 구조나 순서에서 고를 것이 없으면 이 섹션을 두지 않는다' > "$sandbox/pd-no-none.md"
+drop_literal "$TEMPLATE" '같은 종류의 발견이 두 회차 이어지면 그때 만든다' > "$sandbox/pd-no-later.md"
+awk '/^## / { s = ($0 == "## 설계 결정") } s && /^- \*\*시스템 구성\*\*: / { next } { print }' "$TEMPLATE" > "$sandbox/pd-no-row.md"
+# 설계 결정 섹션(다음 헤더 앞까지)을 Tasks 뒤(파일 끝)로 옮긴다.
+awk '/^## / { s = ($0 == "## 설계 결정") } s { buf = buf $0 "\n"; next } { print } END { print ""; printf "%s", buf }' \
+  "$TEMPLATE" > "$sandbox/pd-late.md"
+awk '/^- \*\*발견 시 조치\*\*: / { $0 = "- **발견 시 조치**: spec `## 전제 (Assumptions)` 섹션에 적는다." } { print }' \
+  "$TEMPLATE" > "$sandbox/pd-gate-old.md"
+drop_literal "$TEMPLATE" '발견이 없으면 체크만 한다' > "$sandbox/pd-gate-no-empty.md"
+awk '/^### Task 0/ { t = 1 } /^### Task 1/ { t = 0 } t { sub(/ spec `## 결정 사항`이나 plan `## 설계 결정`/, " spec") } { print }' \
+  "$TEMPLATE" > "$sandbox/pd-task0.md"
+
+assert_structure check_plan_design "$TEMPLATE"                    pass "설계 결정 섹션: 실제 plan 템플릿 통과"
+assert_structure check_plan_design "$sandbox/pd-no-section.md"    fail "설계 결정 섹션: 섹션 헤더 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-no-opt.md"        fail "설계 결정 섹션: 선택 섹션 문구 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-no-drop.md"       fail "설계 결정 섹션: 적지 않을 것 안내 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-no-none.md"       fail "설계 결정 섹션: 섹션을 두지 않는 기준 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-no-later.md"      fail "설계 결정 섹션: 뒤에 만드는 기준 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-no-row.md"        fail "설계 결정 섹션: 예시 행 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-late.md"          fail "설계 결정 섹션: 섹션의 Tasks 뒤 이동 격추"
+assert_structure check_plan_design "$sandbox/pd-gate-old.md"      fail "설계 결정 섹션: 계획 종료 게이트의 옛 전제 섹션 되돌리기 격추"
+assert_structure check_plan_design "$sandbox/pd-gate-no-empty.md" fail "설계 결정 섹션: 계획 종료 게이트의 발견 없을 때 문구 삭제 격추"
+assert_structure check_plan_design "$sandbox/pd-task0.md"         fail "설계 결정 섹션: Task 0의 답을 적는 자리 삭제 격추"
+
+# plan_tables <파일> → 테스트 계획 섹션의 주석 밖 표 행을 `<표>\t<행 번호>\t<행>`으로 낸다 (표: main·manual)
+plan_tables() {
+  awk '/^## / { s = ($0 == "## 테스트 계획"); k = "main" }
+       /<!--/ { c = 1 } c { if (/-->/) c = 0; next }
+       s && /^### 테스트로 못 보는 항목$/ { k = "manual"; n = 0 }
+       s && /^\|/ { if (k != pk) { n = 0; pk = k } n++; print k "\t" n "\t" $0 }' "$1"
+}
+
+# check_test_plan <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 한 행의 칸 수를 함께 센다 — 머리만 보면 예시 행에서 칸이 빠져도 통과한다.
+check_test_plan() {
+  awk '
+    /^## / { sec = $0 }
+    /^## 설계 결정$/ { des_at = NR }
+    /^## 테스트 계획$/ { tp++; tp_at = NR }
+    /^## Tasks$/ { tasks_at = NR }
+    sec == "## 테스트 계획" {
+      if (/^### /) { if ($0 == "### 테스트로 못 보는 항목") man++; else print "테스트 계획 섹션의 모르는 하위 제목: " $0 }
+      if (index($0, "spec의 AC마다 아래 두 표 가운데 한 줄 이상에 적는다")) each++
+      if (index($0, "`[D]`·`[QD]` 줄에는 그 줄의 AC를 충족으로 판정한 교차 감사의 회차를 적는다")) c1++
+      if (index($0, "`[ND]` 줄에는 사용자가 확인한 날짜를 적는다")) c2++
+      if (index($0, "계획을 쓸 때는 비워 둔다")) c3++
+      if (index($0, "줄을 더하거나 `확인` 외 칸을 바꾸면 그 줄의 `확인`을 비운다")) c4++
+    }
+    END {
+      if (tp != 1) print "테스트 계획 헤더 " tp + 0 "개 (기대 1개)"
+      else if (!(des_at && des_at < tp_at && tp_at < tasks_at)) print "테스트 계획 섹션이 설계 결정과 Tasks 사이가 아님"
+      if (man != 1)  print "테스트로 못 보는 항목 제목 " man + 0 "개 (기대 1개)"
+      if (each != 1) print "AC마다 한 줄 이상 적는다는 안내 " each + 0 "개 (기대 1개)"
+      if (c1 != 1 || c2 != 1 || c3 != 1 || c4 != 1) print "확인 칸 안내 " c1 + 0 "/" c2 + 0 "/" c3 + 0 "/" c4 + 0 " (기대 각 1개)"
+    }' "$1"
+  plan_tables "$1" | awk -F'\t' '
+    function cells(r) { return gsub(/\|/, "|", r) - 1 }
+    { rows[$1]++; want = ($1 == "main") ? 6 : 5
+      head = ($1 == "main") ? "| AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |" : "| AC | 레벨 | 누가 보나 | 이유 | 확인 |"
+      if ($2 == 1 && $3 != head) print $1 " 표 머리가 [" head "]가 아님: " $3
+      if (cells($3) != want) print $1 " 표 행의 칸 수가 " want "이 아님: " $3
+      if ($2 == 2 && $3 !~ /^[|-]+$/) print $1 " 표 구분선이 아님: " $3
+      if ($2 > 2) {
+        split($3, v, "|"); for (i in v) gsub(/^ +| +$/, "", v[i])
+        if (v[2] !~ /^AC[0-9]+$/) print $1 " 표 예시 행의 AC 칸이 AC<n> 하나가 아님: " $3
+        if ($1 == "main" && v[3] != "[D]") print "테스트 표 예시 행의 레벨이 [D]가 아님: " $3
+        if ($1 == "manual" && v[3] != "[QD]" && v[3] != "[ND]") print "못 보는 항목 표 예시 행의 레벨이 [QD]·[ND]가 아님: " $3
+        if (v[want + 1] != "") print $1 " 표 예시 행의 확인 칸이 비어 있지 않음: " $3
+      } }
+    END { if (rows["main"] < 3) print "테스트 표에 머리·구분선·예시 행이 없음 (" rows["main"] + 0 "행)"
+          if (rows["manual"] < 3) print "못 보는 항목 표에 머리·구분선·예시 행이 없음 (" rows["manual"] + 0 "행)" }'
+}
+
+awk '!/^## 테스트 계획$/' "$TEMPLATE" > "$sandbox/tl-no-section.md"
+awk '/^## / { s = ($0 == "## 테스트 계획") } s { buf = buf $0 "\n"; next } { print } END { print ""; printf "%s", buf }' \
+  "$TEMPLATE" > "$sandbox/tl-late.md"
+awk '/^\| AC \| 레벨 \| 층 / { sub(/ 층 \|/, "") } { print }' "$TEMPLATE" > "$sandbox/tl-no-layer-col.md"
+awk '/^\| AC \| 레벨 \| 층 / { sub(/ 테스트 \|/, "") } { print }' "$TEMPLATE" > "$sandbox/tl-no-test-col.md"
+awk '/^\| AC \| 레벨 \| 층 / { sub(/ 확인 \|$/, "") } { print }' "$TEMPLATE" > "$sandbox/tl-no-check-col.md"
+awk '/^\| AC \| 레벨 \| 누가 보나 / { sub(/ 확인 \|$/, "") } { print }' "$TEMPLATE" > "$sandbox/tl-no-check-col2.md"
+awk '/^\| AC \| 레벨 \| 누가 보나 / { sub(/ 누가 보나 \|/, "") } { print }' "$TEMPLATE" > "$sandbox/tl-no-who-col.md"
+awk '/^\| AC1 \| \[D\] / { sub(/\[D\]/, "[ND]") } { print }' "$TEMPLATE" > "$sandbox/tl-main-nd.md"
+awk '/^\| AC[0-9]+ \| \[ND\] / { sub(/\[ND\]/, "[D]") } { print }' "$TEMPLATE" > "$sandbox/tl-manual-d.md"
+awk '/^\| AC1 \| \[D\] / { sub(/\| *\|$/, "| 최종 1차 |") } { print }' "$TEMPLATE" > "$sandbox/tl-prefilled.md"
+awk '/^\| AC1 \| \[D\] / { sub(/^\| AC1 /, "| AC1, AC2 ") } { print }' "$TEMPLATE" > "$sandbox/tl-multi-ac.md"
+awk '!/^### 테스트로 못 보는 항목$/' "$TEMPLATE" > "$sandbox/tl-no-manual.md"
+drop_literal "$TEMPLATE" 'spec의 AC마다 아래 두 표 가운데 한 줄 이상에 적는다' > "$sandbox/tl-no-each.md"
+drop_literal "$TEMPLATE" '`[D]`·`[QD]` 줄에는 그 줄의 AC를 충족으로 판정한 교차 감사의 회차를 적는다' > "$sandbox/tl-no-c1.md"
+drop_literal "$TEMPLATE" '`[ND]` 줄에는 사용자가 확인한 날짜를 적는다' > "$sandbox/tl-no-c2.md"
+drop_literal "$TEMPLATE" '계획을 쓸 때는 비워 둔다' > "$sandbox/tl-no-c3.md"
+drop_literal "$TEMPLATE" '줄을 더하거나 `확인` 외 칸을 바꾸면 그 줄의 `확인`을 비운다' > "$sandbox/tl-no-c4.md"
+
+assert_structure check_test_plan "$TEMPLATE"                     pass "테스트 계획 표: 실제 plan 템플릿 통과"
+assert_structure check_test_plan "$sandbox/tl-no-section.md"     fail "테스트 계획 표: 섹션 헤더 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-late.md"           fail "테스트 계획 표: 섹션의 Tasks 뒤 이동 격추"
+assert_structure check_test_plan "$sandbox/tl-no-layer-col.md"   fail "테스트 계획 표: 테스트 표의 층 칸 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-test-col.md"    fail "테스트 계획 표: 테스트 표의 테스트 칸 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-check-col.md"   fail "테스트 계획 표: 테스트 표의 확인 칸 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-check-col2.md"  fail "테스트 계획 표: 못 보는 항목 표의 확인 칸 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-who-col.md"     fail "테스트 계획 표: 못 보는 항목 표의 누가 보나 칸 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-main-nd.md"        fail "테스트 계획 표: 테스트 표 행의 레벨 [ND] 격추"
+assert_structure check_test_plan "$sandbox/tl-manual-d.md"       fail "테스트 계획 표: 못 보는 항목 행의 레벨 [D] 격추"
+assert_structure check_test_plan "$sandbox/tl-prefilled.md"      fail "테스트 계획 표: 예시 행의 확인 칸 미리 채움 격추"
+assert_structure check_test_plan "$sandbox/tl-multi-ac.md"       fail "테스트 계획 표: 한 줄에 AC 두 개 격추"
+assert_structure check_test_plan "$sandbox/tl-no-manual.md"      fail "테스트 계획 표: 테스트로 못 보는 항목 제목 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-each.md"        fail "테스트 계획 표: AC마다 한 줄 이상 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c1.md"          fail "테스트 계획 표: 확인 칸의 감사 회차 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c2.md"          fail "테스트 계획 표: 확인 칸의 사용자 확인 날짜 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c3.md"          fail "테스트 계획 표: 확인 칸을 비워 두는 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c4.md"          fail "테스트 계획 표: 바뀐 줄의 확인을 비우는 안내 삭제 격추"
+
+# check_test_layer <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 예시 행은 단위 층(이유 `-`)과 단위보다 위 층(이유 있음)을 모두 보여 준다.
+check_test_layer() {
+  awk '
+    /^## / { s = ($0 == "## 테스트 계획") }
+    s && index($0, "단위 테스트를 먼저 고른다") { unit++ }
+    s && index($0, "단위보다 위 층을 쓰면 `단위로 못 보는 이유` 칸에 이유를 적는다") { why++ }
+    s && index($0, "테스트 케이스가 아닌 결정적 명령(bash 명령 등)도 테스트 표에 적는다") { cmd++ }
+    END { if (unit != 1) print "단위 먼저 안내 " unit + 0 "개 (기대 1개)"
+          if (why != 1)  print "위 층의 이유 안내 " why + 0 "개 (기대 1개)"
+          if (cmd != 1)  print "결정적 명령 안내 " cmd + 0 "개 (기대 1개)" }' "$1"
+  plan_tables "$1" | awk -F'\t' '
+    $1 == "main" && $2 == 1 { h = ($3 ~ /\| 단위로 못 보는 이유 \|/) }
+    $1 == "main" && $2 > 2 {
+      split($3, v, "|"); for (i in v) gsub(/^ +| +$/, "", v[i])
+      if (v[4] == "단위") { u++; if (v[6] != "-") print "단위 층 행의 이유 칸이 -가 아님: " $3 }
+      else { o++; if (v[6] == "" || v[6] == "-") print "단위보다 위 층 행에 이유 없음: " $3 } }
+    END { if (!h) print "테스트 표 머리에 단위로 못 보는 이유 칸 없음"
+          if (u < 1) print "단위 층 예시 행 없음"
+          if (o < 1) print "단위보다 위 층 예시 행 없음" }'
+}
+
+awk '/^\| AC \| 레벨 \| 층 / { sub(/ 단위로 못 보는 이유 \|/, "") } { print }' "$TEMPLATE" > "$sandbox/ty-no-col.md"
+drop_literal "$TEMPLATE" '단위 테스트를 먼저 고른다' > "$sandbox/ty-no-unit.md"
+drop_literal "$TEMPLATE" '단위보다 위 층을 쓰면 `단위로 못 보는 이유` 칸에 이유를 적는다' > "$sandbox/ty-no-why.md"
+drop_literal "$TEMPLATE" '테스트 케이스가 아닌 결정적 명령(bash 명령 등)도 테스트 표에 적는다' > "$sandbox/ty-no-cmd.md"
+awk -F'|' '/^\| AC[0-9]+ \| \[D\] \|/ && $4 !~ /^ 단위 $/ { print "|" $2 "|" $3 "|" $4 "|" $5 "| - |" $7 "|"; next } { print }' \
+  "$TEMPLATE" > "$sandbox/ty-dash.md"
+
+assert_structure check_test_layer "$TEMPLATE"              pass "테스트 층 이유: 실제 plan 템플릿 통과"
+assert_structure check_test_layer "$sandbox/ty-no-col.md"  fail "테스트 층 이유: 단위로 못 보는 이유 칸 삭제 격추"
+assert_structure check_test_layer "$sandbox/ty-no-unit.md" fail "테스트 층 이유: 단위 먼저 안내 삭제 격추"
+assert_structure check_test_layer "$sandbox/ty-no-why.md"  fail "테스트 층 이유: 위 층의 이유 안내 삭제 격추"
+assert_structure check_test_layer "$sandbox/ty-no-cmd.md"  fail "테스트 층 이유: 결정적 명령 안내 삭제 격추"
+assert_structure check_test_layer "$sandbox/ty-dash.md"    fail "테스트 층 이유: 위 층 예시 행의 이유 비움 격추"
+
+# check_test_first <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 일반 Task 의 최상위 필드는 목표·대상 요구사항·테스트 먼저·구현 네 개가 이 순서로 전부다.
+# `테스트 먼저` 값이 비어 있으면 테스트 이름 목록과 실패 확인 행을, `쓰지 않음(<이유>)`이면 기존 테스트 전체 통과를 요구한다.
+check_test_first() {
+  awk '
+    function flush() {
+      if (t == "") return
+      if (box != 1)  print "완료 체크박스 " box + 0 "개: " t
+      if (seq != "목표|대상 요구사항|테스트 먼저|구현|") print "최상위 필드 구성이 다름 [" seq "]: " t
+      if (pas != 1)  print "통과 확인 행 " pas + 0 "개: " t
+      if (num < 1)   print "구현 번호 목록 없음: " t
+      if (kind == "first") {
+        first_n++
+        if (names < 1) print "테스트 이름 목록 없음: " t
+        if (red != 1)  print "실패 확인 행 " red + 0 "개: " t
+        if (!redc)     print "실패 확인 행에 테스트 커밋 없음: " t
+        if (!pasc)     print "통과 확인 행에 구현 커밋 없음: " t
+      } else if (kind == "skip") {
+        skip_n++
+        if (red || names) print "테스트를 먼저 쓰지 않는 Task에 실패 확인이나 테스트 목록: " t
+        if (!pasall)      print "테스트를 먼저 쓰지 않는 Task의 통과 확인이 기존 테스트 전체가 아님: " t
+      } else print "테스트 먼저 값이 빈 값이나 쓰지 않음(<이유>)이 아님: " t
+      t = ""
+    }
+    /^## Tasks$/ { s = 1 }
+    /^### Task / { flush(); if ($0 !~ /^### Task (0|N) \(고정\)/) { t = $0; box = num = names = red = pas = 0; redc = pasc = pasall = 0; seq = kind = cur = "" } s = 0 }
+    s && /^>/ {
+      if (index($0, "테스트 작성 → 실패 확인 → 구현 → 통과 확인")) h1++
+      if (index($0, "테스트 커밋과 구현 커밋을 나눕니다")) h2++
+      if (index($0, "동작을 바꾸지 않는 Task")) h3++
+      if (index($0, "문서만 고치는 Task")) k1++
+      if (index($0, "화면 배치")) k2++
+      if (index($0, "스파이크")) k3++
+      if (index($0, "리팩터링")) k4++
+      if (index($0, "구현 → 통과 확인 두 단계")) h4++
+      if (index($0, "통과 확인은 기존 테스트 전체 통과")) h5++
+      if (index($0, "먼저 쓰지 않는 이유를 한 줄")) h6++
+    }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    t != "" && /^- \[ \] 완료$/ { box++ }
+    t != "" && /^- \*\*[^*]+\*\*:/ {
+      cur = $0; sub(/^- \*\*/, "", cur); sub(/\*\*:.*/, "", cur); seq = seq cur "|"
+      if (cur == "테스트 먼저") kind = ($0 ~ /^- \*\*테스트 먼저\*\*:$/) ? "first" : ($0 ~ /^- \*\*테스트 먼저\*\*: 쓰지 않음\(.+\)$/) ? "skip" : "bad"
+    }
+    t != "" && cur == "테스트 먼저" && /^  - \*\*실패 확인\*\*: / { red++; if (index($0, "테스트 커밋")) redc = 1; next }
+    t != "" && cur == "테스트 먼저" && /^  - / { if (!red) names++ }
+    t != "" && cur == "구현" && /^  [0-9]+\. / { if (!pas) num++ }
+    t != "" && cur == "구현" && /^  - \*\*통과 확인\*\*: / { pas++; if (index($0, "구현 커밋")) pasc = 1; if (index($0, "기존 테스트 전체")) pasall = 1 }
+    END {
+      flush()
+      if (first_n < 1) print "테스트를 먼저 쓰는 Task 예시 없음"
+      if (skip_n < 1)  print "테스트를 먼저 쓰지 않는 Task 예시 없음"
+      if (h1 != 1) print "머리말의 네 단계 순서 " h1 + 0 "개 (기대 1개)"
+      if (h2 != 1) print "머리말의 커밋 분리 " h2 + 0 "개 (기대 1개)"
+      if (h3 != 1) print "머리말의 먼저 쓰지 않는 기준 " h3 + 0 "개 (기대 1개)"
+      if (!k1 || !k2 || !k3 || !k4) print "머리말의 먼저 쓰지 않는 Task 네 가지 " k1 + 0 "/" k2 + 0 "/" k3 + 0 "/" k4 + 0
+      if (h4 != 1) print "머리말의 두 단계 진행 " h4 + 0 "개 (기대 1개)"
+      if (h5 != 1) print "머리말의 기존 테스트 전체 통과 " h5 + 0 "개 (기대 1개)"
+      if (h6 != 1) print "머리말의 이유 한 줄 " h6 + 0 "개 (기대 1개)"
+    }' "$1"
+}
+
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /^  - \*\*실패 확인\*\*: / { next } { print }' "$TEMPLATE" > "$sandbox/tf-no-red.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /^  - \*\*통과 확인\*\*: / { next } { print }' "$TEMPLATE" > "$sandbox/tf-no-green.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /^  - <테스트 파일>/ { next } { print }' "$TEMPLATE" > "$sandbox/tf-no-names.md"
+# 테스트 먼저 필드(하위 행 포함)를 구현 뒤로 옮긴다.
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0}
+     s && /^- \*\*테스트 먼저\*\*:/ { h = 1 } s && /^- \*\*구현\*\*:/ { h = 0 }
+     h { buf = buf $0 "\n"; next }
+     s && buf && /^---$/ { printf "%s", buf; buf = "" } { print }' "$TEMPLATE" > "$sandbox/tf-after-impl.md"
+awk '{ sub(/^- \*\*구현\*\*:$/, "- **작업 내용**:"); print }' "$TEMPLATE" > "$sandbox/tf-old-field.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /통과 확인/ { gsub(/구현 커밋/, "커밋") } { print }' "$TEMPLATE" > "$sandbox/tf-no-impl-commit.md"
+awk '/^### Task 1: /{s=1} /^### Task 2: /{s=0} s && /실패 확인/ { gsub(/테스트 커밋/, "커밋") } { print }' "$TEMPLATE" > "$sandbox/tf-no-test-commit.md"
+awk '{ sub(/^- \*\*테스트 먼저\*\*: 쓰지 않음\(.+\)$/, "- **테스트 먼저**: 쓰지 않음"); print }' "$TEMPLATE" > "$sandbox/tf-skip-no-reason.md"
+awk '/^### Task 2: /{s=1} /^### Task N/{s=0} s && /통과 확인/ { gsub(/기존 테스트 전체/, "테스트") } { print }' "$TEMPLATE" > "$sandbox/tf-skip-partial.md"
+awk '{ print } /^### Task 1: /{s=1} s && /^- \[ \] 완료$/ { print; s=0 }' "$TEMPLATE" > "$sandbox/tf-dup-box.md"
+
+assert_structure check_test_first "$TEMPLATE"                      pass "테스트 먼저 Task: 실제 plan 템플릿 통과"
+assert_structure check_test_first "$sandbox/tf-no-red.md"          fail "테스트 먼저 Task: 실패 확인 행 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-no-green.md"        fail "테스트 먼저 Task: 확인 행(구현 뒤) 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-no-names.md"        fail "테스트 먼저 Task: 테스트 이름 목록 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-after-impl.md"      fail "테스트 먼저 Task: 테스트 먼저 필드의 구현 뒤 이동 격추"
+assert_structure check_test_first "$sandbox/tf-old-field.md"       fail "테스트 먼저 Task: 옛 작업 내용 필드 되돌리기 격추"
+assert_structure check_test_first "$sandbox/tf-no-test-commit.md"  fail "테스트 먼저 Task: 실패 확인 행의 테스트 커밋 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-no-impl-commit.md"  fail "테스트 먼저 Task: 구현 커밋 문구 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-skip-no-reason.md"  fail "테스트 먼저 Task: 먼저 쓰지 않는 이유 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-skip-partial.md"    fail "테스트 먼저 Task: 먼저 쓰지 않는 Task의 전체 테스트 문구 삭제 격추"
+assert_structure check_test_first "$sandbox/tf-dup-box.md"         fail "테스트 먼저 Task: 완료 체크박스 중복 격추"
+for p in '테스트 작성 → 실패 확인 → 구현 → 통과 확인' '테스트 커밋과 구현 커밋을 나눕니다' '동작을 바꾸지 않는 Task' '문서만 고치는 Task' \
+         '화면 배치' '스파이크' '리팩터링' '구현 → 통과 확인 두 단계' '통과 확인은 기존 테스트 전체 통과' '먼저 쓰지 않는 이유를 한 줄'; do
+  drop_literal "$TEMPLATE" "$p" > "$sandbox/tf-drop.md"
+  # 케이스 설명에 격추 외 판정 낱말이 섞이지 않게 문구의 해당 낱말을 가린다.
+  assert_structure check_test_first "$sandbox/tf-drop.md" fail "테스트 먼저 Task: 머리말의 [$(printf '%s' "$p" | sed 's/통과/…/g')] 삭제 격추"
+done
+
+# check_finish_task <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# Task N 의 작업은 이름을 열거한 여섯 개가 이 순서로 전부다. 교차 감사 실행 단계(issue-audit 호출)를 두지 않는다.
+check_finish_task() {
+  awk '
+    /^### Task / { on = 0 }
+    /^### Task N / { tn++; on = 1; if ($0 != "### Task N (고정): 마무리") print "Task N 헤더가 다름: " $0 }
+    !on { next }
+    index($0, "완료 확인에서 사용자가 `마무리`로 정한 뒤에만 들어간다") { enter++ }
+    index($0, "이 Task에서 구현을 고치면 계획 수립으로 돌아간다") { back++ }
+    index($0, "`--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다") { tick++ }
+    /issue-audit/ { audit++ }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    /^- \[ \] 완료$/ { box++ }
+    /^- \*\*[^*]+\*\*:/ { cur = $0; sub(/^- \*\*/, "", cur); sub(/\*\*:.*/, "", cur); seq = seq cur "|" }
+    cur == "작업 내용" && /^  [0-9]+\. / { v = $0; if (!match(v, /\*\*[^*]+\*\*/)) v = "?"; else v = substr(v, RSTART + 2, RLENGTH - 4); steps = steps v "|" }
+    cur == "완료 기준" && /^  - \[D\] /  { d++; if (index($0, "`테스트 계획`의 `[D]` 줄")) reg++
+                                            if (index($0, "summary의 Task 헤더 집합이 plan과 일치")) g0++
+                                            if (index($0, "블록마다 유효 `결과` 행 정확히 1개")) g1++
+                                            if (index($0, "`-`도 아닌 행 정확히 1개")) g2++ }
+    cur == "완료 기준" && /^  - \[QD\] / { q++; if (index($0, "서로 다른 벤더")) v1++; if (index($0, "벤더 전부와도 상이")) v2++ }
+    cur == "완료 기준" && /^  - \[ND\] / { nd++ }
+    END {
+      if (tn != 1)  print "Task N 헤더 " tn + 0 "개 (기대 1개)"
+      if (box != 1) print "Task N 완료 체크박스 " box + 0 "개 (기대 1개)"
+      if (seq != "목표|작업 내용|완료 기준|") print "Task N 최상위 필드 구성이 다름 [" seq "]"
+      if (steps != "전체 회귀|색인|충족 AC 체크|repo 고유 마무리|--clear|PR|") print "Task N 작업 구성이 다름 [" steps "]"
+      if (audit)      print "Task N에 issue-audit 언급 " audit "행 (교차 감사는 구현 검증 단계에서 받는다)"
+      if (enter != 1) print "마무리로 정한 뒤에만 들어간다는 문장 " enter + 0 "개 (기대 1개)"
+      if (back != 1)  print "구현을 고치면 돌아간다는 문장 " back + 0 "개 (기대 1개)"
+      if (tick != 1)  print "체크박스를 --clear가 체크한다는 문장 " tick + 0 "개 (기대 1개)"
+      if (d != 4 || reg != 1 || g0 != 1 || g1 != 1 || g2 != 1) print "Task N [D] 기준 " d + 0 "개, 회귀 " reg + 0 " 게이트 " g0 + 0 "/" g1 + 0 "/" g2 + 0 " (기대 4개, 각 1)"
+      if (q != 2 || v1 != 1 || v2 != 1) print "Task N 벤더 교차 조건 " v1 + 0 "/" v2 + 0 " ([QD] " q + 0 "개, 기대 2개)"
+      if (nd) print "Task N에 [ND] 기준 " nd "개 (기대 0개)"
+    }' "$1"
+}
+
+awk '{ sub(/^### Task N \(고정\): 마무리$/, "### Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행)"); print }' "$TEMPLATE" > "$sandbox/fi-old-header.md"
+for st in '전체 회귀' '색인' '충족 AC 체크' 'repo 고유 마무리' '--clear' 'PR'; do
+  awk -v st="**${st}**" '/^### Task N/ { s = 1 } s && /^  [0-9]+\. / && index($0, st) { next } { print }' "$TEMPLATE" > "$sandbox/fi-no-step.md"
+  assert_structure check_finish_task "$sandbox/fi-no-step.md" fail "마무리 Task: 작업 [${st}] 삭제 격추"
+done
+awk '/^### Task N/ { s = 1 } { print } s && /^- \*\*작업 내용\*\*:/ { print "  1. **교차 감사**: 다른 벤더 모델로 감사를 받는다."; s = 0 }' "$TEMPLATE" > "$sandbox/fi-audit-step.md"
+awk '/^### Task N/ { s = 1 } s && /\*\*전체 회귀\*\*/ { $0 = $0 " `issue-audit`를 실행한다." } { print }' "$TEMPLATE" > "$sandbox/fi-audit-run.md"
+# --clear 와 PR 의 순서를 바꾼다.
+awk '/^### Task N/ { s = 1 } s && /^  [0-9]+\. \*\*--clear\*\*/ { held = $0; next } { print } held && /^  [0-9]+\. \*\*PR\*\*/ { print held; held = "" }' \
+  "$TEMPLATE" > "$sandbox/fi-swap.md"
+drop_literal "$TEMPLATE" '완료 확인에서 사용자가 `마무리`로 정한 뒤에만 들어간다' > "$sandbox/fi-no-enter.md"
+drop_literal "$TEMPLATE" '이 Task에서 구현을 고치면 계획 수립으로 돌아간다' > "$sandbox/fi-no-back.md"
+drop_literal "$TEMPLATE" '`--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다' > "$sandbox/fi-no-tick.md"
+awk '!/^  - \[QD\] 구현에 여러 벤더가/' "$TEMPLATE" > "$sandbox/fi-no-vendor.md"
+awk '/^### Task N/ { s = 1 } s && /^- \[ \] 완료$/ { next } { print }' "$TEMPLATE" > "$sandbox/fi-no-box.md"
+
+assert_structure check_finish_task "$TEMPLATE"                    pass "마무리 Task: 실제 plan 템플릿 통과"
+assert_structure check_finish_task "$sandbox/fi-old-header.md"    fail "마무리 Task: 옛 교차모델 감사 헤더 되돌리기 격추"
+assert_structure check_finish_task "$sandbox/fi-audit-step.md"    fail "마무리 Task: 교차 감사 작업 추가 격추"
+assert_structure check_finish_task "$sandbox/fi-audit-run.md"     fail "마무리 Task: 감사 실행 문구 추가 격추"
+assert_structure check_finish_task "$sandbox/fi-swap.md"          fail "마무리 Task: --clear와 PR 순서 역전 격추"
+assert_structure check_finish_task "$sandbox/fi-no-enter.md"      fail "마무리 Task: 들어가는 조건 문장 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-back.md"       fail "마무리 Task: 돌아가는 조건 문장 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-tick.md"       fail "마무리 Task: 체크박스 기록 문장 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-vendor.md"     fail "마무리 Task: 벤더 교차 조건 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-box.md"        fail "마무리 Task: 완료 체크박스 삭제 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
