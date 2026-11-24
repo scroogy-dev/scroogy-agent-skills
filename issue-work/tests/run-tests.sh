@@ -272,25 +272,22 @@ SPEC_TPL="$HERE/../templates/issue-spec-template.md"
 # 소속은 직전 `^## ` 헤더로 추적한다 — `###` 하위 헤더는 섹션을 바꾸지 않는다.
 # 소속 비교는 접두사 매칭이 아니라 계약이 고정한 정확한 섹션명과의 동등 비교다 —
 # 접두사 매칭은 `## 요구사항 참고` 같은 유사 헤더 아래 배치를 통과시킨다.
-# 포함 목록의 R 번호와 DoD `### R<n>` 그룹은 1:1 대응해야 한다 —
-# R1 개수만 세면 R2 그룹 삭제가 통과해 포함 R2 가 DoD 연결 없이 남는다.
+# 포함 목록의 R 번호는 완료의 정의 AC 행 끝의 `(R<n>)` 표기와 이어져야 한다 (issue #145) —
+# 포함 R 마다 AC 행이 1개 이상이고, AC 행이 가리키는 R 은 포함 목록에 있어야 한다.
+# AC 행은 완료의 정의 섹션 안의 것만 연결로 세고, 섹션 밖의 AC 행은 위반으로 센다.
 # 섹션 순서(목표 → 요구사항 → DoD)는 헤더 위치로 판정한다 —
 # 소속만 보면 요구사항 블록 전체를 DoD 뒤로 옮겨도 통과한다.
-# 목표 헤더도 개수를 판정한다 — 위치 판정은 헤더가 있을 때만 걸려 삭제·중복이 통과한다.
-# R 번호 집합은 출현 횟수로 누적한다 — 불리언 대입은 같은 번호의 중복 그룹·항목을 잃는다.
-# `(회귀 방지 항목)` 표시는 issue-audit 관점 2 가 spec 항목 본문에서만 인정하는 예외 계약이다 —
-# DoD 주석의 표시 규칙과 R1·공통 예시의 첫 `[D]` 항목 본문 줄을 판정한다 (PR #109 리뷰 반례).
+# 목표·완료의 정의 헤더도 개수를 판정한다 — 위치 판정은 헤더가 있을 때만 걸려 삭제·중복이 통과한다.
+# R·AC 번호 집합은 출현 횟수로 누적한다 — 불리언 대입은 같은 번호의 중복 항목을 잃는다.
+# HTML 주석 안의 형식 안내는 행으로 세지 않는다.
 check_spec_structure() {
   awk '
     /^## /                           { sec = $0; list = "" }
-    /^##/                            { g = "" }
-    /^### R1: /                      { g = "R1" }
-    /^### 공통$/                     { g = "공통" }
-    g != "" && /^- \[ \] \[D\]/ && !seen[g]++ { if (index($0, "(회귀 방지 항목)")) mark[g]++ }
-    /^- 회귀 방지 항목 표시: / && index($0, "`(회귀 방지 항목)`") { if (sec == "## 완료의 정의 (Definition of Done)") rule++ }
+    /<!--/                           { c = 1 }
+    c                                { if (/-->/) c = 0; next }
     /^## 목표 \(Goal\)$/             { goal++; goal_at = NR }
     /^## 요구사항 \(Requirements\)$/ { req++; req_at = NR }
-    /^## 완료의 정의 \(Definition of Done\)$/ { dod_at = NR }
+    /^## 완료의 정의 \(Definition of Done\)$/ { dod++; dod_at = NR }
     /^### 포함$/                     { inc++; if (sec != "## 요구사항 (Requirements)") mis++; inc_at = NR; list = "inc" }
     /^### 제외$/                     { exc++; if (sec != "## 요구사항 (Requirements)") mis++; exc_at = NR; list = "exc" }
     /^\*\*(포함|제외)\*\*/           { bold++ }
@@ -298,15 +295,18 @@ check_spec_structure() {
                                          n = $0; sub(/^- R/, "", n); sub(/:.*/, "", n); inc_rs[n]++
                                        } else inc_bad++ }
     list == "exc" && /^- /           { exc_items++ }
-    /^### R[0-9]+: /                 { if (sec != "## 완료의 정의 (Definition of Done)") dod_mis++
-                                       n = $0; sub(/^### R/, "", n); sub(/:.*/, "", n); dod_rs[n]++ }
-    /^### R1: /                      { r1++ }
-    /^### 공통$/                     { com++; if (sec != "## 완료의 정의 (Definition of Done)") dod_mis++ }
+    /^- \[ \] AC[0-9]+: /            { if (sec != "## 완료의 정의 (Definition of Done)") { ac_mis++; next }
+                                       n = $0; sub(/^- \[ \] AC/, "", n); sub(/:.*/, "", n); acs[n]++
+                                       if (match($0, /\(R[0-9]+(, R[0-9]+)*\)$/)) {
+                                         v = substr($0, RSTART + 1, RLENGTH - 2); gsub(/R/, "", v)
+                                         m = split(v, a, /, /); for (i = 1; i <= m; i++) link[a[i]]++
+                                       } }
     /^## 범위/                       { scope++ }
     /포함 \(In\)|비포함 ?\(Out\)/    { old++ }
     END {
       if (goal != 1)      print "목표 헤더 " goal + 0 "개 (기대 1개)"
       if (req != 1)       print "요구사항 헤더 " req + 0 "개 (기대 1개)"
+      if (dod != 1)       print "완료의 정의 헤더 " dod + 0 "개 (기대 1개)"
       if (inc != 1)       print "포함 표기 " inc + 0 "개 (기대 1개)"
       if (exc != 1)       print "제외 표기 " exc + 0 "개 (기대 1개)"
       if (mis)            print "포함·제외 표기가 요구사항 섹션 밖: " mis "개"
@@ -317,18 +317,13 @@ check_spec_structure() {
       if (inc_items < 1)  print "포함 목록에 R<n> 항목 없음"
       if (inc_bad)        print "포함 목록에 R<n> 형식 아닌 항목: " inc_bad "개"
       if (exc_items < 1)  print "제외 목록에 항목 없음"
-      if (r1 != 1)        print "DoD R 그룹 예시 헤더 " r1 + 0 "개 (기대 1개)"
-      if (com != 1)       print "DoD 공통 그룹 헤더 " com + 0 "개 (기대 1개)"
-      if (dod_mis)        print "DoD 그룹 헤더가 완료의 정의 섹션 밖: " dod_mis "개"
-      for (n in inc_rs) if (!(n in dod_rs)) print "포함 R" n " 에 대응하는 DoD 그룹 없음"
-      for (n in dod_rs) if (!(n in inc_rs)) print "포함 목록에 없는 DoD R" n " 그룹"
-      for (n in inc_rs) if (inc_rs[n] > 1) print "포함 R" n " 항목 중복: " inc_rs[n] "개"
-      for (n in dod_rs) if (dod_rs[n] > 1) print "DoD R" n " 그룹 중복: " dod_rs[n] "개"
+      if (ac_mis)         print "AC 행이 완료의 정의 섹션 밖: " ac_mis "개"
+      for (n in inc_rs) if (!(n in link))   print "포함 R" n " 에 연결된 AC 행 없음"
+      for (n in link)   if (!(n in inc_rs)) print "포함 목록에 없는 R" n " 을 가리키는 AC 행"
+      for (n in inc_rs) if (inc_rs[n] > 1)  print "포함 R" n " 항목 중복: " inc_rs[n] "개"
+      for (n in acs)    if (acs[n] > 1)     print "AC" n " 행 중복: " acs[n] "개"
       if (scope)          print "범위 헤더 잔존 (경계는 제외 목록으로 일원화)"
       if (old)            print "옛 포함(In)·비포함(Out) 표기 잔존"
-      if (rule != 1)      print "DoD 주석의 회귀 방지 항목 표시 규칙 " rule + 0 "개 (기대 1개)"
-      if (!mark["R1"])    print "DoD R1 예시 첫 [D] 항목 본문에 (회귀 방지 항목) 표시 없음"
-      if (!mark["공통"])  print "DoD 공통 예시 첫 [D] 항목 본문에 (회귀 방지 항목) 표시 없음"
     }
   ' "$1"
 }
@@ -384,8 +379,8 @@ assert_structure() {
 awk '!/^## 요구사항 \(Requirements\)$/' "$SPEC_TPL" > "$sandbox/s-no-req.md"
 awk '!/^### 포함$/' "$SPEC_TPL" > "$sandbox/s-no-incl.md"
 awk '!/^### 제외$/' "$SPEC_TPL" > "$sandbox/s-no-excl.md"
-awk '!/^### R1: /' "$SPEC_TPL" > "$sandbox/s-no-rgroup.md"
-awk '!/^### 공통$/' "$SPEC_TPL" > "$sandbox/s-no-common.md"
+awk '!/^## 완료의 정의 \(Definition of Done\)$/' "$SPEC_TPL" > "$sandbox/s-no-dod.md"
+awk '{print} END{print ""; print "## 완료의 정의 (Definition of Done)"}' "$SPEC_TPL" > "$sandbox/s-dup-dod.md"
 awk '{print} END{print ""; print "## 범위 (Scope)"}' "$SPEC_TPL" > "$sandbox/s-scope-back.md"
 
 # F-2 반례(2차 audit 재현·이웃 변형): 존재 검사만으로는 통과하는 변형들.
@@ -395,70 +390,61 @@ awk '/^### 포함$/{next} {print} /^### 제외$/{print ""; print "### 포함"}' 
   "$SPEC_TPL" > "$sandbox/s-swap-order.md"
 awk '!/^### 제외$/{print} END{print ""; print "### 제외"}' "$SPEC_TPL" > "$sandbox/s-excl-outside.md"
 awk '{print} /^### 제외$/{print ""; print "**비포함 (Out)**"}' "$SPEC_TPL" > "$sandbox/s-old-coexist.md"
-# PR #95 리뷰 반례: 소속·목록 항목까지 판정 — DoD 그룹 헤더의 섹션 밖 이동, 목록 항목 삭제·형식 훼손.
-awk '!/^### R1: /{print} END{print ""; print "### R1: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-rgroup-outside.md"
-awk '!/^### 공통$/{print} END{print ""; print "### 공통"}' "$SPEC_TPL" > "$sandbox/s-common-outside.md"
+# PR #95 리뷰 반례: 소속·목록 항목까지 판정 — AC 행의 섹션 밖 이동, 목록 항목 삭제·형식 훼손.
+awk '/^- \[ \] AC1: /{held = $0; next} {print} END{print ""; print held}' "$SPEC_TPL" > "$sandbox/s-ac-outside.md"
 awk '!/^- R[0-9]+: /' "$SPEC_TPL" > "$sandbox/s-no-ritems.md"
 awk '{gsub(/^- R1: /, "- "); print}' "$SPEC_TPL" > "$sandbox/s-bad-ritem.md"
 awk '!/^- <검토했지만/' "$SPEC_TPL" > "$sandbox/s-no-excl-items.md"
-# PR #95 2차 리뷰 반례: R1 외 그룹의 소속 이탈 — 소속 검사가 R1 패턴에만 걸리면 R2 이동이 통과한다.
-awk '!/^### R2: /{print} END{print ""; print "### R2: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-r2-outside.md"
+# PR #95 2차 리뷰 반례: AC1 외 행의 소속 이탈 — 소속 검사가 AC1 패턴에만 걸리면 AC2 이동이 통과한다.
+awk '/^- \[ \] AC2: /{held = $0; next} {print} END{print ""; print held}' "$SPEC_TPL" > "$sandbox/s-ac2-outside.md"
 # PR #95 3차 리뷰 반례: 소속 접두사 매칭 우회 — 원 헤더는 비워 두고 블록을 유사 헤더 아래로
 # 옮기면 `^## 요구사항`·`^## 완료의 정의` 접두사에 걸려 위반 0건으로 통과한다.
 awk '/^### 포함$/{hold=1} /^## 완료의 정의/{hold=0} hold{buf = buf $0 "\n"; next} {print}
      END{print ""; print "## 요구사항 참고"; print ""; printf "%s", buf}' \
   "$SPEC_TPL" > "$sandbox/s-req-lookalike.md"
-awk '/^### R1: /{hold=1} /^### 공통$/{hold=0} hold{buf = buf $0 "\n"; next} {print}
+awk '/^## 완료의 정의 \(Definition of Done\)$/{print; hold=1; next} /^## 결정 사항/{hold=0} hold{buf = buf $0 "\n"; next} {print}
      END{print ""; print "## 완료의 정의 참고"; print ""; printf "%s", buf}' \
   "$SPEC_TPL" > "$sandbox/s-dod-lookalike.md"
-# PR #95 3차 리뷰 반례: R2 그룹 통삭제 — R1 개수·소속 검사만으로는 포함 R2 의 DoD 연결 소실이 통과한다.
-awk '/^### R2: /{skip=1} skip && /^### 공통$/{skip=0} !skip' "$SPEC_TPL" > "$sandbox/s-no-r2group.md"
-# PR #95 4차 리뷰 반례: 소속·1:1 대응만으로는 통과하는 변형 —
-# 요구사항 블록 전체를 DoD 뒤로 이동 / 같은 번호의 DoD 그룹·포함 항목 중복.
+# PR #95 3차 리뷰 반례: R2 에 연결된 AC 행 삭제 — AC 행 존재만 보면 포함 R2 의 연결 소실이 통과한다.
+awk '!/^- \[ \] AC2: /' "$SPEC_TPL" > "$sandbox/s-no-r2link.md"
+# PR #95 4차 리뷰 반례: 소속·연결만으로는 통과하는 변형 —
+# 요구사항 블록 전체를 DoD 뒤로 이동 / 같은 번호의 AC 행·포함 항목 중복.
 awk '/^## 요구사항 \(Requirements\)$/{hold=1} /^## 완료의 정의/{hold=0} hold{buf = buf $0 "\n"; next}
-     /^## 전제/ && buf{printf "%s", buf; buf=""} {print}' "$SPEC_TPL" > "$sandbox/s-req-after-dod.md"
-awk '{print} /^### R2: /{print ""; print "### R2: <짧은 이름>"}' "$SPEC_TPL" > "$sandbox/s-dup-rgroup.md"
+     /^## 결정 사항/ && buf{printf "%s", buf; buf=""} {print}' "$SPEC_TPL" > "$sandbox/s-req-after-dod.md"
+awk '{print} /^- \[ \] AC2: /{print $0}' "$SPEC_TPL" > "$sandbox/s-dup-ac.md"
 awk '{print} /^- R2: /{print $0}' "$SPEC_TPL" > "$sandbox/s-dup-ritem.md"
 # PR #95 5차 리뷰 반례: 목표 헤더 삭제·중복 — 위치 판정은 헤더가 있을 때만 걸려 개수 없이는 통과한다.
 awk '!/^## 목표 \(Goal\)$/' "$SPEC_TPL" > "$sandbox/s-no-goal.md"
 awk '{print} END{print ""; print "## 목표 (Goal)"}' "$SPEC_TPL" > "$sandbox/s-dup-goal.md"
-# PR #109 리뷰 반례: 회귀 방지 표시 계약 — 주석 규칙 삭제 / R1 예시 표시 삭제 / 공통 예시 표시를 접기 안으로 이동.
-awk '!/^- 회귀 방지 항목 표시: /' "$SPEC_TPL" > "$sandbox/s-no-mark-rule.md"
-awk '/^### R1: /{g=1} /^### R2: /{g=0} g && /^- \[ \] \[D\]/{sub(/ \(회귀 방지 항목\)/, "")} {print}' \
-  "$SPEC_TPL" > "$sandbox/s-no-r1-mark.md"
-awk '/^### 공통$/{g=1} g && /^- \[ \] \[D\]/{sub(/ \(회귀 방지 항목\)/, ""); m=1}
-     g && m && /<summary>/{sub(/<\/summary>/, " (회귀 방지 항목)</summary>"); m=0} {print}' \
-  "$SPEC_TPL" > "$sandbox/s-common-mark-folded.md"
+# issue #145: AC 행이 포함 목록에 없는 R 을 가리키는 dangling 참조.
+awk '{sub(/\(R2\)$/, "(R9)"); print}' "$SPEC_TPL" > "$sandbox/s-ac-dangling.md"
 
 assert_structure check_spec_structure "$SPEC_TPL"                  pass "spec 구조: 실제 템플릿 통과"
 assert_structure check_spec_structure "$sandbox/s-no-req.md"       fail "spec 구조: 요구사항 헤더 소실 격추"
 assert_structure check_spec_structure "$sandbox/s-no-incl.md"      fail "spec 구조: 포함 목록 소실 격추"
 assert_structure check_spec_structure "$sandbox/s-no-excl.md"      fail "spec 구조: 제외 목록 소실 격추"
-assert_structure check_spec_structure "$sandbox/s-no-rgroup.md"    fail "spec 구조: DoD R 그룹 소실 격추"
-assert_structure check_spec_structure "$sandbox/s-no-common.md"    fail "spec 구조: DoD 공통 그룹 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-no-dod.md"       fail "spec 구조: 완료의 정의 헤더 소실 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-dod.md"      fail "spec 구조: 완료의 정의 헤더 중복 격추"
 assert_structure check_spec_structure "$sandbox/s-scope-back.md"   fail "spec 구조: 범위 섹션 재유입 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-req.md"      fail "spec 구조: 요구사항 헤더 중복(2차 audit F-2 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-incl.md"     fail "spec 구조: 포함 표기 중복 격추"
 assert_structure check_spec_structure "$sandbox/s-swap-order.md"   fail "spec 구조: 포함·제외 순서 역전 격추"
 assert_structure check_spec_structure "$sandbox/s-excl-outside.md" fail "spec 구조: 제외 표기 섹션 밖 배치 격추"
 assert_structure check_spec_structure "$sandbox/s-old-coexist.md"  fail "spec 구조: 옛 비포함(Out) 표기 공존 격추"
-assert_structure check_spec_structure "$sandbox/s-rgroup-outside.md" fail "spec 구조: DoD R 그룹 헤더 섹션 밖 이동(PR #95 리뷰 반례) 격추"
-assert_structure check_spec_structure "$sandbox/s-common-outside.md" fail "spec 구조: DoD 공통 그룹 헤더 섹션 밖 이동 격추"
+assert_structure check_spec_structure "$sandbox/s-ac-outside.md"     fail "spec 구조: AC 행 섹션 밖 이동(PR #95 리뷰 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-no-ritems.md"      fail "spec 구조: 포함 목록 R 항목 삭제 격추"
 assert_structure check_spec_structure "$sandbox/s-bad-ritem.md"      fail "spec 구조: 포함 항목 R 번호 소실 격추"
 assert_structure check_spec_structure "$sandbox/s-no-excl-items.md"  fail "spec 구조: 제외 목록 항목 삭제 격추"
-assert_structure check_spec_structure "$sandbox/s-r2-outside.md"     fail "spec 구조: DoD R2 그룹 헤더 섹션 밖 이동(PR #95 2차 리뷰 반례) 격추"
+assert_structure check_spec_structure "$sandbox/s-ac2-outside.md"    fail "spec 구조: AC2 행 섹션 밖 이동(PR #95 2차 리뷰 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-req-lookalike.md"  fail "spec 구조: 유사 헤더 아래 포함·제외 이동(PR #95 3차 리뷰 반례) 격추"
-assert_structure check_spec_structure "$sandbox/s-dod-lookalike.md"  fail "spec 구조: 유사 헤더 아래 DoD 그룹 이동 격추"
-assert_structure check_spec_structure "$sandbox/s-no-r2group.md"     fail "spec 구조: DoD R2 그룹 삭제(포함 목록과 1:1 대응) 격추"
+assert_structure check_spec_structure "$sandbox/s-dod-lookalike.md"  fail "spec 구조: 유사 헤더 아래 AC 행 이동 격추"
+assert_structure check_spec_structure "$sandbox/s-no-r2link.md"      fail "spec 구조: R2에 연결된 AC 행 삭제(포함 목록과 연결) 격추"
 assert_structure check_spec_structure "$sandbox/s-req-after-dod.md"  fail "spec 구조: 요구사항 섹션 DoD 뒤 이동(PR #95 4차 리뷰 반례) 격추"
-assert_structure check_spec_structure "$sandbox/s-dup-rgroup.md"     fail "spec 구조: DoD R2 그룹 중복 격추"
+assert_structure check_spec_structure "$sandbox/s-dup-ac.md"         fail "spec 구조: AC2 행 중복 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-ritem.md"      fail "spec 구조: 포함 R2 항목 중복 격추"
 assert_structure check_spec_structure "$sandbox/s-no-goal.md"        fail "spec 구조: 목표 헤더 소실(PR #95 5차 리뷰 반례) 격추"
 assert_structure check_spec_structure "$sandbox/s-dup-goal.md"       fail "spec 구조: 목표 헤더 중복 격추"
-assert_structure check_spec_structure "$sandbox/s-no-mark-rule.md"   fail "spec 구조: 회귀 방지 표시 규칙 삭제(PR #109 리뷰 반례) 격추"
-assert_structure check_spec_structure "$sandbox/s-no-r1-mark.md"     fail "spec 구조: R1 예시 회귀 방지 표시 삭제 격추"
-assert_structure check_spec_structure "$sandbox/s-common-mark-folded.md" fail "spec 구조: 공통 예시 회귀 방지 표시 접기 안 이동 격추"
+assert_structure check_spec_structure "$sandbox/s-ac-dangling.md"    fail "spec 구조: AC 행의 포함 목록에 없는 R 참조 격추"
 
 # 일반 Task 필드 누락 / 고정 Task 오기 / 중복 / 누락+오기 상쇄(총개수 우회) 반례.
 awk '/^### Task 1:/{s=1} /^### Task 2:/{s=0} !(s && /^- \*\*대상 요구사항\*\*:/)' \
@@ -629,6 +615,8 @@ assert_structure check_summary_structure "$sandbox/m-id-row-no-fmt.md" fail "sum
 # 판정한다. 절 범위를 다음 헤더까지로 잘라, 같은 문구가 다른 절에 있어도 세지 않는다.
 # 행 안의 조항(인수 테스트·외부 경계 목록·러너 호출 조건·명령 수준·plan Task 담당)마다 앵커 문구를 판정하고,
 # 문구마다 삭제 반례를 격추한다 — 낱말 두 개만 보면 조건 문구를 지워도 통과한다 (PR #113 리뷰 반례).
+# issue #145: spec 템플릿의 완료의 정의는 AC 행만 두므로, 그 주석의 테스트 관점 행은
+# 검증 명령·케이스 목록을 적지 않고 plan `## 테스트 계획`이 맡는다는 문장을 판정한다.
 
 # check_test_view_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_test_view_skill() {
@@ -654,10 +642,10 @@ check_test_view_spec() {
   awk '/^## 완료의 정의 \(Definition of Done\)$/ { s = 1; next } /^## / { s = 0 }
        s && /^- 테스트 관점: / {
          n++
-         if (!index($0, "외부 경계(명령 인자·종료 코드·출력 행·파일 내용)"))
-           print "spec 템플릿 테스트 관점 행에 외부 경계 목록 없음"
-         if (!index($0, "인수 테스트"))
-           print "spec 템플릿 테스트 관점 행에 인수 테스트 언급 없음"
+         if (!index($0, "검증 명령과 케이스 목록은 여기에 적지 않는다"))
+           print "spec 템플릿 테스트 관점 행에 검증 명령·케이스 목록을 적지 않는다는 문장 없음"
+         if (!index($0, "plan `## 테스트 계획`에 적는다"))
+           print "spec 템플릿 테스트 관점 행에 plan 테스트 계획 담당 없음"
        }
        END { if (n != 1) print "spec 템플릿 테스트 관점 행 " n + 0 "개 (기대 1개)" }' "$1"
 }
@@ -674,8 +662,8 @@ drop_literal "$SKILL" '외부 경계(명령 인자·종료 코드·출력 행·�
 drop_literal "$SKILL" '경계가 spec에 고정되면 테스트 러너 호출로 적을 수 있고' > "$sandbox/tv-skill-no-runner.md"
 drop_literal "$SKILL" '구현 중에 정해지면 명령 수준으로 둡니다' > "$sandbox/tv-skill-no-cmd.md"
 drop_literal "$SKILL" '그 기능을 만드는 plan Task의 `작업 내용`·`완료 기준`이 맡습니다' > "$sandbox/tv-skill-no-task.md"
-drop_literal "$SPEC_TPL" '외부 경계(명령 인자·종료 코드·출력 행·파일 내용)' > "$sandbox/tv-spec-no-boundary.md"
-drop_literal "$SPEC_TPL" '인수 테스트' > "$sandbox/tv-spec-no-accept.md"
+drop_literal "$SPEC_TPL" '검증 명령과 케이스 목록은 여기에 적지 않는다' > "$sandbox/tv-spec-no-cmd.md"
+drop_literal "$SPEC_TPL" 'plan `## 테스트 계획`에 적는다' > "$sandbox/tv-spec-no-plan.md"
 
 assert_structure check_test_view_skill "$SKILL"                    pass "테스트 관점: SKILL.md 완료 기준 형식 행 통과"
 assert_structure check_test_view_skill "$sandbox/tv-skill-del.md"  fail "테스트 관점: SKILL.md 완료 기준 형식 행 삭제 격추"
@@ -686,8 +674,8 @@ assert_structure check_test_view_skill "$sandbox/tv-skill-no-cmd.md"      fail "
 assert_structure check_test_view_skill "$sandbox/tv-skill-no-task.md"     fail "테스트 관점: SKILL.md 구현 테스트 plan Task 담당 삭제 격추"
 assert_structure check_test_view_spec  "$SPEC_TPL"                 pass "테스트 관점: spec 템플릿 DoD 주석 행 통과"
 assert_structure check_test_view_spec  "$sandbox/tv-spec-del.md"   fail "테스트 관점: spec 템플릿 DoD 주석 행 삭제 격추"
-assert_structure check_test_view_spec  "$sandbox/tv-spec-no-boundary.md"  fail "테스트 관점: spec 템플릿 외부 경계 목록 삭제(PR #113 리뷰 반례) 격추"
-assert_structure check_test_view_spec  "$sandbox/tv-spec-no-accept.md"    fail "테스트 관점: spec 템플릿 인수 테스트 문구 삭제 격추"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-no-cmd.md"       fail "테스트 관점: spec 템플릿 검증 명령·케이스 목록 미기재 문구 삭제 격추"
+assert_structure check_test_view_spec  "$sandbox/tv-spec-no-plan.md"      fail "테스트 관점: spec 템플릿 plan 테스트 계획 담당 문구 삭제 격추"
 
 # --- 테스트 배치 (issue #112) ------------------------------------------------------
 #
@@ -1354,7 +1342,7 @@ assert_structure check_testing_plan  "$sandbox/tr-plan-split.md"   fail "테스�
 # --- 이슈 본문 템플릿 (issue #130) ------------------------------------------------
 #
 # `--create` 초안, 3-1 근거 판정, issue-audit `--plan` 1단계가 같은 이슈 본문 구조를 읽는다.
-# 본문 헤더 4개와 접기 제목 3개를 열거해 그 외 0건까지 판정하고(HTML 주석 안 안내문은 빼고 센다),
+# 본문 헤더 5개(issue #145에서 `## 정한 것`을 더함)와 접기 제목 3개를 열거해 그 외 0건까지 판정하고(HTML 주석 안 안내문은 빼고 센다),
 # 접기 안 헤더와 `## 검토 필요` 앞 접기를 위반으로 센다.
 # 완료의 정의 섹션의 AC 행과 포함 항목 AC 규칙 문장은 섹션 범위로 판정한다.
 # 규칙 문장은 주석 안 안내라 주석 행도 세며, 다른 섹션으로 옮긴 문장은 세지 않는다.
@@ -1377,7 +1365,7 @@ check_body_template() {
     /^### 제외$/ { if (sec == "범위") { be++; be_at = NR } else bout++ }
     /^\*\*(포함|제외)\*\*/ { bold++ }
     END {
-      if (h != "## 목표|## 범위|## 완료의 정의|## 검토 필요|") print "본문 헤더 구성 [" h "]"
+      if (h != "## 목표|## 범위|## 완료의 정의|## 정한 것|## 검토 필요|") print "본문 헤더 구성 [" h "]"
       if (bi != 1 || be != 1) print "범위 표지 제목 포함 " bi + 0 "개·제외 " be + 0 "개 (기대 각 1개)"
       else if (bi_at > be_at) print "범위 포함·제외 표지 순서 역전"
       if (bout) print "포함·제외 표지 제목이 범위 섹션 밖: " bout "개"
@@ -1488,7 +1476,7 @@ assert_structure check_create_section "$sandbox/cr-before-options.md"   fail "--
 # 이슈에 AC가 있으면 3-2가 완료의 정의를 새로 쓰지 않고 AC를 정제하며, spec 항목의 출처 표기로 AC와 잇는다.
 # SKILL.md는 3-2 범위(`3-2. 승인 후` 행부터 `4. ` 행 전까지)에 `AC 정제` 항목 1개와 조항 문구 6개가 있는지 본다.
 # 다른 단계로 옮긴 문장은 세지 않는다.
-# spec 템플릿은 완료의 정의 예시 항목에 `(AC<n>)` 출처 표기가 있고 `(회귀 방지 항목)`보다 앞에 오는지,
+# spec 템플릿은 완료의 정의 AC 행이 `(R<n>)` 표기로 끝나고 옛 출처 표기(`(AC<n>)`·`(AC 없음: …)`)가 남지 않았는지(issue #145),
 # plan 템플릿은 `## Tasks` 안내(Task 0 전까지)에 진행만 판정한다는 문장이 있는지 본다.
 
 # check_ac_refine_skill <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
@@ -1508,11 +1496,14 @@ check_ac_refine_skill() {
 # check_ac_refine_spec_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_ac_refine_spec_tpl() {
   awk '/^## 완료의 정의/ { s = 1; next } /^## / { s = 0 }
-       s && /^- \[ \] \[(D|QD|ND)\]/ {
-         if ($0 ~ /\(AC[0-9]+(, AC[0-9]+)*\)/) n++
-         if ($0 ~ /\(회귀 방지 항목\).*\(AC[0-9]/) print "출처 표기가 회귀 방지 표시 뒤 (행 " NR ")"
+       /<!--/ { c = 1 }
+       c { if (/-->/) c = 0; next }
+       s && /^- \[ \] / {
+         if ($0 ~ /^- \[ \] AC[0-9]+: .* \(R[0-9]+(, R[0-9]+)*\)$/) n++
+         else print "R 표기로 끝나지 않는 완료의 정의 행 (행 " NR ")"
+         if ($0 ~ /\(AC[0-9]+(, AC[0-9]+)*\)/ || index($0, "(AC 없음:")) print "옛 출처 표기가 남음 (행 " NR ")"
        }
-       END { if (n < 1) print "출처 AC 표기 예시 없음" }' "$1"
+       END { if (n < 1) print "R 표기가 붙은 AC 행 예시 없음" }' "$1"
 }
 
 # check_ac_refine_plan_tpl <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
@@ -1534,9 +1525,9 @@ drop_literal "$SKILL" 'AC 번호는 뒤에만 추가하고 다시 매기지 않�
 awk '/^     - \*\*AC 정제\*\*: / { hold = 1 } hold && /^4\. / { hold = 0; print; printf "%s", buf; next }
      hold && !/^       / && !/^     - \*\*AC 정제\*\*: / { hold = 0 }
      hold { buf = buf $0 "\n"; next } { print }' "$SKILL" > "$sandbox/ar-moved-step4.md"
-awk '/^## 완료의 정의/ { s = 1 } s { gsub(/ \(AC[0-9]+(, AC[0-9]+)*\)/, "") } { print }' \
-  "$SPEC_TPL" > "$sandbox/ar-spec-no-source.md"
-awk '{ sub(/ \(AC1\) \(회귀 방지 항목\)/, " (회귀 방지 항목) (AC1)"); print }' "$SPEC_TPL" > "$sandbox/ar-spec-source-after.md"
+awk '/^## 완료의 정의/ { s = 1 } s && /^- \[ \] AC1: / { sub(/ \(R[0-9]+(, R[0-9]+)*\)$/, "") } { print }' \
+  "$SPEC_TPL" > "$sandbox/ar-spec-no-rmark.md"
+awk '/^- \[ \] AC1: / { sub(/ \(R1\)$/, " (AC1) (R1)") } { print }' "$SPEC_TPL" > "$sandbox/ar-spec-old-source.md"
 awk '!index($0, "spec에 없는 결과를 더하지 않는다")' "$TEMPLATE" > "$sandbox/ar-plan-no-rule.md"
 
 assert_structure check_ac_refine_skill    "$SKILL"                            pass "AC 정제: 실제 SKILL.md 3-2 통과"
@@ -1547,9 +1538,9 @@ assert_structure check_ac_refine_skill    "$sandbox/ar-no-common.md"          fa
 assert_structure check_ac_refine_skill    "$sandbox/ar-no-ac-none.md"         fail "AC 정제: 3-2 AC 없음 표기 문구 삭제 격추"
 assert_structure check_ac_refine_skill    "$sandbox/ar-no-number.md"          fail "AC 정제: 3-2 AC 번호 유지 문구 삭제 격추"
 assert_structure check_ac_refine_skill    "$sandbox/ar-moved-step4.md"        fail "AC 정제: AC 정제 항목의 4단계 이동 격추"
-assert_structure check_ac_refine_spec_tpl "$SPEC_TPL"                         pass "AC 정제: 실제 spec 템플릿 출처 표기 통과"
-assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-no-source.md"     fail "AC 정제: spec 템플릿 출처 표기 삭제 격추"
-assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-source-after.md"  fail "AC 정제: spec 템플릿 출처 표기의 회귀 방지 표시 뒤 이동 격추"
+assert_structure check_ac_refine_spec_tpl "$SPEC_TPL"                         pass "AC 정제: 실제 spec 템플릿 AC 행 R 표기 통과"
+assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-no-rmark.md"      fail "AC 정제: spec 템플릿 AC 행 R 표기 삭제 격추"
+assert_structure check_ac_refine_spec_tpl "$sandbox/ar-spec-old-source.md"    fail "AC 정제: spec 템플릿 옛 출처 표기 다시 넣기 격추"
 assert_structure check_ac_refine_plan_tpl "$TEMPLATE"                         pass "AC 정제: 실제 plan 템플릿 Tasks 안내 통과"
 assert_structure check_ac_refine_plan_tpl "$sandbox/ar-plan-no-rule.md"       fail "AC 정제: plan 템플릿 진행만 판정 문장 삭제 격추"
 
@@ -1769,8 +1760,8 @@ assert_structure check_body_update_audit_item "$sandbox/bu-wf-dup.md"           
 
 # --- 요구사항 묶음·하위 목록 (issue #140) -----------------------------------------
 #
-# 요구사항이 5개 이상이면 포함은 내용별, 제외는 사유별로 묶고 R 첫 줄 아래에 세부 조건을 하위 목록으로 두는 규칙이
-# spec 템플릿 요구사항 안내에서 사라지지 않았는지 판정한다.
+# 요구사항이 5개 이상이면 포함은 내용별, 제외는 사유별로 묶는 규칙과, R을 하위 목록 없는 한 문장으로 쓰고
+# 세부를 `## 결정 사항`에 적는 규칙(issue #145)이 spec 템플릿 요구사항 안내에서 사라지지 않았는지 판정한다.
 # 조항은 행 단위로 본다. 행은 `- <라벨>: `로 시작하는 줄과 두 칸 들여쓴 이어지는 줄이다.
 # 같은 문구가 다른 행이나 다른 섹션에 있으면 세지 않는다. `5개 미만이면 묶지 않는다`는 포함 묶음·제외 묶음 두 행에 있다.
 
@@ -1790,7 +1781,7 @@ check_group_spec_tpl() {
   for p in '포함 묶음' '제외 묶음'; do
     [ "$(printf '%s\n' "$sec" | grep -c "^- $p: ")" -eq 1 ] || echo "요구사항 섹션의 [$p] 행이 1개가 아님"
   done
-  for p in '첫 줄은 한 문장' '세부 조건과 근거 표기는 그 항목의 하위 목록에' '하위 목록의 세부 조건도 그 R의 요구사항'; do
+  for p in 'R은 한 문장으로 쓰고 하위 목록을 두지 않는다' '문장 그대로 옮기고' '세부는 `## 결정 사항`에 적는다'; do
     group_need "$sec" '포함' "$p"
   done
   for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '5개 미만이면 묶지 않는다' '기능 영역을 가리키는 명사구' \
@@ -1800,12 +1791,12 @@ check_group_spec_tpl() {
   for p in '제외 항목이 5개 이상이면' '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '5개 미만이면 묶지 않는다' '항목이 없는 사유는 생략'; do
     group_need "$sec" '제외 묶음' "$p"
   done
-  group_need "$sec" '근거 표기' '하위 목록'
+  group_need "$sec" '근거 표기' '줄 끝에'
   group_need "$sec" '함께 해소 표기' '첫 줄 끝에 `(함께 해소: K-<번호>)`'
-  if printf '%s\n' "$sec" | group_row '근거 표기' | grep -qF '문장 끝'; then echo '[근거 표기] 행에 옛 위치(문장 끝)가 남음'; fi
+  if printf '%s\n' "$sec" | group_row '근거 표기' | grep -qF '하위 목록'; then echo '[근거 표기] 행에 옛 위치(하위 목록)가 남음'; fi
   printf '%s\n' "$sec" | awk '/^### 포함$/ { i = 1; next } /^### / { i = 0 }
-    i && p ~ /^- R[0-9]+: / && /^  - / { n++ } { p = $0 }
-    END { if (n < 1) print "포함 예시의 R 항목 바로 아래에 하위 목록 줄 없음" }'
+    i && /^[ \t]+[-*] / { n++ }
+    END { if (n) print "포함 예시의 R 항목 아래에 하위 목록 줄 " n "개 (R은 하위 목록 없는 한 문장)" }'
 }
 
 # 반례 fixture 는 실제 템플릿의 awk 변형으로 만든다. 문구 삭제는 요구사항 섹션의 그 행에서만 한다.
@@ -1835,7 +1826,7 @@ group_spec_drop_case() {
 }
 
 assert_structure check_group_spec_tpl "$SPEC_TPL" pass "요구사항 묶음: spec 템플릿 실제 템플릿 통과"
-for p in '첫 줄은 한 문장' '세부 조건과 근거 표기는 그 항목의 하위 목록에' '하위 목록의 세부 조건도 그 R의 요구사항'; do
+for p in 'R은 한 문장으로 쓰고 하위 목록을 두지 않는다' '문장 그대로 옮기고' '세부는 `## 결정 사항`에 적는다'; do
   group_spec_drop_case '포함' "$p"
 done
 for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '5개 미만이면 묶지 않는다' '기능 영역을 가리키는 명사구' \
@@ -1845,7 +1836,7 @@ done
 for p in '제외 항목이 5개 이상이면' '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '5개 미만이면 묶지 않는다' '항목이 없는 사유는 생략'; do
   group_spec_drop_case '제외 묶음' "$p"
 done
-group_spec_drop_case '근거 표기' '하위 목록'
+group_spec_drop_case '근거 표기' '줄 끝에'
 group_spec_drop_case '함께 해소 표기' '첫 줄 끝에'
 
 group_drop_row "$SPEC_TPL" '포함 묶음' > "$sandbox/gs-no-inc-row.md"
@@ -1857,16 +1848,16 @@ awk -v l="- 포함 묶음: " '
   { print }
   d && /^<!--$/ { printf "%s", held; d = 0 }' "$SPEC_TPL" > "$sandbox/gs-inc-row-in-dod.md"
 awk '/^## / { q = ($0 == "## 요구사항 (Requirements)") }
-     q && /^- 근거 표기: / { $0 = $0 " 문장 끝에 병기해도 된다." } { print }' "$SPEC_TPL" > "$sandbox/gs-basis-end.md"
-awk '/^### 포함$/ { i = 1 } /^### 제외$/ { i = 0 } i && /^  - / { next } { print }' "$SPEC_TPL" > "$sandbox/gs-no-sublist.md"
+     q && /^- 근거 표기: / { $0 = $0 " 하위 목록에 적어도 된다." } { print }' "$SPEC_TPL" > "$sandbox/gs-basis-sublist.md"
+awk '{ print } /^- R1: / { print "  - <세부 조건>" }' "$SPEC_TPL" > "$sandbox/gs-sublist-back.md"
 
 assert_structure check_group_spec_tpl "$sandbox/gs-no-inc-row.md"     fail "요구사항 묶음: spec 템플릿 포함 묶음 행 삭제 격추"
 assert_structure check_group_spec_tpl "$sandbox/gs-no-exc-row.md"     fail "요구사항 묶음: spec 템플릿 제외 묶음 행 삭제 격추"
 assert_structure check_group_spec_tpl "$sandbox/gs-inc-row-in-dod.md" fail "요구사항 묶음: spec 템플릿 포함 묶음 행의 완료의 정의 주석 이동 격추"
-assert_structure check_group_spec_tpl "$sandbox/gs-basis-end.md"      fail "요구사항 묶음: spec 템플릿 근거 표기 행에 문장 끝 다시 넣기 격추"
-assert_structure check_group_spec_tpl "$sandbox/gs-no-sublist.md"     fail "요구사항 묶음: spec 템플릿 포함 예시 하위 목록 줄 삭제 격추"
+assert_structure check_group_spec_tpl "$sandbox/gs-basis-sublist.md"  fail "요구사항 묶음: spec 템플릿 근거 표기 행에 하위 목록 다시 넣기 격추"
+assert_structure check_group_spec_tpl "$sandbox/gs-sublist-back.md"   fail "요구사항 묶음: spec 템플릿 포함 예시 하위 목록 줄 다시 넣기 격추"
 
-# 이슈 본문 템플릿의 범위 안내도 같은 5개 기준으로 묶고 세부 조건을 하위 목록에 두도록 안내한다.
+# 이슈 본문 템플릿의 범위 안내도 같은 5개 기준으로 묶고 포함 항목을 하위 목록 없는 한 문장으로 쓰도록 안내한다(issue #145).
 # 범위 섹션(주석 행 포함)만 읽어, 규칙 문장을 다른 섹션으로 옮기면 세지 않는다.
 # `5개 미만이면 묶지 않는다`는 포함·제외 두 곳에 있어 횟수로 판정한다.
 
@@ -1878,14 +1869,14 @@ check_group_body_tpl() {
   local sec p n
   sec="$(group_scope_section "$1")"
   for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '제외 항목이 5개 이상이면' \
-           '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '항목이 없는 사유는 생략' '세부 조건은 하위 목록에 둔다'; do
+           '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '항목이 없는 사유는 생략' '포함 항목은 하위 목록 없는 한 문장으로 쓴다'; do
     printf '%s\n' "$sec" | grep -qF -- "$p" || echo "범위 안내에 [$p] 없음"
   done
   n="$(printf '%s\n' "$sec" | grep -oF '5개 미만이면 묶지 않는다' | wc -l | tr -d ' ')"
   [ "$n" -eq 2 ] || echo "범위 안내의 [5개 미만이면 묶지 않는다] ${n}회 (기대 2회: 포함·제외)"
-  if printf '%s\n' "$sec" | grep -qF '관련 항목은 하위 목록으로 묶어도 된다'; then
-    echo '범위 안내에 옛 문장(관련 항목은 하위 목록으로 묶어도 된다)이 남음'
-  fi
+  for p in '관련 항목은 하위 목록으로 묶어도 된다' '세부 조건은 하위 목록에 둔다'; do
+    if printf '%s\n' "$sec" | grep -qF -- "$p"; then echo "범위 안내에 옛 문장($p)이 남음"; fi
+  done
 }
 
 # group_scope_drop <파일> <문구> [1] → 범위 섹션에서 문구를 지운 사본 (셋째 인자가 1이면 처음 1회만 지운다)
@@ -1904,7 +1895,7 @@ group_scope_drop() {
 assert_structure check_group_body_tpl "$BODY_TPL" pass "요구사항 묶음: 이슈 본문 템플릿 실제 템플릿 통과"
 GB_N=0
 for p in '포함 항목이 5개 이상이면' '`#### <묶음 이름>`' '제외 항목이 5개 이상이면' \
-         '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '항목이 없는 사유는 생략' '세부 조건은 하위 목록에 둔다'; do
+         '`#### 보류`, `#### 대체`, `#### 불필요` 순서' '항목이 없는 사유는 생략' '포함 항목은 하위 목록 없는 한 문장으로 쓴다'; do
   GB_N=$((GB_N + 1))
   group_scope_drop "$BODY_TPL" "$p" > "$sandbox/gb-drop-$GB_N.md"
   assert_structure check_group_body_tpl "$sandbox/gb-drop-$GB_N.md" fail "요구사항 묶음: 이슈 본문 템플릿 [$p] 삭제 격추"
@@ -1913,6 +1904,8 @@ done
 group_scope_drop "$BODY_TPL" '5개 미만이면 묶지 않는다' 1 > "$sandbox/gb-under5-once.md"
 awk '/^## / { q = ($0 == "## 범위") }
      q && /^- 포함: / { $0 = $0 " 관련 항목은 하위 목록으로 묶어도 된다." } { print }' "$BODY_TPL" > "$sandbox/gb-old-sentence.md"
+awk '/^## / { q = ($0 == "## 범위") }
+     q && /^- 포함: / { $0 = $0 " 항목의 세부 조건은 하위 목록에 둔다." } { print }' "$BODY_TPL" > "$sandbox/gb-old-sublist.md"
 GB_RULE="$(grep -F '포함 항목이 5개 이상이면' "$BODY_TPL")" \
   awk 'index($0, "포함 항목이 5개 이상이면") { next }
        /^## / { d = ($0 == "## 완료의 정의") }
@@ -1921,6 +1914,7 @@ GB_RULE="$(grep -F '포함 항목이 5개 이상이면' "$BODY_TPL")" \
 
 assert_structure check_group_body_tpl "$sandbox/gb-under5-once.md"     fail "요구사항 묶음: 이슈 본문 템플릿 5개 미만 규칙 한 곳만 삭제 격추"
 assert_structure check_group_body_tpl "$sandbox/gb-old-sentence.md"    fail "요구사항 묶음: 이슈 본문 템플릿 옛 하위 목록 문장 다시 넣기 격추"
+assert_structure check_group_body_tpl "$sandbox/gb-old-sublist.md"     fail "요구사항 묶음: 이슈 본문 템플릿 세부 조건 하위 목록 문장 다시 넣기 격추"
 assert_structure check_group_body_tpl "$sandbox/gb-inc-rule-in-dod.md" fail "요구사항 묶음: 이슈 본문 템플릿 포함 묶음 규칙의 완료의 정의 주석 이동 격추"
 
 # SKILL.md 3-1 승인 요청과 `--create` 요약 제시는 목록을 묶음대로 나눠 보여 주고 항목은 첫 줄만 보여 준다.
@@ -1998,6 +1992,265 @@ assert_structure check_spec_structure "$sandbox/gl-spec-exc-bold.md" fail "요�
 assert_structure check_body_template  "$sandbox/gl-body-inc-bold.md" fail "요구사항 표지: 이슈 본문 템플릿 포함 표지 굵은 글씨 되돌리기 격추"
 assert_structure check_body_template  "$sandbox/gl-body-exc-bold.md" fail "요구사항 표지: 이슈 본문 템플릿 제외 표지 굵은 글씨 되돌리기 격추"
 assert_structure check_body_template  "$sandbox/gl-body-swap.md"     fail "요구사항 표지: 이슈 본문 템플릿 포함·제외 표지 순서 역전 격추"
+
+# --- 한 문장 요구사항과 AC 행 (issue #145) ----------------------------------------
+#
+# 이슈 본문은 포함과 완료의 정의를 같은 묶음 제목으로 나누고 포함 항목을 하위 목록 없는 한 문장으로 쓰며,
+# 등록 때 정한 세부는 `## 정한 것`에 둔다. spec 은 완료의 정의를 묶음 제목 아래 `- [ ] AC<n>: … (R<n>)` 행으로 두고
+# 레벨 태그·검증 명령·케이스 목록을 담지 않으며, `## 결정 사항`·`## 변경 이력`을 두고 `## 전제`를 두지 않는다.
+# 규칙 문장은 주석 안 안내라 주석 행도 섹션 범위로 세고, 구조(제목·행·표)는 주석 밖에서만 센다.
+# 다른 섹션으로 옮긴 규칙 문장과 구조는 세지 않는다.
+
+# check_body_groups <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_body_groups() {
+  awk '
+    /^## / { sec = substr($0, 4); part = ""; grp = 0
+             if (sec == "완료의 정의") dod_at = NR
+             if (sec == "정한 것") { dec++; dec_at = NR }
+             if (sec == "검토 필요") rev_at = NR }
+    sec == "범위" && index($0, "포함 항목은 하위 목록 없는 한 문장으로 쓴다") { one++ }
+    sec == "완료의 정의" && index($0, "포함과 같은 묶음 이름의 `### <묶음 이름>` 제목으로 나누고") { grule++ }
+    sec == "완료의 정의" && index($0, "포함을 묶지 않았으면 제목 없이 둔다") { nrule++ }
+    sec == "정한 것" && index($0, "`- 정한 것: (<묶음>) <내용>`") { drule++ }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "범위" && /^### 포함$/ { part = "inc"; next }
+    sec == "범위" && /^### /      { part = "" }
+    part == "inc" && /^#### /     { ig = ig substr($0, 6) "|" }
+    part == "inc" && /^- /        { items++ }
+    part == "inc" && /^[ \t]+[-*] / { subl++ }
+    sec == "완료의 정의" && /^### / { dg = dg substr($0, 5) "|"; grp = 1 }
+    sec == "완료의 정의" && /^- \[ \] AC[0-9]+: / { if (!grp) loose++ }
+    sec == "정한 것" && /^- 정한 것: \(/ { drow++ }
+    END {
+      if (one != 1)   print "범위 안내의 한 문장 규칙 " one + 0 "개 (기대 1개)"
+      if (grule != 1) print "완료의 정의 안내의 묶음 제목 규칙 " grule + 0 "개 (기대 1개)"
+      if (nrule != 1) print "완료의 정의 안내의 묶지 않는 이슈 규칙 " nrule + 0 "개 (기대 1개)"
+      if (items < 1)  print "포함 예시 항목 없음"
+      if (subl)       print "포함 항목 아래 하위 목록 " subl "줄"
+      if (ig == "")   print "포함 예시에 묶음 제목 없음"
+      if (ig != dg)   print "포함 묶음 [" ig "]과 완료의 정의 묶음 [" dg "]이 다름"
+      if (loose)      print "묶음 제목 밖의 AC 행 " loose "개"
+      if (dec != 1)   print "정한 것 헤더 " dec + 0 "개 (기대 1개)"
+      else if (!(dod_at && dod_at < dec_at && dec_at < rev_at)) print "정한 것 섹션이 완료의 정의와 검토 필요 사이가 아님"
+      if (drule != 1) print "정한 것 안내의 행 형식 " drule + 0 "개 (기대 1개)"
+      if (drow < 1)   print "정한 것 예시 행 없음"
+    }' "$1"
+}
+
+awk '/^## / { d = ($0 == "## 완료의 정의") } d && /^### <묶음 이름>$/ { $0 = "### <다른 묶음>" } { print }' \
+  "$BODY_TPL" > "$sandbox/bg-dod-renamed.md"
+awk '/^## / { d = ($0 == "## 완료의 정의") } d && /^### <묶음 이름>$/ { next } { print }' "$BODY_TPL" > "$sandbox/bg-dod-nogroup.md"
+awk '!/^#### <묶음 이름>$/' "$BODY_TPL" > "$sandbox/bg-inc-nogroup.md"
+awk '{ print } /^- <이 이슈로 가능해져야 하는 것 한 문장>$/ { print "  - <세부 조건>" }' "$BODY_TPL" > "$sandbox/bg-sublist.md"
+drop_literal "$BODY_TPL" '포함 항목은 하위 목록 없는 한 문장으로 쓴다' > "$sandbox/bg-no-one.md"
+drop_literal "$BODY_TPL" '포함과 같은 묶음 이름의 `### <묶음 이름>` 제목으로 나누고' > "$sandbox/bg-no-grule.md"
+drop_literal "$BODY_TPL" '포함을 묶지 않았으면 제목 없이 둔다' > "$sandbox/bg-no-nrule.md"
+awk '!/^## 정한 것$/' "$BODY_TPL" > "$sandbox/bg-no-decided.md"
+awk '!/^- 정한 것: \(/' "$BODY_TPL" > "$sandbox/bg-no-drow.md"
+# 정한 것 섹션을 검토 필요 뒤(첫 접기 앞)로 옮긴다.
+awk '/^## 정한 것$/ { hold = 1 } /^## 검토 필요$/ { hold = 0 } hold { buf = buf $0 "\n"; next }
+     /^<details>$/ && buf { printf "%s", buf; buf = "" } { print }' "$BODY_TPL" > "$sandbox/bg-decided-late.md"
+
+assert_structure check_body_groups "$BODY_TPL"                    pass "본문 묶음 대응: 실제 이슈 본문 템플릿 통과"
+assert_structure check_body_groups "$sandbox/bg-dod-renamed.md"   fail "본문 묶음 대응: 완료의 정의 묶음 제목 이름 바꿈 격추"
+assert_structure check_body_groups "$sandbox/bg-dod-nogroup.md"   fail "본문 묶음 대응: 완료의 정의 묶음 제목 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-inc-nogroup.md"   fail "본문 묶음 대응: 포함 묶음 제목 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-sublist.md"       fail "본문 묶음 대응: 포함 항목 아래 하위 목록 추가 격추"
+assert_structure check_body_groups "$sandbox/bg-no-one.md"        fail "본문 묶음 대응: 한 문장 규칙 문구 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-no-grule.md"      fail "본문 묶음 대응: 묶음 제목 규칙 문구 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-no-nrule.md"      fail "본문 묶음 대응: 묶지 않는 이슈 규칙 문구 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-no-decided.md"    fail "본문 묶음 대응: 정한 것 섹션 헤더 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-no-drow.md"       fail "본문 묶음 대응: 정한 것 예시 행 삭제 격추"
+assert_structure check_body_groups "$sandbox/bg-decided-late.md"  fail "본문 묶음 대응: 정한 것 섹션의 검토 필요 뒤 이동 격추"
+
+# check_spec_ac_rows <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 완료의 정의 섹션은 주석까지 읽어 레벨 태그를 센다 — 주석의 안내에 태그가 남으면 그 모양대로 쓰게 된다.
+check_spec_ac_rows() {
+  awk '
+    /^## / { sec = $0; part = ""; grp = 0 }
+    sec == "## 완료의 정의 (Definition of Done)" && /\[(D|QD|ND)\]/ { tag++ }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "## 요구사항 (Requirements)" && /^### 포함$/ { part = "inc"; next }
+    sec == "## 요구사항 (Requirements)" && /^### /      { part = "" }
+    part == "inc" && /^#### /       { ig = ig substr($0, 6) "|" }
+    part == "inc" && /^- R[0-9]+: / { rs++ }
+    part == "inc" && /^[ \t]+[-*] / { subl++ }
+    sec == "## 완료의 정의 (Definition of Done)" {
+      if (/^### /) { t = substr($0, 5); dg = dg t "|"; grp = 1; if (t ~ /^R[0-9]+: / || t == "공통") oldg++ }
+      else if (/^- \[ \] /) {
+        rows++
+        if ($0 !~ /^- \[ \] AC[0-9]+: .* \(R[0-9]+(, R[0-9]+)*\)$/) bad++
+        if (!grp) loose++
+      }
+      else if (/^[ \t]*```/)          fence++
+      else if (/<details>|<summary>/) fold++
+      else if (/^>/)                  quote++
+      else if (/^[ \t]*[-*] /)        other++
+    }
+    END {
+      if (rs < 1)   print "포함 예시에 R 항목 없음"
+      if (subl)     print "요구사항 R 항목 아래 하위 목록 " subl "줄 (R은 하위 목록 없는 한 문장)"
+      if (rows < 1) print "완료의 정의에 AC 행 없음"
+      if (bad)      print "`- [ ] AC<n>: … (R<n>)` 형식이 아닌 완료의 정의 행 " bad "개"
+      if (tag)      print "완료의 정의 섹션에 레벨 태그 " tag "행"
+      if (fence)    print "완료의 정의 섹션에 코드 블록 " fence "행 (검증 명령은 적지 않는다)"
+      if (fold)     print "완료의 정의 섹션에 접기 " fold "행"
+      if (quote)    print "완료의 정의 섹션에 인용 블록 " quote "행 (검증 레벨 안내는 두지 않는다)"
+      if (other)    print "완료의 정의 섹션에 AC 행이 아닌 목록 " other "행 (케이스 목록은 적지 않는다)"
+      if (oldg)     print "완료의 정의에 옛 그룹 제목(R<n>·공통) " oldg "개"
+      if (ig == "") print "포함 예시에 묶음 제목 없음"
+      if (ig != dg) print "포함 묶음 [" ig "]과 완료의 정의 묶음 [" dg "]이 다름"
+      if (loose)    print "묶음 제목 밖의 AC 행 " loose "개"
+    }' "$1"
+}
+
+awk '{ sub(/^- \[ \] AC1: /, "- [ ] [D]  AC1: "); print }' "$SPEC_TPL" > "$sandbox/sa-level-tag.md"
+awk '/^- \[ \] AC1: / { sub(/ \(R1\)$/, "") } { print }' "$SPEC_TPL" > "$sandbox/sa-no-rmark.md"
+awk '{ print } /^- \[ \] AC1: / { print "  <details>"; print "  <summary>검증 명령 — 출력 0건이면 통과</summary>"; print ""
+       print "  ```bash"; print "  true"; print "  ```"; print ""; print "  </details>" }' "$SPEC_TPL" > "$sandbox/sa-command-fold.md"
+awk '{ print } /^- \[ \] AC1: / { print "  - 케이스: <입력> → <기대 출력>" }' "$SPEC_TPL" > "$sandbox/sa-case-list.md"
+awk '/^## / { d = ($0 == "## 완료의 정의 (Definition of Done)") } d && /^### <묶음 이름>$/ { $0 = "### R1: <짧은 이름>" } { print }' \
+  "$SPEC_TPL" > "$sandbox/sa-rgroup.md"
+awk '/^## / { d = ($0 == "## 완료의 정의 (Definition of Done)") } d && /^### <묶음 이름>$/ { next } { print }' \
+  "$SPEC_TPL" > "$sandbox/sa-no-group.md"
+awk '{ print } /^- R1: / { print "  - <세부 조건>" }' "$SPEC_TPL" > "$sandbox/sa-sublist.md"
+awk '{ print } /^## 완료의 정의 \(Definition of Done\)$/ { print ""; print "> **검증 레벨** — 낮을수록 좋다(자동 검증에 가까움)." }' \
+  "$SPEC_TPL" > "$sandbox/sa-level-quote.md"
+awk '/^## / { d = ($0 == "## 완료의 정의 (Definition of Done)") }
+     d && index($0, "- 테스트 관점: ") == 1 { $0 = $0 " 예: `[D]` 항목은 명령으로 판정한다." } { print }' \
+  "$SPEC_TPL" > "$sandbox/sa-tag-in-comment.md"
+
+assert_structure check_spec_ac_rows "$SPEC_TPL"                     pass "spec AC 행: 실제 spec 템플릿 통과"
+assert_structure check_spec_ac_rows "$sandbox/sa-level-tag.md"      fail "spec AC 행: AC 행의 레벨 태그 다시 넣기 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-no-rmark.md"       fail "spec AC 행: AC 행 끝의 R 표기 삭제 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-command-fold.md"   fail "spec AC 행: 검증 명령 접기 다시 넣기 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-case-list.md"      fail "spec AC 행: AC 행 아래 케이스 목록 추가 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-rgroup.md"         fail "spec AC 행: 옛 R 그룹 제목 다시 넣기 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-no-group.md"       fail "spec AC 행: 완료의 정의 묶음 제목 삭제 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-sublist.md"        fail "spec AC 행: 요구사항 R 아래 하위 목록 추가 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-level-quote.md"    fail "spec AC 행: 검증 레벨 인용 블록 다시 넣기 격추"
+assert_structure check_spec_ac_rows "$sandbox/sa-tag-in-comment.md" fail "spec AC 행: 완료의 정의 주석의 레벨 태그 격추"
+
+# check_spec_decisions <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_spec_decisions() {
+  awk '
+    /^## / { sec = $0 }
+    /^## 전제/ { pre++ }
+    /^## 완료의 정의 \(Definition of Done\)$/ { dod_at = NR }
+    /^## 결정 사항 \(Decisions\)$/ { dec++; dec_at = NR }
+    /^## 변경 이력$/ { his_at = NR }
+    /^## 연관 문서$/ { rel_at = NR }
+    sec == "## 결정 사항 (Decisions)" {
+      if (index($0, "- 적을 것: 경계 규칙·계산식·합의한 값·버린 대안")) keep++
+      if (index($0, "- 적지 않을 것: 구현 방법")) drop++
+      if (index($0, "plan `## 설계 결정`에 적는다")) plan++
+      if (index($0, "`- D<n> <이름>: <내용>`")) fmt++
+      if (index($0, "적을 결정이 없으면 이 섹션을 두지 않는다")) none++
+    }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "## 결정 사항 (Decisions)" && /^- D[0-9]+ [^:]+: / { rows++ }
+    sec == "## 결정 사항 (Decisions)" && index($0, "<summary>버린 대안과 이유</summary>") { fold++ }
+    END {
+      if (pre) print "전제 섹션 헤더 " pre "개 (결정 사항·설계 결정으로 옮겼다)"
+      if (dec != 1) print "결정 사항 헤더 " dec + 0 "개 (기대 1개)"
+      else {
+        if (!(dod_at && dod_at < dec_at)) print "결정 사항 섹션이 완료의 정의 뒤가 아님"
+        if (his_at && his_at < dec_at)    print "결정 사항 섹션이 변경 이력 뒤"
+        if (!(rel_at && dec_at < rel_at)) print "결정 사항 섹션이 연관 문서 앞이 아님"
+      }
+      if (keep != 1) print "결정 사항 안내의 적을 것(경계 규칙·계산식·합의한 값·버린 대안) " keep + 0 "개 (기대 1개)"
+      if (drop != 1) print "결정 사항 안내의 적지 않을 것(구현 방법) " drop + 0 "개 (기대 1개)"
+      if (plan != 1) print "결정 사항 안내의 plan 설계 결정 담당 " plan + 0 "개 (기대 1개)"
+      if (fmt != 1)  print "결정 사항 안내의 행 형식 " fmt + 0 "개 (기대 1개)"
+      if (none != 1) print "결정 사항 안내의 섹션을 두지 않는 기준 " none + 0 "개 (기대 1개)"
+      if (rows < 1)  print "결정 행(`- D<n> <이름>: `) 예시 없음"
+      if (fold != 1) print "버린 대안 접기 " fold + 0 "개 (기대 1개)"
+    }' "$1"
+}
+
+awk '!/^## 결정 사항 \(Decisions\)$/' "$SPEC_TPL" > "$sandbox/sd-no-section.md"
+awk '{ print } END { print ""; print "## 전제 (Assumptions)" }' "$SPEC_TPL" > "$sandbox/sd-assumption-back.md"
+awk '!/^- D[0-9]+ /' "$SPEC_TPL" > "$sandbox/sd-no-drow.md"
+drop_literal "$SPEC_TPL" '- 적을 것: 경계 규칙·계산식·합의한 값·버린 대안' > "$sandbox/sd-no-keep.md"
+drop_literal "$SPEC_TPL" '- 적지 않을 것: 구현 방법' > "$sandbox/sd-no-drop.md"
+drop_literal "$SPEC_TPL" 'plan `## 설계 결정`에 적는다' > "$sandbox/sd-no-plan.md"
+drop_literal "$SPEC_TPL" '적을 결정이 없으면 이 섹션을 두지 않는다' > "$sandbox/sd-no-none.md"
+drop_literal "$SPEC_TPL" '<summary>버린 대안과 이유</summary>' > "$sandbox/sd-no-fold.md"
+# 결정 사항 섹션(다음 헤더 앞까지)을 완료의 정의 앞으로 옮긴다.
+awk '{ l[NR] = $0 }
+     /^## 완료의 정의 \(Definition of Done\)$/ { d = NR } /^## 결정 사항 \(Decisions\)$/ { a = NR } /^## 변경 이력$/ { b = NR }
+     END { for (i = 1; i < d; i++) print l[i]; for (i = a; i < b; i++) print l[i]
+           for (i = d; i < a; i++) print l[i]; for (i = b; i <= NR; i++) print l[i] }' "$SPEC_TPL" > "$sandbox/sd-before-dod.md"
+
+assert_structure check_spec_decisions "$SPEC_TPL"                      pass "결정 사항 섹션: 실제 spec 템플릿 통과"
+assert_structure check_spec_decisions "$sandbox/sd-no-section.md"      fail "결정 사항 섹션: 섹션 헤더 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-assumption-back.md" fail "결정 사항 섹션: 전제 섹션 다시 넣기 격추"
+assert_structure check_spec_decisions "$sandbox/sd-no-drow.md"         fail "결정 사항 섹션: 결정 행 예시 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-no-keep.md"         fail "결정 사항 섹션: 적을 것 문구 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-no-drop.md"         fail "결정 사항 섹션: 적지 않을 것 문구 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-no-plan.md"         fail "결정 사항 섹션: plan 설계 결정 담당 문구 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-no-none.md"         fail "결정 사항 섹션: 섹션을 두지 않는 기준 문구 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-no-fold.md"         fail "결정 사항 섹션: 버린 대안 접기 제목 삭제 격추"
+assert_structure check_spec_decisions "$sandbox/sd-before-dod.md"      fail "결정 사항 섹션: 섹션의 완료의 정의 앞 이동 격추"
+
+# check_spec_history <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# 표는 섹션 안 주석 밖의 `|` 행으로 센다 — 첫 행이 머리, 둘째 행이 4칸 구분선, 셋째 행부터 예시 행이다.
+check_spec_history() {
+  awk '
+    /^## / { sec = $0 }
+    /^## 결정 사항 \(Decisions\)$/ { dec_at = NR }
+    /^## 변경 이력$/ { his++; his_at = NR }
+    /^## 연관 문서$/ { rel_at = NR }
+    sec == "## 변경 이력" {
+      if (index($0, "문장이 바뀐 회차만 적는다")) only++
+      if (index($0, "- 적을 것: 바뀐 번호(R·AC·D), 변경 통제의 분류(구체화·확장·완화)")) keep++
+      if (index($0, "- 적지 않을 것: spec 문장이 바뀌지 않은 회차")) drop++
+      if (index($0, "적을 회차가 없으면 이 섹션을 두지 않는다")) none++
+    }
+    /<!--/ { c = 1 }
+    c { if (/-->/) c = 0; next }
+    sec == "## 변경 이력" && /^\|/ {
+      tl++
+      if (tl == 1 && $0 != "| 시점 | 바뀐 것 | 분류 | 계기 |") print "표 머리가 [| 시점 | 바뀐 것 | 분류 | 계기 |]가 아님: " $0
+      if (tl == 2 && $0 !~ /^\|[ :-]+\|[ :-]+\|[ :-]+\|[ :-]+\|$/) print "표 구분선이 4칸이 아님: " $0
+    }
+    END {
+      if (his != 1) print "변경 이력 헤더 " his + 0 "개 (기대 1개)"
+      else {
+        if (!(dec_at && dec_at < his_at)) print "변경 이력 섹션이 결정 사항 뒤가 아님"
+        if (!(rel_at && his_at < rel_at)) print "변경 이력 섹션이 연관 문서 앞이 아님"
+      }
+      if (tl < 3)    print "변경 이력 표에 머리·구분선·예시 행이 없음 (" tl + 0 "행)"
+      if (only != 1) print "변경 이력 안내의 적는 회차 기준 " only + 0 "개 (기대 1개)"
+      if (keep != 1) print "변경 이력 안내의 적을 것 " keep + 0 "개 (기대 1개)"
+      if (drop != 1) print "변경 이력 안내의 적지 않을 것 " drop + 0 "개 (기대 1개)"
+      if (none != 1) print "변경 이력 안내의 섹션을 두지 않는 기준 " none + 0 "개 (기대 1개)"
+    }' "$1"
+}
+
+awk '!/^## 변경 이력$/' "$SPEC_TPL" > "$sandbox/sh-no-section.md"
+awk '$0 == "| 시점 | 바뀐 것 | 분류 | 계기 |" { $0 = "| 시점 | 바뀐 것 | 분류 | 사유 |" } { print }' "$SPEC_TPL" > "$sandbox/sh-head-renamed.md"
+awk '$0 == "| 시점 | 바뀐 것 | 분류 | 계기 |" { $0 = "| 시점 | 바뀐 것 | 계기 |" } { print }' "$SPEC_TPL" > "$sandbox/sh-head-dropcol.md"
+awk '!/^\| <회차나 날짜> /' "$SPEC_TPL" > "$sandbox/sh-no-row.md"
+drop_literal "$SPEC_TPL" '문장이 바뀐 회차만 적는다' > "$sandbox/sh-no-only.md"
+drop_literal "$SPEC_TPL" '- 적을 것: 바뀐 번호(R·AC·D), 변경 통제의 분류(구체화·확장·완화)' > "$sandbox/sh-no-keep.md"
+drop_literal "$SPEC_TPL" '- 적지 않을 것: spec 문장이 바뀌지 않은 회차' > "$sandbox/sh-no-drop.md"
+drop_literal "$SPEC_TPL" '적을 회차가 없으면 이 섹션을 두지 않는다' > "$sandbox/sh-no-none.md"
+awk '/^## 변경 이력$/ { next } { print } END { print ""; print "## 변경 이력" }' "$SPEC_TPL" > "$sandbox/sh-after-rel.md"
+
+assert_structure check_spec_history "$SPEC_TPL"                    pass "변경 이력 섹션: 실제 spec 템플릿 통과"
+assert_structure check_spec_history "$sandbox/sh-no-section.md"    fail "변경 이력 섹션: 섹션 헤더 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-head-renamed.md"  fail "변경 이력 섹션: 표 머리 칸 이름 바꿈 격추"
+assert_structure check_spec_history "$sandbox/sh-head-dropcol.md"  fail "변경 이력 섹션: 표 머리 분류 칸 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-no-row.md"        fail "변경 이력 섹션: 표 예시 행 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-no-only.md"       fail "변경 이력 섹션: 적는 회차 기준 문구 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-no-keep.md"       fail "변경 이력 섹션: 적을 것 문구 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-no-drop.md"       fail "변경 이력 섹션: 적지 않을 것 문구 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-no-none.md"       fail "변경 이력 섹션: 섹션을 두지 않는 기준 문구 삭제 격추"
+assert_structure check_spec_history "$sandbox/sh-after-rel.md"     fail "변경 이력 섹션: 섹션의 연관 문서 뒤 이동 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
