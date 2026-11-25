@@ -7,8 +7,8 @@
 # 한쪽만 바뀌면 드리프트가 잡힌다. 이모지도 대응표에서만 합성하고 러너 본문에 리터럴로 적지 않는다.
 # next-finding-number.sh 는 SKILL.md 가 서술한 함정(번호 건너뜀·재사용·발견 0건 회차)을
 # 반례 fixture 로 재현해 격추 여부를 확인한다.
-# check-plan.sh 는 계획 감사(--plan)의 추적성 판정 4종을 spec·plan 정상 fixture 의 awk 변형으로
-# 재현해 격추 여부와 고정 Task 판정·공집합·사용오류를 확인한다.
+# check-plan.sh 는 계획 감사(--plan)의 추적성·AC 대조 출력 종류를 이슈 본문·spec·plan 정상 fixture 의 변형으로
+# 재현해 격추 여부와 고정 Task 판정·공집합·사용오류를 확인하고, issue-work 템플릿 예시가 앵커와 맞는지 본다.
 #
 # 모두 통과하면 exit 0, 하나라도 실패하면 exit 1.
 
@@ -814,50 +814,110 @@ assert_clause check_testing_clause "$sandbox/tc-fd-del.md"     fail "테스트 �
 assert_clause check_testing_clause "$sandbox/tc-fd-no-na.md"   fail "테스트 원칙 조항: 관점 2 행 전제 조건 N/A 구절 삭제 격추"
 assert_clause check_testing_clause "$sandbox/tc-plan-no7.md"   fail "테스트 원칙 조항: --plan 대조 기준 7항 수행 삭제 격추"
 
-# --- check-plan.sh --trace (계획 감사 추적성) ------------------------------------
+# --- check-plan.sh 새 구조 (issue #145) ------------------------------------------
 #
-# spec 포함 R · DoD `### R<n>` 그룹 · plan 일반 Task `대상 요구사항` 필드의 삼자 대응 위반 4종을
-# 정상 fixture 의 awk 변형으로 재현해 격추 여부를 확인한다. 고정 Task 판정은 헤더 두 가지만이라
-# 일반 Task 제목의 `고정` 단어를 오분류하지 않아야 하고, 일반 Task 에 `(고정)` 을 붙인 우회는 격추해야 한다.
-# 포함 목록 공집합·Task 블록 없음은 위반 0건이 아니라 추적 불가다 — 경로 오기가 통과로 보이지 않게 한다.
+# 이슈 본문·spec·plan 정상 fixture 의 변형으로 출력 종류마다 격추를 확인한다. 케이스 설명에 출력 종류 이름을 그대로 적는다.
+# 정상 fixture 는 AC 하나에 R 이 여러 개인 행, 테스트 줄이 여러 개인 AC, 못 보는 항목 표에만 있는 AC, 체크된 AC 를 함께 담는다.
+# fail 은 종료 코드 1 과 출력 전체의 일치를 본다. 행 포함만 보면 다른 사유의 동반 출력을 놓친다.
 
-tspec="$sandbox/trace-spec.md"
+tissue="$sandbox/plan-issue.md"
+cat > "$tissue" <<'EOF'
+## 목표
+
+가, 나, 다를 한다.
+
+## 범위
+
+### 포함
+
+#### 앞 묶음
+
+- 가를 한다.
+
+#### 뒤 묶음
+
+- 나를 한다.
+- 다를 한다.
+
+### 제외
+
+- 라: 불필요(쓰지 않는다)
+
+## 완료의 정의
+
+### 앞 묶음
+
+- [ ] AC1: 가가 된다.
+
+### 뒤 묶음
+
+- [ ] AC2: 나가 `나` 값으로 된다.
+- [x] AC3: 다가 된다.
+
+## 정한 것
+
+없음
+EOF
+
+tspec="$sandbox/plan-spec.md"
 cat > "$tspec" <<'EOF'
-# Issue #99 스펙 — 추적성 fixture
+# Issue #99 스펙 추적성 fixture
 
 ## 요구사항 (Requirements)
 
-**포함**
+### 포함
 
-- R1: 첫 요구
-- R2: 둘째 요구
+#### 앞 묶음
 
-**제외**
+- R1: 가를 한다.
 
-- 셋째: 불필요
+#### 뒤 묶음
+
+- R3: 다를 한다. (함께 해소: K-0001)
+- R2: 나를 한다.
+
+### 제외
+
+- 라: 불필요(쓰지 않는다)
 
 ## 완료의 정의 (Definition of Done)
 
-### R1: 첫 그룹
+### 앞 묶음
 
-- [ ] [D] 조건
+- [ ] AC1: 가가 된다. (R1)
 
-### R2: 둘째 그룹
+### 뒤 묶음
 
-- [ ] [D] 조건
+- [ ] AC2: 나가 `나` 값으로 된다. (R2, R3)
+- [ ] AC3: 다가 된다. (R3)
 
-### 공통
+## 결정 사항 (Decisions)
 
-- [ ] [D] 전체 테스트
+- D1 순서: 입력 순서를 유지한다. (R7)
+- [ ] AC8: 완료의 정의 절 밖의 행은 AC 행이 아니다. (R8)
 EOF
 
-tplan="$sandbox/trace-plan.md"
+tplan="$sandbox/plan-plan.md"
 cat > "$tplan" <<'EOF'
-# Issue #99 실행계획 — 추적성 fixture
+# Issue #99 실행계획 추적성 fixture
+
+## 테스트 계획
+
+| AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
+|----|------|----|--------|---------------------|------|
+| AC1 | [D] | 단위 | a_test: 가 | - |  |
+| AC1 | [D] | 통합 | b_test: 가 | 종료 코드는 실행해야 보인다 |  |
+| AC2 | [D] | 단위 | a_test: 나 | - |  |
+
+### 테스트로 못 보는 항목
+
+| AC | 레벨 | 누가 보나 | 이유 | 확인 |
+|----|------|-----------|------|------|
+| AC3 | [ND] | 사용자 | 화면을 눈으로 본다 |  |
 
 ## Tasks
 
-### Task 0 (고정): 구현 시작 게이트
+### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
 
 - [ ] 완료
 - **목표**: 전제 확인
@@ -865,271 +925,482 @@ cat > "$tplan" <<'EOF'
 ### Task 1: 본작업
 
 - [ ] 완료
-- **목표**: 첫 요구 구현
+- **목표**: 가 구현
 - **대상 요구사항**: R1
+- **테스트 먼저**:
+  - a_test: 가
 
 ### Task 2: 후속 작업
 
 - [ ] 완료
-- **목표**: 둘째 요구 구현
-- **대상 요구사항**: R2
+- **목표**: 나와 다 구현
+- **대상 요구사항**: R2, R3
 
-### Task N (고정): 교차모델 issue-audit 검증
+### Task N (고정): 마무리
 
 - [ ] 완료
-- **목표**: 감사
+- **목표**: 마무리
 EOF
 
-# assert_trace <기대: pass|fail> <설명> <spec> <plan> [기대 출력 행]
-# fail 은 종료 코드 1 과 기대 행의 정확 일치를 함께 본다 — 종료 코드만 보면 다른 사유의 위반도 통과한다.
-assert_trace() {
-  local want="$1" desc="$2" s="$3" p="$4" needle="${5:-}"
+# assert_plan <trace|ac> <pass|fail> <설명> <파일 1> <파일 2> [기대 출력 전체]
+assert_plan() {
+  local mode="$1" want="$2" desc="$3" a="$4" b="$5" expect="${6:-}"
   local out rc
-  out="$("$CHECKPLAN" --trace "$s" "$p" 2>&1)"; rc=$?
+  out="$("$CHECKPLAN" "--$mode" "$a" "$b" 2>&1)"; rc=$?
   case "$want" in
     pass) if [ "$rc" -eq 0 ] && [ -z "$out" ]; then ok "$desc"; else ng "$desc (기대 exit 0·무출력, 실제 exit $rc [$out])"; fi ;;
-    fail) if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qxF -- "$needle"; then ok "$desc"; else ng "$desc (기대 exit 1·행 '$needle', 실제 exit $rc [$out])"; fi ;;
+    fail) if [ "$rc" -eq 1 ] && [ "$out" = "$expect" ]; then ok "$desc"; else ng "$desc (기대 exit 1·[$expect], 실제 exit $rc [$out])"; fi ;;
   esac
 }
 
-assert_trace pass 'trace: 정상 fixture 통과 (R1·R2, DoD R1·R2·공통, Task 0·1·2·N)' "$tspec" "$tplan"
-
-# 반례 4종 — 정상 fixture 의 awk 변형.
-awk '{print} /^### R2: /{print ""; print "### R3: 유령 그룹"}' "$tspec" > "$sandbox/ts-r3.md"
-awk '!/^### R2: /' "$tspec" > "$sandbox/ts-no-r2.md"
-awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: R1"); print}' "$tplan" > "$sandbox/tp-r2-unref.md"
-awk '!/^- \*\*대상 요구사항\*\*: R2$/' "$tplan" > "$sandbox/tp-no-field.md"
-
-assert_trace fail 'trace: R 없는 DoD 그룹 격추'     "$sandbox/ts-r3.md"    "$tplan"                 'R 없는 DoD 그룹: R3'
-assert_trace fail 'trace: DoD 없는 R 격추'          "$sandbox/ts-no-r2.md" "$tplan"                 'DoD 없는 R: R2'
-assert_trace fail 'trace: Task 없는 R 격추'         "$tspec" "$sandbox/tp-r2-unref.md"              'Task 없는 R: R2'
-assert_trace fail 'trace: 필드 없는 일반 Task 격추' "$tspec" "$sandbox/tp-no-field.md"              '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-
-# 고정 Task 판정 — 헤더 두 가지만. 일반 Task 제목의 `고정` 단어는 통과, 일반 Task 의 `(고정)` 개서는 격추.
-awk '{gsub(/^### Task 1: 본작업$/, "### Task 1: 고정 설정 갱신"); print}' "$tplan" > "$sandbox/tp-fixed-word.md"
-assert_trace pass 'trace: 일반 Task 제목의 고정 단어 오분류 없음' "$tspec" "$sandbox/tp-fixed-word.md"
-awk '{gsub(/^### Task 2: /, "### Task 2 (고정): "); print}' "$sandbox/tp-no-field.md" > "$sandbox/tp-fake-fixed.md"
-assert_trace fail 'trace: 일반 Task 의 (고정) 개서 우회 격추' "$tspec" "$sandbox/tp-fake-fixed.md" '대상 요구사항 없는 일반 Task: Task 2 (고정): 후속 작업'
-# 고정 Task 의 필드는 참조 집계에 넣지 않는다 — Task 0 이 R2 를 적어도 일반 Task 가 없으면 Task 없는 R 이다.
-awk '/^### Task 0/{f=1} {print} f && /^- \*\*목표\*\*:/{print "- **대상 요구사항**: R2"; f=0}' \
-  "$sandbox/tp-r2-unref.md" > "$sandbox/tp-fixed-ref.md"
-assert_trace fail 'trace: 고정 Task 의 필드는 참조로 세지 않음' "$tspec" "$sandbox/tp-fixed-ref.md" 'Task 없는 R: R2'
-
-# 값 없는 필드 — 라벨만 있고 값에 R<n> 이 없으면(빈 값·`-`·공백) 필드가 없는 것과 같다.
-# Task 1·2 가 R1·R2 를 전부 참조하는 상태에서 Task 3 을 더해, `Task 없는 R` 이 보완하지 못하는 조합에서 Task 별 진단을 본다.
-# add_task3 <필드 값> <출력 파일> — 정상 plan 의 Task N 앞에 필드 값만 다른 일반 Task 3 을 끼운다.
-add_task3() {
-  awk -v val="$1" '/^### Task N/ { print "### Task 3: 연결 미정"; print ""; print "- [ ] 완료"; print "- **목표**: 미정"; print "- **대상 요구사항**:" val; print "" } { print }' \
-    "$tplan" > "$2"
+# 변형 도우미. 값은 환경 변수로 넘긴다 — macOS awk 는 -v 값의 줄바꿈을 받지 않고 백슬래시를 해석한다.
+# 문자열을 == 로 견주는 awk 는 LC_ALL=C 로 부른다 — macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 본다.
+# changed 는 변형이 비었거나 원본과 같으면 실패로 남긴다. 원본과 같은 사본은 통과를 기대하는 케이스에서 아무것도 검사하지 않는다.
+changed() { if [ ! -s "$2" ] || cmp -s "$1" "$2"; then ng "변형 실패: $3"; fi; }
+# swap <입력> <출력> <찾을 문자열> <바꿀 문자열> — 처음 나온 자리 하나만 정규식 해석 없이 바꾼다.
+swap() {
+  A="$3" B="$4" awk 'BEGIN { a = ENVIRON["A"]; b = ENVIRON["B"] } !d && (i = index($0, a)) { $0 = substr($0, 1, i - 1) b substr($0, i + length(a)); d = 1 } { print }' "$1" > "$2"
+  changed "$1" "$2" "$3"
 }
-add_task3 ''    "$sandbox/tp-value-empty.md"
-add_task3 ' -'  "$sandbox/tp-value-dash.md"
-add_task3 '   ' "$sandbox/tp-value-blank.md"
-assert_trace fail 'trace: 필드 값이 빈 일반 Task 격추'    "$tspec" "$sandbox/tp-value-empty.md" '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
-assert_trace fail 'trace: 필드 값이 - 인 일반 Task 격추'  "$tspec" "$sandbox/tp-value-dash.md"  '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
-assert_trace fail 'trace: 필드 값이 공백인 일반 Task 격추' "$tspec" "$sandbox/tp-value-blank.md" '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
-awk '{gsub(/^- \*\*대상 요구사항\*\*: R1$/, "- **대상 요구사항**: R1, R2"); print}' "$tplan" > "$sandbox/tp-multi-value.md"
-assert_trace pass 'trace: R<n>, R<m> 나열 값 정상' "$tspec" "$sandbox/tp-multi-value.md"
+# add <입력> <출력> <기준 행> <더할 행> — 행 전체가 같은 첫 기준 행 뒤에 한 행을 더한다.
+add() {
+  A="$3" B="$4" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"]; b = ENVIRON["B"] } { print } !d && $0 == a { print b; d = 1 }' "$1" > "$2"
+  changed "$1" "$2" "$3"
+}
+# drop <입력> <출력> <지울 행> — 행 전체가 같은 행을 지운다.
+drop() {
+  A="$3" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"] } $0 != a' "$1" > "$2"
+  changed "$1" "$2" "$3"
+}
+# line_of <파일> <문자열> → 문자열이 든 행 번호를 쉼표로 이은 값 (예: `12행, 14행`)
+line_of() { A="$2" awk 'BEGIN { a = ENVIRON["A"] } index($0, a) { o = o (o == "" ? "" : ", ") NR "행" } END { print o }' "$1"; }
 
-# 펜스·주석·절 밖 — 코드 예시·HTML 블록 주석 안의 앵커는 구조로 세지 않는다. 실제 구조를 지우고 예시에만 남기면 누락이고,
-# 예시에만 있는 유령 그룹은 위반이 아니다. DoD 그룹은 `## 완료의 정의` 절 밖(전제 절)에 있어도 세지 않는다.
-{ awk '!/^### R2: /' "$tspec"; printf '\n```markdown\n### R2: 둘째 그룹\n```\n'; } > "$sandbox/ts-fenced-dod.md"
-assert_trace fail 'trace: 펜스 안에만 남긴 DoD 그룹은 세지 않음' "$sandbox/ts-fenced-dod.md" "$tplan" 'DoD 없는 R: R2'
-{ awk '!/^### R2: /' "$tspec"; printf '\n## 전제 (Assumptions)\n\n### R2: 둘째 그룹\n'; } > "$sandbox/ts-dod-outside.md"
-assert_trace fail 'trace: 완료의 정의 절 밖의 DoD 그룹은 세지 않음' "$sandbox/ts-dod-outside.md" "$tplan" 'DoD 없는 R: R2'
-{ cat "$tspec"; printf '\n<!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-comment-phantom.md"
-assert_trace pass 'trace: 주석 안의 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-comment-phantom.md" "$tplan"
-# spec DoD 접기의 펜스는 들여쓰기되어 있다. 들여쓴 펜스도 토글해야 그 안의 행이 앵커로 새지 않는다.
-awk '{print} /^### R2: /{print ""; print "  ```markdown"; print "### R3: 유령 그룹"; print "  ```"}' "$tspec" > "$sandbox/ts-indented-fence.md"
-assert_trace pass 'trace: 들여쓴 펜스 안의 앵커도 세지 않음' "$sandbox/ts-indented-fence.md" "$tplan"
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "<!--"; print; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-comment-field.md"
-assert_trace fail 'trace: 주석 안의 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-comment-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-assert_trace fail 'trace: 주석 안의 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-comment-field.md" 'Task 없는 R: R2'
+AC1='- [ ] AC1: 가가 된다. (R1)'
+AC3='- [ ] AC3: 다가 된다. (R3)'
+T3='| AC3 | [ND] | 사용자 | 화면을 눈으로 본다 |  |'
+F2='- **대상 요구사항**: R2, R3'
+NO_INC='추적 불가: spec 포함 목록에 R<n> 항목이 없습니다 — 경로를 확인하세요'
+NO_TASK='추적 불가: plan 에 ### Task 블록이 없습니다 — 경로를 확인하세요'
 
-# 한 줄 주석·긴 펜스·물결표 펜스·주석 안 펜스 — 값 안의 닫힌 주석은 연결이 아니다(실제 R 뒤의 메모는 유지).
-# 펜스는 여는 문자·길이를 기억해 백틱 4개 예시 안의 백틱 3개 행에서 닫히지 않고 물결표도 받는다.
-# 주석 안의 펜스 행은 펜스 상태를, 펜스 안의 `<!--` 는 주석 상태를 바꾸지 않는다.
-awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: <!-- R2 -->"); print}' "$tplan" > "$sandbox/tp-inline-comment-only.md"
-assert_trace fail 'trace: 값이 한 줄 주석뿐인 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-inline-comment-only.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-assert_trace fail 'trace: 값이 한 줄 주석뿐인 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-inline-comment-only.md" 'Task 없는 R: R2'
-awk '{gsub(/^- \*\*대상 요구사항\*\*: R2$/, "- **대상 요구사항**: R2 <!-- 메모 -->"); print}' "$tplan" > "$sandbox/tp-inline-note.md"
-assert_trace pass 'trace: 실제 R 뒤의 한 줄 주석 메모는 정상 참조 유지' "$tspec" "$sandbox/tp-inline-note.md"
-# long_fence <입력> <출력> <감쌀 행의 정규식> — 그 행을 백틱 4개 예시 안의 백틱 3개 블록으로 감싼다.
-long_fence() { awk -v re="$3" '$0 ~ re { print "````markdown"; print "```markdown"; print; print "```"; print "````"; next } { print }' "$1" > "$2"; }
-long_fence "$tspec" "$sandbox/ts-long-fence-dod.md" '^### R2: '
-assert_trace fail 'trace: 백틱 4개 예시 안의 DoD 그룹은 세지 않음' "$sandbox/ts-long-fence-dod.md" "$tplan" 'DoD 없는 R: R2'
-{ cat "$tspec"; printf '\n````markdown\n```markdown\n### R99: 폐기된 대안\n```\n````\n'; } > "$sandbox/ts-long-fence-phantom.md"
-assert_trace pass 'trace: 백틱 4개 예시 안의 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-long-fence-phantom.md" "$tplan"
-long_fence "$tplan" "$sandbox/tp-long-fence-field.md" '^- \\*\\*대상 요구사항\\*\\*: R2$'
-assert_trace fail 'trace: 백틱 4개 예시 안의 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-long-fence-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-assert_trace fail 'trace: 백틱 4개 예시 안의 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-long-fence-field.md" 'Task 없는 R: R2'
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "~~~markdown"; print; print "~~~"; next } { print }' "$tplan" > "$sandbox/tp-tilde-field.md"
-assert_trace fail 'trace: 물결표 펜스 안의 필드는 연결로 세지 않음' "$tspec" "$sandbox/tp-tilde-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-{ printf '<!--\n```markdown\n-->\n'; cat "$tspec"; } > "$sandbox/ts-comment-fence.md"
-assert_trace pass 'trace: 주석 안의 펜스 행은 펜스 상태를 바꾸지 않음' "$sandbox/ts-comment-fence.md" "$tplan"
-{ printf '```text\n<!--\n```\n'; cat "$tspec"; } > "$sandbox/ts-fence-comment.md"
-assert_trace pass 'trace: 펜스 안의 주석 열기는 주석 상태를 바꾸지 않음' "$sandbox/ts-fence-comment.md" "$tplan"
+assert_plan trace pass '새 구조 추적: AC 하나에 R이 여러 개, AC 하나에 테스트 줄이 여러 개인 문서 통과' "$tspec" "$tplan"
+assert_plan ac    pass '새 구조 추적: 본문 AC가 spec과 전부 같은 이슈 통과' "$tissue" "$tspec"
 
-# 연속 주석·행 중간 주석·인라인 코드 (3차 audit F-4·F-5) — 주석을 닫은 행의 나머지에서 다시 연 주석(`--> <!--`)은
-# 이어지고, 행 중간에서 시작한 여러 줄 주석은 `<!--` 앞의 본문을 살리며, 인라인 코드 안의 `<!--` 는 주석을 열지 않는다.
-{ awk '!/^### R2: /' "$tspec"; printf '\n<!--\n앞 메모\n--> <!--\n### R2: 둘째 그룹\n-->\n'; } > "$sandbox/ts-reopen-dod.md"
-assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 DoD 그룹은 세지 않음' "$sandbox/ts-reopen-dod.md" "$tplan" 'DoD 없는 R: R2'
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "<!--"; print "앞 메모"; print "--> <!--"; print; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-reopen-field.md"
-assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-reopen-field.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-assert_trace fail 'trace: 연속 주석의 두 번째 주석 안 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-reopen-field.md" 'Task 없는 R: R2'
-{ cat "$tspec"; printf '\n<!--\n앞 메모\n--> <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-reopen-phantom.md"
-assert_trace pass 'trace: 연속 주석의 두 번째 주석 안 유령 DoD 그룹은 위반이 아님' "$sandbox/ts-reopen-phantom.md" "$tplan"
-# 두 번째 주석의 R99 는 무시하고 주석 밖의 실제 유령 그룹만 정확히 1행 출력해야 한다 — 행 포함 검사만으로는 R99 유령 위반의 동반 출력을 놓친다.
-{ cat "$sandbox/ts-r3.md"; printf '\n<!--\n앞 메모\n--> <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-reopen-phantom-real.md"
-out="$("$CHECKPLAN" --trace "$sandbox/ts-reopen-phantom-real.md" "$tplan" 2>&1)"; rc=$?
-if [ "$rc" -eq 1 ] && [ "$out" = 'R 없는 DoD 그룹: R3' ]; then ok 'trace: 연속 주석 밖의 실제 유령 DoD 그룹만 격추 (R99 동반 출력 없음)'
-else ng "trace: 연속 주석 밖의 실제 유령 DoD 그룹만 격추 (R99 동반 출력 없음) (기대 exit 1·행 1개, 실제 exit $rc [$out])"; fi
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print $0 " <!--"; print "다음 줄 설명"; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-field-then-comment.md"
-assert_trace pass 'trace: 실제 R 뒤에서 시작한 여러 줄 주석은 앞의 참조를 유지' "$tspec" "$sandbox/tp-field-then-comment.md"
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!--"; print "R2"; print "-->"; next } { print }' "$tplan" > "$sandbox/tp-multiline-comment-only.md"
-assert_trace fail 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음 (Task 별 누락)' "$tspec" "$sandbox/tp-multiline-comment-only.md" '대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
-assert_trace fail 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음 (Task 없는 R)' "$tspec" "$sandbox/tp-multiline-comment-only.md" 'Task 없는 R: R2'
-awk '/^### R2: / { print $0 " <!--"; print "그룹 메모"; print "-->"; next } { print }' "$tspec" > "$sandbox/ts-dod-then-comment.md"
-assert_trace pass 'trace: DoD 그룹 헤더 뒤에서 시작한 여러 줄 주석은 헤더를 유지' "$sandbox/ts-dod-then-comment.md" "$tplan"
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "`<!--`는 검사할 구분자다."; print ""; print; next } { print }' "$tplan" > "$sandbox/tp-inline-code-marker.md"
-assert_trace pass 'trace: 인라인 코드 안의 <!-- 는 주석을 열지 않음' "$tspec" "$sandbox/tp-inline-code-marker.md"
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "``<!-- `코드` -->``는 예시다."; print ""; print; next } { print }' "$tplan" > "$sandbox/tp-inline-code-double.md"
-assert_trace pass 'trace: 백틱 2개 인라인 코드 안의 백틱 1개·주석 구분자는 본문이 아님' "$tspec" "$sandbox/tp-inline-code-double.md"
-{ cat "$tspec"; printf '\n백틱 ` 하나 뒤의 <!--\n### R99: 폐기된 대안\n-->\n'; } > "$sandbox/ts-lone-backtick.md"
-assert_trace pass 'trace: 짝 없는 백틱은 인라인 코드가 아니라 뒤의 주석 열기가 유효' "$sandbox/ts-lone-backtick.md" "$tplan"
+# --trace 출력 종류 9가지
+swap "$tspec" "$sandbox/s.md" '- R2: 나를 한다.' $'- R2: 나를 한다.\n- R4: 라를 한다.'
+swap "$tplan" "$sandbox/p.md" "$F2" "$F2, R4"
+assert_plan trace fail '새 구조 추적: AC 없는 R 격추' "$sandbox/s.md" "$sandbox/p.md" 'AC 없는 R: R4'
+swap "$tplan" "$sandbox/p.md" "$F2" '- **대상 요구사항**: R2'
+assert_plan trace fail '새 구조 추적: Task 없는 R 격추' "$tspec" "$sandbox/p.md" 'Task 없는 R: R3'
+swap "$tspec" "$sandbox/s.md" '(R3)' '(R3, R9)'
+assert_plan trace fail '새 구조 추적: 없는 R 참조(AC 행) 격추' "$sandbox/s.md" "$tplan" '없는 R 참조: R9 (AC3)'
+swap "$tplan" "$sandbox/p.md" "$F2" "$F2, R9"
+assert_plan trace fail '새 구조 추적: 없는 R 참조(Task) 격추' "$tspec" "$sandbox/p.md" '없는 R 참조: R9 (Task 2: 후속 작업)'
+drop "$tspec" "$sandbox/s.md" '- R2: 나를 한다.'
+assert_plan trace fail '새 구조 추적: 포함에서 지운 요구사항의 없는 R 참조 두 곳 격추' "$sandbox/s.md" "$tplan" \
+  $'없는 R 참조: R2 (AC2)\n없는 R 참조: R2 (Task 2: 후속 작업)'
+swap "$tplan" "$sandbox/p.md" '### Task N (고정): 마무리' $'### Task 3: 연결 미정\n\n- [ ] 완료\n\n### Task N (고정): 마무리'
+assert_plan trace fail '새 구조 추적: 대상 요구사항 없는 일반 Task 격추' "$tspec" "$sandbox/p.md" '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
+awk '!/^- R[0-9]+: /' "$tspec" > "$sandbox/s.md"
+assert_plan trace fail '새 구조 추적: 추적 불가(포함 목록 공집합) 격추' "$sandbox/s.md" "$tplan" \
+  "$NO_INC"$'\n없는 R 참조: R1 (AC1)\n없는 R 참조: R2 (AC2)\n없는 R 참조: R3 (AC2)\n없는 R 참조: R3 (AC3)\n없는 R 참조: R1 (Task 1: 본작업)\n없는 R 참조: R2 (Task 2: 후속 작업)\n없는 R 참조: R3 (Task 2: 후속 작업)'
+awk '/^## Tasks$/ { exit } { print }' "$tplan" > "$sandbox/p.md"
+assert_plan trace fail '새 구조 추적: 추적 불가(Task 블록 없음) 격추' "$tspec" "$sandbox/p.md" \
+  "$NO_TASK"$'\nTask 없는 R: R1\nTask 없는 R: R3\nTask 없는 R: R2'
+swap "$tspec" "$sandbox/s.md" "$AC3" '- [ ] AC3: 다가 된다.'
+assert_plan trace fail '새 구조 추적: R 표기 없는 AC 격추' "$sandbox/s.md" "$tplan" "R 표기 없는 AC: AC3 ($(line_of "$sandbox/s.md" 'AC3: '))"
+add "$tspec" "$sandbox/s.md" "$AC1" "$AC1"
+assert_plan trace fail '새 구조 추적: 중복 AC 격추' "$sandbox/s.md" "$tplan" "중복 AC: AC1 ($(line_of "$sandbox/s.md" 'AC1: '))"
+swap "$tspec" "$sandbox/s.md" "$AC3" $'- [ ] AC3: 다가 된다. (R3)\n- [x] AC1: 다른 문장이다. (R1)\n- [ ] AC1: 또 다른 문장이다.'
+assert_plan trace fail '새 구조 추적: 묶음과 문장이 다른 중복 AC 세 행과 R 표기 없는 AC 격추' "$sandbox/s.md" "$tplan" \
+  "R 표기 없는 AC: AC1 ($(line_of "$sandbox/s.md" '또 다른'))"$'\n'"중복 AC: AC1 ($(line_of "$sandbox/s.md" 'AC1: '))"
+drop "$tplan" "$sandbox/p.md" "$T3"
+assert_plan trace fail '새 구조 추적: 테스트 계획 없는 AC 격추' "$tspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC3'
+add "$tplan" "$sandbox/p.md" "$T3" '| AC9 | [QD] | 교차 감사 | 의미 판단 |  |'
+assert_plan trace fail '새 구조 추적: 없는 AC 참조(못 보는 항목 표) 격추' "$tspec" "$sandbox/p.md" '없는 AC 참조: AC9'
+add "$tplan" "$sandbox/p.md" '| AC2 | [D] | 단위 | a_test: 나 | - |  |' '| AC9 | [D] | 단위 | a_test: 라 | - |  |'
+assert_plan trace fail '새 구조 추적: 없는 AC 참조(테스트 표) 격추' "$tspec" "$sandbox/p.md" '없는 AC 참조: AC9'
 
-# 주석 안의 백틱 (4차 audit F-6) — 인라인 코드와 주석은 먼저 시작한 쪽이 이긴다. 주석 안의 백틱은 코드를 열지 않아,
-# 두 주석에 하나씩 든 백틱이 짝지어져 사이의 실제 값이 사라지거나, 백틱으로 감싼 `-->` 가 가려져 주석이 열린 채 남지 않는다.
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!-- ` --> R2 <!-- ` -->"; next } { print }' "$tplan" > "$sandbox/tp-backtick-between-comments.md"
-assert_trace pass 'trace: 두 주석에 하나씩 든 백틱 사이의 실제 값은 유지' "$tspec" "$sandbox/tp-backtick-between-comments.md"
-awk '/^- \*\*대상 요구사항\*\*: R1$/ { print $0 " <!-- `-->`"; next } { print }' "$tplan" > "$sandbox/tp-backtick-comment-end.md"
-assert_trace pass 'trace: 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 Task 를 건너뛰지 않음' "$tspec" "$sandbox/tp-backtick-comment-end.md"
-awk '/^### R1: / { print $0 " <!-- `-->`"; next } { print }' "$tspec" > "$sandbox/ts-backtick-comment-end.md"
-assert_trace pass 'trace: DoD 헤더 뒤 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 그룹을 건너뛰지 않음' "$sandbox/ts-backtick-comment-end.md" "$tplan"
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: <!-- `R2` -->"; next } { print }' "$tplan" > "$sandbox/tp-backtick-comment-only.md"
-assert_trace fail 'trace: 값이 백틱을 담은 한 줄 주석뿐인 필드는 연결로 세지 않음' "$tspec" "$sandbox/tp-backtick-comment-only.md" 'Task 없는 R: R2'
-awk '/^- \*\*대상 요구사항\*\*: R2$/ { print "- **대상 요구사항**: `<!--` <!-- ` --> R2"; next } { print }' "$tplan" > "$sandbox/tp-code-then-comment.md"
-assert_trace pass 'trace: 코드 안의 <!-- 뒤에 온 주석 안의 백틱은 글자 (먼저 시작한 쪽이 이김)' "$tspec" "$sandbox/tp-code-then-comment.md"
+# --ac 출력 종류 5가지. 본문 AC 가 전부·일부·전혀 없는 세 입력을 함께 본다.
+drop "$tspec" "$sandbox/s.md" "$AC3"
+assert_plan ac fail '새 구조 추적: spec에 없는 AC 격추' "$tissue" "$sandbox/s.md" 'spec에 없는 AC: AC3'
+drop "$tissue" "$sandbox/i.md" '- [ ] AC1: 가가 된다.'
+assert_plan ac fail '새 구조 추적: 본문에 AC가 일부만 있는 이슈의 이슈 본문에 없는 AC 격추' "$sandbox/i.md" "$tspec" '이슈 본문에 없는 AC: AC1'
+swap "$tspec" "$sandbox/s.md" '다가 된다.' '다가 잘 된다.'
+assert_plan ac fail '새 구조 추적: 문장 다른 AC 격추' "$tissue" "$sandbox/s.md" '문장 다른 AC: AC3'
+LC_ALL=C awk -v a="$AC1" -v b="$AC3" '$0 == a { next } { print } $0 == b { print a }' "$tspec" > "$sandbox/s.md"
+assert_plan ac fail '새 구조 추적: 묶음 다른 AC(다른 묶음 아래) 격추' "$tissue" "$sandbox/s.md" '묶음 다른 AC: AC1'
+awk '/^## 완료의 정의/ { f = 1 } /^## 결정 사항/ { f = 0 } f && /^### / { next } { print }' "$tspec" > "$sandbox/s-flat.md"
+assert_plan ac fail '새 구조 추적: 묶음 다른 AC(spec만 제목 없음) 격추' "$tissue" "$sandbox/s-flat.md" $'묶음 다른 AC: AC1\n묶음 다른 AC: AC2\n묶음 다른 AC: AC3'
+awk '/^## 완료의 정의/ { f = 1 } /^## 정한 것/ { f = 0 } f && /^### / { next } { print }' "$tissue" > "$sandbox/i-flat.md"
+assert_plan ac fail '새 구조 추적: 묶음 다른 AC(본문만 제목 없음) 격추' "$sandbox/i-flat.md" "$tspec" $'묶음 다른 AC: AC1\n묶음 다른 AC: AC2\n묶음 다른 AC: AC3'
+assert_plan ac pass '새 구조 추적: 양쪽 모두 묶음 제목이 없는 이슈 통과' "$sandbox/i-flat.md" "$sandbox/s-flat.md"
+swap "$sandbox/s-flat.md" "$sandbox/s.md" '### 제외' '### 제외한 것'
+assert_plan ac pass '새 구조 추적: 앞 절의 제목은 묶음 제목이 아님 통과' "$sandbox/i-flat.md" "$sandbox/s.md"
+awk '!/AC[0-9]+: /' "$tissue" > "$sandbox/i-none.md"
+assert_plan ac fail '새 구조 추적: 대조 불가(본문에 AC가 전혀 없는 이슈) 격추' "$sandbox/i-none.md" "$tspec" '대조 불가: 이슈 본문에 AC 없음'
+awk '!/AC[0-9]+: /' "$tspec" > "$sandbox/s.md"
+assert_plan ac fail '새 구조 추적: 양쪽에 AC가 없는 이슈의 대조 불가 격추' "$sandbox/i-none.md" "$sandbox/s.md" '대조 불가: 이슈 본문에 AC 없음'
+swap "$tissue" "$sandbox/i.md" '- [ ] AC1: 가가 된다.' $'- [ ] AC1: 가가 된다.\n- [ ] AC1: 가가 달리 된다.'
+assert_plan ac fail '새 구조 추적: 본문에 번호가 겹치고 문장이 갈린 문장 다른 AC 격추' "$sandbox/i.md" "$tspec" '문장 다른 AC: AC1'
 
-# 포함 표지 (issue #140) — 표지는 `### 포함`·`### 제외` 제목이고, 이미 쓴 spec 의 `**포함**` 표지도 읽는다.
-# 표지 행 끝의 닫힌 주석은 표지를 가리지 않는다 (원장 K-0023). 포함 목록은 `### 제외` 에서 끝나며, `#### 포함` 은 표지가 아니다.
-awk '$0 == "**포함**" { $0 = "### 포함" } $0 == "**제외**" { $0 = "### 제외" } { print }' "$tspec" > "$sandbox/ts-label-h3.md"
-awk '$0 == "### 포함" { $0 = $0 " <!-- 메모 -->" } { print }' "$sandbox/ts-label-h3.md" > "$sandbox/ts-label-h3-note.md"
-awk '$0 == "**포함**" { $0 = $0 " <!-- 메모 -->" } { print }' "$tspec" > "$sandbox/ts-label-bold-note.md"
-awk '{ print } $0 == "### 제외" { print ""; print "- R9: 제외 아래의 R 형식 줄" }' "$sandbox/ts-label-h3.md" > "$sandbox/ts-label-exc-r.md"
-awk '$0 == "### 포함" { $0 = "#### 포함" } $0 == "### 제외" { $0 = "#### 제외" } { print }' "$sandbox/ts-label-h3.md" > "$sandbox/ts-label-h4.md"
-assert_trace pass 'trace: 포함 표지 ### 포함 통과'                    "$sandbox/ts-label-h3.md"        "$tplan"
-assert_trace pass 'trace: 포함 표지 **포함** 통과'                    "$tspec"                         "$tplan"
-assert_trace pass 'trace: 포함 표지 ### 포함 행 끝 닫힌 주석 통과'    "$sandbox/ts-label-h3-note.md"   "$tplan"
-assert_trace pass 'trace: 포함 표지 **포함** 행 끝 닫힌 주석 통과'    "$sandbox/ts-label-bold-note.md" "$tplan"
-assert_trace pass 'trace: 포함 표지 ### 제외에서 포함 목록 끝남 통과' "$sandbox/ts-label-exc-r.md"     "$tplan"
-assert_trace fail 'trace: 포함 표지 #### 포함 제목 격추'              "$sandbox/ts-label-h4.md"        "$tplan" \
-  '추적 불가: spec 포함 목록에 R<n> 항목이 없습니다 — 경로를 확인하세요'
+# 로케일 — 길이가 같은 한글 문장·제목·표지도 다르다고 봐야 한다. 실행하는 로케일이 무엇이든 결과가 같다.
+# assert_locale <설명> <모드> <파일 1> <파일 2> <기대 출력 전체>
+assert_locale() {
+  local out l
+  for l in C C.UTF-8 en_US.UTF-8 ko_KR.UTF-8; do
+    out="$(LC_ALL=$l "$CHECKPLAN" "--$2" "$3" "$4" 2>/dev/null)"
+    [ "$out" = "$5" ] || { ng "$1 ($l: 기대 [$5], 실제 [$out])"; return; }
+  done
+  ok "$1"
+}
+swap "$tspec" "$sandbox/s.md" '다가 된다.' '라가 된다.'
+assert_locale '새 구조 추적: 네 로케일의 문장 다른 AC 격추' ac "$tissue" "$sandbox/s.md" '문장 다른 AC: AC3'
+LC_ALL=C awk '/^## 완료의 정의/ { f = 1 } f && /^### 앞/ { print "### 옆 묶음"; next } { print }' "$tissue" > "$sandbox/i.md"
+assert_locale '새 구조 추적: 네 로케일의 묶음 다른 AC 격추' ac "$sandbox/i.md" "$tspec" '묶음 다른 AC: AC1'
+swap "$tspec" "$sandbox/s.md" '- 라: 불필요(쓰지 않는다)' '- R9: 제외 아래의 R 형식 줄'
+assert_locale '새 구조 추적: 네 로케일에서 제외 제목을 포함 표지로 읽지 않음 통과' trace "$sandbox/s.md" "$tplan" ''
+swap "$tplan" "$sandbox/p.md" '## 테스트 계획' '## 시험 계획'
+assert_locale '새 구조 추적: 네 로케일의 테스트 계획 없는 AC 격추' trace "$tspec" "$sandbox/p.md" $'테스트 계획 없는 AC: AC1\n테스트 계획 없는 AC: AC2\n테스트 계획 없는 AC: AC3'
 
-# 요구사항 묶음 (issue #140) — 포함이 5개 이상이면 `#### <묶음 이름>` 제목으로 묶고, R 세부 조건·근거 표기는 하위 목록에 둔다.
-# 묶음 제목·하위 목록·번호 순서가 섞인 R 은 포함 목록을 끊거나 R 로 읽히지 않아야 한다.
-# 묶음 제목을 굵은 글씨로 쓰면 포함 목록이 거기서 끊기고, 뒤 묶음의 R 도 Task 연결을 검사받는다.
-gspec="$sandbox/trace-group-spec.md"
-cat > "$gspec" <<'EOF'
-# Issue #98 스펙 — 요구사항 묶음 fixture
+# R 표기의 자리와 모양. 행 끝의 `(R<n>)`·`(R<n>, R<m>)` 만 표기로 읽는다.
+swap "$tspec" "$sandbox/s.md" "$AC3" '- [ ] AC3: 다가 (R3) 값으로 된다.'
+assert_plan trace fail '새 구조 추적: 문장 가운데의 괄호는 R 표기 없는 AC 격추' "$sandbox/s.md" "$tplan" "R 표기 없는 AC: AC3 ($(line_of "$sandbox/s.md" 'AC3: '))"
+swap "$tspec" "$sandbox/s.md" "$AC3" '- [ ] AC3: 다가 된다. `(R3)`'
+assert_plan trace fail '새 구조 추적: 인라인 코드 안의 표기는 R 표기 없는 AC 격추' "$sandbox/s.md" "$tplan" "R 표기 없는 AC: AC3 ($(line_of "$sandbox/s.md" 'AC3: '))"
+swap "$tspec" "$sandbox/s.md" "$AC3" '- [ ] AC3: 다가 된다. <!-- (R3) -->'
+assert_plan trace fail '새 구조 추적: 주석 안의 표기는 R 표기 없는 AC 격추' "$sandbox/s.md" "$tplan" "R 표기 없는 AC: AC3 ($(line_of "$sandbox/s.md" 'AC3: '))"
+swap "$tspec" "$sandbox/s.md" "$AC3" '- [x] AC3: 다가 된다. (R3) <!-- 메모 -->'
+assert_plan trace pass '새 구조 추적: 체크된 AC와 행 끝 닫힌 주석 통과'           "$sandbox/s.md" "$tplan"
+assert_plan ac    pass '새 구조 추적: 체크 여부와 행 끝 닫힌 주석은 문장에서 뺌 통과' "$tissue" "$sandbox/s.md"
+swap "$tissue" "$sandbox/i.md" '다가 된다.' '다가 된다. (R3)'
+swap "$tspec"  "$sandbox/s.md" "$AC3" '- [ ] AC3: 다가 된다. (R3) (R3)'
+assert_plan ac pass '새 구조 추적: 본문 문장 끝의 괄호는 문장이고 spec은 마지막 표기만 뺌 통과' "$sandbox/i.md" "$sandbox/s.md"
+
+# 테스트 계획 표의 자리. `## 테스트 계획` 절 안에서 머리가 맞는 두 표의 행만 읽는다.
+swap "$tplan" "$sandbox/p.md" "$T3" $'\n| AC | 메모 |\n|----|------|\n| AC3 | 다른 표 |'
+assert_plan trace fail '새 구조 추적: 머리가 다른 표의 행은 세지 않는 테스트 계획 없는 AC 격추' "$tspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC3'
+swap "$tplan" "$sandbox/p.md" "$T3" ''
+printf '\n## 부록\n\n| AC | 레벨 | 누가 보나 | 이유 | 확인 |\n|----|------|-----------|------|------|\n%s\n' "$T3" >> "$sandbox/p.md"
+assert_plan trace fail '새 구조 추적: 절 밖의 표는 세지 않는 테스트 계획 없는 AC 격추' "$tspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC3'
+swap "$tplan" "$sandbox/p.md" "$T3" '| AC3, AC1 | [ND] | 사용자 | 한 줄에 둘 |  |'
+assert_plan trace fail '새 구조 추적: 한 줄에 AC를 둘 적은 행은 세지 않는 테스트 계획 없는 AC 격추' "$tspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC3'
+swap "$tplan" "$sandbox/p.md" "$T3" '| 화면 AC3 | [ND] | 사용자 | 첫 칸이 번호가 아님 |  |'
+assert_plan trace fail '새 구조 추적: 첫 칸이 AC 번호가 아닌 행은 세지 않는 테스트 계획 없는 AC 격추' "$tspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC3'
+swap "$tplan" "$sandbox/p.md" "$T3" '|AC3<!-- 메모 -->|[ND]|사용자|칸 공백 없음||'
+assert_plan trace pass '새 구조 추적: 칸의 공백과 닫힌 주석은 무시 통과' "$tspec" "$sandbox/p.md"
+awk '/^### 테스트로 못 보는 항목$/ { exit } { print }' "$tplan" > "$sandbox/p.md"
+printf '| AC3 | [D] | 단위 | a_test: 다 | - |  |\n' > "$sandbox/row"
+awk -v r="$(cat "$sandbox/row")" '/^\| AC2 / { print; print r; next } { print }' "$sandbox/p.md" > "$sandbox/p2.md"
+awk '/^## Tasks$/ { f = 1 } f' "$tplan" >> "$sandbox/p2.md"
+assert_plan trace pass '새 구조 추적: 못 보는 항목 표가 없는 plan 통과' "$tspec" "$sandbox/p2.md"
+
+# --- check-plan.sh 새 구조 fixture (issue #145) -----------------------------------
+#
+# issue-work 템플릿의 예시가 헬퍼의 앵커와 맞는지 본다. 템플릿의 행 모양이나 표 머리가 바뀌면 여기서 드러난다.
+# 완결된 예시 산출물(묶지 않은 이슈)은 실제 문서의 주석·구분선·접기가 앵커를 가리지 않는지 본다.
+
+TPL="$HERE/../../issue-work/templates"
+assert_plan trace pass '새 구조 fixture: issue-work spec·plan 템플릿 예시의 추적 통과' "$TPL/issue-spec-template.md" "$TPL/issue-plan-template.md"
+assert_plan ac fail '새 구조 fixture: 본문 템플릿에 예시가 없는 spec 템플릿의 AC2 격추' "$TPL/issue-body-template.md" "$TPL/issue-spec-template.md" '이슈 본문에 없는 AC: AC2'
+
+nissue="$sandbox/n-issue.md"; nspec="$sandbox/n-spec.md"; nplan="$sandbox/n-plan.md"
+cat > "$nissue" <<'EOF'
+## 목표
+
+목록을 이름이나 날짜로 정렬해 볼 수 있다.
+
+## 범위
+
+### 포함
+
+- 목록을 이름이나 날짜로 정렬한다.
+- 모르는 정렬 값은 오류로 끝난다.
+
+### 제외
+
+- 여러 열 정렬: 보류(쓰는 사람이 없다)
+
+## 완료의 정의
+
+- [ ] AC1: 정렬 값으로 준 열의 순서대로 목록이 나온다.
+- [ ] AC2: 모르는 정렬 값을 주면 종료 코드 2로 끝난다.
+
+## 정한 것
+
+- 정한 것: 같은 값은 입력 순서를 유지한다.
+
+## 검토 필요
+
+없음
+
+<details>
+<summary>배경</summary>
+
+- 계기: 목록이 길어졌다.
+
+</details>
+EOF
+cat > "$nspec" <<'EOF'
+# Issue #99 스펙 목록 정렬 옵션
+
+## 목표 (Goal)
+
+목록을 이름이나 날짜로 정렬해 볼 수 있다.
+
+---
 
 ## 요구사항 (Requirements)
 
 ### 포함
 
-#### 첫 묶음
-
-- R1: 첫 요구
-  - 세부 조건
-- R4: 넷째 요구
-  - 이슈 본문 근거 없음. 2026-11-12 대화에서 결정
-
-#### 둘째 묶음
-
-- R3: 셋째 요구
-- R2: 둘째 요구
-  - 세부 조건
-- R5: 다섯째 요구 (함께 해소: K-0001)
+- R1: 목록을 이름이나 날짜로 정렬한다.
+- R2: 모르는 정렬 값은 오류로 끝난다.
 
 ### 제외
 
-#### 보류
+- 여러 열 정렬: 보류(쓰는 사람이 없다)
 
-- 여섯째: 보류(사례를 본 뒤 판단)
+---
 
-#### 불필요
+## 완료의 정의 (Definition of Done)
 
-- 일곱째: 불필요(지금 구조로 충분)
+<!--
+예시 행은 주석 안에 있다.
+- [ ] AC7: 주석 안의 예시 (R7)
+-->
+
+- [ ] AC1: 정렬 값으로 준 열의 순서대로 목록이 나온다. (R1)
+- [x] AC2: 모르는 정렬 값을 주면 종료 코드 2로 끝난다. (R2)
+
+---
+
+## 결정 사항 (Decisions)
+
+- D1 같은 값의 순서: 입력 순서를 유지한다.
+
+<details>
+<summary>버린 대안과 이유</summary>
+
+| 결정 | 버린 대안 | 버린 이유 |
+|------|-----------|-----------|
+| D1 | 이름으로 다시 정렬 | 값이 바뀐 것처럼 보인다 |
+
+</details>
+
+---
+
+## 변경 이력
+
+| 시점 | 바뀐 것 | 분류 | 계기 |
+|------|---------|------|------|
+| 회차 2 | AC2 | 구체화 | F-1 |
+EOF
+cat > "$nplan" <<'EOF'
+# Issue #99 실행계획 목록 정렬 옵션
+
+> 스펙: [issue-0099-spec.md](./issue-0099-spec.md)
+
+---
+
+## 계획 종료 게이트 (고정)
+
+- [x] 점검 완료
+
+---
+
+## 설계 결정
+
+- **시스템 구성**: 정렬 함수를 더한다. AC1과 AC2가 쓴다.
+
+---
+
+## 테스트 계획
+
+<!--
+| AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
+| AC7 | [D] | 단위 | 주석 안의 예시 | - |  |
+-->
+
+| AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
+|----|------|----|--------|---------------------|------|
+| AC1 | [D] | 단위 | sort_test: 이름순, 날짜순 | - | 최종 1차 |
+| AC2 | [D] | 통합 | cli_test: 모르는 값 | 종료 코드는 실행해야 보인다 | 최종 1차 |
+
+### 테스트로 못 보는 항목
+
+| AC | 레벨 | 누가 보나 | 이유 | 확인 |
+|----|------|-----------|------|------|
+| AC2 | [QD] | 교차 감사 | 오류 문구를 읽고 판단한다 |  |
+
+---
+
+## Tasks
+
+> **대상 요구사항 필드**: 일반 Task에는 `- **대상 요구사항**: R<n>` 필드를 둡니다.
+
+### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
+
+- [x] 완료
+
+---
+
+### Task 1: 정렬 함수
+
+- [x] 완료
+- **목표**: 정렬 함수를 만든다.
+- **대상 요구사항**: R1
+- **테스트 먼저**:
+  - sort_test: 이름순, 날짜순
+  - **실패 확인**: 러너에서 2건 실패를 보고 테스트 커밋을 만든다.
+
+---
+
+### Task 2: 명령 인자
+
+- [x] 완료
+- **목표**: 정렬 인자를 읽는다.
+- **대상 요구사항**: R2
+- **테스트 먼저**: 쓰지 않음(문서만 고친다)
+
+---
+
+### Task 3: 발견을 고침
+
+- [ ] 완료
+- **목표**: F-1을 고친다.
+- **대상 요구사항**: R1, R2
+
+---
+
+### Task N (고정): 마무리
+
+- [ ] 완료
+EOF
+assert_plan trace pass '새 구조 fixture: 예시 산출물의 추적 통과'        "$nspec" "$nplan"
+assert_plan ac    pass '새 구조 fixture: 예시 산출물의 AC 문장 대조 통과' "$nissue" "$nspec"
+drop "$nplan" "$sandbox/p.md" '| AC1 | [D] | 단위 | sort_test: 이름순, 날짜순 | - | 최종 1차 |'
+assert_plan trace fail '새 구조 fixture: 예시 plan의 테스트 줄 삭제 격추' "$nspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC1'
+swap "$nspec" "$sandbox/s.md" '종료 코드 2로 끝난다. (R2)' '종료 코드 2로 끝난다.'
+assert_plan trace fail '새 구조 fixture: 예시 spec의 R 표기 삭제 격추' "$sandbox/s.md" "$nplan" \
+  $'AC 없는 R: R2\n'"R 표기 없는 AC: AC2 ($(line_of "$sandbox/s.md" 'AC2: '))"
+swap "$nspec" "$sandbox/s.md" '종료 코드 2로' '종료 코드 1로'
+assert_plan ac fail '새 구조 fixture: 예시 spec의 AC 문장 변경 격추' "$nissue" "$sandbox/s.md" '문장 다른 AC: AC2'
+
+# 옛 구조 문서는 새 앵커로 읽히지 않고 위반으로 드러나야 한다.
+cat > "$sandbox/old-spec.md" <<'EOF'
+## 요구사항 (Requirements)
+
+**포함**
+
+- R1: 첫 요구
+
+**제외**
+
+- 둘째: 불필요
 
 ## 완료의 정의 (Definition of Done)
 
 ### R1: 첫 그룹
 
-- [ ] [D] 조건
-
-### R2: 둘째 그룹
-
-- [ ] [D] 조건
-
-### R3: 셋째 그룹
-
-- [ ] [D] 조건
-
-### R4: 넷째 그룹
-
-- [ ] [D] 조건
-
-### R5: 다섯째 그룹
-
-- [ ] [D] 조건
-
-### 공통
-
-- [ ] [D] 전체 테스트
+- [ ] [D]  조건 (AC1)
 EOF
+printf '## 완료의 정의\n\n- [ ] AC1: 조건\n' > "$sandbox/old-issue.md"
+printf '## Tasks\n\n### Task 1: 본작업\n\n- [ ] 완료\n- **대상 요구사항**: R1\n' > "$sandbox/old-plan.md"
+assert_plan trace fail '새 구조 fixture: 굵은 글씨 포함 표지의 옛 spec 격추' "$sandbox/old-spec.md" "$sandbox/old-plan.md" \
+  "$NO_INC"$'\n없는 R 참조: R1 (Task 1: 본작업)'
+assert_plan ac fail '새 구조 fixture: R 그룹과 출처 표기를 쓴 옛 spec 격추' "$sandbox/old-issue.md" "$sandbox/old-spec.md" 'spec에 없는 AC: AC1'
 
-gplan="$sandbox/trace-group-plan.md"
-cat > "$gplan" <<'EOF'
-# Issue #98 실행계획 — 요구사항 묶음 fixture
+# --- check-plan.sh 행 읽기 규칙 (--trace) ------------------------------------------
+#
+# 고정 Task 판정은 헤더 두 가지만이라 일반 Task 제목의 `고정` 단어를 오분류하지 않아야 하고, 일반 Task 에 `(고정)` 을 붙인 우회는 격추해야 한다.
+# 코드 펜스·HTML 주석·인라인 코드 안의 앵커는 구조로 세지 않는다. 실제 구조를 지우고 예시에만 남기면 누락이고, 예시에만 있으면 위반이 아니다.
 
-## Tasks
+# wrap <입력> <출력> <감쌀 행> <앞에 둘 행들> <뒤에 둘 행들> — 행 전체가 같은 행을 앞뒤 행으로 감싼다.
+wrap() {
+  A="$3" H="$4" T="$5" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"]; h = ENVIRON["H"]; t = ENVIRON["T"] } $0 == a { print h; print; print t; next } { print }' "$1" > "$2"
+  changed "$1" "$2" "$3"
+}
+NO_T2='대상 요구사항 없는 일반 Task: Task 2: 후속 작업'
+NO_F2=$'Task 없는 R: R3\nTask 없는 R: R2\n'"$NO_T2"
+NO_AC1=$'AC 없는 R: R1\n없는 AC 참조: AC1'
 
-### Task 0 (고정): 구현 시작 게이트
+swap "$tplan" "$sandbox/p.md" '### Task 1: 본작업' '### Task 1: 고정 설정 갱신'
+assert_plan trace pass 'trace: 일반 Task 제목의 고정 단어 오분류 없음' "$tspec" "$sandbox/p.md"
+drop "$tplan" "$sandbox/p0.md" "$F2"
+swap "$sandbox/p0.md" "$sandbox/p.md" '### Task 2: ' '### Task 2 (고정): '
+assert_plan trace fail 'trace: 일반 Task 의 (고정) 개서 우회 격추' "$tspec" "$sandbox/p.md" \
+  $'Task 없는 R: R3\nTask 없는 R: R2\n대상 요구사항 없는 일반 Task: Task 2 (고정): 후속 작업'
+# 고정 Task 의 필드는 참조 집계에 넣지 않는다 — Task 0 이 R2 를 적어도 일반 Task 가 없으면 Task 없는 R 이다.
+swap "$tplan" "$sandbox/p0.md" "$F2" '- **대상 요구사항**: R3'
+add "$sandbox/p0.md" "$sandbox/p.md" '- **목표**: 전제 확인' '- **대상 요구사항**: R2, R9'
+assert_plan trace fail 'trace: 고정 Task 의 필드는 참조로 세지 않음' "$tspec" "$sandbox/p.md" 'Task 없는 R: R2'
 
-- [ ] 완료
-- **목표**: 전제 확인
+# 값 없는 필드 — 라벨만 있고 값에 R<n> 이 없으면(빈 값·`-`·공백) 필드가 없는 것과 같다.
+for v in '' ' -' '   '; do
+  swap "$tplan" "$sandbox/p.md" '### Task N (고정): 마무리' $'### Task 3: 연결 미정\n\n- **대상 요구사항**:'"$v"$'\n\n### Task N (고정): 마무리'
+  assert_plan trace fail "trace: 필드 값이 [${v}]인 일반 Task 격추" "$tspec" "$sandbox/p.md" '대상 요구사항 없는 일반 Task: Task 3: 연결 미정'
+done
 
-### Task 1: 첫 묶음 구현
+# 펜스·블록 주석·연속 주석·긴 펜스·물결표 펜스 — 감싼 AC 행·필드·테스트 줄은 세지 않는다.
+i=0
+for pair in $'```markdown|```' $'~~~markdown|~~~' $'<!--|-->' $'````markdown\n```markdown|```\n````' $'<!--\n앞 메모\n--> <!--|-->'; do
+  i=$((i + 1)); h="${pair%%|*}"; t="${pair#*|}"
+  wrap "$tspec" "$sandbox/s.md" "$AC1" "$h" "$t"
+  assert_plan trace fail "trace: 감싼 AC 행은 세지 않음 ($i) 격추" "$sandbox/s.md" "$tplan" "$NO_AC1"
+  wrap "$tplan" "$sandbox/p.md" "$F2" "$h" "$t"
+  assert_plan trace fail "trace: 감싼 필드는 연결로 세지 않음 ($i) 격추" "$tspec" "$sandbox/p.md" "$NO_F2"
+  wrap "$tplan" "$sandbox/p.md" "$T3" "$h" "$t"
+  assert_plan trace fail "trace: 감싼 테스트 줄은 세지 않음 ($i) 격추" "$tspec" "$sandbox/p.md" '테스트 계획 없는 AC: AC3'
+  swap "$tspec" "$sandbox/s.md" "$AC1" "$AC1"$'\n\n'"$h"$'\n- [ ] AC9: 유령 (R9)\n'"$t"
+  assert_plan trace pass "trace: 감싼 유령 AC 행은 위반이 아님 ($i) 통과" "$sandbox/s.md" "$tplan"
+done
+# 들여쓴 펜스도 토글해야 그 안의 행이 앵커로 새지 않는다.
+swap "$tspec" "$sandbox/s.md" "$AC1" "$AC1"$'\n  ```markdown\n- [ ] AC9: 유령 (R9)\n  ```'
+assert_plan trace pass 'trace: 들여쓴 펜스 안의 앵커도 세지 않음' "$sandbox/s.md" "$tplan"
+{ printf '<!--\n```markdown\n-->\n'; cat "$tspec"; } > "$sandbox/s.md"
+assert_plan trace pass 'trace: 주석 안의 펜스 행은 펜스 상태를 바꾸지 않음' "$sandbox/s.md" "$tplan"
+{ printf '```text\n<!--\n```\n'; cat "$tspec"; } > "$sandbox/s.md"
+assert_plan trace pass 'trace: 펜스 안의 주석 열기는 주석 상태를 바꾸지 않음' "$sandbox/s.md" "$tplan"
+# 두 번째 주석의 AC9 는 무시하고 주석 밖의 실제 위반만 1행 출력해야 한다.
+swap "$tspec" "$sandbox/s.md" "$AC3" $'- [ ] AC3: 다가 된다. (R3, R5)\n\n<!--\n앞 메모\n--> <!--\n- [ ] AC9: 유령 (R9)\n-->'
+assert_plan trace fail 'trace: 연속 주석 밖의 실제 위반만 격추 (R9 동반 출력 없음)' "$sandbox/s.md" "$tplan" '없는 R 참조: R5 (AC3)'
 
-- [ ] 완료
-- **목표**: 첫 묶음 구현
-- **대상 요구사항**: R1, R4
+# 한 행의 주석·행 중간 주석·인라인 코드. 인라인 코드와 주석은 먼저 시작한 쪽이 이긴다.
+# field <설명> <기대: pass|fail> <Task 2 필드를 바꿀 행들>
+field() {
+  swap "$tplan" "$sandbox/p.md" "$F2" "$3"
+  if [ "$2" = 'pass' ]; then assert_plan trace pass "$1" "$tspec" "$sandbox/p.md"; else assert_plan trace fail "$1" "$tspec" "$sandbox/p.md" "$NO_F2"; fi
+}
+field 'trace: 값이 한 줄 주석뿐인 필드는 연결로 세지 않음'   fail '- **대상 요구사항**: <!-- R2, R3 -->'
+field 'trace: 실제 R 뒤의 한 줄 주석 메모는 정상 참조 유지' pass "$F2 <!-- 메모 R9 -->"
+field 'trace: 실제 R 뒤에서 시작한 여러 줄 주석은 앞의 참조를 유지' pass "$F2"$' <!--\n다음 줄 설명\n-->'
+field 'trace: 값이 여러 줄 주석뿐인 필드는 연결로 세지 않음' fail $'- **대상 요구사항**: <!--\nR2, R3\n-->'
+field 'trace: 인라인 코드 안의 <!-- 는 주석을 열지 않음' pass $'`<!--`는 검사할 구분자다.\n\n'"$F2"
+field 'trace: 백틱 2개 인라인 코드 안의 백틱 1개·주석 구분자는 본문이 아님' pass $'``<!-- `코드` -->``는 예시다.\n\n'"$F2"
+field 'trace: 두 주석에 하나씩 든 백틱 사이의 실제 값은 유지' pass '- **대상 요구사항**: <!-- ` --> R2, R3 <!-- ` -->'
+field 'trace: 값이 백틱을 담은 한 줄 주석뿐인 필드는 연결로 세지 않음' fail '- **대상 요구사항**: <!-- `R2` `R3` -->'
+field 'trace: 코드 안의 <!-- 뒤에 온 주석 안의 백틱은 글자 (먼저 시작한 쪽이 이김)' pass '- **대상 요구사항**: `<!--` <!-- ` --> R2, R3'
+swap "$tplan" "$sandbox/p.md" '- **대상 요구사항**: R1' '- **대상 요구사항**: R1 <!-- `-->`'
+assert_plan trace pass 'trace: 주석 안의 백틱으로 감싼 --> 도 주석을 닫아 뒤의 Task 를 건너뛰지 않음' "$tspec" "$sandbox/p.md"
+swap "$tspec" "$sandbox/s.md" "$AC1" "$AC1 <!-- \`-->\`"
+assert_plan trace fail 'trace: AC 행 뒤 주석을 닫은 다음의 글자는 행 끝이라 표기로 읽지 않음 격추' "$sandbox/s.md" "$tplan" \
+  $'AC 없는 R: R1\n'"R 표기 없는 AC: AC1 ($(line_of "$sandbox/s.md" 'AC1: '))"
+swap "$tspec" "$sandbox/s.md" "$AC1" "$AC1"$' <!--\n메모\n-->'
+assert_plan trace pass 'trace: AC 행 뒤에서 시작한 여러 줄 주석은 앞의 표기를 유지' "$sandbox/s.md" "$tplan"
+{ cat "$tspec"; printf '\n백틱 ` 하나 뒤의 <!--\n## 완료의 정의\n- [ ] AC9: 유령 (R9)\n-->\n'; } > "$sandbox/s.md"
+assert_plan trace pass 'trace: 짝 없는 백틱은 인라인 코드가 아니라 뒤의 주석 열기가 유효' "$sandbox/s.md" "$tplan"
 
-### Task 2: 둘째 묶음 구현
-
-- [ ] 완료
-- **목표**: 둘째 묶음 구현
-- **대상 요구사항**: R2, R3, R5
-
-### Task N (고정): 교차모델 issue-audit 검증
-
-- [ ] 완료
-- **목표**: 감사
-EOF
-
-awk '$0 == "#### 둘째 묶음" { $0 = "**둘째 묶음**" } { print }' "$gspec" > "$sandbox/ts-group-bold.md"
-awk '$0 == "- **대상 요구사항**: R2, R3, R5" { $0 = "- **대상 요구사항**: R2, R3" } { print }' "$gplan" > "$sandbox/tp-group-r5-unref.md"
-assert_trace pass 'trace: 요구사항 묶음 fixture 통과 (#### 묶음 제목·하위 목록·섞인 R 번호 순서)' "$gspec" "$gplan"
-assert_trace fail 'trace: 요구사항 묶음의 굵은 글씨 묶음 제목 격추' "$sandbox/ts-group-bold.md" "$gplan" 'R 없는 DoD 그룹: R3'
-assert_trace fail 'trace: 요구사항 묶음의 뒤 묶음 R에 Task 연결 없음 격추' "$gspec" "$sandbox/tp-group-r5-unref.md" 'Task 없는 R: R5'
-
-# 공집합 — 포함 목록이 비었거나 Task 블록이 없으면 위반 0건이 아니라 추적 불가다.
-awk '!/^- R[0-9]+: /' "$tspec" > "$sandbox/ts-empty-inc.md"
-assert_trace fail 'trace: 포함 목록 공집합 격추' "$sandbox/ts-empty-inc.md" "$tplan" \
-  '추적 불가: spec 포함 목록에 R<n> 항목이 없습니다 — 경로를 확인하세요'
-printf '# 빈 문서\n' > "$sandbox/tp-empty.md"
-assert_trace fail 'trace: Task 블록 없는 plan 격추' "$tspec" "$sandbox/tp-empty.md" \
-  '추적 불가: plan 에 ### Task 블록이 없습니다 — 경로를 확인하세요'
+# 포함 표지 — 표지는 `### 포함`·`### 제외` 제목이고 `#### 포함` 은 표지가 아니다. 표지 행 끝의 닫힌 주석은 표지를 가리지 않는다 (원장 K-0023).
+# 포함 목록은 `### 제외` 에서 끝난다. `#### ` 묶음 제목과 굵은 글씨 행은 목록을 끊지 않아, 뒤 묶음의 R 도 연결을 검사받는다.
+swap "$tspec" "$sandbox/s.md" '### 포함' '### 포함 <!-- 메모 -->'
+assert_plan trace pass 'trace: 포함 표지 행 끝 닫힌 주석 통과' "$sandbox/s.md" "$tplan"
+swap "$tspec" "$sandbox/s.md" '- 라: 불필요(쓰지 않는다)' '- R9: 제외 아래의 R 형식 줄'
+assert_plan trace pass 'trace: 포함 표지 ### 제외에서 포함 목록 끝남 통과' "$sandbox/s.md" "$tplan"
+swap "$tspec" "$sandbox/s.md" '#### 뒤 묶음' '**뒤 묶음**'
+assert_plan trace pass 'trace: 굵은 글씨 행은 포함 목록을 끊지 않음 통과' "$sandbox/s.md" "$tplan"
+swap "$tspec" "$sandbox/s.md" '### 포함' '#### 포함'
+out="$("$CHECKPLAN" --trace "$sandbox/s.md" "$tplan" 2>&1)"; rc=$?
+if [ "$rc" -eq 1 ] && printf '%s\n' "$out" | grep -qxF -- "$NO_INC"; then ok 'trace: 포함 표지 #### 포함 제목 격추'; else ng "trace: 포함 표지 #### 포함 제목 격추 (실제 exit $rc [$out])"; fi
 
 # 사용오류 — 종료 코드 2 와 함께 표준 출력이 비어 있어야 한다 (assert_usage_error 가 함께 본다).
 assert_usage_error 'check-plan 인자 누락(--trace 단독)' "$CHECKPLAN" --trace
@@ -1139,65 +1410,20 @@ assert_usage_error 'check-plan 읽을 수 없는 파일'       "$CHECKPLAN" --tr
 assert_usage_error 'check-plan 알 수 없는 옵션'         "$CHECKPLAN" --all "$tspec" "$tplan"
 assert_usage_error 'check-plan 모드 중복'               "$CHECKPLAN" --trace "$tspec" "$tplan" --trace "$tspec" "$tplan"
 
-# --- check-plan.sh --ac (issue #130) ------------------------------------------
-#
-# 이슈 본문 AC 와 spec 완료의 정의 항목 출처 표기의 대조를 정상 fixture 의 변형으로 재현한다.
-# 정상 fixture 에 `(AC 없음: …)` 표기, `### 공통` 의 회귀 방지 항목, 출처 뒤의 `(검증: …)`, 완료의 정의 절 밖의 항목형 행을
-# 넣어 오탐하지 않는지 함께 본다. AC 없는 본문은 `대조 불가` 1행만 내야 한다. AC 없는 이슈의 spec 은 출처 표기 없이 쓰므로,
-# 대조를 이어 가면 정상 경로가 `출처 없는 항목` 목록으로 보인다. 펜스·주석 판정은 --trace 와 같은 파서라 대표 경우만 본다.
-# fail 은 종료 코드 1 과 출력 전체의 일치를 본다. 행 포함만 보면 다른 사유의 동반 출력을 놓친다.
+# --- check-plan.sh 행 읽기 규칙 (--ac) ---------------------------------------------
+# 펜스·주석 판정은 --trace 와 같은 파서라 대표 경우만 본다.
 
-aissue="$sandbox/ac-issue.md"
-cat > "$aissue" <<'EOF'
-## 목표
-
-가와 나를 한다.
-
-## 완료의 정의
-
-- [ ] AC1: 가가 된다
-- [ ] AC2: 나가 된다
-EOF
-
-aspec="$sandbox/ac-spec.md"
-cat > "$aspec" <<'EOF'
-# Issue #99 스펙 — AC 대조 fixture
-
-## 완료의 정의 (Definition of Done)
-
-### R1: 가
-
-- [ ] [D]  가를 본다 (AC1)
-  <details>
-  <summary>검증 명령</summary>
-
-  ```bash
-  echo 가
-  ```
-
-  </details>
-- [ ] [QD] 나를 본다 (AC1, AC2)  (검증: 다른 AI가 채점)  ← 강등 사유: 의미 판단
-- [ ] [ND] 다를 본다 (AC 없음: 3-1 승인)  (검증: 사람 리뷰)
-
-### 공통
-
-- [ ] [D]  전체 테스트가 통과한다 (회귀 방지 항목)
-
-## 전제 (Assumptions)
-
-- [ ] [D] 완료의 정의 절 밖의 행은 항목이 아니다
-EOF
-
-# assert_ac <기대: pass|fail> <설명> <이슈 본문> <spec> [기대 출력 전체]
-assert_ac() {
-  local want="$1" desc="$2" i="$3" s="$4" expect="${5:-}"
-  local out rc
-  out="$("$CHECKPLAN" --ac "$i" "$s" 2>&1)"; rc=$?
-  case "$want" in
-    pass) if [ "$rc" -eq 0 ] && [ -z "$out" ]; then ok "$desc"; else ng "$desc (기대 exit 0·무출력, 실제 exit $rc [$out])"; fi ;;
-    fail) if [ "$rc" -eq 1 ] && [ "$out" = "$expect" ]; then ok "$desc"; else ng "$desc (기대 exit 1·[$expect], 실제 exit $rc [$out])"; fi ;;
-  esac
-}
+awk '/^- \[ \] AC2: / { print "```text"; print; print "```"; next } { print }' "$tissue" > "$sandbox/i-fence.md"
+awk '/^- \[ \] AC2: / { print "<!--"; print; print "-->"; next } { print }' "$tissue" > "$sandbox/i-comment.md"
+awk '{ printf "%s\r\n", $0 }' "$tissue" > "$sandbox/i-crlf.md"
+awk '/^### 앞 묶음$/ { $0 = $0 " <!-- 메모 -->" } { print }' "$tissue" > "$sandbox/i-head.md"
+changed "$tissue" "$sandbox/i-head.md" '묶음 제목 주석'
+swap "$tspec" "$sandbox/s-fence.md" "$AC1" "$AC1"$'\n\n```markdown\n### 다른 묶음\n- [ ] AC9: 예시 (R9)\n```'
+assert_plan ac fail 'AC 대조: 코드 펜스 안의 AC 행 무시 격추'    "$sandbox/i-fence.md"   "$tspec" '이슈 본문에 없는 AC: AC2'
+assert_plan ac fail 'AC 대조: 주석 안의 AC 행 무시 격추'         "$sandbox/i-comment.md" "$tspec" '이슈 본문에 없는 AC: AC2'
+assert_plan ac pass 'AC 대조: CRLF 줄 끝 본문 통과'              "$sandbox/i-crlf.md"    "$tspec"
+assert_plan ac pass 'AC 대조: 묶음 제목 끝 닫힌 주석 무시 통과'  "$sandbox/i-head.md"    "$tspec"
+assert_plan ac pass 'AC 대조: 펜스 안의 제목과 AC 행은 세지 않음 통과' "$tissue"         "$sandbox/s-fence.md"
 
 # assert_ac_usage <설명> <인자...> — 종료 코드 2 와 빈 표준 출력을 함께 본다 (assert_usage_error 와 같은 기준).
 assert_ac_usage() {
@@ -1206,68 +1432,13 @@ assert_ac_usage() {
   out="$("$CHECKPLAN" "$@" 2>/dev/null)"; rc=$?
   if [ "$rc" -eq 2 ] && [ -z "$out" ]; then ok "$desc"; else ng "$desc (기대 exit 2·무출력, 실제 exit $rc [$out])"; fi
 }
-
-# ac_swap <입력> <출력> <찾을 문자열> <바꿀 문자열> — 처음 나온 자리 하나만 정규식 해석 없이 바꾼다.
-ac_swap() { awk -v a="$3" -v b="$4" '!d && (i = index($0, a)) { $0 = substr($0, 1, i - 1) b substr($0, i + length(a)); d = 1 } { print }' "$1" > "$2"; }
-# ac_add <입력> <출력> <기준 행> <더할 행> — 행 전체가 같은 기준 행 뒤에 한 행을 더한다.
-ac_add() { awk -v a="$3" -v b="$4" '{ print } $0 == a { print b }' "$1" > "$2"; }
-
-assert_ac pass 'AC 대조: 정상 입력(AC 없음 표기·공통 회귀 방지 항목·절 밖 행 포함) 통과' "$aissue" "$aspec"
-
-# spec 변형 — 위반 3종과 출처 판정의 경계.
-drop_literal "$aspec" ', AC2' > "$sandbox/ac-unlinked.md"
-ac_swap "$aspec" "$sandbox/ac-unknown.md" '가를 본다 (AC1)' '가를 본다 (AC1, AC3)'
-drop_literal "$aspec" ' (AC1)' > "$sandbox/ac-nosource.md"
-ac_add "$aspec" "$sandbox/ac-regress-outside.md" '- [ ] [D]  가를 본다 (AC1)' '- [ ] [D]  줄 끝 공백이 없다 (회귀 방지 항목)'
-ac_add "$aspec" "$sandbox/ac-common-nomark.md" '- [ ] [D]  전체 테스트가 통과한다 (회귀 방지 항목)' '- [ ] [D]  문서 형식을 본다'
-ac_swap "$aspec" "$sandbox/ac-inline-code.md" '가를 본다 (AC1)' '`(AC 없음: <사유>)` 형식을 본다'
-ac_swap "$aspec" "$sandbox/ac-empty-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: )'
-ac_swap "$aspec" "$sandbox/ac-unclosed-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: 3-1 승인'
-ac_swap "$aspec" "$sandbox/ac-nested-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: 범위 항목 (3-1 승인))'
-ac_swap "$aspec" "$sandbox/ac-code-reason.md" '(AC 없음: 3-1 승인)' '(AC 없음: `3-1 승인`)'
-ac_swap "$aspec" "$sandbox/ac-common-comment.md" '### 공통' '### 공통 <!-- 메모 -->'
-ac_swap "$aspec" "$sandbox/ac-checked-item.md" '- [ ] [D]  가를 본다 (AC1)' '- [x] [D]  가를 본다'
-awk '{ print } $0 == "### R1: 가" { print ""; print "```markdown"; print "- [ ] [D] 예시 항목 (AC3)"; print "```" }' "$aspec" > "$sandbox/ac-fenced-item.md"
-
-assert_ac fail 'AC 대조: 연결 없는 AC 격추'                 "$aissue" "$sandbox/ac-unlinked.md"       '연결 없는 AC: AC2'
-assert_ac fail 'AC 대조: 이슈에 없는 AC 참조 격추'          "$aissue" "$sandbox/ac-unknown.md"        '없는 AC 참조: AC3'
-assert_ac fail 'AC 대조: 출처 없는 항목 격추'               "$aissue" "$sandbox/ac-nosource.md"       '출처 없는 항목: - [ ] [D]  가를 본다'
-assert_ac fail 'AC 대조: 공통 밖 회귀 방지 항목의 출처 누락 격추' "$aissue" "$sandbox/ac-regress-outside.md" '출처 없는 항목: - [ ] [D]  줄 끝 공백이 없다 (회귀 방지 항목)'
-assert_ac fail 'AC 대조: 공통 안이라도 회귀 방지 표시 없는 항목의 출처 누락 격추' "$aissue" "$sandbox/ac-common-nomark.md" '출처 없는 항목: - [ ] [D]  문서 형식을 본다'
-assert_ac fail 'AC 대조: 인라인 코드 안의 출처 표기는 세지 않음 격추' "$aissue" "$sandbox/ac-inline-code.md" '출처 없는 항목: - [ ] [D]  `(AC 없음: <사유>)` 형식을 본다'
-assert_ac fail 'AC 대조: 사유 없는 AC 없음 표기 격추'       "$aissue" "$sandbox/ac-empty-reason.md"   '출처 없는 항목: - [ ] [ND] 다를 본다 (AC 없음: )  (검증: 사람 리뷰)'
-assert_ac fail 'AC 대조: 닫는 괄호 없는 AC 없음 표기 격추'  "$aissue" "$sandbox/ac-unclosed-reason.md" '출처 없는 항목: - [ ] [ND] 다를 본다 (AC 없음: 3-1 승인  (검증: 사람 리뷰)'
-assert_ac pass 'AC 대조: 사유 안 괄호 한 겹은 출처로 셈 통과' "$aissue" "$sandbox/ac-nested-reason.md"
-assert_ac pass 'AC 대조: 사유 전체가 인라인 코드인 AC 없음 표기도 출처로 셈 통과' "$aissue" "$sandbox/ac-code-reason.md"
-assert_ac pass 'AC 대조: 헤더 끝 닫힌 주석이 있는 공통 그룹 인식 통과' "$aissue" "$sandbox/ac-common-comment.md"
-assert_ac fail 'AC 대조: 체크된 spec 항목도 항목으로 셈 격추' "$aissue" "$sandbox/ac-checked-item.md" '출처 없는 항목: - [x] [D]  가를 본다'
-assert_ac pass 'AC 대조: 펜스 안의 예시 항목은 항목으로 세지 않음 통과' "$aissue" "$sandbox/ac-fenced-item.md"
-
-# 이슈 본문 변형 — 체크된 AC, 펜스·주석 안의 AC 행, CRLF 줄 끝.
-ac_swap "$aissue" "$sandbox/ac-issue-checked.md" '- [ ] AC2:' '- [x] AC2:'
-awk '/^- \[ \] AC2: / { print "```text"; print; print "```"; next } { print }' "$aissue" > "$sandbox/ac-issue-fenced.md"
-awk '/^- \[ \] AC2: / { print "<!--"; print; print "-->"; next } { print }' "$aissue" > "$sandbox/ac-issue-comment.md"
-awk '{ printf "%s\r\n", $0 }' "$aissue" > "$sandbox/ac-issue-crlf.md"
-
-assert_ac pass 'AC 대조: 체크된 AC([x]) 인식 통과'          "$sandbox/ac-issue-checked.md" "$aspec"
-assert_ac fail 'AC 대조: 코드 펜스 안의 AC 행 무시 격추'    "$sandbox/ac-issue-fenced.md"  "$aspec" '없는 AC 참조: AC2'
-assert_ac fail 'AC 대조: 주석 안의 AC 행 무시 격추'         "$sandbox/ac-issue-comment.md" "$aspec" '없는 AC 참조: AC2'
-assert_ac pass 'AC 대조: CRLF 줄 끝 본문의 AC 행 인식 통과' "$sandbox/ac-issue-crlf.md"    "$aspec"
-
-# AC 없는 본문 — 출처 표기 없는 spec 을 넣어도 `대조 불가` 1행만 낸다.
-printf '## 목표\n\n없음\n' > "$sandbox/ac-issue-noac.md"
-awk '{ gsub(/ \(AC[^)]*\)/, ""); print }' "$aspec" > "$sandbox/ac-spec-nosrc.md"
-assert_ac fail 'AC 대조: AC 없는 본문과 출처 표기 없는 spec 은 대조 불가 1행만 격추' "$sandbox/ac-issue-noac.md" "$sandbox/ac-spec-nosrc.md" '대조 불가: 이슈 본문에 AC 없음'
-assert_ac fail 'AC 대조: AC 없는 본문과 정상 spec 도 대조 불가 1행만 격추'         "$sandbox/ac-issue-noac.md" "$aspec"                  '대조 불가: 이슈 본문에 AC 없음'
-
-# 사용오류 — 모드 중복·인자 부족·읽을 수 없는 파일.
-assert_ac_usage 'AC 대조: 모드 중복(--ac 두 번) 격추'        --ac "$aissue" "$aspec" --ac "$aissue" "$aspec"
-assert_ac_usage 'AC 대조: 모드 중복(--ac 뒤 --trace) 격추'   --ac "$aissue" "$aspec" --trace "$tspec" "$tplan"
-assert_ac_usage 'AC 대조: 모드 중복(--trace 뒤 --ac) 격추'   --trace "$tspec" "$tplan" --ac "$aissue" "$aspec"
-assert_ac_usage 'AC 대조: 인자 부족(본문만) 격추'            --ac "$aissue"
+assert_ac_usage 'AC 대조: 모드 중복(--ac 두 번) 격추'        --ac "$tissue" "$tspec" --ac "$tissue" "$tspec"
+assert_ac_usage 'AC 대조: 모드 중복(--ac 뒤 --trace) 격추'   --ac "$tissue" "$tspec" --trace "$tspec" "$tplan"
+assert_ac_usage 'AC 대조: 모드 중복(--trace 뒤 --ac) 격추'   --trace "$tspec" "$tplan" --ac "$tissue" "$tspec"
+assert_ac_usage 'AC 대조: 인자 부족(본문만) 격추'            --ac "$tissue"
 assert_ac_usage 'AC 대조: 인자 없음 격추'                    --ac
-assert_ac_usage 'AC 대조: 읽을 수 없는 본문 파일 격추'       --ac "$sandbox/does-not-exist.md" "$aspec"
-assert_ac_usage 'AC 대조: 읽을 수 없는 spec 파일 격추'       --ac "$aissue" "$sandbox/does-not-exist.md"
+assert_ac_usage 'AC 대조: 읽을 수 없는 본문 파일 격추'       --ac "$sandbox/does-not-exist.md" "$tspec"
+assert_ac_usage 'AC 대조: 읽을 수 없는 spec 파일 격추'       --ac "$tissue" "$sandbox/does-not-exist.md"
 
 # --- --plan 관점 3 범위 (issue #130) -------------------------------------------
 # 관점 3 의 AC 대비 완화·확장 점검과 관점 1 의 AC 대조 실행 지시는 감사인 절차라 조항 문장이 곧 계약이다.
