@@ -637,93 +637,37 @@ assert_report_structure "$sandbox/t-model-no-ex-id.md" fail "리포트 구조: �
 assert_report_structure "$sandbox/t-model-no-unk.md"   fail "리포트 구조: 감사 모델 줄 확인 불가 표기 (-) 제거 격추"
 assert_report_structure "$sandbox/t-model-dup.md"      fail "리포트 구조: 잘못된 감사 모델 줄 중복(PR #105 2차 리뷰 반례) 격추"
 
-# --- SKILL.md --plan 관점 2 가짜 [D] 사전 판별 조항 ---------------------------------
-# 관점 2 는 감사인 수동 절차라 헬퍼가 없고(K-0009) 조항 문장이 곧 계약이다. 고정 블록(Task 0·Task N)
-# 제외·제외 범위 한정·예외 표시 위치(spec 항목 본문) 한정이 빠지면 issue #108 이 막은 반복 발견이
-# 되살아나므로, 세 조항을 관점 2 행 하나에서 판정한다 (PR #109 리뷰 반례).
+# --- 문서 변형 도우미 ------------------------------------------------------------
 
-# check_fake_d_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
-check_fake_d_clause() {
-  awk '
-    /^2\. \*\*가짜 `\[D\]` 사전 판별\*\* `\[D\]`:/ {
-      n++
-      if (!index($0, "고정 블록(Task 0·Task N)의 완료 기준은 판별 대상에서 뺀다"))
-        print "관점 2 행에 고정 블록(Task 0·Task N) 제외 없음"
-      if (!index($0, "이슈별 spec DoD와 plan 일반 Task 완료 기준은 그대로 판별한다"))
-        print "관점 2 행에 제외 범위 한정 없음"
-      if (!index($0, "spec 항목 본문에 `(회귀 방지 항목)` 표시가 있을 때만 예외"))
-        print "관점 2 행에 예외 표시 위치(spec 항목 본문) 한정 없음"
-    }
-    END { if (n != 1) print "관점 2 행 " n + 0 "개 (기대 1개)" }
-  ' "$1"
+# 변형 도우미. 값은 환경 변수로 넘긴다 — macOS awk 는 -v 값의 줄바꿈을 받지 않고 백슬래시를 해석한다.
+# 문자열을 == 로 견주는 awk 는 LC_ALL=C 로 부른다 — macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 본다.
+# changed 는 변형이 비었거나 원본과 같으면 실패로 남긴다. 원본과 같은 사본은 통과를 기대하는 케이스에서 아무것도 검사하지 않는다.
+changed() { if [ ! -s "$2" ] || cmp -s "$1" "$2"; then ng "변형 실패: $3"; fi; }
+# swap <입력> <출력> <찾을 문자열> <바꿀 문자열> — 처음 나온 자리 하나만 정규식 해석 없이 바꾼다.
+swap() {
+  A="$3" B="$4" awk 'BEGIN { a = ENVIRON["A"]; b = ENVIRON["B"] } !d && (i = index($0, a)) { $0 = substr($0, 1, i - 1) b substr($0, i + length(a)); d = 1 } { print }' "$1" > "$2"
+  changed "$1" "$2" "$3"
 }
+# add <입력> <출력> <기준 행> <더할 행> — 행 전체가 같은 첫 기준 행 뒤에 한 행을 더한다.
+add() {
+  A="$3" B="$4" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"]; b = ENVIRON["B"] } { print } !d && $0 == a { print b; d = 1 }' "$1" > "$2"
+  changed "$1" "$2" "$3"
+}
+# drop <입력> <출력> <지울 행> — 행 전체가 같은 행을 지운다.
+drop() {
+  A="$3" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"] } $0 != a' "$1" > "$2"
+  changed "$1" "$2" "$3"
+}
+
+# --- 새 구조 감사 조항 (issue #145) -------------------------------------------------
+# 감사 절차와 리포트 템플릿은 감사인이 따르는 문서라 조항 문장이 곧 계약이다. 판정이 갈리는 조항마다 자리와 문구를 적고,
+# 실제 파일에는 모두 있는지, 문구 하나를 지운 사본에서는 바로 그 위반이 나오는지 본다.
+# 자리는 번호 행·제목으로 자른다. 같은 문구가 다른 자리에 있어도 그 자리의 조항을 대신하지 못한다.
+# 기준의 충분성은 판정하지 않는다 (이슈 spec 의 [QD] 몫).
 
 # drop_literal <파일> <문자열> → 문자열을 정규식 해석 없이 지운 사본을 표준 출력으로
 drop_literal() {
-  awk -v s="$2" '{ while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)); print }' "$1"
-}
-
-assert_fake_d_clause() {
-  local out
-  out="$(check_fake_d_clause "$1")"
-  case "$2" in
-    pass) if [ -z "$out" ]; then ok "$3 (위반 0건)"; else ng "$3 (기대 0건, 실제 [$out])"; fi ;;
-    fail) if [ -n "$out" ]; then ok "$3 (위반 검출)"; else ng "$3 (기대 >0건, 실제 0건)"; fi ;;
-  esac
-}
-
-drop_literal "$SKILL" '고정 블록(Task 0·Task N)의 완료 기준은 판별 대상에서 뺀다' > "$sandbox/k-no-fixed.md"
-drop_literal "$SKILL" '이슈별 spec DoD와 plan 일반 Task 완료 기준은 그대로 판별한다.' > "$sandbox/k-no-scope.md"
-drop_literal "$SKILL" 'spec 항목 본문에 ' > "$sandbox/k-no-body.md"
-awk '{print} /^2\. \*\*가짜 `\[D\]` 사전 판별\*\*/{print}' "$SKILL" > "$sandbox/k-dup-line.md"
-
-assert_fake_d_clause "$SKILL"                    pass "관점 2 조항: 실제 SKILL.md 통과"
-assert_fake_d_clause "$sandbox/k-no-fixed.md"    fail "관점 2 조항: 고정 블록 제외 삭제(PR #109 리뷰 반례) 격추"
-assert_fake_d_clause "$sandbox/k-no-scope.md"    fail "관점 2 조항: 제외 범위 한정 삭제 격추"
-assert_fake_d_clause "$sandbox/k-no-body.md"     fail "관점 2 조항: 예외 표시 위치(spec 항목 본문) 한정 삭제 격추"
-assert_fake_d_clause "$sandbox/k-dup-line.md"    fail "관점 2 조항: 관점 2 행 중복 격추"
-
-# --- SKILL.md 최종 감사 관점 5·1단계 DoD 대조 조항 (issue #112) --------------------
-# 관점 5 의 Task별 테스트 기준과 1단계 DoD 대조의 [D] 실행 지시도 감사인 절차라 조항 문장이 곧 계약이다.
-# 관점 2 조항과 같은 방식으로 각 행 하나에서 앵커 문구를 판정하고, 문구마다 삭제 반례를 격추한다.
-# 행 범위는 절 헤더로 자른다 — `--plan` 절의 관점 목록은 굵은 글씨 문단이라 범위에 들지 않는다.
-
-# check_test_view_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
-check_test_view_clause() {
-  awk '
-    /^#### 검증 관점$/ { s = 1; next } /^####/ { s = 0 }
-    s && /^5\. \*\*누락된 검증\*\*/ {
-      n++
-      if (!index($0, "구현 Task마다 plan 완료 기준에 그 Task의 테스트 `[D]`"))
-        print "관점 5 행에 구현 Task별 테스트 [D] 존재 기준 없음"
-      if (!index($0, "해당 Task의 변경을 실제로 덮는지"))
-        print "관점 5 행에 변경 커버 기준 없음"
-      if (!index($0, "회귀 방지 항목)만 있는 Task는 Task별 테스트가 없는 것으로 보고"))
-        print "관점 5 행에 공통 회귀 항목 대체 불가 기준 없음"
-      if (!index($0, "안내도·문서 정합처럼 기능을 바꾸지 않는 Task는 대상에서 뺀다"))
-        print "관점 5 행에 기능 비변경 Task 제외 기준 없음"
-    }
-    END { if (n != 1) print "관점 5 행 " n + 0 "개 (기대 1개)" }
-  ' "$1"
-}
-
-# check_dod_run_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
-check_dod_run_clause() {
-  awk '
-    /^### 1단계: 적합성 검증/ { s = 1 } /^### 2단계/ { s = 0 }
-    s && /^2\. \*\*완료의 정의\(DoD\) 대조\*\*/ {
-      n++
-      if (!index($0, "`[D]` 항목은 검증 명령을 구현 후 트리에서 실제로 실행해 그 결과를 판정 근거로 삼는다"))
-        print "DoD 대조 행에 [D] 실제 실행 지시 없음"
-      if (!index($0, "summary에 통과로 기록되어 있어도 미충족(FAIL) 근거로 쓰고"))
-        print "DoD 대조 행에 summary 기록 불일치 미충족 기준 없음"
-      if (!index($0, "명령을 실행할 수 없는 환경이면 판정 불가(N/A)로 두고 사유를 적는다"))
-        print "DoD 대조 행에 실행 불가 환경 N/A 기준 없음"
-      if (!index($0, "구현 전 실행으로 가짜 `[D]`를 거르는 일은 `--plan` 관점 2가 맡는다"))
-        print "DoD 대조 행에 --plan 관점 2 역할 구분 없음"
-    }
-    END { if (n != 1) print "DoD 대조 행 " n + 0 "개 (기대 1개)" }
-  ' "$1"
+  S="$2" awk 'BEGIN { s = ENVIRON["S"] } { while ((i = index($0, s))) $0 = substr($0, 1, i - 1) substr($0, i + length(s)); print }' "$1"
 }
 
 # assert_clause <검사 함수> <파일> <기대: pass|fail> <설명>
@@ -736,29 +680,199 @@ assert_clause() {
   esac
 }
 
-drop_literal "$SKILL" '구현 Task마다 plan 완료 기준에 그 Task의 테스트 `[D]`' > "$sandbox/v5-no-exist.md"
-drop_literal "$SKILL" '해당 Task의 변경을 실제로 덮는지' > "$sandbox/v5-no-cover.md"
-drop_literal "$SKILL" '회귀 방지 항목)만 있는 Task는 Task별 테스트가 없는 것으로 보고' > "$sandbox/v5-no-common.md"
-drop_literal "$SKILL" '안내도·문서 정합처럼 기능을 바꾸지 않는 Task는 대상에서 뺀다' > "$sandbox/v5-no-docs.md"
-drop_literal "$SKILL" '`[D]` 항목은 검증 명령을 구현 후 트리에서 실제로 실행해 그 결과를 판정 근거로 삼는다' > "$sandbox/dr-no-run.md"
-drop_literal "$SKILL" 'summary에 통과로 기록되어 있어도 미충족(FAIL) 근거로 쓰고' > "$sandbox/dr-no-summary.md"
-drop_literal "$SKILL" '명령을 실행할 수 없는 환경이면 판정 불가(N/A)로 두고 사유를 적는다' > "$sandbox/dr-no-na.md"
-drop_literal "$SKILL" '구현 전 실행으로 가짜 `[D]`를 거르는 일은 `--plan` 관점 2가 맡는다' > "$sandbox/dr-no-role.md"
+# 자리@문구. 자리 이름은 audit_parts 가 매긴다.
+AUDIT_CLAUSES='관련 skill@최종 감사는 `issue-work` 진행 루프의 **구현 검증** 단계에서
+관련 skill@계획 감사(`--plan`)는 **계획 검증** 단계에서 호출합니다
+0단계 7항@1단계 DoD 대조에서 실행하는 plan `테스트 계획`의 `[D]` 줄은
+DoD 대조@spec 완료의 정의의 AC마다 충족 여부를 판정한다
+DoD 대조@AC마다 가리키는 테스트와 `[D]` 명령을 구현 뒤 트리에서 실제로 실행해 그 결과를 판정 근거로 삼는다
+DoD 대조@summary에 통과로 기록되어 있어도 미충족(FAIL) 근거로 쓰고
+DoD 대조@`확인` 칸이나 체크박스, summary 기록만 보고 충족으로 판정하지 않는다
+DoD 대조@실행하지 못한 `[D]` 줄이 있으면 판정 불가(N/A)로 두고 사유를 적는다
+DoD 대조@`[QD]` 줄은 감사인이 채점한다
+DoD 대조@`[ND]` 줄은 판정하지 않는다
+DoD 대조@`[ND]` 줄만 있는 AC는 판정 불가(N/A)로 둔다
+DoD 대조@그 AC의 줄을 모두 합쳐도 AC 문장의 일부만 보면 부분 충족(PARTIAL)이다
+결정 사항 대조@spec `결정 사항`의 결정(D<n>)마다 구현이 그 결정대로인지 판정한다
+결정 사항 대조@`결정 사항`이 없는 spec은 DoD 대조만 둔다
+판정 기준@요구사항·AC·`결정 사항`의 결정에 결속될 때만으로 한정한다
+관점 5@기능(실행 동작·검사 대상 구조)을 바꾸는 구현 Task마다 plan Task의 `테스트 먼저` 단계와 `테스트 계획`을 기준으로 본다
+관점 5@테스트 커밋이 구현 커밋보다 앞에 있는지
+관점 5@summary Task 블록의 `테스트` 기록이 있는지
+관점 5@테스트 커밋으로 돌아가 실패를 다시 실행하지 않는다
+관점 5@변경을 되돌리면 실패하는 케이스가 있다는 뜻이다
+관점 5@`쓰지 않음(<이유>)`으로 적은 Task는
+관점 5@카테고리 `테스트`로 기록한다
+계획 시점@issue-work 진행 루프의 계획 검증 단계
+계획 입력@`이슈 본문 갱신` 줄
+계획 1단계@요구사항 대조 표의 행은 이슈 본문의 포함·제외 항목이다
+계획 1단계@DoD 대조 표의 행은 spec 완료의 정의의 AC 행이고, 판정은 행 끝의 `(R<n>)`을 기준으로 한다
+계획 1단계@`AC 없는 R`은 AC 칸에 `-`를 적은 행으로 더해 미충족(FAIL)으로 둔다
+계획 1단계@결정 사항 대조 표는 두지 않는다
+계획 관점 1@AC 행의 `(R<n>)`
+계획 관점 1@plan `테스트 계획`의 AC 줄
+계획 관점 1@`--trace` 9종, `--ac` 5종
+계획 관점 1@summary `이슈 본문 갱신` 줄의 값으로 판정한다. 값은 아래 셋이 전부다
+계획 관점 1@**비어 있음**(6단계 전): 보강 대기로 리포트에 AC 번호를 적고 위반으로 세지 않는다
+계획 관점 1@**`거절 · <AC 번호>`**: 그 번호의 `이슈 본문에 없는 AC`와 그 이슈의 `대조 불가`를 위반으로 세지 않는다. 그 밖의 번호는 위반이다
+계획 관점 1@**`갱신 · <AC 번호>`나 `대상 아님`**: 위반이다
+계획 관점 1@보강 대기로 보는 AC는 이슈 본문의 AC가 대응하지 않는 R에 붙은 AC다
+계획 관점 2@단위 테스트를 먼저 골랐는지
+계획 관점 2@`단위로 못 보는 이유` 칸
+계획 관점 2@못 보는 항목의 `이유` 칸
+계획 관점 2@구현 전이라 테스트를 실행하지 않는다
+계획 관점 2@그 AC의 줄을 모두 합쳐도 AC의 일부만 보면 관점 3의 완화로 적고
+계획 관점 3@`결정 사항`의 결정이나 `테스트 계획`의 줄이 AC의 오류 상황을 빼거나 성공 조건을 약하게 했다
+계획 관점 3@`결정 사항`의 결정이나 `테스트 계획`의 줄이 AC에 없는 결과를 더했다
+계획 관점 3@본문의 AC가 이미 대응하는 R에 spec이 더한 AC도 확장이다
+계획 관점 4@spec `결정 사항`이나 plan `설계 결정`에 남았어야 할 결정이 빠진 자리'
 
-assert_clause check_test_view_clause "$SKILL"                   pass "관점 5 조항: 실제 SKILL.md 통과"
-assert_clause check_test_view_clause "$sandbox/v5-no-exist.md"  fail "관점 5 조항: 구현 Task별 테스트 [D] 존재 기준 삭제 격추"
-assert_clause check_test_view_clause "$sandbox/v5-no-cover.md"  fail "관점 5 조항: 변경 커버 기준 삭제 격추"
-assert_clause check_test_view_clause "$sandbox/v5-no-common.md" fail "관점 5 조항: 공통 회귀 항목 대체 불가 기준 삭제 격추"
-assert_clause check_test_view_clause "$sandbox/v5-no-docs.md"   fail "관점 5 조항: 기능 비변경 Task 제외 기준 삭제 격추"
-assert_clause check_dod_run_clause   "$SKILL"                   pass "DoD 대조 조항: 실제 SKILL.md 통과"
-assert_clause check_dod_run_clause   "$sandbox/dr-no-run.md"    fail "DoD 대조 조항: [D] 실제 실행 지시 삭제 격추"
-assert_clause check_dod_run_clause   "$sandbox/dr-no-summary.md" fail "DoD 대조 조항: summary 기록 불일치 미충족 기준 삭제 격추"
-assert_clause check_dod_run_clause   "$sandbox/dr-no-na.md"     fail "DoD 대조 조항: 실행 불가 환경 N/A 기준 삭제 격추"
-assert_clause check_dod_run_clause   "$sandbox/dr-no-role.md"   fail "DoD 대조 조항: --plan 관점 2 역할 구분 삭제 격추"
+# 옛 구조의 문구. SKILL.md 어디에도 남지 않아야 한다.
+AUDIT_OLD='가짜 `[D]`
+(회귀 방지 항목)
+### R<n>
+출처 표기
+Task N(교차모델 검증)
+요구사항·DoD
+요구사항 대조·DoD 대조
+(AC 없음:
+spec 전제'
+
+# audit_parts <파일> → `<자리>\t<행>` 을 낸다. 자리에 들지 않는 행은 내지 않는다.
+audit_parts() {
+  awk '
+    function put(p) { print p "\t" $0 }
+    /^## /      { h2 = $0; h3 = ""; h4 = ""; it = "" }
+    /^### /     { h3 = $0; h4 = ""; it = "" }
+    /^#### /    { h4 = $0; it = "" }
+    /^\*\*[0-9]단계 / { pl = $0; it = "" }
+    /^\*\*공통 규칙\*\*/ { pl = ""; it = "" }
+    /^[0-9]+\. / { it = $0 }
+    /^- \*\*/ && h3 ~ /^### `--plan`/ { it = $0 }
+    h2 ~ /^## 관련 skill/ { put("관련 skill") }
+    h3 ~ /^### 0단계/ && it ~ /^7\. /                                { put("0단계 7항") }
+    h3 ~ /^### 1단계/ && h4 ~ /^#### 검증 항목/ && it ~ /^1\. \*\*완료의 정의\(DoD\) 대조\*\*/ { put("DoD 대조") }
+    h3 ~ /^### 1단계/ && h4 ~ /^#### 검증 항목/ && it ~ /^2\. \*\*결정 사항 대조\*\*/ { put("결정 사항 대조") }
+    h3 ~ /^### 1단계/ && h4 ~ /^#### 판정 기준/                      { put("판정 기준") }
+    h3 ~ /^### 2단계/ && h4 ~ /^#### 검증 관점/ && it ~ /^5\. \*\*누락된 검증\*\*/ { put("관점 5") }
+    h3 ~ /^### `--plan`/ && it ~ /^- \*\*시점\*\*/                   { put("계획 시점") }
+    h3 ~ /^### `--plan`/ && it ~ /^- \*\*입력\*\*/                   { put("계획 입력") }
+    h3 ~ /^### `--plan`/ && pl ~ /^\*\*1단계 /                       { put("계획 1단계") }
+    h3 ~ /^### `--plan`/ && pl ~ /^\*\*2단계 / && it ~ /^1\. \*\*추적성\*\*/      { put("계획 관점 1") }
+    h3 ~ /^### `--plan`/ && pl ~ /^\*\*2단계 / && it ~ /^2\. \*\*테스트 계획\*\*/ { put("계획 관점 2") }
+    h3 ~ /^### `--plan`/ && pl ~ /^\*\*2단계 / && it ~ /^3\. \*\*범위\*\*/        { put("계획 관점 3") }
+    h3 ~ /^### `--plan`/ && pl ~ /^\*\*2단계 / && it ~ /^4\. \*\*모호성\*\*/      { put("계획 관점 4") }
+  ' "$1"
+}
+
+# check_audit_clause <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_audit_clause() {
+  local parts p w
+  parts="$(audit_parts "$1")"
+  while IFS='@' read -r p w; do
+    printf '%s\n' "$parts" | P="$p" W="$w" LC_ALL=C awk -F'\t' 'BEGIN { p = ENVIRON["P"]; w = ENVIRON["W"] } $1 == p && index($0, w) { f = 1 } END { exit !f }' \
+      || echo "${p}에 [${w}] 없음"
+  done <<EOF
+$AUDIT_CLAUSES
+EOF
+  while IFS= read -r w; do
+    if grep -qF -- "$w" "$1"; then echo "옛 문구 [${w}] 남음"; fi
+  done <<EOF
+$AUDIT_OLD
+EOF
+  for w in '1. **완료의 정의(DoD) 대조**' '2. **결정 사항 대조**' '5. **누락된 검증**' '1. **추적성**' '2. **테스트 계획**' '3. **범위**' '4. **모호성**' '5. **과잉 설계**'; do
+    p="$(W="$w" awk 'BEGIN { w = ENVIRON["W"] } index($0, w) == 1 { n++ } END { print n + 0 }' "$1")"
+    [ "$p" -eq 1 ] || echo "[${w}] 행 ${p}개 (기대 1개)"
+  done
+}
+
+assert_clause check_audit_clause "$SKILL" pass '새 구조 감사 조항: 실제 SKILL.md 통과'
+
+# 문구에 `통과`가 든 조항이 있어 케이스 이름에는 문구 대신 번호를 쓴다 (라벨마다 `통과`·`격추` 중 한 낱말만 쓰는 관례).
+i=0
+while IFS='@' read -r p w; do
+  i=$((i + 1))
+  drop_literal "$SKILL" "$w" > "$sandbox/au.md"
+  out="$(check_audit_clause "$sandbox/au.md")"
+  if grep -qF -- "$w" "$SKILL" && grep -qxF -- "${p}에 [${w}] 없음" <<< "$out"; then
+    ok "새 구조 감사 조항: ${p} 문구(${i}번) 삭제 격추"
+  else
+    ng "새 구조 감사 조항: ${p} 문구(${i}번) 삭제 격추 — [${w}]"
+  fi
+done <<EOF
+$AUDIT_CLAUSES
+EOF
+while IFS= read -r w; do
+  { cat "$SKILL"; printf '%s\n' "$w"; } > "$sandbox/au.md"
+  out="$(check_audit_clause "$sandbox/au.md")"
+  if ! grep -qF -- "$w" "$SKILL" && grep -qxF -- "옛 문구 [${w}] 남음" <<< "$out"; then
+    ok "새 구조 감사 조항: 옛 문구 [${w}] 추가 격추"
+  else
+    ng "새 구조 감사 조항: 옛 문구 [${w}] 추가 격추"
+  fi
+done <<EOF
+$AUDIT_OLD
+EOF
+# 자리를 옮긴 사본 — 문구는 남아 있어도 그 자리의 조항이 아니다.
+awk '/^2\. \*\*결정 사항 대조\*\*/ { held = $0; next } { print } /^#### 검증 관점$/ && held { print held; held = "" }' "$SKILL" > "$sandbox/au.md"
+changed "$SKILL" "$sandbox/au.md" '결정 사항 대조 이동'
+assert_clause check_audit_clause "$sandbox/au.md" fail '새 구조 감사 조항: 결정 사항 대조의 2단계 이동 격추'
+awk '/^2\. \*\*테스트 계획\*\*/ { m = 1 } m && /^3\. \*\*범위\*\*/ { m = 0 } m { held = held $0 "\n"; next } /^4\. \*\*모호성\*\*/ { printf "%s", held } { print }' "$SKILL" > "$sandbox/au.md"
+changed "$SKILL" "$sandbox/au.md" '관점 2 이동'
+drop_literal "$sandbox/au.md" '2. **테스트 계획** `[QD]`:' > "$sandbox/au2.md"
+assert_clause check_audit_clause "$sandbox/au2.md" fail '새 구조 감사 조항: 계획 관점 2의 관점 3 이동 격추'
+awk '{ print } /^2\. \*\*결정 사항 대조\*\*/ { print }' "$SKILL" > "$sandbox/au.md"
+assert_clause check_audit_clause "$sandbox/au.md" fail '새 구조 감사 조항: 결정 사항 대조 행 중복 격추'
+
+# 리포트 템플릿 1단계. 표는 섹션 제목 바로 아래에 있어야 하고, 주석은 감사 종류별 표 구성을 목록으로 적는다.
+# check_audit_report <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_audit_report() {
+  LC_ALL=C awk '
+    /^## /  { s = ($0 ~ /^## 1단계: 적합성 검증/) }
+    !s { next }
+    /^<!--/ { c = 1 }
+    c { com = com "\n" $0 }
+    c && /-->$/ { c = 0; next }
+    c { next }
+    /^### / { h = $0; n[h]++; if (h == "### 완료의 정의(DoD) 대조") a = NR; if (h == "### 결정 사항 대조") b = NR; if (h == "### 경계 검증") e = NR }
+    /^\| / && $0 == "| AC | 완료의 정의 항목 | 판정 | 근거 |" { if (h == "### 완료의 정의(DoD) 대조") t1++; else mis++ }
+    /^\| / && $0 == "| D | 결정 | 판정 | 근거 |"              { if (h == "### 결정 사항 대조") t2++; else mis++ }
+    /^\| AC1 \|/ && h == "### 완료의 정의(DoD) 대조" { r1++ }
+    /^\| D1 \|/ && h == "### 결정 사항 대조"         { r2++ }
+    END {
+      if (n["### 완료의 정의(DoD) 대조"] != 1) print "완료의 정의(DoD) 대조 섹션 " n["### 완료의 정의(DoD) 대조"] + 0 "개 (기대 1개)"
+      if (n["### 결정 사항 대조"] != 1)        print "결정 사항 대조 섹션 " n["### 결정 사항 대조"] + 0 "개 (기대 1개)"
+      if (n["### 요구사항 대조"])              print "요구사항 대조 섹션이 주석 밖에 있음"
+      if (!(a && b && e && a < b && b < e))    print "DoD 대조, 결정 사항 대조, 경계 검증 순서 아님"
+      if (t1 != 1) print "DoD 대조 표 머리 " t1 + 0 "개 (기대 1개)"
+      if (t2 != 1) print "결정 사항 대조 표 머리 " t2 + 0 "개 (기대 1개)"
+      if (mis)     print "표 머리가 다른 섹션에 있음"
+      if (r1 != 1) print "DoD 대조 표의 AC 번호 예시 행 " r1 + 0 "개 (기대 1개)"
+      if (r2 != 1) print "결정 사항 대조 표의 D 번호 예시 행 " r2 + 0 "개 (기대 1개)"
+      m = split("- 최종 감사: `### 완료의 정의(DoD) 대조`와 `### 결정 사항 대조`를 둔다@`결정 사항`이 없는 spec은 `### 결정 사항 대조`를 두지 않는다@- 계획 감사(`--plan`): `### 요구사항 대조`를 `### 완료의 정의(DoD) 대조` 앞에 더하고 `### 결정 사항 대조`를 두지 않는다@머리는 `| # | 이슈 본문 요구 항목 | 판정 | spec 근거 |`다@섹션 제목 `### 완료의 정의(DoD) 대조`는 git-pr이 이름으로 찾으므로 바꾸지 않는다", w, "@")
+      for (k = 1; k <= m; k++) if (!index(com, w[k])) print "1단계 주석에 [" w[k] "] 없음"
+    }
+  ' "$1"
+}
+assert_clause check_audit_report "$REPORT_TPL" pass '새 구조 감사 조항: 실제 리포트 템플릿 통과'
+for w in '| AC | 완료의 정의 항목 | 판정 | 근거 |' '| D | 결정 | 판정 | 근거 |' '### 결정 사항 대조' '### 완료의 정의(DoD) 대조' \
+  '`결정 사항`이 없는 spec은 `### 결정 사항 대조`를 두지 않는다' '`### 요구사항 대조`를 `### 완료의 정의(DoD) 대조` 앞에 더하고' \
+  '머리는 `| # | 이슈 본문 요구 항목 | 판정 | spec 근거 |`다' '- 최종 감사: ' '- 계획 감사(`--plan`): ' 'git-pr이 이름으로 찾으므로 바꾸지 않는다'; do
+  drop_literal "$REPORT_TPL" "$w" > "$sandbox/ar.md"
+  changed "$REPORT_TPL" "$sandbox/ar.md" "$w"
+  assert_clause check_audit_report "$sandbox/ar.md" fail "새 구조 감사 조항: 리포트 템플릿의 [${w}] 삭제 격추"
+done
+awk '/^### 완료의 정의\(DoD\) 대조$/ { print "### 요구사항 대조"; print ""; print "| # | 요구사항 | 판정 | 근거 |"; print "" } { print }' "$REPORT_TPL" > "$sandbox/ar.md"
+assert_clause check_audit_report "$sandbox/ar.md" fail '새 구조 감사 조항: 리포트 템플릿에 옛 요구사항 대조 표 추가 격추'
+swap "$REPORT_TPL" "$sandbox/ar.md" '| AC | 완료의 정의 항목 | 판정 | 근거 |' '| # | DoD 항목 | 판정 | 근거 |'
+assert_clause check_audit_report "$sandbox/ar.md" fail '새 구조 감사 조항: 리포트 템플릿의 DoD 대조 옛 표 머리 격추'
+awk '/^### 결정 사항 대조$/ { m = 1 } m && /^<!--/ { m = 0 } m { held = held $0 "\n"; next } /^### 경계 검증$/ { print; print ""; printf "%s", held; next } { print }' "$REPORT_TPL" > "$sandbox/ar.md"
+changed "$REPORT_TPL" "$sandbox/ar.md" '결정 사항 대조 섹션 이동'
+assert_clause check_audit_report "$sandbox/ar.md" fail '새 구조 감사 조항: 리포트 템플릿의 결정 사항 대조를 경계 검증 뒤로 이동 격추'
 
 # --- SKILL.md 테스트 원칙 조항 (issue #122) ----------------------------------------
 # `testing-principles` 파일 쌍을 조건부로 참조하는 조항도 감사인 절차라 문장이 곧 계약이다 (Task별 테스트 배치).
-# `## 참조 문서`의 두 파일 항목, 0단계 7항, DoD 대조 행·관점 2 행의 local 파일 참조와 전제 조건 N/A 구절,
+# `## 참조 문서`의 두 파일 항목, 0단계 7항, DoD 대조의 local 파일 참조와 전제 조건 N/A 구절, 관점 2의 local 층 표 참조,
 # `--plan` 대조 기준의 7항 수행을 앵커로 판정하고, 앵커마다 지운 사본과 7항을 0단계 밖으로 옮긴 사본을 격추한다.
 # DoD 대조 행에는 실행 불가 환경의 `판정 불가(N/A)`가 이미 있어 새 구절은 전제 조건 문구까지 묶어 판정한다.
 # 조건·우선순위의 뜻은 판정하지 않는다 (이슈 spec 의 [QD] 몫).
@@ -770,22 +884,20 @@ check_testing_clause() {
     /^### / { z = ($0 ~ /^### 0단계/); c = ($0 ~ /^### 1단계/) }
     r && /^  - `\.ai\/10_rules\/testing-principles\.md`·`\.ai\/10_rules\/testing-principles-local\.md` — / { ref++ }
     z && /^7\. / && index($0, "testing-principles-local.md") { s7++ }
-    c && /^2\. \*\*완료의 정의\(DoD\) 대조\*\*/ {
-      dod++
-      if (!index($0, "testing-principles-local.md")) print "DoD 대조 행에 testing-principles-local.md 참조 없음"
-      if (!index($0, "전제 조건이 갖춰지지 않으면 판정 불가(N/A)")) print "DoD 대조 행에 전제 조건 N/A 구절 없음"
-    }
-    /^2\. \*\*가짜 `\[D\]` 사전 판별\*\*/ {
-      fd++
-      if (!index($0, "testing-principles-local.md")) print "관점 2 행에 testing-principles-local.md 참조 없음"
-      if (!index($0, "전제 조건이 갖춰지지 않으면 판정 불가(N/A)")) print "관점 2 행에 전제 조건 N/A 구절 없음"
-    }
+    /^[0-9]+\. / || /^#/ { r1 = 0; r2 = 0 }
+    c && /^1\. \*\*완료의 정의\(DoD\) 대조\*\*/ { dod++; r1 = 1 }
+    /^2\. \*\*테스트 계획\*\*/ { tp++; r2 = 1 }
+    r1 { d = d "\n" $0 }
+    r2 { t = t "\n" $0 }
     /^- \*\*대조 기준\*\*:/ && index($0, "3·4·7항은 그대로 수행") { pl++ }
     END {
       if (ref != 1) print "참조 문서의 테스트 원칙 항목 " ref + 0 "개 (기대 1개)"
       if (s7 != 1) print "0단계 7항 " s7 + 0 "개 (기대 1개)"
       if (dod != 1) print "DoD 대조 행 " dod + 0 "개 (기대 1개)"
-      if (fd != 1) print "관점 2 행 " fd + 0 "개 (기대 1개)"
+      if (tp != 1) print "관점 2 행 " tp + 0 "개 (기대 1개)"
+      if (!index(d, "testing-principles-local.md")) print "DoD 대조에 testing-principles-local.md 참조 없음"
+      if (!index(d, "전제 조건이 갖춰지지 않으면 판정 불가(N/A)")) print "DoD 대조에 전제 조건 N/A 구절 없음"
+      if (!index(t, "`.ai/10_rules/testing-principles-local.md`의 테스트 층 표")) print "관점 2에 local 층 표 참조 없음"
       if (pl != 1) print "--plan 대조 기준의 3·4·7항 수행 " pl + 0 "개 (기대 1개)"
     }
   ' "$1"
@@ -796,22 +908,19 @@ awk '!index($0, "  - `.ai/10_rules/testing-principles.md`·`.ai/10_rules/testing
 awk '!(/^7\. / && index($0, "testing-principles-local.md"))' "$SKILL" > "$sandbox/tc-s7-del.md"
 awk '/^7\. / && index($0, "testing-principles-local.md") { held = $0; next } { print } /^### 1단계/ && held { print held; held = "" }' \
   "$SKILL" > "$sandbox/tc-s7-moved.md"
-drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 명령은 그 파일의 실행 셸로 실행하고 층 표의 전제 조건을 먼저 확인하며, 전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두고 사유를 적는다.' \
+drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 명령은 그 파일의 실행 셸로 실행하고 층 표의 전제 조건을 먼저 확인하며,' \
   > "$sandbox/tc-dod-del.md"
 drop_literal "$SKILL" '전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두고 사유를 적는다' > "$sandbox/tc-dod-no-na.md"
-drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 명령은 그 파일의 실행 셸로 실행하고, 전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두어' \
-  > "$sandbox/tc-fd-del.md"
-drop_literal "$SKILL" '전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두어' > "$sandbox/tc-fd-no-na.md"
+drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`의 테스트 층 표' > "$sandbox/tc-fd-del.md"
 drop_literal "$SKILL" '·7항' > "$sandbox/tc-plan-no7.md"
 
 assert_clause check_testing_clause "$SKILL"                    pass "테스트 원칙 조항: 실제 SKILL.md 통과"
 assert_clause check_testing_clause "$sandbox/tc-ref-del.md"    fail "테스트 원칙 조항: 참조 문서 항목 삭제 격추"
 assert_clause check_testing_clause "$sandbox/tc-s7-del.md"     fail "테스트 원칙 조항: 0단계 7항 삭제 격추"
 assert_clause check_testing_clause "$sandbox/tc-s7-moved.md"   fail "테스트 원칙 조항: 0단계 7항의 1단계 이동 격추"
-assert_clause check_testing_clause "$sandbox/tc-dod-del.md"    fail "테스트 원칙 조항: DoD 대조 행 새 문장 삭제 격추"
-assert_clause check_testing_clause "$sandbox/tc-dod-no-na.md"  fail "테스트 원칙 조항: DoD 대조 행 전제 조건 N/A 구절 삭제 격추"
-assert_clause check_testing_clause "$sandbox/tc-fd-del.md"     fail "테스트 원칙 조항: 관점 2 행 새 문장 삭제 격추"
-assert_clause check_testing_clause "$sandbox/tc-fd-no-na.md"   fail "테스트 원칙 조항: 관점 2 행 전제 조건 N/A 구절 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-dod-del.md"    fail "테스트 원칙 조항: DoD 대조의 local 참조 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-dod-no-na.md"  fail "테스트 원칙 조항: DoD 대조의 전제 조건 N/A 구절 삭제 격추"
+assert_clause check_testing_clause "$sandbox/tc-fd-del.md"     fail "테스트 원칙 조항: 관점 2의 local 층 표 참조 삭제 격추"
 assert_clause check_testing_clause "$sandbox/tc-plan-no7.md"   fail "테스트 원칙 조항: --plan 대조 기준 7항 수행 삭제 격추"
 
 # --- check-plan.sh 새 구조 (issue #145) ------------------------------------------
@@ -953,25 +1062,6 @@ assert_plan() {
   esac
 }
 
-# 변형 도우미. 값은 환경 변수로 넘긴다 — macOS awk 는 -v 값의 줄바꿈을 받지 않고 백슬래시를 해석한다.
-# 문자열을 == 로 견주는 awk 는 LC_ALL=C 로 부른다 — macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 본다.
-# changed 는 변형이 비었거나 원본과 같으면 실패로 남긴다. 원본과 같은 사본은 통과를 기대하는 케이스에서 아무것도 검사하지 않는다.
-changed() { if [ ! -s "$2" ] || cmp -s "$1" "$2"; then ng "변형 실패: $3"; fi; }
-# swap <입력> <출력> <찾을 문자열> <바꿀 문자열> — 처음 나온 자리 하나만 정규식 해석 없이 바꾼다.
-swap() {
-  A="$3" B="$4" awk 'BEGIN { a = ENVIRON["A"]; b = ENVIRON["B"] } !d && (i = index($0, a)) { $0 = substr($0, 1, i - 1) b substr($0, i + length(a)); d = 1 } { print }' "$1" > "$2"
-  changed "$1" "$2" "$3"
-}
-# add <입력> <출력> <기준 행> <더할 행> — 행 전체가 같은 첫 기준 행 뒤에 한 행을 더한다.
-add() {
-  A="$3" B="$4" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"]; b = ENVIRON["B"] } { print } !d && $0 == a { print b; d = 1 }' "$1" > "$2"
-  changed "$1" "$2" "$3"
-}
-# drop <입력> <출력> <지울 행> — 행 전체가 같은 행을 지운다.
-drop() {
-  A="$3" LC_ALL=C awk 'BEGIN { a = ENVIRON["A"] } $0 != a' "$1" > "$2"
-  changed "$1" "$2" "$3"
-}
 # line_of <파일> <문자열> → 문자열이 든 행 번호를 쉼표로 이은 값 (예: `12행, 14행`)
 line_of() { A="$2" awk 'BEGIN { a = ENVIRON["A"] } index($0, a) { o = o (o == "" ? "" : ", ") NR "행" } END { print o }' "$1"; }
 
@@ -1476,7 +1566,7 @@ awk '{ print } /^3\. \*\*범위\*\* / { print }' "$SKILL" > "$sandbox/sc-dup.md"
 awk '/^3\. \*\*범위\*\* / { print; m = 1; next } m && /^4\. / { print; printf "%s", held; m = 0; next } m { held = held $0 "\n"; next } { print }' \
   "$SKILL" > "$sandbox/sc-moved.md"
 awk '!index($0, "\"$check_plan\" --ac ")' "$SKILL" > "$sandbox/sc-no-ac-cmd.md"
-awk '!index($0, "발견으로 세지 않는다")' "$SKILL" > "$sandbox/sc-no-noac.md"
+drop_literal "$SKILL" '대조 불가: 이슈 본문에 AC 없음' > "$sandbox/sc-no-noac.md"
 awk '!index($0, "조회가 실패하면")' "$SKILL" > "$sandbox/sc-no-fetchfail.md"
 psub='     "$check_plan" --ac <(gh issue view 1 --json body -q .body) spec.md'
 awk -v l="$psub" '{ print } index($0, "\"$check_plan\" --ac ") { print l }' "$SKILL" > "$sandbox/sc-psub.md"
@@ -1492,7 +1582,7 @@ assert_clause check_scope_clause "$sandbox/sc-drop-6.md"     fail '관점 3 범�
 assert_clause check_scope_clause "$sandbox/sc-dup.md"        fail '관점 3 범위: 관점 3 행 중복 격추'
 assert_clause check_scope_clause "$sandbox/sc-moved.md"      fail '관점 3 범위: 관점 3 하위 행의 관점 4 이동 격추'
 assert_clause check_scope_clause "$sandbox/sc-no-ac-cmd.md"  fail '관점 3 범위: 관점 1의 --ac 명령 행 삭제 격추'
-assert_clause check_scope_clause "$sandbox/sc-no-noac.md"    fail '관점 3 범위: 관점 1의 대조 불가 미집계 문장 삭제 격추'
+assert_clause check_scope_clause "$sandbox/sc-no-noac.md"    fail '관점 3 범위: 관점 1의 대조 불가 출력 설명 삭제 격추'
 assert_clause check_scope_clause "$sandbox/sc-no-fetchfail.md" fail '관점 3 범위: 관점 1의 조회 실패 문장 삭제 격추'
 assert_clause check_scope_clause "$sandbox/sc-psub.md"       fail '관점 3 범위: 관점 1의 프로세스 치환 조회 행 추가 격추'
 assert_clause check_scope_clause "$sandbox/sc-no-rc.md"      fail '관점 3 범위: 관점 1의 임시 파일 정리 뒤 종료 코드 반환 삭제 격추'
