@@ -1454,7 +1454,7 @@ assert_structure check_ac_refine_plan_tpl "$sandbox/ar-plan-no-rule.md"       fa
 # 3-2 작성과 작업 진행 중의 변경을 구체화·확장·완화로 나누고 확장·완화만 질의하는 규칙이 문장으로 지켜진다.
 # SKILL.md는 `## 작업 진행 중` 범위의 `- **변경 통제**:` 항목 1개(다음 `- ` 항목 전까지)와 하위 3종 각 1개,
 # 하위 행마다 정의·처리 문구, 3-2 범위(`3-2. 승인 후` 행부터 `4. ` 행 전까지)의 변경 통제 항목을 판정한다. 테스트 기대값 조항은 아래 `기대값 완화`가 본다.
-# workflow 템플릿은 `active/issue-workflow.md`의 원본이라 `## 작업 진행 중`에 변경 통제가 있는지 본다.
+# workflow 템플릿은 `active/issue-workflow.md`의 원본이라 `## 작업 진행 중`의 변경 통제 항목 1개와 세 분류·처리 문구를 본다.
 
 WORKFLOW_TPL="$HERE/../templates/issue-workflow-template.md"
 
@@ -1488,8 +1488,14 @@ check_change_control_skill() {
 
 # check_change_control_workflow <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_change_control_workflow() {
-  awk '/^## 작업 진행 중$/ { s = 1; next } s && /^## / { exit } s && index($0, "변경 통제") { n++ }
-       END { if (n < 1) print "작업 진행 중에 변경 통제 없음" }' "$1"
+  local l n p
+  l="$(awk '/^## 작업 진행 중$/ { s = 1; next } s && /^## / { exit } s && /^- \*\*변경 통제\*\*: /' "$1")"
+  n="$(printf '%s\n' "$l" | grep -c .)"
+  [ "$n" -eq 1 ] || echo "작업 진행 중의 변경 통제 항목 ${n}개 (기대 1개)"
+  for p in '구체화(' '확장(' '완화(' '질의 없이 반영' '범위 확장·원장 등재·새 이슈(`--create`)' '재승인 없이 반영하지 않는다' \
+           '커밋한 테스트의 기대값을 바꾸거나 단언을 줄이거나 테스트를 지우는 변경도 완화다' 'spec `변경 이력`에 적는다'; do
+    printf '%s\n' "$l" | grep -qF -- "$p" || echo "변경 통제 항목에 [$p] 없음"
+  done
 }
 
 awk '!/^- \*\*변경 통제\*\*:/' "$SKILL" > "$sandbox/cc-no-item.md"
@@ -1537,6 +1543,13 @@ assert_structure check_change_control_skill    "$sandbox/cc-no-3-2-ref.md"      
 assert_structure check_change_control_skill    "$sandbox/cc-moved-out.md"        fail "변경 통제: 항목의 작업 진행 중 밖 이동 격추"
 assert_structure check_change_control_workflow "$WORKFLOW_TPL"                   pass "변경 통제: 실제 workflow 템플릿 통과"
 assert_structure check_change_control_workflow "$sandbox/cc-wf-no-item.md"       fail "변경 통제: workflow 템플릿 항목 삭제 격추"
+for p in '구체화(' '확장(' '완화(' '질의 없이 반영' '범위 확장·원장 등재·새 이슈(`--create`)' '재승인 없이 반영하지 않는다' \
+         '커밋한 테스트의 기대값을 바꾸거나' 'spec `변경 이력`에 적는다'; do
+  drop_literal "$WORKFLOW_TPL" "$p" > "$sandbox/cc-wf-drop.md"
+  assert_structure check_change_control_workflow "$sandbox/cc-wf-drop.md"        fail "변경 통제: workflow 템플릿 항목의 [$p] 삭제 격추"
+done
+awk '/^- \*\*변경 통제\*\*: / { buf = $0; next } { print } /^## 이슈 완료 시$/ { print ""; print buf }' "$WORKFLOW_TPL" > "$sandbox/cc-wf-moved.md"
+assert_structure check_change_control_workflow "$sandbox/cc-wf-moved.md"         fail "변경 통제: workflow 템플릿 항목의 작업 진행 중 밖 이동 격추"
 
 # --- 본문 갱신 질의 (issue #130) ---------------------------------------------------
 #
@@ -3442,6 +3455,183 @@ swap_parts '마무리' 'PR 뒤 피드백' > "$sandbox/pf-swap.md"
 awk '{ sub(/교차 감사를 다시 받을지는 사용자가 고른다/, "교차 감사를 다시 받는다") } { print }' "$SKILL" > "$sandbox/pf-always.md"
 assert_structure check_pr_feedback "$sandbox/pf-swap.md"   fail "PR 뒤 피드백: 마무리와 내용 바꾸기 격추"
 assert_structure check_pr_feedback "$sandbox/pf-always.md" fail "PR 뒤 피드백: 사용자 선택을 필수로 바꾸기 격추"
+
+# --- issue-workflow 템플릿 (issue #145) --------------------------------------------
+#
+# `issue-workflow-template.md`는 세션이 바뀐 AI가 읽는 절차 안내다. 다섯 단계와 돌아가는 길을 아스키 그림과
+# 단계 목록으로 두고, 완료 확인의 결정 주체·마무리 Task·PR 뒤 피드백을 SKILL.md의 새 절차대로 적는다.
+# 그림의 줄은 ASCII와 한글뿐이고 선은 한글보다 왼쪽에만 있다(글꼴마다 한글 폭이 달라도 어긋나지 않는다).
+
+# wf_steps <파일> → `## 진행 루프`의 번호 단계 이름을 `|`로 이어 출력
+wf_steps() { loop_section "$1" | grep -E '^[0-9]+\. \*\*' | sed -E 's/^([0-9]+)\. \*\*([^*]*)\*\*.*/\1 \2/' | tr '\n' '|'; }
+
+# wf_step <파일> <번호> → `## 진행 루프`의 그 번호 단계 (다음 들여쓰지 않은 행 전까지)
+wf_step() { loop_section "$1" | awk -v n="$2. **" 'index($0, n) == 1 { s = 1; print; next } s && /^[^[:space:]]/ { exit } s'; }
+
+# wf_drawing <파일> → `## 진행 루프`의 첫 코드 블록 본문
+wf_drawing() { loop_section "$1" | awk '/^```/ { if (f) exit; f = 1; next } f'; }
+
+# check_workflow_flow <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_workflow_flow() {
+  local b c got p
+  got="$(grep -E '^## ' "$1" | sed 's/^## //' | tr '\n' '|')"
+  [ "$got" = '디렉토리 구조|진행 루프|작업 진행 중|이슈 완료 시|' ] || echo "절 제목 순서 [$got]"
+  need_all "$(h2_section "$1" '디렉토리 구조')" '디렉토리 구조' \
+    '-spec.md      ← 목표, 요구사항, 완료의 정의, 결정 사항, 변경 이력, 연관 문서' \
+    '-plan.md      ← 설계 결정, 테스트 계획, 실행 Task 목록' \
+    '-summary.md   ← 다음 작업, 루프 기록, 종류별 발견, Task별 수행 결과'
+  got="$(wf_steps "$1")"
+  [ "$got" = '1 계획 수립|2 계획 검증|3 구현|4 구현 검증|5 완료 확인|' ] || echo "진행 루프의 단계 목록 [$got]"
+  b="$(loop_section "$1")"
+  need_all "$b" '진행 루프' '한 번 지나는 것이 한 회차다' 'summary `루프 기록`에 한 행을' 'issue-work SKILL.md `## 진행 루프`'
+  need_all "$(wf_step "$1" 1)" '1단계' '없으면 쓰고' '지난 회차의 결정을 반영' '반영으로 정한 발견은 plan에 Task로 더하고' \
+    '같은 종류의 발견이 지난 두 회차에 이어서 나왔으면 plan `설계 결정`부터 고친다'
+  need_all "$(wf_step "$1" 2)" '2단계' 'AC·요구사항, `설계 결정`, `테스트 계획` 가운데 하나가 바뀌었으면' '계획 감사를 다시 받는다' \
+    '발견을 고치는 Task를 더한 것만으로는 다시 받지 않는다'
+  need_all "$(wf_step "$1" 3)" '3단계' '테스트 작성 → 실패 확인 → 테스트 커밋 → 구현 → 통과 확인 → 구현 커밋' \
+    '동작을 바꾸지 않는 Task'
+  need_all "$(wf_step "$1" 4)" '4단계' '지난 검증 뒤에 구현이 바뀌었으면' '사용자가 구현 모델과 다른 벤더 모델로' '교차 감사를 전체로 다시 받는다' \
+    '구현 AI는 감사를 실행하지 않는다'
+  need_all "$(wf_step "$1" 5)" '5단계' '감사 상태와 `테스트 계획`의 확인한 줄 수' '루프를 나갈지는 사용자가 정하고' '`결정` 칸에 적는다'
+  need_one "$b" '진행 루프' '- **권장 기준**: '
+  c="$(printf '%s\n' "$b" | item_block '- **권장 기준**: ')"
+  need_all "$(printf '%s\n' "$c" | head -1)" '권장 기준 첫 행' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다'
+  got="$(printf '%s\n' "$c" | item_names)"
+  [ "$got" = '1단계 상태|2단계 상태|확인한 줄 수|반영으로 정한 발견|' ] || echo "권장 기준 목록 [$got]"
+  need_one "$c" '권장 기준' '  - 1단계 상태: 충족(PASS)이다.'
+  need_one "$c" '권장 기준' '  - 2단계 상태: 통과(PASS)나 주의(WARN)다.'
+  need_one "$c" '권장 기준' '  - 확인한 줄 수: `테스트 계획`의 모든 줄을 확인했다.'
+  need_all "$(printf '%s\n' "$c" | item_block '  - 반영으로 정한 발견: ')" '반영으로 정한 발견' '모두 닫았다' '이관이나 보류로 정한 발견은 세지 않는다'
+  need_one "$b" '진행 루프' '- **마무리**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **마무리**: ')" '마무리' '사용자가 `마무리`로 정한 뒤에만 Task N에 들어간다' \
+    '전체 회귀, 색인, 충족 AC 체크, repo 고유 마무리, `--clear`, PR' '교차 감사를 받지 않는다' 'Task N에서 구현을 고치면 계획 수립으로 돌아간다'
+  b="$(h2_section "$1" '작업 진행 중')"
+  need_all "$(printf '%s\n' "$b" | grep -F 'Task 0(구현 시작 게이트)')" 'Task 0 항목' 'spec `## 결정 사항`이나 plan `## 설계 결정`에 적는다' \
+    '`전제 누락 없음`'
+  need_all "$(printf '%s\n' "$b" | grep -F -- '/issue-<번호>-audit-report.md')" '감사 리포트 항목' 'issue-work `--response`' '항목별 결정' \
+    '소스를 고치지 않는다' '반영으로 정한 발견은 다음 회차'
+  c="$(h2_section "$1" '이슈 완료 시' | awk '/^1\. / { s = 1 } /^2\. / { exit } s')"
+  need_all "$c" '이슈 완료 시 1단계' '`점검 완료`, Task 0, 일반 Task' 'Task N의 미체크는 미완료로 세지 않는다' \
+    'summary `루프 기록` 마지막 행의 `결정`이 `마무리`인지' '`최종 audit 모델` 행에 기록' '**대신 채우지 않는다.**'
+  c="$(h2_section "$1" '이슈 완료 시' | awk '/^3\. / { s = 1 } /^4\. / { exit } s')"
+  need_all "$c" '이슈 완료 시 3단계' '이관 직전에' 'Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`'
+  for p in '전제 (Assumptions)' 'Task N(교차모델' '항목별 승인 후에만 보정' '3-2 정제'; do
+    grep -nF -- "$p" "$1" | sed 's/^/옛 절차 문구 남음: /' | cut -c1-90
+  done
+}
+
+# 한글 음절(U+AC00~U+D7A3)의 UTF-8 바이트. 로케일에 기대지 않게 바이트로 견준다.
+HG="$(printf 's/\352[\260-\277][\200-\277]//g;s/[\353\354][\200-\277][\200-\277]//g;s/\355[\200-\235][\200-\277]//g;s/\355\236[\200-\243]//g')"
+
+# check_loop_drawing <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_loop_drawing() {
+  local d got
+  got="$(loop_section "$1" | grep -c '^```')"
+  [ "$got" -eq 2 ] || echo "진행 루프의 코드 펜스 행 ${got}개 (기대 2개)"
+  d="$(wf_drawing "$1")"
+  if [ -z "$d" ]; then echo '그림 없음'; return; fi
+  printf '%s\n' "$d" | LC_ALL=C sed "$HG" | LC_ALL=C grep -n '[^ -~]' | cut -d: -f1 | sed 's/^/ASCII와 한글 밖의 문자가 있는 그림 줄: /'
+  printf '%s\n' "$d" | LC_ALL=C grep -n "$(printf '[\352-\355]').*[|+]" | cut -d: -f1 | sed 's/^/한글 오른쪽에 선이 있는 그림 줄: /'
+  got="$(printf '%s\n' "$d" | grep -oE '[0-9]+\. .*$' | tr '\n' '|')"
+  [ "$got" = '1. 계획 수립|2. 계획 검증|3. 구현|4. 구현 검증|5. 완료 확인|' ] || echo "그림의 단계 [$got]"
+  # 돌아가는 선: 완료 확인 줄에서 나가 세로선으로 올라가 계획 수립 줄로 들어온다.
+  printf '%s\n' "$d" | awk '
+    /^  \+--> 1\. 계획 수립$/ { a++; on = 1; next }
+    /^  \+--- 5\. 완료 확인$/ { z++; if (!on) bad++; on = 0; next }
+    on && !/^  \|/ { bad++ }
+    END { if (a != 1) print "계획 수립으로 들어오는 선 " a + 0 "개 (기대 1개)"
+          if (z != 1) print "완료 확인에서 나가는 선 " z + 0 "개 (기대 1개)"
+          if (bad || on) print "돌아가는 세로선이 끊김" }'
+  got="$(printf '%s\n' "$d" | grep -oE '이슈 등록|1\. 계획 수립|5\. 완료 확인|다음 회차로 정하면 1로 돌아간다|Task N \(마무리\)|git-pr-feedback' | tr '\n' '|')"
+  [ "$got" = '이슈 등록|1. 계획 수립|5. 완료 확인|다음 회차로 정하면 1로 돌아간다|Task N (마무리)|git-pr-feedback|' ] || echo "그림의 앞뒤 길 [$got]"
+}
+
+# check_workflow_pr <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_workflow_pr() {
+  local b
+  b="$(loop_section "$1")"
+  need_all "$(printf '%s\n' "$b" | item_block '- **마무리**: ')" '마무리' 'PR은 Task N에서 git-pr로 만든다'
+  need_one "$b" '진행 루프' '- **PR 뒤 피드백**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **PR 뒤 피드백**: ')" 'PR 뒤 피드백' '리뷰 피드백은 git-pr-feedback으로 처리한다' \
+    '구현을 고쳤을 때 교차 감사를 다시 받을지는 사용자가 고른다' 'PR을 만든 뒤에는 이슈 문서를 고치지 않는다'
+}
+
+# SKILL.md용 사본 함수를 workflow 템플릿에 쓴다 (함수 안의 SKILL만 바꾼다).
+wf_drop_cases() { local SKILL="$WORKFLOW_TPL"; drop_cases "$@"; }
+wf_move_item()  { local SKILL="$WORKFLOW_TPL"; move_item "$@"; }
+wf_drop_row()   { local SKILL="$WORKFLOW_TPL"; drop_row "$@"; }
+wf_add_after()  { local SKILL="$WORKFLOW_TPL"; add_after "$@"; }
+
+# wf_sub <원래 문구> <바꿀 문구> → 첫 자리를 바꾼 workflow 템플릿 사본
+wf_sub() { A="$1" B="$2" awk '{ if (!d && (i = index($0, ENVIRON["A"]))) { $0 = substr($0, 1, i - 1) ENVIRON["B"] substr($0, i + length(ENVIRON["A"])); d = 1 } print }' "$WORKFLOW_TPL"; }
+
+assert_structure check_workflow_flow "$WORKFLOW_TPL" pass "워크플로우 흐름: 실제 workflow 템플릿 통과"
+wf_drop_cases check_workflow_flow '워크플로우 흐름' \
+  '목표, 요구사항, 완료의 정의, 결정 사항, 변경 이력, 연관 문서' '설계 결정, 테스트 계획, 실행 Task 목록' '루프 기록, 종류별 발견, ' \
+  '한 번 지나는 것이 한 회차다' 'summary `루프 기록`에 한 행을' '지난 회차의 결정을 반영' '반영으로 정한 발견은 plan에 Task로 더하고' \
+  'plan `설계 결정`부터 고친다' 'AC·요구사항, `설계 결정`, `테스트 계획` 가운데' '계획 감사를 다시 받는다' '더한 것만으로는 다시 받지 않는다' \
+  '테스트 작성 → 실패 확인 → 테스트 커밋' '동작을 바꾸지 않는 Task' '지난 검증 뒤에 구현이 바뀌었으면' '구현 모델과 다른 벤더 모델로' \
+  '교차 감사를 전체로 다시 받는다' '구현 AI는 감사를 실행하지 않는다' '감사 상태와 `테스트 계획`의 확인한 줄 수' '루프를 나갈지는 사용자가 정하고' \
+  '네 가지가 모두 맞으면 `마무리`, 그 밖은' '이관이나 보류로 정한 발견은 세지 않는다' '사용자가 `마무리`로 정한 뒤에만' \
+  '전체 회귀, 색인, 충족 AC 체크' '교차 감사를 받지 않는다' 'Task N에서 구현을 고치면 계획 수립으로' \
+  'spec `## 결정 사항`이나 plan `## 설계 결정`에' '항목별 결정' '소스를 고치지 않는다' '반영으로 정한 발견은 다음 회차' \
+  'Task N의 미체크는 미완료로 세지 않는다' 'summary `루프 기록` 마지막 행의 `결정`이' '**대신 채우지 않는다.**' \
+  'Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`'
+for p in '  - 1단계 상태: ' '  - 2단계 상태: ' '  - 확인한 줄 수: ' '  - 반영으로 정한 발견: '; do
+  wf_drop_row "$p" > "$sandbox/wf-no-crit.md"
+  assert_structure check_workflow_flow "$sandbox/wf-no-crit.md" fail "워크플로우 흐름: 권장 기준 [${p#  - }] 행 삭제 격추"
+done
+for p in 1 2 3 4 5; do
+  wf_drop_row "$p. **" > "$sandbox/wf-no-step.md"
+  assert_structure check_workflow_flow "$sandbox/wf-no-step.md" fail "워크플로우 흐름: ${p}단계 설명 행 삭제 격추"
+done
+awk '/^3\. \*\*구현\*\*/ { hold = $0; next } { print } hold != "" && /^4\. \*\*/ { print hold; hold = "" }' "$WORKFLOW_TPL" > "$sandbox/wf-swap.md"
+awk '/^## 진행 루프$/ { s = 1 } s && /^## 작업 진행 중$/ { s = 0 } s { buf = buf $0 "\n"; next } /^## 이슈 완료 시$/ { printf "%s", buf } { print }' \
+  "$WORKFLOW_TPL" > "$sandbox/wf-moved.md"
+wf_add_after '  - 반영으로 정한 발견: ' '  - 급한 일정: 남은 발견이 있어도 나간다.' > "$sandbox/wf-extra.md"
+wf_sub '루프를 나갈지는 사용자가 정하고' '루프를 나갈지는 구현 AI가 정하고' > "$sandbox/wf-ai.md"
+wf_sub '충족(PASS)이다.' '충족(PASS)이나 부분 충족(PARTIAL)이다.' > "$sandbox/wf-soft.md"
+wf_sub 'spec `## 결정 사항`이나 plan `## 설계 결정`에 적는다' 'spec `## 전제 (Assumptions)`에 적는다' > "$sandbox/wf-assume.md"
+assert_structure check_workflow_flow "$sandbox/wf-swap.md"   fail "워크플로우 흐름: 구현과 구현 검증의 순서 바꾸기 격추"
+assert_structure check_workflow_flow "$sandbox/wf-moved.md"  fail "워크플로우 흐름: 진행 루프 절의 작업 진행 중 뒤 이동 격추"
+assert_structure check_workflow_flow "$sandbox/wf-extra.md"  fail "워크플로우 흐름: 권장 기준 추가 격추"
+assert_structure check_workflow_flow "$sandbox/wf-ai.md"     fail "워크플로우 흐름: 결정 주체를 구현 AI로 바꾸기 격추"
+assert_structure check_workflow_flow "$sandbox/wf-soft.md"   fail "워크플로우 흐름: 1단계 상태 기준을 부분 충족까지 넓히기 격추"
+assert_structure check_workflow_flow "$sandbox/wf-assume.md" fail "워크플로우 흐름: Task 0 답을 옛 전제 섹션에 적기 격추"
+
+assert_structure check_loop_drawing "$WORKFLOW_TPL" pass "루프 그림: 실제 workflow 템플릿 통과"
+awk '{ if ($0 ~ / 3\. 구현$/) sub(/3\. 구현$/, "3. 구현 검증"); else if ($0 ~ / 4\. 구현 검증$/) sub(/4\. 구현 검증$/, "4. 구현"); print }' "$WORKFLOW_TPL" > "$sandbox/ld-swap.md"
+awk '{ sub(/^  \+--> 1\./, "       1."); sub(/^  \+--- 5\./, "       5."); if (/^  \|  /) sub(/^  \|/, "   "); print }' "$WORKFLOW_TPL" > "$sandbox/ld-noback.md"
+awk '/^  \+--- 5\./ { sub(/^  \+---/, "      ") } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-noout.md"
+awk '/^  \+--> 1\./ { sub(/^  \+-->/, "      ") } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-noin.md"
+awk '/^  \|    3\. 구현$/ { sub(/^  \|/, "   ") } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-cut.md"
+awk '/^  \|  / { sub(/^  \|/, "  │") } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-box.md"
+wf_sub '테스트 작성 -> 실패 확인' '테스트 작성 → 실패 확인' > "$sandbox/ld-arrow.md"
+wf_sub 'spec, plan이 없으면' 'spec·plan이 없으면' > "$sandbox/ld-dot.md"
+awk '/^  \|    3\. 구현$/ { $0 = $0 "   |" } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-right.md"
+awk '/^## / { f = ($0 == "## 진행 루프") } f && /^```/ { c = !c; next } f && c { next } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-none.md"
+awk '/^## 진행 루프$/ { s = 1 } s && /^```/ { if (c) { print; print ""; print "```"; print "두 번째"; print "```"; s = 0; next } c = 1 } { print }' "$WORKFLOW_TPL" > "$sandbox/ld-two.md"
+wf_sub 'Task N (마무리)' '끝' > "$sandbox/ld-notn.md"
+for kv in 'swap:단계 순서 바꾸기' 'noback:돌아가는 선 전체 삭제' 'noout:완료 확인에서 나가는 선 삭제' 'noin:계획 수립으로 들어오는 선 삭제' \
+          'cut:돌아가는 세로선 한 칸 끊기' 'box:선 그리기 문자(U+2502) 넣기' 'arrow:화살표(U+2192) 넣기' 'dot:가운뎃점(U+00B7) 넣기' \
+          'right:한글 오른쪽에 선 두기' 'none:그림 삭제' 'two:코드 블록 추가' 'notn:마무리로 나가는 길 삭제'; do
+  assert_structure check_loop_drawing "$sandbox/ld-${kv%%:*}.md" fail "루프 그림: ${kv#*:} 격추"
+done
+# 사본이 다른 이유로 걸리지 않는지 본다: 문자만 바꾼 사본은 문자 위반 한 종류만 낸다.
+for k in box arrow dot; do
+  got="$(check_loop_drawing "$sandbox/ld-$k.md" | grep -c 'ASCII와 한글 밖의 문자')"
+  if [ "$got" -ge 1 ]; then ok "루프 그림: ${k} 사본의 문자 위반 검출 격추"; else ng "루프 그림: ${k} 사본의 문자 위반 검출 격추"; fi
+done
+
+assert_structure check_workflow_pr "$WORKFLOW_TPL" pass "PR 뒤 피드백 안내: 실제 workflow 템플릿 통과"
+wf_drop_cases check_workflow_pr 'PR 뒤 피드백 안내' \
+  'PR은 Task N에서 git-pr로 만든다' '리뷰 피드백은 git-pr-feedback으로 처리한다' '교차 감사를 다시 받을지는 사용자가 고른다' 'PR을 만든 뒤에는 이슈 문서를 고치지 않는다'
+wf_drop_row '- **PR 뒤 피드백**: ' > "$sandbox/wp-no.md"
+wf_move_item '- **PR 뒤 피드백**: ' '## 이슈 완료 시' > "$sandbox/wp-moved.md"
+wf_sub '교차 감사를 다시 받을지는 사용자가 고른다' '교차 감사를 다시 받는다' > "$sandbox/wp-always.md"
+assert_structure check_workflow_pr "$sandbox/wp-no.md"     fail "PR 뒤 피드백 안내: 항목 삭제 격추"
+assert_structure check_workflow_pr "$sandbox/wp-moved.md"  fail "PR 뒤 피드백 안내: 항목의 진행 루프 밖 이동 격추"
+assert_structure check_workflow_pr "$sandbox/wp-always.md" fail "PR 뒤 피드백 안내: 사용자 선택을 필수로 바꾸기 격추"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
