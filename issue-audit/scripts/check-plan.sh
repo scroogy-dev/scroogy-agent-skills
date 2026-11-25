@@ -149,10 +149,12 @@ ac_fn='
 # --ac — 이슈 본문과 spec 의 AC 를 번호로 짝지어 문장과 묶음 제목을 견준다. 행 읽기 규칙(펜스·주석·인라인 코드)은 --trace 와 같다.
 # spec 은 문장 끝의 R 표기를 하나 떼고 견준다. 이슈 본문의 문장은 떼지 않는다. 본문 문장이 괄호로 끝나면 그 괄호도 문장이다.
 # 같은 번호의 행이 여러 개면 모두 첫 행과 견준다. 한쪽 문서 안에서 문장이 갈려도 하나가 조용히 가려지지 않게 한다.
+# 문장과 묶음은 글자 그대로 견준다. 칸 구분자는 본문에 쓰이지 않는 제어 문자(\037)라 탭을 바꾸지 않고,
+# 비교에 빈 문자열을 이어 숫자 모양 값(01·1, 1e2·100)을 수치로 견주지 않게 한다.
 # AC 가 없는 이슈 본문은 `대조 불가` 1행만 낸다. 대조를 이어 가면 spec 이 직접 쓴 AC 마다 위반이 나와 정상 경로가 위반 목록처럼 보인다.
 if [ "$mode" = 'ac' ]; then
   ac_rows='
-    function emit(src, n, text) { gsub(/\t/, " ", grp); gsub(/\t/, " ", text); print src "\t" n "\t" grp "\t" text }
+    function emit(src, n, text) { print src "\037" n "\037" grp "\037" text }
     /^## / { grp = "" }
     /^### / { grp = scan($0); sub(/^### /, "", grp); grp = trim(grp) }
   '
@@ -165,13 +167,13 @@ if [ "$mode" = 'ac' ]; then
     dod { n = ac_no($0); if (n >= 0) emit("SPEC", n, cut_r(ac_body)) }
   ' "$spec")"
 
-  hits="$(printf '%s\n%s\n' "$issue_out" "$spec_out" | awk -F'\t' '
+  hits="$(printf '%s\n%s\n' "$issue_out" "$spec_out" | awk -F'\037' '
     $1 == "ISSUE" { if (!($2 in inIssue)) { inIssue[$2] = 1; io[++ni] = $2 } }
     $1 == "SPEC"  { if (!($2 in inSpec))  { inSpec[$2] = 1;  so[++ns] = $2 } }
     $1 == "ISSUE" || $1 == "SPEC" {
       if (!($2 in text)) { text[$2] = $4; group[$2] = $3 }
-      if (text[$2] != $4)  tdiff[$2] = 1
-      if (group[$2] != $3) gdiff[$2] = 1
+      if (text[$2] "" != $4 "")  tdiff[$2] = 1
+      if (group[$2] "" != $3 "") gdiff[$2] = 1
     }
     END {
       if (ni == 0) { print "대조 불가: 이슈 본문에 AC 없음"; exit }

@@ -536,6 +536,8 @@ check_report_structure() {
     /^> 감사 effort:/                                { ef++; if (NR != ml + 1) efmis++ }
     /^---$/                                          { if (!hr) hr = NR }
     /^> 감사 (모델|effort):/                          { if (hr) mout++ }
+    /^> 감사 대상 브랜치:/                            { bl = NR }
+    /^> 감사 대상 커밋:/                              { cc++; if (NR != bl + 1) cmis++; if (hr) mout++; if (/HEAD의 전체 SHA/) cf++; if (/미커밋 포함: /) cu++ }
     END {
       if (h != 1)  print "경계 검증 헤더 " h + 0 "개 (기대 1개)"
       if (f1 != 1) print "제외 목록 침범 여부 필드 " f1 + 0 "개 (기대 1개)"
@@ -550,13 +552,17 @@ check_report_structure() {
       if (s2 != 1) print "요약 2단계 줄 " s2 + 0 "개 (기대 1개)"
       if (ef != 1) print "감사 effort 줄 " ef + 0 "개 (기대 1개)"
       if (efmis)   print "감사 effort 줄이 감사 모델 줄 바로 다음이 아님: " efmis "개"
+      if (cc != 1) print "감사 대상 커밋 줄 " cc + 0 "개 (기대 1개)"
+      if (cmis)    print "감사 대상 커밋 줄이 감사 대상 브랜치 줄 바로 다음이 아님: " cmis "개"
+      if (cf != 1) print "감사 대상 커밋 줄의 HEAD 전체 SHA 안내 " cf + 0 "개 (기대 1개)"
+      if (cu != 1) print "감사 대상 커밋 줄의 미커밋 포함 표기 " cu + 0 "개 (기대 1개)"
       if (mc != 1) print "감사 모델 줄 " mc + 0 "개 (기대 1개)"
       if (mf != 1) print "감사 모델 줄 확장 형식(벤더, 모델명 (모델 ID)) " mf + 0 "개 (기대 1개)"
       if (mex != 1) print "감사 모델 줄 모델 ID 병기 예시 " mex + 0 "개 (기대 1개)"
       if (mu != 1) print "감사 모델 줄 확인 불가 표기 (-) " mu + 0 "개 (기대 1개)"
       if (mold)    print "구 형식 단독 표기(벤더, 모델명) 잔존: " mold "개"
       if (!hr)     print "머리말 구분선(---) 없음"
-      if (mout)    print "감사 모델·effort 줄이 머리말(첫 --- 앞) 밖: " mout "개"
+      if (mout)    print "감사 모델·effort·대상 커밋 줄이 머리말(첫 --- 앞) 밖: " mout "개"
       if (!(ohl && vl && dl && sml && sul && ohl < vl && vl < dl && dl < sml && sml < sul))
         print "종합 의견 → 판정 → 접기 시작 → 접기 제목 → 요약 순서 아님"
     }
@@ -636,6 +642,15 @@ assert_report_structure "$sandbox/t-model-no-id.md"    fail "리포트 구조: �
 assert_report_structure "$sandbox/t-model-no-ex-id.md" fail "리포트 구조: 감사 모델 줄 예시 모델 ID 제거 격추"
 assert_report_structure "$sandbox/t-model-no-unk.md"   fail "리포트 구조: 감사 모델 줄 확인 불가 표기 (-) 제거 격추"
 assert_report_structure "$sandbox/t-model-dup.md"      fail "리포트 구조: 잘못된 감사 모델 줄 중복(PR #105 2차 리뷰 반례) 격추"
+# 감사 대상 커밋 줄(issue #145 최종 감사 1차 F-4) — 루프 기록의 검증 커밋 칸이 이 값을 옮긴다.
+awk '!/^> 감사 대상 커밋:/' "$REPORT_TPL" > "$sandbox/t-no-sha.md"
+awk '/^> 감사 대상 커밋:/{held = $0; next} {print} END{print held}' "$REPORT_TPL" > "$sandbox/t-sha-end.md"
+awk '/^> 감사 대상 커밋:/{sub(/HEAD의 전체 SHA/, "커밋")} {print}' "$REPORT_TPL" > "$sandbox/t-sha-short.md"
+awk '/^> 감사 대상 커밋:/{sub(/미커밋 포함: /, "")} {print}' "$REPORT_TPL" > "$sandbox/t-sha-no-dirty.md"
+assert_report_structure "$sandbox/t-no-sha.md"       fail "리포트 구조: 감사 대상 커밋 줄 삭제 격추"
+assert_report_structure "$sandbox/t-sha-end.md"      fail "리포트 구조: 감사 대상 커밋 줄 파일 끝 이동 격추"
+assert_report_structure "$sandbox/t-sha-short.md"    fail "리포트 구조: 감사 대상 커밋 줄의 전체 SHA 안내 제거 격추"
+assert_report_structure "$sandbox/t-sha-no-dirty.md" fail "리포트 구조: 감사 대상 커밋 줄의 미커밋 포함 표기 제거 격추"
 
 # --- 문서 변형 도우미 ------------------------------------------------------------
 
@@ -684,6 +699,10 @@ assert_clause() {
 AUDIT_CLAUSES='관련 skill@최종 감사는 `issue-work` 진행 루프의 **구현 검증** 단계에서
 관련 skill@계획 감사(`--plan`)는 **계획 검증** 단계에서 호출합니다
 0단계 7항@1단계 DoD 대조에서 실행하는 plan `테스트 계획`의 `[D]` 줄은
+0단계 8항@감사를 시작할 때 `git rev-parse HEAD`
+0단계 8항@리포트 머리말 `감사 대상 커밋` 줄에 적는다
+0단계 8항@`미커밋 포함: <파일 경로>`
+0단계 8항@다시 구하지 않는다
 DoD 대조@spec 완료의 정의의 AC마다 충족 여부를 판정한다
 DoD 대조@AC마다 가리키는 테스트와 `[D]` 명령을 구현 뒤 트리에서 실제로 실행해 그 결과를 판정 근거로 삼는다
 DoD 대조@summary에 통과로 기록되어 있어도 미충족(FAIL) 근거로 쓰고
@@ -706,6 +725,10 @@ DoD 대조@그 AC의 줄을 모두 합쳐도 AC 문장의 일부만 보면 부�
 계획 시점@issue-work 진행 루프의 계획 검증 단계
 계획 입력@`이슈 본문 갱신` 줄
 계획 1단계@요구사항 대조 표의 행은 이슈 본문의 포함·제외 항목이다
+계획 1단계@이슈 본문의 제외 항목이 spec 제외 목록에 있다
+계획 1단계@이슈 본문의 제외 항목을 승인 근거 없이 spec 포함 R로 옮겼다
+계획 1단계@`(이슈 본문 근거 없음: <출처>)`
+계획 대조 기준@3·4·7·8항은 그대로 수행하고
 계획 1단계@DoD 대조 표의 행은 spec 완료의 정의의 AC 행이고, 판정은 행 끝의 `(R<n>)`을 기준으로 한다
 계획 1단계@`AC 없는 R`은 AC 칸에 `-`를 적은 행으로 더해 미충족(FAIL)으로 둔다
 계획 1단계@결정 사항 대조 표는 두지 않는다
@@ -751,12 +774,14 @@ audit_parts() {
     /^- \*\*/ && h3 ~ /^### `--plan`/ { it = $0 }
     h2 ~ /^## 관련 skill/ { put("관련 skill") }
     h3 ~ /^### 0단계/ && it ~ /^7\. /                                { put("0단계 7항") }
+    h3 ~ /^### 0단계/ && it ~ /^8\. /                                { put("0단계 8항") }
     h3 ~ /^### 1단계/ && h4 ~ /^#### 검증 항목/ && it ~ /^1\. \*\*완료의 정의\(DoD\) 대조\*\*/ { put("DoD 대조") }
     h3 ~ /^### 1단계/ && h4 ~ /^#### 검증 항목/ && it ~ /^2\. \*\*결정 사항 대조\*\*/ { put("결정 사항 대조") }
     h3 ~ /^### 1단계/ && h4 ~ /^#### 판정 기준/                      { put("판정 기준") }
     h3 ~ /^### 2단계/ && h4 ~ /^#### 검증 관점/ && it ~ /^5\. \*\*누락된 검증\*\*/ { put("관점 5") }
     h3 ~ /^### `--plan`/ && it ~ /^- \*\*시점\*\*/                   { put("계획 시점") }
     h3 ~ /^### `--plan`/ && it ~ /^- \*\*입력\*\*/                   { put("계획 입력") }
+    h3 ~ /^### `--plan`/ && it ~ /^- \*\*대조 기준\*\*/              { put("계획 대조 기준") }
     h3 ~ /^### `--plan`/ && pl ~ /^\*\*1단계 /                       { put("계획 1단계") }
     h3 ~ /^### `--plan`/ && pl ~ /^\*\*2단계 / && it ~ /^1\. \*\*추적성\*\*/      { put("계획 관점 1") }
     h3 ~ /^### `--plan`/ && pl ~ /^\*\*2단계 / && it ~ /^2\. \*\*테스트 계획\*\*/ { put("계획 관점 2") }
@@ -889,7 +914,7 @@ check_testing_clause() {
     /^2\. \*\*테스트 계획\*\*/ { tp++; r2 = 1 }
     r1 { d = d "\n" $0 }
     r2 { t = t "\n" $0 }
-    /^- \*\*대조 기준\*\*:/ && index($0, "3·4·7항은 그대로 수행") { pl++ }
+    /^- \*\*대조 기준\*\*:/ && index($0, "3·4·7·8항은 그대로 수행") { pl++ }
     END {
       if (ref != 1) print "참조 문서의 테스트 원칙 항목 " ref + 0 "개 (기대 1개)"
       if (s7 != 1) print "0단계 7항 " s7 + 0 "개 (기대 1개)"
@@ -898,7 +923,7 @@ check_testing_clause() {
       if (!index(d, "testing-principles-local.md")) print "DoD 대조에 testing-principles-local.md 참조 없음"
       if (!index(d, "전제 조건이 갖춰지지 않으면 판정 불가(N/A)")) print "DoD 대조에 전제 조건 N/A 구절 없음"
       if (!index(t, "`.ai/10_rules/testing-principles-local.md`의 테스트 층 표")) print "관점 2에 local 층 표 참조 없음"
-      if (pl != 1) print "--plan 대조 기준의 3·4·7항 수행 " pl + 0 "개 (기대 1개)"
+      if (pl != 1) print "--plan 대조 기준의 3·4·7·8항 수행 " pl + 0 "개 (기대 1개)"
     }
   ' "$1"
 }
@@ -912,7 +937,7 @@ drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`가 있으면 �
   > "$sandbox/tc-dod-del.md"
 drop_literal "$SKILL" '전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 두고 사유를 적는다' > "$sandbox/tc-dod-no-na.md"
 drop_literal "$SKILL" '`.ai/10_rules/testing-principles-local.md`의 테스트 층 표' > "$sandbox/tc-fd-del.md"
-drop_literal "$SKILL" '·7항' > "$sandbox/tc-plan-no7.md"
+drop_literal "$SKILL" '·7·8항' > "$sandbox/tc-plan-no7.md"
 
 assert_clause check_testing_clause "$SKILL"                    pass "테스트 원칙 조항: 실제 SKILL.md 통과"
 assert_clause check_testing_clause "$sandbox/tc-ref-del.md"    fail "테스트 원칙 조항: 참조 문서 항목 삭제 격추"
@@ -1132,6 +1157,23 @@ awk '!/AC[0-9]+: /' "$tspec" > "$sandbox/s.md"
 assert_plan ac fail '새 구조 추적: 양쪽에 AC가 없는 이슈의 대조 불가 격추' "$sandbox/i-none.md" "$sandbox/s.md" '대조 불가: 이슈 본문에 AC 없음'
 swap "$tissue" "$sandbox/i.md" '- [ ] AC1: 가가 된다.' $'- [ ] AC1: 가가 된다.\n- [ ] AC1: 가가 달리 된다.'
 assert_plan ac fail '새 구조 추적: 본문에 번호가 겹치고 문장이 갈린 문장 다른 AC 격추' "$sandbox/i.md" "$tspec" '문장 다른 AC: AC1'
+
+# 숫자 모양 값과 탭(최종 감사 1차 F-1) — 글자 그대로 견준다. 수치로 견주거나 탭을 공백으로 바꾸면 서로 다른 값이 같아진다.
+# ac_pair <묶음> <문장> <spec 묶음> <spec 문장> → $sandbox/n-i.md, $sandbox/n-s.md
+ac_pair() {
+  printf '## 완료의 정의\n\n### %s\n\n- [ ] AC1: %s\n' "$1" "$2" > "$sandbox/n-i.md"
+  printf '## 완료의 정의\n\n### %s\n\n- [ ] AC1: %s (R1)\n' "$3" "$4" > "$sandbox/n-s.md"
+}
+ac_pair 01 '가가 된다.' 1 '가가 된다.'
+assert_plan ac fail '새 구조 추적: 앞자리 0만 다른 숫자 묶음의 묶음 다른 AC 격추' "$sandbox/n-i.md" "$sandbox/n-s.md" '묶음 다른 AC: AC1'
+ac_pair 1e2 '가가 된다.' 100 '가가 된다.'
+assert_plan ac fail '새 구조 추적: 지수 모양 묶음의 묶음 다른 AC 격추' "$sandbox/n-i.md" "$sandbox/n-s.md" '묶음 다른 AC: AC1'
+ac_pair 묶음 001 묶음 1
+assert_plan ac fail '새 구조 추적: 앞자리 0만 다른 숫자 문장의 문장 다른 AC 격추' "$sandbox/n-i.md" "$sandbox/n-s.md" '문장 다른 AC: AC1'
+ac_pair 묶음 $'`가\t나`가 된다.' 묶음 '`가 나`가 된다.'
+assert_plan ac fail '새 구조 추적: 코드 안 탭과 공백의 문장 다른 AC 격추' "$sandbox/n-i.md" "$sandbox/n-s.md" '문장 다른 AC: AC1'
+ac_pair 01 $'`가\t나`가 된다.' 01 $'`가\t나`가 된다.'
+assert_plan ac pass '새 구조 추적: 탭과 숫자 묶음이 같은 문서 통과' "$sandbox/n-i.md" "$sandbox/n-s.md"
 
 # 로케일 — 길이가 같은 한글 문장·제목·표지도 다르다고 봐야 한다. 실행하는 로케일이 무엇이든 결과가 같다.
 # assert_locale <설명> <모드> <파일 1> <파일 2> <기대 출력 전체>
