@@ -1,6 +1,6 @@
 # AI-CONTEXT.md
 
-> last updated: 2026-11-22
+> last updated: 2026-11-25
 > SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.
 
 이 파일은 AI 어시스턴트를 위한 프로젝트 가이드입니다.
@@ -108,11 +108,11 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Codex 등 다양한 AI 도
 ├── issue-audit/                # 이슈 감사 스킬
 │   ├── scripts/                # 위험도·상태·판정 산출·발견 번호 계승·계획 추적성·AC 대조 헬퍼 (classify-risk.sh, next-finding-number.sh, check-plan.sh)
 │   ├── templates/              # 감사 리포트 템플릿
-│   └── tests/                  # 헬퍼 테스트 + 리포트 템플릿·`--plan` 조항(가짜 [D] 판별·관점 3 범위 등) 구조 검사 (배포 제외)
+│   └── tests/                  # 헬퍼 테스트(추적성·AC 대조의 새 구조 fixture 포함) + 리포트 템플릿·감사 조항(AC·결정 사항 대조, 테스트 계획, 관점 3 범위 등) 구조 검사 (배포 제외)
 ├── issue-work/                 # 이슈 단위 작업 워크플로우 스킬
 │   ├── scripts/                # --clear 완료·경로 검사, 지표 집계, 원장 링크 검사 헬퍼 (check-clear.sh, summarize-metrics.sh, check-ledger-links.sh)
 │   ├── templates/              # 이슈 작업 문서(spec·plan·summary·workflow)·이슈 본문 템플릿
-│   └── tests/                  # 헬퍼 테스트 + spec·plan·summary·이슈 본문 템플릿과 SKILL.md 조항(--create·AC 정제·변경 통제·본문 갱신 질의 등) 구조 검사 + plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
+│   └── tests/                  # 헬퍼 테스트 + 템플릿 5종과 SKILL.md 조항(--create·AC 옮기기·변경 통제·본문 갱신 질의·진행 루프 등) 구조 검사 + plan 템플릿 Task N 게이트 명령 반례 회귀 테스트 (배포 제외)
 ├── readme-sync/                # README.md 생성/갱신 스킬
 │   ├── references/             # 라이선스 세부 사양 (Q1=(a) 분기 전용)
 │   └── templates/              # README 템플릿
@@ -138,8 +138,8 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Codex 등 다양한 AI 도
 | `git-review-context` | 리뷰 전 변경사항 사전 분석 |
 | `git-review-quiz` | PR 변경의 배경·목적·변경 설명을 먼저 정리하고 비즈니스·테크 문항을 만들어 대화형으로 풀거나 PR 댓글로 게시 (대상별 로컬 md·HTML 산출, 문항별 변경 위치 표시, 힌트·정답 접기) |
 | `install-skills` | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
-| `issue-audit` | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
-| `issue-work` | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 워크플로우 |
+| `issue-audit` | 이슈 스펙(완료의 정의·결정 사항) 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
+| `issue-work` | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리, 계획·검증·구현 루프 진행 워크플로우 |
 | `readme-sync` | 프로젝트를 분석하여 README.md 생성 또는 최신화 (init/update 모드, individual/business 프로파일) |
 
 ---

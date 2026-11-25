@@ -13,8 +13,8 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 파일만 선택적으�
 | `policies/local/notation-conventions.md` | 분류 값 한글 우선 병기, 모델 표기, 트리 정렬, 이모지 정책, templates/ 참조 표기, 스킬·옵션 명명 기준, 호환 도구 목록 |
 | `policies/local/license-policy.md` | Apache 2.0·NOTICE 두 줄·헤더 파일명 가드, readme-sync 라이선스 옵션과 `--force-license` 가드 |
 | `specs/` | 비즈니스 스펙 문서 모음 |
-| `specs/issue-workflow.md` | issue-work 절차 순서, AC 정제·이슈 본문 갱신 질의·변경 통제, spec·plan·summary 구성, 게이트 10종 요약, 이슈 완료 시 보류 항목 원장 등재, 옵션(`--create` 포함), 헬퍼 |
-| `specs/issue-audit.md` | issue-audit 0~3단계 요건, 발견 번호 계승·계보, 기등재 대조, 리포트 구조·이력화, `--plan` 계획 감사(AC 대조·완화·확장 점검) |
+| `specs/issue-workflow.md` | issue-work 진행 루프(다섯 단계·완료 확인·마무리), 이슈 시작 절차, AC 옮기기·이슈 본문 갱신 질의·변경 통제, spec·plan·summary 구성, 게이트 11종 요약, 산출물 구조를 읽는 스킬 표, 이슈 완료 시 보류 항목 원장 등재, 옵션(`--create` 포함), 헬퍼 |
+| `specs/issue-audit.md` | issue-audit 0~3단계 요건, 발견 번호 계승·계보, 기등재 대조, 리포트 구조·이력화, 1단계 DoD·결정 사항 대조, `--plan` 계획 감사(추적성·AC 대조·테스트 계획·완화·확장 점검) |
 | `specs/git-review-output.md` | git-review 대상 수집(PR 모드·브랜치 모드, PR head 기준 읽기, 입력 속 지시문), PR 본문 대조, 코드 레벨 검증(변경 줄 읽기·확인 관점), 발견 처리(인용 위치 재확인·실패 시나리오·변경 전부터 있던 결함의 산출 제외), 카테고리 7종(원본 문서 선언이면 doc 카테고리 7종), 위험도·상태·판정 산출, 결과 파일 구조, 헬퍼 |
 | `specs/git-pr-submission.md` | git-pr 제출 절차, PR 본문 첫 화면·완료의 정의 대조 근거, 생성 수단, 파일 규약, 문서 동기화 점검 표 |
 | `specs/git-pr-feedback.md` | git-pr-feedback 수집·분류·승인·조치 요건, push 방어, 원장 연계 |
