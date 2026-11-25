@@ -538,6 +538,33 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ---
 
+### Task 12: issue-audit 최종 감사의 코드 레벨 검증
+
+- [x] 완료
+- **목표**: 최종 감사 2단계에 git-review의 코드 레벨 검증(변경 줄 읽기, 확인 관점, 실패 시나리오, 인용 위치 재확인)을 둔다.
+- **대상 요구사항**: R27
+- **작업 내용**:
+  1. `issue-audit/tests/run-tests.sh`에 라벨 `코드 레벨 검증`의 케이스를 먼저 쓰고 실패를 확인한다. 확인 관점 목록이 git-review의 목록과 같은지도 본다.
+  2. `issue-audit/SKILL.md`의 2단계에 변경 줄 읽기와 확인 관점을, 발견 기록 규칙에 인용 위치 재확인과 실패 시나리오를 두고, `--plan`에는 적용하지 않는다고 적는다.
+  3. 리포트 템플릿의 요약에 `코드 레벨 검증` 줄을, 상세 분석에 `실패 시나리오` 줄을 둔다.
+  4. 도메인 명세 `issue-audit.md`, 코드맵 `final-audit-call-flow.md`, 원장 K-0035의 재검토 이력을 맞춘다. 해소는 PR 번호를 알 때 적는다.
+- **완료 기준**:
+  - [D] 이 Task의 케이스가 통과·격추 쌍으로 실행되고 러너가 0 실패다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+    ```bash
+    out=$(bash issue-audit/tests/run-tests.sh 2>&1)
+    printf '%s\n' "$out" | grep -qE '^passed: [0-9]+, failed: 0$' || echo '위반: 러너 실패'
+    for l in '코드 레벨 검증'; do for w in 통과 격추; do
+      printf '%s\n' "$out" | grep -qE "^ok +- ${l}: .*${w}" || echo "위반: ${l} ${w} 케이스 없음"
+    done; done
+    ```
+
+    </details>
+
+---
+
 ### Task N (고정): 교차모델 issue-audit 검증 (사용자 수동 수행)
 
 <!--

@@ -895,6 +895,108 @@ awk '/^### 결정 사항 대조$/ { m = 1 } m && /^<!--/ { m = 0 } m { held = he
 changed "$REPORT_TPL" "$sandbox/ar.md" '결정 사항 대조 섹션 이동'
 assert_clause check_audit_report "$sandbox/ar.md" fail '새 구조 감사 조항: 리포트 템플릿의 결정 사항 대조를 경계 검증 뒤로 이동 격추'
 
+# --- 코드 레벨 검증 (issue #145, R27) ------------------------------------------------
+# 최종 감사 2단계의 변경 줄 읽기·확인 관점과 발견 기록 규칙의 인용 위치 재확인·실패 시나리오를 본다.
+# 자리는 h3·h4 제목과 발견 기록 규칙의 항목 머리로 자르고, 확인 관점 목록은 git-review 의 목록과 같아야 한다.
+
+CODE_CLAUSES='변경 줄 읽기@0단계 5항의 변경 파일마다 diff의 추가·수정 줄과 삭제 줄을 빠짐없이 읽는다
+변경 줄 읽기@일부만 골라 읽는 것으로 대신하지 않는다
+변경 줄 읽기@지워진 동작
+변경 줄 읽기@`감사 대상 커밋`의 파일을 읽는다
+변경 줄 읽기@잠금 파일, 생성 파일, 바이너리, 읽기 실패
+변경 줄 읽기@합은 변경 파일 수와 같다
+변경 줄 읽기@요약의 `코드 레벨 검증` 줄에 적는다
+변경 줄 읽기@`--plan`에는 적용하지 않는다
+카테고리@발견 0건도 변경 줄 읽기를 마친 뒤에만 적는다
+카테고리@**확인 관점**
+카테고리@doc 카테고리 세트에는 적용하지 않는다
+인용 위치 재확인@기등재 대조 전에 인용한 코드 위치를 다시 읽어 지적이 성립하는지 확인한다
+인용 위치 재확인@성립하지 않으면 기록하지 않는다
+인용 위치 재확인@제목 끝에 `(확인 필요)`
+인용 위치 재확인@삭제 줄
+실패 시나리오@버그·보안·성능 발견은
+실패 시나리오@어떤 입력·상태에서 어떤 잘못된 결과가 나오는지
+실패 시나리오@인용 위치 재확인으로 돌아가'
+
+# code_parts <파일> → `<자리>\t<행>`. 최종 감사 2단계 안의 자리만 낸다.
+code_parts() {
+  awk '
+    function put(p) { print p "\t" $0 }
+    /^## /   { h3 = ""; h4 = ""; it = "" }
+    /^### /  { h3 = $0; h4 = ""; it = "" }
+    /^#### / { h4 = $0; it = "" }
+    /^- \*\*/ { it = $0 }
+    h3 !~ /^### 2단계: 비판적 검증/ { next }
+    h4 == "#### 변경 줄 읽기" { put("변경 줄 읽기") }
+    h4 == "#### 카테고리"     { put("카테고리") }
+    h4 == "#### 발견 기록 규칙" && it ~ /^- \*\*인용 위치 재확인/ { put("인용 위치 재확인") }
+    h4 == "#### 발견 기록 규칙" && it ~ /^- \*\*실패 시나리오/    { put("실패 시나리오") }
+  ' "$1"
+}
+
+# check_code_level <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_code_level() {
+  local parts p w
+  parts="$(code_parts "$1")"
+  while IFS='@' read -r p w; do
+    printf '%s\n' "$parts" | P="$p" W="$w" LC_ALL=C awk -F'\t' 'BEGIN { p = ENVIRON["P"]; w = ENVIRON["W"] } $1 == p && index($0, w) { f = 1 } END { exit !f }' \
+      || echo "${p}에 [${w}] 없음"
+  done <<EOF
+$CODE_CLAUSES
+EOF
+  w="$(awk '/^#### / { o = o $0 "|" } END { print o }' "$1")"
+  case "$w" in *'#### 검증 관점|#### 변경 줄 읽기|#### 카테고리|'*) ;; *) echo '변경 줄 읽기의 자리가 검증 관점과 카테고리 사이가 아님' ;; esac
+}
+
+# view_list <파일> → 확인 관점 목록 (`- **버그**:` 부터 빈 줄 앞까지)
+view_list() { awk '/^- \*\*버그\*\*:$/ { f = 1 } f && /^$/ { exit } f' "$1"; }
+
+# check_code_report <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_code_report() {
+  LC_ALL=C awk '
+    /^## / { s = $0 } /^#### / { d = ($0 ~ /^#### F-<번호>: /) } /^### / { d = 0 }
+    s == "## 요약" && /^- 코드 레벨 검증: 읽은 파일 N개 \/ 읽지 않은 파일 N개/ { a++ }
+    s == "## 요약" && /^  - 읽지 않은 파일: <경로> \(<사유: 잠금 파일 \/ 생성 파일 \/ 바이너리 \/ 읽기 실패>\)/ { b++ }
+    d && /^- \*\*실패 시나리오\*\*:/ { c++ }
+    END {
+      if (a != 1) print "요약의 코드 레벨 검증 줄 " a + 0 "개 (기대 1개)"
+      if (b != 1) print "요약의 읽지 않은 파일 줄 " b + 0 "개 (기대 1개)"
+      if (c != 1) print "상세 분석의 실패 시나리오 줄 " c + 0 "개 (기대 1개)"
+    }
+  ' "$1"
+}
+
+assert_clause check_code_level "$SKILL" pass '코드 레벨 검증: 실제 SKILL.md 통과'
+i=0
+while IFS='@' read -r p w; do
+  i=$((i + 1))
+  drop_literal "$SKILL" "$w" > "$sandbox/cl.md"
+  out="$(check_code_level "$sandbox/cl.md")"
+  if grep -qF -- "$w" "$SKILL" && grep -qxF -- "${p}에 [${w}] 없음" <<< "$out"; then
+    ok "코드 레벨 검증: ${p} 문구(${i}번) 삭제 격추"
+  else
+    ng "코드 레벨 검증: ${p} 문구(${i}번) 삭제 격추 — [${w}]"
+  fi
+done <<EOF
+$CODE_CLAUSES
+EOF
+awk '/^#### 변경 줄 읽기$/ { m = 1 } m && /^#### 카테고리$/ { m = 0 } m { held = held $0 "\n"; next } /^### 3단계/ { printf "%s", held } { print }' "$SKILL" > "$sandbox/cl.md"
+assert_clause check_code_level "$sandbox/cl.md" fail '코드 레벨 검증: 변경 줄 읽기의 발견 기록 규칙 뒤 이동 격추'
+REVIEW_SKILL="$(dirname "$SKILL")/../git-review/SKILL.md"
+if [ "$(view_list "$SKILL" | wc -l)" -ge 10 ] && [ "$(view_list "$SKILL")" = "$(view_list "$REVIEW_SKILL")" ]; then
+  ok '코드 레벨 검증: 확인 관점 목록이 git-review와 같음 통과'
+else
+  ng '코드 레벨 검증: 확인 관점 목록이 git-review와 같음 통과'
+fi
+awk '!/^  - 조건 분기의 빠진 경우/' "$SKILL" > "$sandbox/cl.md"
+if [ "$(view_list "$sandbox/cl.md")" != "$(view_list "$REVIEW_SKILL")" ]; then ok '코드 레벨 검증: 확인 관점 한 줄이 빠진 목록 격추'; else ng '코드 레벨 검증: 확인 관점 한 줄이 빠진 목록 격추'; fi
+assert_clause check_code_report "$REPORT_TPL" pass '코드 레벨 검증: 실제 리포트 템플릿 통과'
+for w in '- 코드 레벨 검증: ' '  - 읽지 않은 파일: ' '- **실패 시나리오**:'; do
+  drop_literal "$REPORT_TPL" "$w" > "$sandbox/cr.md"
+  changed "$REPORT_TPL" "$sandbox/cr.md" "$w"
+  assert_clause check_code_report "$sandbox/cr.md" fail "코드 레벨 검증: 리포트 템플릿의 [${w}] 삭제 격추"
+done
+
 # --- SKILL.md 테스트 원칙 조항 (issue #122) ----------------------------------------
 # `testing-principles` 파일 쌍을 조건부로 참조하는 조항도 감사인 절차라 문장이 곧 계약이다 (Task별 테스트 배치).
 # `## 참조 문서`의 두 파일 항목, 0단계 7항, DoD 대조의 local 파일 참조와 전제 조건 N/A 구절, 관점 2의 local 층 표 참조,

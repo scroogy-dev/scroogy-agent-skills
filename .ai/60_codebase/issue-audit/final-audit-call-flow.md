@@ -18,7 +18,7 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
 │   ├── .ai/90_issues/active|archive/issue-<번호>/ spec·plan·summary   # 파일이 없으면 이슈 본문의 AC를 구현에 직접 대조, AC도 없으면 포함 항목이 DoD 대조의 행
 │   ├── .ai/60_codebase/index.md, .ai/30_contract·40_domain·50_adr index   # 색인은 참고만, SSoT는 AI-CONTEXT.md 본문 2번째 줄 선언으로 직접 확인(선언 없으면 소스 코드, 안내도는 있는데 선언을 찾지 못하면 사용자에게 알림)
 │   ├── .ai/70_ledger/index.md + active/K-*.md (+ 관련 archive/ 승격·해소 항목)   # 기등재 대조로 반복 보고 차단, archive 는 재발 계보·승격 연결 이슈 확인용
-│   ├── 구현 브랜치 diff
+│   ├── 구현 브랜치 diff (+ 8항: git rev-parse HEAD 로 감사 대상 커밋, 미커밋 산출물 확인)
 │   ├── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
 │   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), `테스트 계획` [D] 줄의 실행 셸·전제 조건 기준(local 우선)
 ├── 1단계: 적합성 검증 (Compliance Check)            # 대조 표 둘(DoD·결정 사항), 경계, 도메인·계약·ADR 정합
@@ -26,6 +26,9 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
 │   ├── 결정 사항 대조           # spec D<n>마다 구현 대조, `결정 사항`이 없는 spec은 두지 않음. 2단계 발견은 요구사항·AC·결정에 결속될 때만 1단계 판정을 낮춤
 │   └── scripts/classify-risk.sh --compliance <판정>…    # 1단계 상태 (최고값)
 ├── 2단계: 비판적 검증 (Critical Review)               # 5관점·7카테고리(선언이 원본 문서면 doc 카테고리 7종), 관점 5는 테스트 커밋이 구현 커밋보다 앞인지, summary `테스트` 기록, 테스트가 Task의 변경을 덮는지로 판정(실패는 다시 실행하지 않음, 먼저 쓰지 않는 Task 네 기준은 제외)
+│   ├── 변경 줄 읽기             # 변경 파일마다 추가·수정·삭제 줄 전부, 읽지 않는 사유 넷(잠금 파일·생성 파일·바이너리·읽기 실패), 읽은/읽지 않은 파일 수는 요약 `코드 레벨 검증` 줄에
+│   ├── 확인 관점                # 버그·보안·성능 판정 목록(git-review와 같음), doc 카테고리에는 쓰지 않음
+│   ├── 인용 위치 재확인·실패 시나리오   # 기등재 대조 전에 성립 확인(확인 못 하면 `(확인 필요)`), 버그·보안·성능 발견은 실패 시나리오 한 줄
 │   ├── scripts/classify-risk.sh --impact <축> --likelihood <축>   # 등급, 감사인이 직접 고르지 않음
 │   ├── scripts/classify-risk.sh --treatment <위험도>    # 등급별 기본 처리 (LOW 는 .ai/70_ledger/ 이관)
 │   └── scripts/next-finding-number.sh <리포트 글롭>     # F- 번호 이슈 단위 계승
@@ -48,7 +51,7 @@ sequenceDiagram
     SK->>SK: 1단계 DoD·결정 사항 대조, 경계·계약·ADR 정합, 테스트 계획의 [D] 줄은 구현 후 트리에서 실행
     SK->>CR: --compliance 항목 판정 전부
     CR-->>SK: 1단계 상태(최고값)
-    SK->>SK: 2단계 5관점 탐색, 원장 기등재 대조
+    SK->>SK: 2단계 변경 줄 읽기, 5관점 탐색, 인용 위치 재확인, 원장 기등재 대조
     loop 발견마다
         SK->>CR: --impact 영향 축 --likelihood 발생확률 축
         CR-->>SK: 위험도 등급
