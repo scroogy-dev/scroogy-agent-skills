@@ -604,23 +604,32 @@ assert_rule check_approval '항목 수'   '승인 요약: 최종 PR 본문 항�
 
 # --- 대조 근거 (issue #130) ---------------------------------------------------------
 #
-# SKILL.md 첫 화면 `완료의 정의 대조` 항목(하위 행 포함)의 대조 근거·상태 5종·체크박스 미사용·`(AC 없음: …)` 표시 문장,
+# SKILL.md 첫 화면 `완료의 정의 대조` 항목(하위 행 포함)의 대조 근거·상태 5종·체크박스 미사용 문장,
 # 이슈 섹션 설명의 확인한 것만 적는다는 문장, 템플릿 대조 표의 머리 행·데이터 행·상태 값이 계약이다 (issue-0130 spec R14).
 # 문장 리터럴은 어간까지만 고정한다 (SKILL.md 가 합니다체다). 상태 집계 규칙의 경계 사례는 판정하지 않는다 ([QD] 몫).
+
+# dod_blk <SKILL.md> → 첫 화면 `완료의 정의 대조` 항목 행과 그 하위 행
+dod_blk() {
+  issue_sec "$1" | awk '/^- \*\*완료의 정의 대조\*\*/ { s = 1; print; next } s && /^[[:space:]]+[^[:space:]]/ { print; next } s { exit }'
+}
+
+# dod_tbl <템플릿> → 첫 이슈 섹션의 대조 표 행
+dod_tbl() {
+  awk '/^### Issue: / { n++ } n == 1 && /^#### / { s = ($0 ~ /^#### 완료의 정의 대조 표$/); next }
+       n == 1 && /^<\/details>/ { s = 0 } n == 1 && s && /^\|/' "$1"
+}
 
 # check_dod_basis <SKILL.md> <템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_dod_basis() {
   local sec blk p tbl rows
   sec=$(issue_sec "$1")
-  blk=$(printf '%s\n' "$sec" | awk '/^- \*\*완료의 정의 대조\*\*/ { s = 1; print; next } s && /^[[:space:]]+[^[:space:]]/ { print; next } s { exit }')
+  blk=$(dod_blk "$1")
   [ -n "$blk" ] || echo '대조 항목: 항목 행 없음'
-  for p in '최종 감사 리포트' '`충족`·`부분 충족`·`미충족`·`미검증`·`이관`' '체크박스만으로 충족으로 세지 않' \
-           '`(AC 없음: …)` 항목은 R 그룹 단위로'; do
+  for p in '최종 감사 리포트' '`충족`·`부분 충족`·`미충족`·`미검증`·`이관`' '체크박스만으로 충족으로 세지 않'; do
     printf '%s\n' "$blk" | grep -qF -- "$p" || echo "대조 항목: [$p] 없음"
   done
   printf '%s\n' "$sec" | grep -qF 'diff·테스트·감사 리포트에서 확인한 것만 적' || echo '확인 문장: 없음'
-  tbl=$(awk '/^### Issue: / { n++ } n == 1 && /^#### / { s = ($0 == "#### 완료의 정의 대조 표"); next }
-             n == 1 && /^<\/details>/ { s = 0 } n == 1 && s && /^\|/' "$2")
+  tbl=$(dod_tbl "$2")
   [ "$(printf '%s\n' "$tbl" | head -1)" = '| AC | 상태 | 근거 |' ] || echo '대조 표: 머리 행'
   rows=$(printf '%s\n' "$tbl" | tail -n +3)
   [ -n "$rows" ] || echo '대조 표: 데이터 행 없음'
@@ -629,8 +638,7 @@ check_dod_basis() {
 }
 
 i=0
-for w in '최종 감사 리포트' '`충족`·`부분 충족`·`미충족`·`미검증`·`이관`' '체크박스만으로 충족으로 세지 않' \
-         '`(AC 없음: …)` 항목은 R 그룹 단위로'; do
+for w in '최종 감사 리포트' '`충족`·`부분 충족`·`미충족`·`미검증`·`이관`' '체크박스만으로 충족으로 세지 않'; do
   i=$((i + 1)); drop_literal "$SKILL" "$w" > "$P/db-drop-$i.md"
 done
 # 위 루프는 사본만 만든다. 케이스 설명에 지운 문구를 이름으로 붙여 아래에서 판정한다.
@@ -638,7 +646,6 @@ assert_rule check_dod_basis pass        '대조 근거: 실제 SKILL.md·템플�
 assert_rule check_dod_basis '대조 항목' '대조 근거: 최종 감사 리포트 문구 삭제 격추'             "$P/db-drop-1.md" "$PR_TPL"
 assert_rule check_dod_basis '대조 항목' '대조 근거: AC 상태 5종 문구 삭제 격추'                  "$P/db-drop-2.md" "$PR_TPL"
 assert_rule check_dod_basis '대조 항목' '대조 근거: 체크박스 미사용 문장 삭제 격추'              "$P/db-drop-3.md" "$PR_TPL"
-assert_rule check_dod_basis '대조 항목' '대조 근거: AC 없음 항목 표시 문장 삭제 격추'            "$P/db-drop-4.md" "$PR_TPL"
 
 # 체크박스 미사용 문장 행을 `리스크·주의사항` 항목 아래 하위 행으로 옮긴다 (항목 범위 밖 이동).
 M="$(grep -F '체크박스만으로 충족으로 세지 않' "$SKILL")" awk '$0 == ENVIRON["M"] { next } { print }
@@ -654,6 +661,133 @@ assert_rule check_dod_basis '확인 문장' '대조 근거: 확인한 것만 적
 assert_rule check_dod_basis '대조 표'   '대조 근거: 대조 표 머리 행 변경 격추'                   "$SKILL" "$P/db-head.md"
 assert_rule check_dod_basis '대조 표'   '대조 근거: 대조 표 데이터 행 삭제 격추'                 "$SKILL" "$P/db-no-rows.md"
 assert_rule check_dod_basis '대조 표'   '대조 근거: 상태 열에 5종 밖 값 넣기 격추'               "$SKILL" "$P/db-bad-state.md"
+
+# --- AC 번호 대조 (issue #145) --------------------------------------------------------
+#
+# `완료의 정의 대조` 항목이 감사 리포트 표의 AC 번호로 행을 잇고 리포트 판정을 그대로 옮긴다 (issue-0145 spec R22).
+# 판정은 잇는 규칙·상태 순서·대조 목록·체크박스 이유·근거 열·옛 규칙의 부재, 템플릿 대조 표의 번호와 근거,
+# issue-audit 리포트 템플릿의 섹션 제목과 첫 열이다. 항목 이름·표 머리·상태 이름 5종은 위 두 절이 본다.
+# 상태는 번호 목록 행의 값과 조건을 함께 본다. 행이 빠지거나 순서가 바뀌면 같은 AC 의 상태가 달라진다.
+
+AUDIT_TPL="$HERE/../../issue-audit/templates/issue-audit-report-template.md"
+
+# check_ac_number <SKILL.md> <템플릿> <감사 리포트 템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+check_ac_number() {
+  local blk p got
+  blk=$(dod_blk "$1")
+  [ -n "$blk" ] || echo '잇는 규칙: 항목 행 없음'
+  # 잇는 규칙: 첫 열 번호로 잇고, 번호가 같은 행이 하나가 아니면 판정이 없는 것으로 본다.
+  for p in '첫 열의 AC 번호로' '번호가 같은 행이 하나가 아니면 판정이 없는 것으로'; do
+    printf '%s\n' "$blk" | grep -qF -- "$p" || echo "잇는 규칙: [$p] 없음"
+  done
+  # 상태 순서: 번호 목록 3행이 전부다.
+  got=$(printf '%s\n' "$blk" | grep -cE '^    [0-9]+\. ')
+  [ "$got" -eq 3 ] || echo "상태 순서: 번호 행 ${got}개 (기대 3개)"
+  printf '%s\n' "$blk" | grep -qE '^    1\. `이관`: 원장 등재나 새 이슈로 넘긴 AC$' || echo '상태 순서: 1 이관'
+  for p in '최종 감사 리포트가 없거나' '리포트에 판정이 없거나' '판정 불가(N/A)'; do
+    printf '%s\n' "$blk" | grep -E '^    2\. `미검증`: ' | grep -qF -- "$p" || echo "상태 순서: 2 미검증 [$p] 없음"
+  done
+  for p in '리포트 판정을 그대로' '충족(PASS)은 `충족`' '부분 충족(PARTIAL)은 `부분 충족`' '미충족(FAIL)은 `미충족`'; do
+    printf '%s\n' "$blk" | grep -E '^    3\. ' | grep -qF -- "$p" || echo "상태 순서: 3 판정 옮기기 [$p] 없음"
+  done
+  # 대조 목록: spec 의 AC 행이고 n/m 의 m 도 그 개수다.
+  printf '%s\n' "$blk" | head -1 | grep -qF 'm은 대조 목록의 AC 개수' || echo '대조 목록: m 정의 없음'
+  got=$(printf '%s\n' "$blk" | grep -E '^  - 대조 목록은 ')
+  for p in 'spec 완료의 정의의 AC 행' '이슈 본문의 AC 유무와 관계없이' '거절한 이슈도 같은 목록' \
+           'spec이 없으면 이슈 본문의 AC 행' '`없음`을 적'; do
+    printf '%s\n' "$got" | grep -qF -- "$p" || echo "대조 목록: [$p] 없음"
+  done
+  # 체크박스 이유
+  printf '%s\n' "$blk" | grep -F '체크박스만으로 충족으로 세지 않' | grep -qF '근거는 감사 리포트 하나로' \
+    || echo '체크박스 이유: 없음'
+  # 근거 열
+  got=$(printf '%s\n' "$blk" | grep -E '^  - 근거 열')
+  for p in '`테스트 계획`' '최종 감사 리포트 판정' '`테스트로 못 보는 항목`'; do
+    printf '%s\n' "$got" | grep -qF -- "$p" || echo "근거 열: [$p] 없음"
+  done
+  # 옛 규칙: 항목 안에 남지 않는다.
+  for p in 'R 그룹' '출처 표기' '(AC 없음' '연결 항목' '연결한 spec 항목' '체크하는 단계가 없으므로'; do
+    ! printf '%s\n' "$blk" | grep -qF -- "$p" || echo "옛 규칙: [$p] 남음"
+  done
+  # 템플릿 대조 표: AC 번호로 시작하고 번호가 겹치지 않으며, 근거가 옛 모양이 아니고 감사 판정을 적는다.
+  dod_tbl "$2" | tail -n +3 | awk -F'|' '{ a = $2; gsub(/^ +| +$/, "", a)
+      if (a !~ /^AC[0-9]+: ./) { print "템플릿 행: AC 번호 없음 [" a "]"; next }
+      sub(/:.*/, "", a); if (c[a]++) print "템플릿 행: 번호 중복 [" a "]"
+      if ($2 ~ /\(R[0-9]/) print "템플릿 행: R 표기 [" a "]"
+      if ($4 ~ /spec R[0-9]/) print "템플릿 근거: 옛 모양 [" a "]"
+      if ($4 !~ /최종 감사 (충족\(PASS\)|부분 충족\(PARTIAL\)|미충족\(FAIL\)|판정 불가\(N\/A\))/) print "템플릿 근거: 감사 판정 없음 [" a "]" }'
+  # 리포트 표: git-pr 이 이름으로 찾는 섹션과 첫 열.
+  got=$(awk '/^### 완료의 정의\(DoD\) 대조$/ { s = 1; next } s && /^\|/ { print; exit } s && /^#/ { exit }' "$3")
+  printf '%s\n' "$got" | grep -qE '^\| AC \|' || echo "리포트 표: 섹션 제목이나 첫 열 [$got]"
+}
+
+# acn <기대> <설명> <SKILL.md> [<템플릿>] [<리포트 템플릿>]
+acn() { assert_rule check_ac_number "$1" "AC 번호 대조: $2" "$3" "${4:-$PR_TPL}" "${5:-$AUDIT_TPL}"; }
+
+# acn_drop <판정> <이름> <지울 문자열> — SKILL.md 에서 문자열을 지운 사본을 넣는다. 원본과 같은 사본은 실패다.
+acn_drop() {
+  drop_literal "$SKILL" "$3" > "$P/acn-drop.md"
+  if cmp -s "$SKILL" "$P/acn-drop.md"; then ng "AC 번호 대조: $2 삭제 격추 (지울 문구가 원본에 없음)"; return; fi
+  acn "$1" "$2 삭제 격추" "$P/acn-drop.md"
+}
+
+# acn_add <이름> <더할 문장> — `완료의 정의 대조` 항목 끝에 옛 규칙 문장을 더한 사본을 넣는다.
+acn_add() {
+  ADD="  - $2" awk '/^- \*\*이번 PR에서 하지 않는 것\*\*: / { print ENVIRON["ADD"] } { print }' "$SKILL" > "$P/acn-add.md"
+  acn '옛 규칙' "$1 되살리기 격추" "$P/acn-add.md"
+}
+
+# acn_tpl <판정> <이름> <sed 식> — 템플릿을 고친 사본을 넣는다. 원본과 같은 사본은 실패다.
+acn_tpl() {
+  sed -E "$3" "$PR_TPL" > "$P/acn-tpl.md"
+  if cmp -s "$PR_TPL" "$P/acn-tpl.md"; then ng "AC 번호 대조: $2 격추 (사본이 원본과 같음)"; return; fi
+  acn "$1" "$2 격추" "$SKILL" "$P/acn-tpl.md"
+}
+
+acn pass '실제 SKILL.md·템플릿·감사 리포트 템플릿 통과' "$SKILL"
+
+acn_drop '잇는 규칙' 'AC 번호로 잇는 문구'         '첫 열의 AC 번호로'
+acn_drop '잇는 규칙' '행이 하나가 아닐 때의 문구'  '번호가 같은 행이 하나가 아니면 판정이 없는 것으로'
+acn_drop '상태 순서' '이관 조건'                   '원장 등재나 새 이슈로 넘긴 AC'
+acn_drop '상태 순서' '미검증의 리포트 없음 조건'   '최종 감사 리포트가 없거나'
+acn_drop '상태 순서' '미검증의 판정 없음 조건'     '리포트에 판정이 없거나'
+acn_drop '상태 순서' '미검증의 판정 불가 조건'     '판정 불가(N/A)'
+acn_drop '상태 순서' '판정을 그대로 옮기는 문구'   '리포트 판정을 그대로'
+acn_drop '상태 순서' '충족 옮기기'                 '충족(PASS)은 `충족`'
+acn_drop '상태 순서' '부분 충족 옮기기'            '부분 충족(PARTIAL)은 `부분 충족`'
+acn_drop '상태 순서' '미충족 옮기기'               '미충족(FAIL)은 `미충족`'
+acn_drop '대조 목록' 'm 정의'                      'm은 대조 목록의 AC 개수'
+acn_drop '대조 목록' 'spec의 AC 행 문구'           'spec 완료의 정의의 AC 행'
+acn_drop '대조 목록' '본문 AC 유무와 무관 문구'    '이슈 본문의 AC 유무와 관계없이'
+acn_drop '대조 목록' '거절한 이슈 문구'            '거절한 이슈도 같은 목록'
+acn_drop '대조 목록' 'spec 없는 이슈 문구'         'spec이 없으면 이슈 본문의 AC 행'
+acn_drop '체크박스 이유' '감사 리포트 하나 문구'   '근거는 감사 리포트 하나로'
+acn_drop '근거 열' '테스트 계획 문구'              '`테스트 계획`'
+acn_drop '근거 열' '감사 판정 문구'                '최종 감사 리포트 판정'
+acn_drop '근거 열' '못 보는 항목 문구'             '`테스트로 못 보는 항목`'
+
+# 상태 번호 행의 순서 바꾸기(이관과 미검증)와 행 더하기.
+awk '/^    1\. `이관`: / { sub(/1\./, "2."); held = $0; next }
+     /^    2\. `미검증`: / { sub(/2\./, "1."); print; if (held != "") print held; next } { print }' "$SKILL" > "$P/acn-swap.md"
+acn '상태 순서' '이관과 미검증의 순서 바꾸기 격추' "$P/acn-swap.md"
+awk '{ print } /^    3\. / { print "    4. `부분 충족`: 그 밖의 AC" }' "$SKILL" > "$P/acn-four.md"
+acn '상태 순서' '상태 행 하나 더하기 격추' "$P/acn-four.md"
+
+acn_add 'R 그룹 규칙'        '리포트 표의 행은 spec 항목과 R 그룹·순서로 맞춥니다.'
+acn_add '출처 표기 규칙'     '맞춘 spec 항목의 출처 표기로 AC를 잇습니다.'
+acn_add 'AC 없음 항목 규칙'  '`(AC 없음: …)` 항목은 따로 한 줄 표시합니다.'
+acn_add '연결 항목 집계 규칙' '연결 항목이 모두 충족(PASS)이면 충족입니다.'
+
+acn_tpl '템플릿 행'   'AC 번호 지우기'            's/^\| AC1: /| /'
+acn_tpl '템플릿 행'   'AC 번호 겹치기'            's/^\| AC2: /| AC1: /'
+acn_tpl '템플릿 행'   'R 표기 옮겨 적기'          's/^(\| AC1: [^|]*[^ |]) \|/\1 (R1) |/'
+acn_tpl '템플릿 근거' '옛 근거 모양 되살리기'     's/^(\| AC1: [^|]*\| 충족 \|) /\1 spec R1 `[D]` 항목, /'
+acn_tpl '템플릿 근거' '감사 판정 지우기'          's/최종 감사 충족\(PASS\)//'
+
+sed -E '/^### 완료의 정의\(DoD\) 대조$/,/^###* 결정/ s/^\| AC \|/| # |/' "$AUDIT_TPL" > "$P/acn-report-col.md"
+sed -E 's/^### 완료의 정의\(DoD\) 대조$/### AC 대조/' "$AUDIT_TPL" > "$P/acn-report-head.md"
+acn '리포트 표' '리포트 첫 열 이름 바꾸기 격추'   "$SKILL" "$PR_TPL" "$P/acn-report-col.md"
+acn '리포트 표' '리포트 섹션 제목 바꾸기 격추'    "$SKILL" "$PR_TPL" "$P/acn-report-head.md"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
