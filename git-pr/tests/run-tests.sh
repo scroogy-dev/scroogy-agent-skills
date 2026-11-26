@@ -684,8 +684,16 @@ check_ac_number() {
   got=$(printf '%s\n' "$blk" | grep -cE '^    [0-9]+\. ')
   [ "$got" -eq 3 ] || echo "상태 순서: 번호 행 ${got}개 (기대 3개)"
   printf '%s\n' "$blk" | grep -qE '^    1\. `이관`: 원장 등재나 새 이슈로 넘긴 AC$' || echo '상태 순서: 1 이관'
-  for p in '최종 감사 리포트가 없거나' '리포트에 판정이 없거나' '판정 불가(N/A)'; do
+  for p in '최종 감사 리포트가 없거나' '리포트에 판정이 없거나' '리포트 행의 AC 문장이 대조 목록의 AC 문장과 다르거나' '판정 불가(N/A)'; do
     printf '%s\n' "$blk" | grep -E '^    2\. `미검증`: ' | grep -qF -- "$p" || echo "상태 순서: 2 미검증 [$p] 없음"
+  done
+  # 상태를 가르는 기록: 이관은 plan 확인 칸으로, 문장 비교는 리포트 칸과 spec AC 문장으로 한다 (issue #145 최종 감사 4차 F-12·F-13).
+  got=$(printf '%s\n' "$blk" | item_of '  - 상태를 가르는 기록: ')
+  [ -n "$got" ] || echo '상태 기록: 항목 없음'
+  for p in 'plan `테스트 계획`에서 그 AC 줄의 `확인` 칸에 `이관`으로 시작하는 값이 적힌 AC' '리포트 행의 AC 문장은 `완료의 정의 항목` 칸' \
+           'spec AC 행에서 `AC<n>: ` 뒤부터 행 끝 `(R<n>)` 앞까지' '앞뒤 공백을 빼고 글자 그대로 견주' '표 칸의 `\|`는 `|`로 읽습니다' \
+           '체크 표시나 `확인` 칸만 바뀐 AC는 문장이 같아 리포트 판정을 그대로 씁니다'; do
+    printf '%s\n' "$got" | grep -qF -- "$p" || echo "상태 기록: [$p] 없음"
   done
   for p in '리포트 판정을 그대로' '충족(PASS)은 `충족`' '부분 충족(PARTIAL)은 `부분 충족`' '미충족(FAIL)은 `미충족`'; do
     printf '%s\n' "$blk" | grep -E '^    3\. ' | grep -qF -- "$p" || echo "상태 순서: 3 판정 옮기기 [$p] 없음"
@@ -721,6 +729,13 @@ check_ac_number() {
   printf '%s\n' "$got" | grep -qE '^\| AC \|' || echo "리포트 표: 섹션 제목이나 첫 열 [$got]"
 }
 
+# item_of <행 머리> → 표준 입력에서 그 머리로 시작하는 행과 더 깊이 들여쓴 이어지는 행
+item_of() {
+  awk -v l="$1" 'BEGIN { match(l, /^ */); d = RLENGTH }
+    index($0, l) == 1 { s = 1; print; next }
+    s { match($0, /^ */); if ($0 != "" && RLENGTH > d) print; else s = 0 }'
+}
+
 # acn <기대> <설명> <SKILL.md> [<템플릿>] [<리포트 템플릿>]
 acn() { assert_rule check_ac_number "$1" "AC 번호 대조: $2" "$3" "${4:-$PR_TPL}" "${5:-$AUDIT_TPL}"; }
 
@@ -753,6 +768,14 @@ acn_drop '상태 순서' '미검증의 리포트 없음 조건'   '최종 감사
 acn_drop '상태 순서' '미검증의 판정 없음 조건'     '리포트에 판정이 없거나'
 acn_drop '상태 순서' '미검증의 판정 불가 조건'     '판정 불가(N/A)'
 acn_drop '상태 순서' '판정을 그대로 옮기는 문구'   '리포트 판정을 그대로'
+acn_drop '상태 순서' '미검증의 문장 다름 조건'     '리포트 행의 AC 문장이 대조 목록의 AC 문장과 다르거나'
+acn_drop '상태 기록' '이관을 가르는 확인 칸 문구'  'plan `테스트 계획`에서 그 AC 줄의 `확인` 칸에 `이관`으로 시작하는 값이 적힌 AC'
+acn_drop '상태 기록' '리포트 문장 칸 문구'         '리포트 행의 AC 문장은 `완료의 정의 항목` 칸'
+acn_drop '상태 기록' 'spec AC 문장 범위 문구'      'spec AC 행에서 `AC<n>: ` 뒤부터 행 끝 `(R<n>)` 앞까지'
+acn_drop '상태 기록' '글자 그대로 견주는 문구'     '앞뒤 공백을 빼고 글자 그대로 견주'
+# drop_literal 은 awk -v 로 문자열을 받아 백슬래시를 풀므로, 지울 문구에서 `\|` 앞부분을 뺀다.
+acn_drop '상태 기록' '표 칸 세로선 문구'           '`|`로 읽습니다'
+acn_drop '상태 기록' '문장이 같은 AC 문구'         '체크 표시나 `확인` 칸만 바뀐 AC는 문장이 같아 리포트 판정을 그대로 씁니다'
 acn_drop '상태 순서' '충족 옮기기'                 '충족(PASS)은 `충족`'
 acn_drop '상태 순서' '부분 충족 옮기기'            '부분 충족(PARTIAL)은 `부분 충족`'
 acn_drop '상태 순서' '미충족 옮기기'               '미충족(FAIL)은 `미충족`'

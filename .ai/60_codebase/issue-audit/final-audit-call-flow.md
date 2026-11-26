@@ -23,7 +23,7 @@ issue-audit/SKILL.md (기본 모드: 최종 감사)
 │   ├── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
 │   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), `테스트 계획` [D] 줄의 실행 셸·전제 조건 기준(local 우선)
 ├── 1단계: 적합성 검증 (Compliance Check)            # 대조 표 둘(DoD·결정 사항), 경계, 도메인·계약·ADR 정합
-│   ├── 완료의 정의(DoD) 대조    # spec AC 행마다 plan `테스트 계획`의 줄로 판정. [D] 줄은 구현 후 트리에서 실행(실패가 있으면 FAIL, 실패 없이 전제 조건이 없거나 실행 못 한 줄이 있으면 N/A, local 파일이 있으면 그 셸), [QD] 줄은 채점, [ND] 줄은 판정 안 함(만 있으면 N/A). AC의 일부만 보면 PARTIAL, 줄이 없으면 N/A + 관점 5 발견
+│   ├── 완료의 정의(DoD) 대조    # spec AC 행마다 plan `테스트 계획`의 줄로 판정. [D] 줄은 구현 후 트리에서 실행(실패가 있으면 FAIL, 실패 없이 전제 조건이 없거나 실행 못 한 줄이 있으면 N/A, local 파일이 있으면 그 셸), [QD] 줄은 채점, [ND] 줄은 판정 안 함(만 있으면 N/A). AC의 일부만 보면 PARTIAL, 줄이 없으면 N/A + 관점 5 발견. `완료의 정의 항목` 칸에 spec AC 문장을 그대로 옮김(git-pr이 문장 비교에 씀)
 │   ├── 결정 사항 대조           # spec D<n>마다 구현 대조, `결정 사항`이 없는 spec은 두지 않음. 2단계 발견은 요구사항·AC·결정에 결속될 때만 1단계 판정을 낮춤
 │   └── scripts/classify-risk.sh --compliance <판정>…    # 1단계 상태 (최고값)
 ├── 2단계: 비판적 검증 (Critical Review)               # 5관점·7카테고리(선언이 원본 문서면 doc 카테고리 7종), 관점 5는 테스트 커밋이 구현 커밋보다 앞인지, summary `테스트` 기록, 테스트가 Task의 변경을 덮는지로 판정(실패는 다시 실행하지 않음, 먼저 쓰지 않는 Task 네 기준은 제외)

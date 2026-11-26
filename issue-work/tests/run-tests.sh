@@ -2284,13 +2284,14 @@ check_test_plan() {
       if (index($0, "`[ND]` 줄에는 사용자가 확인한 날짜를 적는다")) c2++
       if (index($0, "계획을 쓸 때는 비워 둔다")) c3++
       if (index($0, "줄을 더하거나 `확인` 외 칸을 바꾸면 그 줄의 `확인`을 비운다")) c4++
+      if (index($0, "완료 확인에서 원장 등재나 새 이슈로 넘긴 AC의 줄에는 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다")) c5++
     }
     END {
       if (tp != 1) print "테스트 계획 헤더 " tp + 0 "개 (기대 1개)"
       else if (!(des_at && des_at < tp_at && tp_at < tasks_at)) print "테스트 계획 섹션이 설계 결정과 Tasks 사이가 아님"
       if (man != 1)  print "테스트로 못 보는 항목 제목 " man + 0 "개 (기대 1개)"
       if (each != 1) print "AC마다 한 줄 이상 적는다는 안내 " each + 0 "개 (기대 1개)"
-      if (c1 != 1 || c2 != 1 || c3 != 1 || c4 != 1) print "확인 칸 안내 " c1 + 0 "/" c2 + 0 "/" c3 + 0 "/" c4 + 0 " (기대 각 1개)"
+      if (c1 != 1 || c2 != 1 || c3 != 1 || c4 != 1 || c5 != 1) print "확인 칸 안내 " c1 + 0 "/" c2 + 0 "/" c3 + 0 "/" c4 + 0 "/" c5 + 0 " (기대 각 1개)"
     }' "$1"
   plan_tables "$1" | awk -F'\t' '
     function cells(r) { return gsub(/\|/, "|", r) - 1 }
@@ -2328,6 +2329,7 @@ drop_literal "$TEMPLATE" '`[D]`·`[QD]` 줄에는 그 줄의 AC를 충족으로 
 drop_literal "$TEMPLATE" '`[ND]` 줄에는 사용자가 확인한 날짜를 적는다' > "$sandbox/tl-no-c2.md"
 drop_literal "$TEMPLATE" '계획을 쓸 때는 비워 둔다' > "$sandbox/tl-no-c3.md"
 drop_literal "$TEMPLATE" '줄을 더하거나 `확인` 외 칸을 바꾸면 그 줄의 `확인`을 비운다' > "$sandbox/tl-no-c4.md"
+drop_literal "$TEMPLATE" '완료 확인에서 원장 등재나 새 이슈로 넘긴 AC의 줄에는 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다' > "$sandbox/tl-no-c5.md"
 
 assert_structure check_test_plan "$TEMPLATE"                     pass "테스트 계획 표: 실제 plan 템플릿 통과"
 assert_structure check_test_plan "$sandbox/tl-no-section.md"     fail "테스트 계획 표: 섹션 헤더 삭제 격추"
@@ -2347,6 +2349,7 @@ assert_structure check_test_plan "$sandbox/tl-no-c1.md"          fail "테스트
 assert_structure check_test_plan "$sandbox/tl-no-c2.md"          fail "테스트 계획 표: 확인 칸의 사용자 확인 날짜 안내 삭제 격추"
 assert_structure check_test_plan "$sandbox/tl-no-c3.md"          fail "테스트 계획 표: 확인 칸을 비워 두는 안내 삭제 격추"
 assert_structure check_test_plan "$sandbox/tl-no-c4.md"          fail "테스트 계획 표: 바뀐 줄의 확인을 비우는 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c5.md"          fail "테스트 계획 표: 넘긴 AC 줄에 이관을 적는 안내 삭제 격추"
 
 # check_test_layer <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 # 예시 행은 단위 층(이유 `-`)과 단위보다 위 층(이유 있음)을 모두 보여 준다.
@@ -2495,8 +2498,10 @@ check_finish_task() {
     c { if (/-->/) c = 0; next }
     /^- \[ \] 완료$/ { box++ }
     /^- \*\*[^*]+\*\*:/ { cur = $0; sub(/^- \*\*/, "", cur); sub(/\*\*:.*/, "", cur); seq = seq cur "|" }
+    cur == "작업 내용" && index($0, "repo 전체 테스트와 `테스트 계획`의 `[D]` 줄을 모두 실행해 통과를 확인한다. `확인` 칸에 `이관`을 적은 줄은 실행하지 않는다") { ex1++ }
     cur == "작업 내용" && /^  [0-9]+\. / { v = $0; if (!match(v, /\*\*[^*]+\*\*/)) v = "?"; else v = substr(v, RSTART + 2, RLENGTH - 4); steps = steps v "|" }
     cur == "완료 기준" && /^  - \[D\] /  { d++; if (index($0, "`테스트 계획`의 `[D]` 줄")) reg++
+                                            if (index($0, "repo 전체 테스트와 `테스트 계획`의 `[D]` 줄(`확인` 칸에 `이관`을 적은 줄 제외)이 전부 통과")) ex2++
                                             if (index($0, "summary의 Task 헤더 집합이 plan과 일치")) g0++
                                             if (index($0, "블록마다 유효 `결과` 행 정확히 1개")) g1++
                                             if (index($0, "`-`도 아닌 행 정확히 1개")) g2++ }
@@ -2514,6 +2519,7 @@ check_finish_task() {
       if (d != 4 || reg != 1 || g0 != 1 || g1 != 1 || g2 != 1) print "Task N [D] 기준 " d + 0 "개, 회귀 " reg + 0 " 게이트 " g0 + 0 "/" g1 + 0 "/" g2 + 0 " (기대 4개, 각 1)"
       if (q != 2 || v1 != 1 || v2 != 1) print "Task N 벤더 교차 조건 " v1 + 0 "/" v2 + 0 " ([QD] " q + 0 "개, 기대 2개)"
       if (nd) print "Task N에 [ND] 기준 " nd "개 (기대 0개)"
+      if (ex1 != 1 || ex2 != 1) print "Task N 전체 회귀의 이관 줄 제외 " ex1 + 0 "/" ex2 + 0 " (작업·완료 기준, 기대 각 1개)"
     }' "$1"
 }
 
@@ -2532,6 +2538,10 @@ drop_literal "$TEMPLATE" '이 Task에서 구현을 고치면 계획 수립으로
 drop_literal "$TEMPLATE" '`--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다' > "$sandbox/fi-no-tick.md"
 awk '!/^  - \[QD\] 구현에 여러 벤더가/' "$TEMPLATE" > "$sandbox/fi-no-vendor.md"
 awk '/^### Task N/ { s = 1 } s && /^- \[ \] 완료$/ { next } { print }' "$TEMPLATE" > "$sandbox/fi-no-box.md"
+# 넘긴 AC의 줄만 빼고 나머지 회귀는 그대로 둔다 (issue #145 최종 감사 4차 F-12).
+drop_literal "$TEMPLATE" ' `확인` 칸에 `이관`을 적은 줄은 실행하지 않는다.' > "$sandbox/fi-no-ex1.md"
+drop_literal "$TEMPLATE" '(`확인` 칸에 `이관`을 적은 줄 제외)' > "$sandbox/fi-no-ex2.md"
+awk '/^### Task N/ { s = 1 } s { sub(/repo 전체 테스트와 `테스트 계획`의/, "`테스트 계획`의") } { print }' "$TEMPLATE" > "$sandbox/fi-no-repo.md"
 
 assert_structure check_finish_task "$TEMPLATE"                    pass "마무리 Task: 실제 plan 템플릿 통과"
 assert_structure check_finish_task "$sandbox/fi-old-header.md"    fail "마무리 Task: 옛 교차모델 감사 헤더 되돌리기 격추"
@@ -2543,6 +2553,9 @@ assert_structure check_finish_task "$sandbox/fi-no-back.md"       fail "마무�
 assert_structure check_finish_task "$sandbox/fi-no-tick.md"       fail "마무리 Task: 체크박스 기록 문장 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-vendor.md"     fail "마무리 Task: 벤더 교차 조건 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-box.md"        fail "마무리 Task: 완료 체크박스 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-ex1.md"        fail "마무리 Task: 전체 회귀 작업에서 이관 줄 제외 문장 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-ex2.md"        fail "마무리 Task: 회귀 완료 기준에서 이관 줄 제외 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-repo.md"       fail "마무리 Task: 이관이 있을 때 repo 전체 테스트까지 빼기 격추"
 
 # --- 루프 기록, 종류별 발견, 새 구조 fixture (issue #145) ---------------------------
 #
@@ -3302,7 +3315,8 @@ check_done_check() {
   b="$(loop_part "$1" '완료 확인')"
   for p in '보이는 값' '확인 칸' '권장' '결정' '기준에 못 미친 마무리'; do need_one "$b" '완료 확인' "- **${p}**: "; done
   c="$(printf '%s\n' "$b" | item_block '- **보이는 값**: ')"
-  need_all "$c" '보이는 값' '마지막 교차 감사 리포트' '새 판정 값을 만들지 않는다' '두 표에서 `확인` 칸이 채워진 줄 수'
+  need_all "$c" '보이는 값' '마지막 교차 감사 리포트' '새 판정 값을 만들지 않는다' '두 표에서 `확인` 칸이 채워진 줄 수' \
+    '`이관`을 적은 줄은 채워진 줄로 세지 않는다'
   got="$(printf '%s\n' "$c" | item_names)"
   [ "$got" = '1단계 상태|2단계 상태|종합 판정|확인한 줄 수|' ] || echo "보이는 값 목록 [$got]"
   c="$(printf '%s\n' "$b" | item_block '- **권장**: ')"
@@ -3317,8 +3331,16 @@ check_done_check() {
   need_all "$c" '확인 칸' '충족으로 판정한 AC의 `[D]`·`[QD]` 줄에 그 감사 회차를 적' '감사 대상 커밋의 `테스트 계획`에 같은 내용으로 있던 줄에만' \
     '새 회차로 다시 적' '`확인`이 빈 `[ND]` 줄과 지난 확인 뒤에 구현이 바뀐 `[ND]` 줄은 사용자에게 보여 주고' '사용자가 확인하지 않은 줄은 비워 둔다'
   need_all "$(printf '%s\n' "$b" | item_block '- **결정**: ')" '결정' '사용자가 정하고' '`결정` 칸에 적는다'
-  need_all "$(printf '%s\n' "$b" | item_block '- **기준에 못 미친 마무리**: ')" '기준에 못 미친 마무리' \
-    '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다'
+  c="$(printf '%s\n' "$b" | item_block '- **기준에 못 미친 마무리**: ')"
+  need_all "$c" '기준에 못 미친 마무리' '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다'
+  need_one "$c" '기준에 못 미친 마무리' '  - **넘긴 AC**: '
+  need_one "$c" '기준에 못 미친 마무리' '  - **완화한 AC**: '
+  need_all "$(printf '%s\n' "$c" | item_block '  - **넘긴 AC**: ')" '넘긴 AC' \
+    '원장 등재나 새 이슈로 넘긴 AC는 spec에 그대로 두고' '그 AC의 줄마다 `확인` 칸에 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다' \
+    'Task N 전체 회귀는 이 줄을 실행하지 않고' 'repo 전체 테스트와 나머지 `[D]` 줄은 그대로 전부 통과해야 한다' \
+    '그 AC를 위해 커밋한 테스트가 실패하면' '변경 통제의 완화로 함께 승인받는다' '승인하지 않으면 그 AC를 넘길 수 없다'
+  need_all "$(printf '%s\n' "$c" | item_block '  - **완화한 AC**: ')" '완화한 AC' \
+    '완화로 문장을 바꾼 AC는' '마지막 교차 감사 리포트가 그 문장을 판정하지 않았으므로' '`미검증`으로 보인다'
 }
 
 # check_finish_entry <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
@@ -3477,7 +3499,11 @@ drop_cases check_done_check '완료 확인 단계' \
   '마지막 교차 감사 리포트' '새 판정 값을 만들지 않는다' '두 표에서 `확인` 칸이 채워진 줄 수' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다' \
   '이관이나 보류로 정한 발견은 세지 않는다' '충족으로 판정한 AC의 `[D]`·`[QD]` 줄에 그 감사 회차를 적' '감사 대상 커밋의 `테스트 계획`에 같은 내용으로 있던 줄에만' \
   '새 회차로 다시 적' '`확인`이 빈 `[ND]` 줄과 지난 확인 뒤에 구현이 바뀐 `[ND]` 줄은 사용자에게 보여 주고' '사용자가 확인하지 않은 줄은 비워 둔다' \
-  '`결정` 칸에 적는다' '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다'
+  '`결정` 칸에 적는다' '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다' \
+  '`이관`을 적은 줄은 채워진 줄로 세지 않는다' '  - **넘긴 AC**: ' '  - **완화한 AC**: ' '원장 등재나 새 이슈로 넘긴 AC는 spec에 그대로 두고' \
+  '그 AC의 줄마다 `확인` 칸에 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다' 'Task N 전체 회귀는 이 줄을 실행하지 않고' \
+  'repo 전체 테스트와 나머지 `[D]` 줄은 그대로 전부 통과해야 한다' '그 AC를 위해 커밋한 테스트가 실패하면' '변경 통제의 완화로 함께 승인받는다' \
+  '승인하지 않으면 그 AC를 넘길 수 없다' '완화로 문장을 바꾼 AC는' '마지막 교차 감사 리포트가 그 문장을 판정하지 않았으므로' '`미검증`으로 보인다'
 for p in '보이는 값|  - 1단계 상태' '보이는 값|  - 2단계 상태' '보이는 값|  - 종합 판정' '보이는 값|  - 확인한 줄 수: ' \
          '권장|  - 1단계 상태: ' '권장|  - 2단계 상태: ' '권장|  - 확인한 줄 수: ' '권장|  - 반영으로 정한 발견: '; do
   awk -v it="- **${p%%|*}**: " -v l="${p#*|}" '/^- / { s = (index($0, it) == 1) } s && index($0, l) == 1 { next } { print }' "$SKILL" > "$sandbox/dn-no.md"
@@ -3491,6 +3517,8 @@ assert_structure check_done_check "$sandbox/dn-soft1.md" fail "완료 확인 단
 assert_structure check_done_check "$sandbox/dn-soft2.md" fail "완료 확인 단계: 2단계 상태 기준을 보완 필요까지 넓히기 격추"
 assert_structure check_done_check "$sandbox/dn-extra.md" fail "완료 확인 단계: 권장 기준에 다섯 번째 추가 격추"
 assert_structure check_done_check "$sandbox/dn-ai.md"    fail "완료 확인 단계: 결정 주체를 구현 AI로 바꾸기 격추"
+move_item '  - **넘긴 AC**: ' '### 마무리' > "$sandbox/dn-moved.md"
+assert_structure check_done_check "$sandbox/dn-moved.md" fail "완료 확인 단계: 넘긴 AC 항목의 마무리 절 이동 격추"
 
 assert_structure check_finish_entry "$SKILL" pass "마무리 진입: 실제 SKILL.md 통과"
 drop_cases check_finish_entry '마무리 진입' \
@@ -3568,7 +3596,9 @@ check_workflow_flow() {
   need_all "$(wf_step "$1" 5)" '5단계' '감사 상태와 `테스트 계획`의 확인한 줄 수' '루프를 나갈지는 사용자가 정하고' '`결정` 칸에 적는다'
   need_one "$b" '진행 루프' '- **권장 기준**: '
   c="$(printf '%s\n' "$b" | item_block '- **권장 기준**: ')"
-  need_all "$(printf '%s\n' "$c" | head -1)" '권장 기준 첫 행' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다'
+  need_all "$(printf '%s\n' "$c" | head -1)" '권장 기준 첫 행' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다' \
+    '원장 등재나 새 이슈로 넘긴 AC는 `테스트 계획`의 `확인` 칸에 `이관`을 적고 Task N 전체 회귀에서 그 줄만 뺀다' \
+    '완화로 문장을 바꾼 AC는 PR에서 `미검증`으로 보인다'
   got="$(printf '%s\n' "$c" | item_names)"
   [ "$got" = '1단계 상태|2단계 상태|확인한 줄 수|반영으로 정한 발견|' ] || echo "권장 기준 목록 [$got]"
   need_one "$c" '권장 기준' '  - 1단계 상태: 충족(PASS)이다.'
@@ -3650,7 +3680,8 @@ wf_drop_cases check_workflow_flow '워크플로우 흐름' \
   '전체 회귀, 색인, 충족 AC 체크' '교차 감사를 받지 않는다' 'Task N에서 구현을 고치면 계획 수립으로' \
   'spec `## 결정 사항`이나 plan `## 설계 결정`에' '항목별 결정' '소스를 고치지 않는다' '반영으로 정한 발견은 다음 회차' \
   'Task N의 미체크는 미완료로 세지 않는다' 'summary `루프 기록` 마지막 행의 `결정`이' '**대신 채우지 않는다.**' \
-  'Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`'
+  'Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`' \
+  '`확인` 칸에 `이관`을 적고 Task N 전체 회귀에서 그 줄만 뺀다' '완화로 문장을 바꾼 AC는 PR에서 `미검증`으로 보인다'
 for p in '  - 1단계 상태: ' '  - 2단계 상태: ' '  - 확인한 줄 수: ' '  - 반영으로 정한 발견: '; do
   wf_drop_row "$p" > "$sandbox/wf-no-crit.md"
   assert_structure check_workflow_flow "$sandbox/wf-no-crit.md" fail "워크플로우 흐름: 권장 기준 [${p#  - }] 행 삭제 격추"
@@ -3672,6 +3703,40 @@ assert_structure check_workflow_flow "$sandbox/wf-extra.md"  fail "워크플로�
 assert_structure check_workflow_flow "$sandbox/wf-ai.md"     fail "워크플로우 흐름: 결정 주체를 구현 AI로 바꾸기 격추"
 assert_structure check_workflow_flow "$sandbox/wf-soft.md"   fail "워크플로우 흐름: 1단계 상태 기준을 부분 충족까지 넓히기 격추"
 assert_structure check_workflow_flow "$sandbox/wf-assume.md" fail "워크플로우 흐름: Task 0 답을 옛 전제 섹션에 적기 격추"
+
+# 구현 검증의 세지 않는 변경 (issue #145 최종 감사 4차 F-14): workflow 템플릿 4단계가 SKILL.md `### 구현 검증`의
+# 판별 항목에 있는 이름을 모두 적고 범위는 SKILL.md로 넘긴다. 이름은 SKILL.md에서 읽으므로 한쪽만 바뀌면 걸린다.
+IV_SKILL_MD="$SKILL"
+IV_OLD_STEP4='4. **구현 검증**: 지난 검증 뒤에 구현이 바뀌었으면 사용자가 구현 모델과 다른 벤더 모델로 교차 감사를 전체로 다시 받는다. spec·plan의 변경(체크박스와 `확인` 칸만 바뀐 것은 빼고)과 Git이 무시하지 않는 미추적 파일도 구현이 바뀐 것으로 센다. 구현 AI는 감사를 실행하지 않는다.'
+
+# check_workflow_iv <workflow 템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과). SKILL.md는 IV_SKILL_MD에서 읽는다.
+check_workflow_iv() {
+  local names n s
+  names="$(loop_part "$IV_SKILL_MD" '구현 검증' | item_block '- **바뀌었는지의 판별**: ' | item_names)"
+  if [ -z "$names" ]; then echo 'SKILL.md 구현 검증의 세지 않는 변경 이름 없음'; return; fi
+  s="$(wf_step "$1" 4)"
+  need_all "$s" '4단계' '세지 않는 변경은' '넷이 전부' 'issue-work SKILL.md `### 구현 검증`'
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    printf '%s\n' "$s" | grep -qF -- "$n" || echo "4단계에 세지 않는 변경 [$n] 없음"
+  done <<EOF
+$(printf '%s' "$names" | tr '|' '\n')
+EOF
+  ! printf '%s\n' "$s" | grep -qF '체크박스와 `확인` 칸만 바뀐 것은 빼고' || echo '4단계에 세지 않는 변경을 일부만 적은 옛 괄호 남음'
+}
+
+assert_structure check_workflow_iv "$WORKFLOW_TPL" pass "워크플로우 흐름: 4단계의 세지 않는 변경이 SKILL.md와 같은 실제 템플릿 통과"
+for n in '이슈 작업 기록' '마무리 문서' '체크박스' '`확인` 칸과 `[ND]` 줄'; do
+  N="$n" awk 'index($0, "4. **구현 검증**") == 1 { n = ENVIRON["N"]; while ((i = index($0, n))) $0 = substr($0, 1, i - 1) substr($0, i + length(n)) } { print }' \
+    "$WORKFLOW_TPL" > "$sandbox/wiv-no.md"
+  assert_structure check_workflow_iv "$sandbox/wiv-no.md" fail "워크플로우 흐름: 4단계의 세지 않는 변경 [$n] 삭제 격추"
+done
+L="$IV_OLD_STEP4" awk 'index($0, "4. **구현 검증**") == 1 { $0 = ENVIRON["L"] } { print }' "$WORKFLOW_TPL" > "$sandbox/wiv-old.md"
+assert_structure check_workflow_iv "$sandbox/wiv-old.md" fail "워크플로우 흐름: 4단계를 3차 보정 때의 일부 예외 문장으로 되돌리기 격추"
+add_after '  - `확인` 칸과 `[ND]` 줄: ' '  - 원장 항목: `.ai/70_ledger/`의 항목만 바뀐 것이다.' > "$sandbox/wiv-skill5.md"
+IV_SKILL_MD="$sandbox/wiv-skill5.md"
+assert_structure check_workflow_iv "$WORKFLOW_TPL" fail "워크플로우 흐름: SKILL.md에만 세지 않는 변경을 하나 더하기 격추"
+IV_SKILL_MD="$SKILL"
 
 assert_structure check_loop_drawing "$WORKFLOW_TPL" pass "루프 그림: 실제 workflow 템플릿 통과"
 awk '{ if ($0 ~ / 3\. 구현$/) sub(/3\. 구현$/, "3. 구현 검증"); else if ($0 ~ / 4\. 구현 검증$/) sub(/4\. 구현 검증$/, "4. 구현"); print }' "$WORKFLOW_TPL" > "$sandbox/ld-swap.md"
