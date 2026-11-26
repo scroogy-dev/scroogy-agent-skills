@@ -2285,13 +2285,15 @@ check_test_plan() {
       if (index($0, "계획을 쓸 때는 비워 둔다")) c3++
       if (index($0, "줄을 더하거나 `확인` 외 칸을 바꾸면 그 줄의 `확인`을 비운다")) c4++
       if (index($0, "완료 확인에서 원장 등재나 새 이슈로 넘긴 AC의 줄에는 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다")) c5++
+      if (index($0, "그 AC의 줄이 없으면 못 보는 항목 표에 `[ND]` 줄을 더해 적고")) c6++
+      if (index($0, "확인 날짜를 적은 `[ND]` 줄은 `이관 K-<번호> · <날짜>`처럼 날짜를 남긴다")) c7++
     }
     END {
       if (tp != 1) print "테스트 계획 헤더 " tp + 0 "개 (기대 1개)"
       else if (!(des_at && des_at < tp_at && tp_at < tasks_at)) print "테스트 계획 섹션이 설계 결정과 Tasks 사이가 아님"
       if (man != 1)  print "테스트로 못 보는 항목 제목 " man + 0 "개 (기대 1개)"
       if (each != 1) print "AC마다 한 줄 이상 적는다는 안내 " each + 0 "개 (기대 1개)"
-      if (c1 != 1 || c2 != 1 || c3 != 1 || c4 != 1 || c5 != 1) print "확인 칸 안내 " c1 + 0 "/" c2 + 0 "/" c3 + 0 "/" c4 + 0 "/" c5 + 0 " (기대 각 1개)"
+      if (c1 != 1 || c2 != 1 || c3 != 1 || c4 != 1 || c5 != 1 || c6 != 1 || c7 != 1) print "확인 칸 안내 " c1 + 0 "/" c2 + 0 "/" c3 + 0 "/" c4 + 0 "/" c5 + 0 "/" c6 + 0 "/" c7 + 0 " (기대 각 1개)"
     }' "$1"
   plan_tables "$1" | awk -F'\t' '
     function cells(r) { return gsub(/\|/, "|", r) - 1 }
@@ -2330,6 +2332,9 @@ drop_literal "$TEMPLATE" '`[ND]` 줄에는 사용자가 확인한 날짜를 적�
 drop_literal "$TEMPLATE" '계획을 쓸 때는 비워 둔다' > "$sandbox/tl-no-c3.md"
 drop_literal "$TEMPLATE" '줄을 더하거나 `확인` 외 칸을 바꾸면 그 줄의 `확인`을 비운다' > "$sandbox/tl-no-c4.md"
 drop_literal "$TEMPLATE" '완료 확인에서 원장 등재나 새 이슈로 넘긴 AC의 줄에는 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다' > "$sandbox/tl-no-c5.md"
+# 줄이 없는 AC와 확인 날짜가 있는 줄의 이관 표지 (issue #145 최종 감사 5차 F-16).
+drop_literal "$TEMPLATE" '그 AC의 줄이 없으면 못 보는 항목 표에 `[ND]` 줄을 더해 적고' > "$sandbox/tl-no-c6.md"
+drop_literal "$TEMPLATE" '확인 날짜를 적은 `[ND]` 줄은 `이관 K-<번호> · <날짜>`처럼 날짜를 남긴다' > "$sandbox/tl-no-c7.md"
 
 assert_structure check_test_plan "$TEMPLATE"                     pass "테스트 계획 표: 실제 plan 템플릿 통과"
 assert_structure check_test_plan "$sandbox/tl-no-section.md"     fail "테스트 계획 표: 섹션 헤더 삭제 격추"
@@ -2350,6 +2355,8 @@ assert_structure check_test_plan "$sandbox/tl-no-c2.md"          fail "테스트
 assert_structure check_test_plan "$sandbox/tl-no-c3.md"          fail "테스트 계획 표: 확인 칸을 비워 두는 안내 삭제 격추"
 assert_structure check_test_plan "$sandbox/tl-no-c4.md"          fail "테스트 계획 표: 바뀐 줄의 확인을 비우는 안내 삭제 격추"
 assert_structure check_test_plan "$sandbox/tl-no-c5.md"          fail "테스트 계획 표: 넘긴 AC 줄에 이관을 적는 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c6.md"          fail "테스트 계획 표: 줄이 없는 AC에 ND 줄을 더해 이관을 적는 안내 삭제 격추"
+assert_structure check_test_plan "$sandbox/tl-no-c7.md"          fail "테스트 계획 표: 이관 표지 뒤에 확인 날짜를 남기는 안내 삭제 격추"
 
 # check_test_layer <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 # 예시 행은 단위 층(이유 `-`)과 단위보다 위 층(이유 있음)을 모두 보여 준다.
@@ -2492,6 +2499,7 @@ check_finish_task() {
     !on { next }
     index($0, "완료 확인에서 사용자가 `마무리`로 정한 뒤에만 들어간다") { enter++ }
     index($0, "이 Task에서 구현을 고치면 계획 수립으로 돌아간다") { back++ }
+    index($0, "들어가기 직전에 구현 검증의 판별을 다시 해서, 마지막 교차 감사 뒤에 바뀐 것이 있으면 들어가지 않고 계획 수립으로 돌아간다") { gate++ }
     index($0, "`--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다") { tick++ }
     /issue-audit/ { audit++ }
     /<!--/ { c = 1 }
@@ -2515,6 +2523,7 @@ check_finish_task() {
       if (audit)      print "Task N에 issue-audit 언급 " audit "행 (교차 감사는 구현 검증 단계에서 받는다)"
       if (enter != 1) print "마무리로 정한 뒤에만 들어간다는 문장 " enter + 0 "개 (기대 1개)"
       if (back != 1)  print "구현을 고치면 돌아간다는 문장 " back + 0 "개 (기대 1개)"
+      if (gate != 1)  print "들어가기 직전에 구현 검증의 판별을 다시 한다는 문장 " gate + 0 "개 (기대 1개)"
       if (tick != 1)  print "체크박스를 --clear가 체크한다는 문장 " tick + 0 "개 (기대 1개)"
       if (d != 4 || reg != 1 || g0 != 1 || g1 != 1 || g2 != 1) print "Task N [D] 기준 " d + 0 "개, 회귀 " reg + 0 " 게이트 " g0 + 0 "/" g1 + 0 "/" g2 + 0 " (기대 4개, 각 1)"
       if (q != 2 || v1 != 1 || v2 != 1) print "Task N 벤더 교차 조건 " v1 + 0 "/" v2 + 0 " ([QD] " q + 0 "개, 기대 2개)"
@@ -2535,6 +2544,8 @@ awk '/^### Task N/ { s = 1 } s && /^  [0-9]+\. \*\*--clear\*\*/ { held = $0; nex
   "$TEMPLATE" > "$sandbox/fi-swap.md"
 drop_literal "$TEMPLATE" '완료 확인에서 사용자가 `마무리`로 정한 뒤에만 들어간다' > "$sandbox/fi-no-enter.md"
 drop_literal "$TEMPLATE" '이 Task에서 구현을 고치면 계획 수립으로 돌아간다' > "$sandbox/fi-no-back.md"
+# 완료 확인 뒤에 생긴 변경을 Task N 진입 직전에 다시 가린다 (issue #145 최종 감사 5차 F-15·F-17).
+drop_literal "$TEMPLATE" '들어가기 직전에 구현 검증의 판별을 다시 해서, 마지막 교차 감사 뒤에 바뀐 것이 있으면 들어가지 않고 계획 수립으로 돌아간다' > "$sandbox/fi-no-gate.md"
 drop_literal "$TEMPLATE" '`--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다' > "$sandbox/fi-no-tick.md"
 awk '!/^  - \[QD\] 구현에 여러 벤더가/' "$TEMPLATE" > "$sandbox/fi-no-vendor.md"
 awk '/^### Task N/ { s = 1 } s && /^- \[ \] 완료$/ { next } { print }' "$TEMPLATE" > "$sandbox/fi-no-box.md"
@@ -2550,6 +2561,7 @@ assert_structure check_finish_task "$sandbox/fi-audit-run.md"     fail "마무�
 assert_structure check_finish_task "$sandbox/fi-swap.md"          fail "마무리 Task: --clear와 PR 순서 역전 격추"
 assert_structure check_finish_task "$sandbox/fi-no-enter.md"      fail "마무리 Task: 들어가는 조건 문장 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-back.md"       fail "마무리 Task: 돌아가는 조건 문장 삭제 격추"
+assert_structure check_finish_task "$sandbox/fi-no-gate.md"       fail "마무리 Task: 들어가기 직전 판별 문장 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-tick.md"       fail "마무리 Task: 체크박스 기록 문장 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-vendor.md"     fail "마무리 Task: 벤더 교차 조건 삭제 격추"
 assert_structure check_finish_task "$sandbox/fi-no-box.md"        fail "마무리 Task: 완료 체크박스 삭제 격추"
@@ -3311,7 +3323,7 @@ check_impl_verify() {
 
 # check_done_check <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_done_check() {
-  local b c got p
+  local b c d got p
   b="$(loop_part "$1" '완료 확인')"
   for p in '보이는 값' '확인 칸' '권장' '결정' '기준에 못 미친 마무리'; do need_one "$b" '완료 확인' "- **${p}**: "; done
   c="$(printf '%s\n' "$b" | item_block '- **보이는 값**: ')"
@@ -3329,18 +3341,35 @@ check_done_check() {
   need_all "$(printf '%s\n' "$c" | item_block '  - 반영으로 정한 발견: ')" '반영으로 정한 발견' '모두 닫았다' '이관이나 보류로 정한 발견은 세지 않는다'
   c="$(printf '%s\n' "$b" | item_block '- **확인 칸**: ')"
   need_all "$c" '확인 칸' '충족으로 판정한 AC의 `[D]`·`[QD]` 줄에 그 감사 회차를 적' '감사 대상 커밋의 `테스트 계획`에 같은 내용으로 있던 줄에만' \
-    '새 회차로 다시 적' '`확인`이 빈 `[ND]` 줄과 지난 확인 뒤에 구현이 바뀐 `[ND]` 줄은 사용자에게 보여 주고' '사용자가 확인하지 않은 줄은 비워 둔다'
+    '새 회차로 다시 적' '`확인`이 빈 `[ND]` 줄과 지난 확인 뒤에 구현이 바뀐 `[ND]` 줄은 사용자에게 보여 주고' '사용자가 확인하지 않은 줄은 비워 둔다' \
+    '`이관` 표지를 적은 줄은 비우지 않는다'
   need_all "$(printf '%s\n' "$b" | item_block '- **결정**: ')" '결정' '사용자가 정하고' '`결정` 칸에 적는다'
   c="$(printf '%s\n' "$b" | item_block '- **기준에 못 미친 마무리**: ')"
-  need_all "$c" '기준에 못 미친 마무리' '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다'
+  need_all "$c" '기준에 못 미친 마무리' '남은 AC와 발견마다 완화·원장 등재·새 이슈 가운데 결정을 받는다' \
+    '이 결정으로 바뀐 파일은 `### 마무리`의 들어가기 전 판별이 본다'
   need_one "$c" '기준에 못 미친 마무리' '  - **넘긴 AC**: '
   need_one "$c" '기준에 못 미친 마무리' '  - **완화한 AC**: '
-  need_all "$(printf '%s\n' "$c" | item_block '  - **넘긴 AC**: ')" '넘긴 AC' \
+  d="$(printf '%s\n' "$c" | item_block '  - **넘긴 AC**: ')"
+  need_all "$d" '넘긴 AC' \
     '원장 등재나 새 이슈로 넘긴 AC는 spec에 그대로 두고' '그 AC의 줄마다 `확인` 칸에 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다' \
     'Task N 전체 회귀는 이 줄을 실행하지 않고' 'repo 전체 테스트와 나머지 `[D]` 줄은 그대로 전부 통과해야 한다' \
-    '그 AC를 위해 커밋한 테스트가 실패하면' '변경 통제의 완화로 함께 승인받는다' '승인하지 않으면 그 AC를 넘길 수 없다'
-  need_all "$(printf '%s\n' "$c" | item_block '  - **완화한 AC**: ')" '완화한 AC' \
-    '완화로 문장을 바꾼 AC는' '마지막 교차 감사 리포트가 그 문장을 판정하지 않았으므로' '`미검증`으로 보인다'
+    '그 AC를 위해 커밋한 테스트가 실패하면' '변경 통제의 완화로 함께 승인받는다' '승인하지 않으면 그 AC를 넘길 수 없다' \
+    '승인한 테스트 변경은 마지막 교차 감사 뒤의 구현 변경이라 `### 마무리`의 들어가기 전 판별에 걸리고' '다음 회차의 구현 검증을 거친 뒤에 마무리한다'
+  # 줄이 없는 AC와 확인 날짜 (issue #145 최종 감사 5차 F-16).
+  need_one "$d" '넘긴 AC' '    - **줄이 없는 AC**: '
+  need_one "$d" '넘긴 AC' '    - **확인 날짜**: '
+  need_all "$(printf '%s\n' "$d" | item_block '    - **줄이 없는 AC**: ')" '줄이 없는 AC' \
+    '`테스트 계획`에 그 AC의 줄이 없으면 `테스트로 못 보는 항목`에 그 AC의 `[ND]` 줄을 하나 더해' '`확인` 칸에 표지를 적는다' \
+    '`[ND]` 줄의 변경이라 들어가기 전 판별에서 세지 않는다'
+  need_all "$(printf '%s\n' "$d" | item_block '    - **확인 날짜**: ')" '확인 날짜' \
+    '사용자 확인 날짜를 이미 적은 `[ND]` 줄은 `이관 K-<번호> · <날짜>`처럼 표지 뒤에 날짜를 남긴다' 'git-pr이 그 날짜를 PR 근거로 옮긴다'
+  # 완화한 AC는 마무리 진입 판별에 걸려 새 기준으로 다시 판정받는다 (issue #145 최종 감사 5차 F-15·F-17).
+  d="$(printf '%s\n' "$c" | item_block '  - **완화한 AC**: ')"
+  need_all "$d" '완화한 AC' \
+    '완화로 AC 문장이나 그 AC의 판정에 쓰는 `결정 사항`을 바꾸면' '마지막 교차 감사는 바뀐 기준으로 판정하지 않았다' \
+    '`### 마무리`의 들어가기 전 판별에 걸려 다음 회차의 구현 검증에서 새 기준으로 다시 판정받는다' \
+    'git-pr이 `미검증`으로 두는 규칙은 그대로 둔다'
+  ! printf '%s\n' "$d" | grep -qF -- '`미검증`으로 보인다' || echo '완화한 AC에 다시 판정받지 않고 미검증으로 보인다는 4차 문장 남음'
 }
 
 # check_finish_entry <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
@@ -3349,6 +3378,13 @@ check_finish_entry() {
   b="$(loop_part "$1" '마무리')"
   need_all "$b" '마무리' '사용자가 `마무리`로 정한 뒤에만 Task N에 들어간다' '교차 감사를 받지 않는다' \
     '전체 회귀, 색인, 충족 AC 체크, repo 고유 마무리, `--clear`, PR'
+  # 완료 확인 뒤에 생긴 변경을 같은 판별로 다시 가린다 (issue #145 최종 감사 5차 F-15·F-17).
+  need_one "$b" '마무리' '- **들어가기 전 판별**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **들어가기 전 판별**: ')" '들어가기 전 판별' \
+    'Task N에 들어가기 직전에 `### 구현 검증`의 `바뀌었는지의 판별`을 같은 기준으로 다시 한다' \
+    '완료 확인에서 승인한 완화와 넘긴 AC의 테스트 변경' '그 감사가 판정하지 않았기 때문이다' \
+    '바뀐 파일을 사용자에게 보여 주고' '그 회차의 `결정`을 `다음 회차`로 고친 뒤 계획 수립으로 돌아간다' \
+    '세지 않는 변경만 있으면' '그대로 Task N에 들어간다'
   need_one "$b" '마무리' '- **구현을 고칠 때**: '
   need_all "$(printf '%s\n' "$b" | item_block '- **구현을 고칠 때**: ')" '구현을 고칠 때' 'Task N에서 구현을 고치면 계획 수립으로 돌아간다' '체크한 AC의 체크를 지운다'
   b="$(opt_step "$1" --clear 1)"
@@ -3503,7 +3539,14 @@ drop_cases check_done_check '완료 확인 단계' \
   '`이관`을 적은 줄은 채워진 줄로 세지 않는다' '  - **넘긴 AC**: ' '  - **완화한 AC**: ' '원장 등재나 새 이슈로 넘긴 AC는 spec에 그대로 두고' \
   '그 AC의 줄마다 `확인` 칸에 `이관 K-<번호>`나 `이관 #<이슈 번호>`를 적는다' 'Task N 전체 회귀는 이 줄을 실행하지 않고' \
   'repo 전체 테스트와 나머지 `[D]` 줄은 그대로 전부 통과해야 한다' '그 AC를 위해 커밋한 테스트가 실패하면' '변경 통제의 완화로 함께 승인받는다' \
-  '승인하지 않으면 그 AC를 넘길 수 없다' '완화로 문장을 바꾼 AC는' '마지막 교차 감사 리포트가 그 문장을 판정하지 않았으므로' '`미검증`으로 보인다'
+  '승인하지 않으면 그 AC를 넘길 수 없다' \
+  '`이관` 표지를 적은 줄은 비우지 않는다' '이 결정으로 바뀐 파일은 `### 마무리`의 들어가기 전 판별이 본다' \
+  '승인한 테스트 변경은 마지막 교차 감사 뒤의 구현 변경이라 `### 마무리`의 들어가기 전 판별에 걸리고' '다음 회차의 구현 검증을 거친 뒤에 마무리한다' \
+  '    - **줄이 없는 AC**: ' '    - **확인 날짜**: ' '`테스트 계획`에 그 AC의 줄이 없으면 `테스트로 못 보는 항목`에 그 AC의 `[ND]` 줄을 하나 더해' \
+  '`확인` 칸에 표지를 적는다' '`[ND]` 줄의 변경이라 들어가기 전 판별에서 세지 않는다' \
+  '사용자 확인 날짜를 이미 적은 `[ND]` 줄은 `이관 K-<번호> · <날짜>`처럼 표지 뒤에 날짜를 남긴다' 'git-pr이 그 날짜를 PR 근거로 옮긴다' \
+  '완화로 AC 문장이나 그 AC의 판정에 쓰는 `결정 사항`을 바꾸면' '마지막 교차 감사는 바뀐 기준으로 판정하지 않았다' \
+  '`### 마무리`의 들어가기 전 판별에 걸려 다음 회차의 구현 검증에서 새 기준으로 다시 판정받는다' 'git-pr이 `미검증`으로 두는 규칙은 그대로 둔다'
 for p in '보이는 값|  - 1단계 상태' '보이는 값|  - 2단계 상태' '보이는 값|  - 종합 판정' '보이는 값|  - 확인한 줄 수: ' \
          '권장|  - 1단계 상태: ' '권장|  - 2단계 상태: ' '권장|  - 확인한 줄 수: ' '권장|  - 반영으로 정한 발견: '; do
   awk -v it="- **${p%%|*}**: " -v l="${p#*|}" '/^- / { s = (index($0, it) == 1) } s && index($0, l) == 1 { next } { print }' "$SKILL" > "$sandbox/dn-no.md"
@@ -3519,6 +3562,10 @@ assert_structure check_done_check "$sandbox/dn-extra.md" fail "완료 확인 단
 assert_structure check_done_check "$sandbox/dn-ai.md"    fail "완료 확인 단계: 결정 주체를 구현 AI로 바꾸기 격추"
 move_item '  - **넘긴 AC**: ' '### 마무리' > "$sandbox/dn-moved.md"
 assert_structure check_done_check "$sandbox/dn-moved.md" fail "완료 확인 단계: 넘긴 AC 항목의 마무리 절 이동 격추"
+# 완화한 AC를 4차의 문장(다시 판정받지 않고 PR에서 미검증)으로 되돌리기 (issue #145 최종 감사 5차 F-15·F-17).
+DN_OLD='  - **완화한 AC**: 완화로 문장을 바꾼 AC는 마지막 교차 감사 리포트가 그 문장을 판정하지 않았으므로 PR의 완료의 정의 대조에서 `미검증`으로 보인다. git-pr이 리포트 행의 문장과 spec의 AC 문장을 견주기 때문이다.'
+L="$DN_OLD" awk 'index($0, "  - **완화한 AC**: ") == 1 { $0 = ENVIRON["L"] } { print }' "$SKILL" > "$sandbox/dn-old-relax.md"
+assert_structure check_done_check "$sandbox/dn-old-relax.md" fail "완료 확인 단계: 완화한 AC를 4차의 미검증 문장으로 되돌리기 격추"
 
 assert_structure check_finish_entry "$SKILL" pass "마무리 진입: 실제 SKILL.md 통과"
 drop_cases check_finish_entry '마무리 진입' \
@@ -3526,7 +3573,10 @@ drop_cases check_finish_entry '마무리 진입' \
   'Task N에서 구현을 고치면 계획 수립으로 돌아간다' '체크한 AC의 체크를 지운다' '     - **체크박스**: ' '     - **루프 기록의 결정**: ' \
   'summary `루프 기록` 마지막 행의 `결정`이 `마무리`인지 본다' '결정 전이거나 `다음 회차`' '미완료 항목으로 보여 준다' '계속 진행할지 질의한다' \
   '     - **Task N 기록**: ' '1단계의 두 검사가 모두' '이관 직전에 plan의 Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`' \
-  '미완료를 안고 진행한 실행(중단·종료)에서는 체크하지 않는다' '행에 기록' 'PR을 만들기 직전'
+  '미완료를 안고 진행한 실행(중단·종료)에서는 체크하지 않는다' '행에 기록' 'PR을 만들기 직전' \
+  '- **들어가기 전 판별**: ' 'Task N에 들어가기 직전에 `### 구현 검증`의 `바뀌었는지의 판별`을 같은 기준으로 다시 한다' \
+  '완료 확인에서 승인한 완화와 넘긴 AC의 테스트 변경' '그 감사가 판정하지 않았기 때문이다' '바뀐 파일을 사용자에게 보여 주고' \
+  '그 회차의 `결정`을 `다음 회차`로 고친 뒤 계획 수립으로 돌아간다' '세지 않는 변경만 있으면' '그대로 Task N에 들어간다'
 for p in "이슈 완료 시|## 이슈 완료 시" '--clear 1단계|### `--clear`'; do
   awk -v h="${p#*|}" '/^##/ { s = ($0 == h) } s { gsub(/Task N의 미체크는 미완료로 세지 않는다/, "Task N도 체크되어야 한다") } { print }' "$SKILL" > "$sandbox/fe-n.md"
   assert_structure check_finish_entry "$sandbox/fe-n.md" fail "마무리 진입: ${p%%|*}에서 Task N 미체크를 미완료로 되돌리기 격추"
@@ -3537,6 +3587,8 @@ awk '/^### `--clear`$/ { f = 1 } f && /^  5\. / { sub(/^  5\. /, "  7. "); f = 0
 assert_structure check_finish_entry "$sandbox/fe-step5.md" fail "마무리 진입: Task N 기록의 --clear 5단계 이동 격추"
 assert_structure check_finish_entry "$sandbox/fe-step2.md" fail "마무리 진입: 루프 기록 결정 검사의 --clear 2단계 이동 격추"
 assert_structure check_finish_entry "$sandbox/fe-renum.md" fail "마무리 진입: --clear 단계 번호 변경 격추"
+move_item '- **들어가기 전 판별**: ' '### 완료 확인' > "$sandbox/fe-gate-moved.md"
+assert_structure check_finish_entry "$sandbox/fe-gate-moved.md" fail "마무리 진입: 들어가기 전 판별 항목의 구현 검증 절 이동 격추"
 
 assert_structure check_same_kind "$SKILL" pass "같은 종류 발견: 실제 SKILL.md 통과"
 drop_cases check_same_kind '같은 종류 발견' \
@@ -3598,7 +3650,10 @@ check_workflow_flow() {
   c="$(printf '%s\n' "$b" | item_block '- **권장 기준**: ')"
   need_all "$(printf '%s\n' "$c" | head -1)" '권장 기준 첫 행' '네 가지가 모두 맞으면 `마무리`, 그 밖은 `다음 회차`를 권장한다' \
     '원장 등재나 새 이슈로 넘긴 AC는 `테스트 계획`의 `확인` 칸에 `이관`을 적고 Task N 전체 회귀에서 그 줄만 뺀다' \
-    '완화로 문장을 바꾼 AC는 PR에서 `미검증`으로 보인다'
+    '줄이 없는 AC는 `[ND]` 줄을 더해 적고, 확인 날짜를 적은 줄은 표지 뒤에 날짜를 남긴다' \
+    '완화나 테스트 변경으로 파일이 바뀌면 아래 마무리의 들어가기 전 판별에서 다음 회차로 돌아간다'
+  # 완화한 AC는 마무리 진입 판별로 다시 판정받으므로 4차의 미검증 문장을 두지 않는다 (issue #145 최종 감사 5차 F-15·F-17).
+  ! printf '%s\n' "$c" | grep -qF -- '완화로 문장을 바꾼 AC는 PR에서 `미검증`으로 보인다' || echo '권장 기준에 4차의 완화한 AC 미검증 문장 남음'
   got="$(printf '%s\n' "$c" | item_names)"
   [ "$got" = '1단계 상태|2단계 상태|확인한 줄 수|반영으로 정한 발견|' ] || echo "권장 기준 목록 [$got]"
   need_one "$c" '권장 기준' '  - 1단계 상태: 충족(PASS)이다.'
@@ -3607,7 +3662,8 @@ check_workflow_flow() {
   need_all "$(printf '%s\n' "$c" | item_block '  - 반영으로 정한 발견: ')" '반영으로 정한 발견' '모두 닫았다' '이관이나 보류로 정한 발견은 세지 않는다'
   need_one "$b" '진행 루프' '- **마무리**: '
   need_all "$(printf '%s\n' "$b" | item_block '- **마무리**: ')" '마무리' '사용자가 `마무리`로 정한 뒤에만 Task N에 들어간다' \
-    '전체 회귀, 색인, 충족 AC 체크, repo 고유 마무리, `--clear`, PR' '교차 감사를 받지 않는다' 'Task N에서 구현을 고치면 계획 수립으로 돌아간다'
+    '전체 회귀, 색인, 충족 AC 체크, repo 고유 마무리, `--clear`, PR' '교차 감사를 받지 않는다' 'Task N에서 구현을 고치면 계획 수립으로 돌아간다' \
+    '들어가기 직전에 4단계의 판별을 다시 해서' '마지막 교차 감사 뒤에 바뀐 것이 있으면 그 회차의 `결정`을 `다음 회차`로 고치고 1로 돌아간다'
   b="$(h2_section "$1" '작업 진행 중')"
   need_all "$(printf '%s\n' "$b" | grep -F 'Task 0(구현 시작 게이트)')" 'Task 0 항목' 'spec `## 결정 사항`이나 plan `## 설계 결정`에 적는다' \
     '`전제 누락 없음`'
@@ -3681,7 +3737,10 @@ wf_drop_cases check_workflow_flow '워크플로우 흐름' \
   'spec `## 결정 사항`이나 plan `## 설계 결정`에' '항목별 결정' '소스를 고치지 않는다' '반영으로 정한 발견은 다음 회차' \
   'Task N의 미체크는 미완료로 세지 않는다' 'summary `루프 기록` 마지막 행의 `결정`이' '**대신 채우지 않는다.**' \
   'Task N 체크박스를 체크하고' '`PR 대기(git-pr로 생성)`' \
-  '`확인` 칸에 `이관`을 적고 Task N 전체 회귀에서 그 줄만 뺀다' '완화로 문장을 바꾼 AC는 PR에서 `미검증`으로 보인다'
+  '`확인` 칸에 `이관`을 적고 Task N 전체 회귀에서 그 줄만 뺀다' \
+  '줄이 없는 AC는 `[ND]` 줄을 더해 적고' '확인 날짜를 적은 줄은 표지 뒤에 날짜를 남긴다' \
+  '아래 마무리의 들어가기 전 판별에서 다음 회차로 돌아간다' '들어가기 직전에 4단계의 판별을 다시 해서' \
+  '그 회차의 `결정`을 `다음 회차`로 고치고 1로 돌아간다'
 for p in '  - 1단계 상태: ' '  - 2단계 상태: ' '  - 확인한 줄 수: ' '  - 반영으로 정한 발견: '; do
   wf_drop_row "$p" > "$sandbox/wf-no-crit.md"
   assert_structure check_workflow_flow "$sandbox/wf-no-crit.md" fail "워크플로우 흐름: 권장 기준 [${p#  - }] 행 삭제 격추"
@@ -3703,6 +3762,9 @@ assert_structure check_workflow_flow "$sandbox/wf-extra.md"  fail "워크플로�
 assert_structure check_workflow_flow "$sandbox/wf-ai.md"     fail "워크플로우 흐름: 결정 주체를 구현 AI로 바꾸기 격추"
 assert_structure check_workflow_flow "$sandbox/wf-soft.md"   fail "워크플로우 흐름: 1단계 상태 기준을 부분 충족까지 넓히기 격추"
 assert_structure check_workflow_flow "$sandbox/wf-assume.md" fail "워크플로우 흐름: Task 0 답을 옛 전제 섹션에 적기 격추"
+wf_sub '완화나 테스트 변경으로 파일이 바뀌면 아래 마무리의 들어가기 전 판별에서 다음 회차로 돌아간다.' '완화로 문장을 바꾼 AC는 PR에서 `미검증`으로 보인다.' \
+  > "$sandbox/wf-old-relax.md"
+assert_structure check_workflow_flow "$sandbox/wf-old-relax.md" fail "워크플로우 흐름: 권장 기준을 4차의 완화한 AC 미검증 문장으로 되돌리기 격추"
 
 # 구현 검증의 세지 않는 변경 (issue #145 최종 감사 4차 F-14): workflow 템플릿 4단계가 SKILL.md `### 구현 검증`의
 # 판별 항목에 있는 이름을 모두 적고 범위는 SKILL.md로 넘긴다. 이름은 SKILL.md에서 읽으므로 한쪽만 바뀌면 걸린다.
