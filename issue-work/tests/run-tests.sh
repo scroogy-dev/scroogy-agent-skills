@@ -3261,6 +3261,11 @@ check_loop_stages() {
     || echo "테스트를 먼저 쓰지 않는 Task의 기준 목록 [$got]"
 }
 
+# 구현 검증 판별의 diff 범위를 정하는 두 명령(issue #145 최종 감사 3차 F-10·F-11).
+# 구조 검사가 SKILL.md에서 찾는 문구와 아래 실제 동작 검사가 실행하는 명령이 같은 값을 쓴다.
+IV_DIFF_CMD='git diff --name-only --no-renames'
+IV_UNTRACKED_CMD='git ls-files --others --exclude-standard'
+
 # check_impl_verify <파일> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_impl_verify() {
   local b c got p
@@ -3271,17 +3276,18 @@ check_impl_verify() {
     '고친 발견의 위험도에 따른 예외는 없다' '구현 AI는 감사를 실행하지 않는다' '스펙 위반·누락·소스코드와의 모순'
   c="$(printf '%s\n' "$b" | item_block '- **바뀌었는지의 판별**: ')"
   need_all "$(printf '%s\n' "$c" | head -1)" '판별 첫 행' '`구현 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
-    '하나라도 맞으면 바뀐 것' '조건은 이 넷이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도' \
-    '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다'
+    '값이 있는 행이 없으면 받는다' '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다' \
+    'diff는 그 커밋과 지금 작업 트리의 차이' "\`$IV_DIFF_CMD <커밋>\`" "\`$IV_UNTRACKED_CMD\`" \
+    '커밋하지 않은 변경, 지운 파일, Git이 무시하지 않는 미추적 파일' \
+    '아래 넷에 들지 않는 변경이 하나라도 있으면 바뀐 것' '세지 않는 변경은 이 넷이 전부다' '교차 감사가 읽는 구현과 spec·plan' '문서만 고친 회차도'
   got="$(printf '%s\n' "$c" | item_names)"
-  [ "$got" = '제외 경로 밖|제외 경로 안의 산출물|`테스트 계획`의 줄|AC와 결정|' ] || echo "구현이 바뀐 조건 목록 [$got]"
-  need_all "$(printf '%s\n' "$c" | item_block '  - 제외 경로 밖: ')" '제외 경로 밖' \
-    '`.ai/90_issues/`' '`.ai/99_workspace/`' '`.ai/70_ledger/`' 'plan Task N이 마무리로 적은 문서'
-  need_all "$(printf '%s\n' "$c" | item_block '  - 제외 경로 안의 산출물: ')" '제외 경로 안의 산출물' 'plan 일반 Task가 고친다고 적은 파일'
-  need_all "$(printf '%s\n' "$c" | item_block '  - `테스트 계획`의 줄: ')" '테스트 계획의 줄' \
-    '`[D]`·`[QD]` 줄이 더해졌거나' '`확인` 외 칸이 바뀌었다' '`확인` 칸만 바뀐 것과 `[ND]` 줄의 변경은 세지 않는다'
-  need_all "$(printf '%s\n' "$c" | item_block '  - AC와 결정: ')" 'AC와 결정' \
-    'spec 완료의 정의의 AC나 `결정 사항`의 결정이 더해졌거나 문장이 바뀌었다' '체크박스만 바뀐 것은 세지 않는다'
+  [ "$got" = '이슈 작업 기록|마무리 문서|체크박스|`확인` 칸과 `[ND]` 줄|' ] || echo "세지 않는 변경 목록 [$got]"
+  need_all "$(printf '%s\n' "$c" | item_block '  - 이슈 작업 기록: ')" '이슈 작업 기록' \
+    '`.ai/90_issues/`' '`.ai/99_workspace/`' '`.ai/70_ledger/`' 'spec·plan과 plan 일반 Task가 고친다고 적은 파일은 여기에 들지 않는다'
+  need_all "$(printf '%s\n' "$c" | item_block '  - 마무리 문서: ')" '마무리 문서' 'plan Task N이 마무리로 적은 문서'
+  need_all "$(printf '%s\n' "$c" | item_block '  - 체크박스: ')" '체크박스' 'spec·plan에서 체크 표시만 바뀐 것'
+  need_all "$(printf '%s\n' "$c" | item_block '  - `확인` 칸과 `[ND]` 줄: ')" '확인 칸과 ND 줄' \
+    'plan `테스트 계획`에서 `확인` 칸만 바뀐 것' '`[ND]` 줄의 변경'
   need_all "$(printf '%s\n' "$b" | item_block '- **검토**: ')" '검토' '`--response`'
   need_all "$(h2_section "$1" '관련 skill' | item_block '- issue-audit (권장): ')" '관련 skill의 issue-audit' \
     '구현 검증' '**구현 AI는 감사를 실행하지 않습니다.**'
@@ -3410,29 +3416,61 @@ assert_structure check_impl_verify "$SKILL" pass "구현 검증 단계: 실제 S
 drop_cases check_impl_verify '구현 검증 단계' \
   '지난 검증 뒤에 구현이 바뀌었으면' '교차 감사를 전체로 다시 받는다' '**다른 벤더 모델**' '고친 발견의 위험도에 따른 예외는 없다' \
   '구현 AI는 감사를 실행하지 않는다' '스펙 위반·누락·소스코드와의 모순' '`구현 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
-  '하나라도 맞으면 바뀐 것' '조건은 이 넷이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도' \
+  '값이 있는 행이 없으면 받는다' '문서만 고친 회차도' \
   '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다' \
-  'spec 완료의 정의의 AC나 `결정 사항`의 결정이 더해졌거나 문장이 바뀌었다' '체크박스만 바뀐 것은 세지 않는다' \
-  'plan Task N이 마무리로 적은 문서' 'plan 일반 Task가 고친다고 적은 파일' '`[D]`·`[QD]` 줄이 더해졌거나' \
-  '`확인` 칸만 바뀐 것과 `[ND]` 줄의 변경은 세지 않는다' '**구현 AI는 감사를 실행하지 않습니다.**'
-for p in '  - 제외 경로 밖: ' '  - 제외 경로 안의 산출물: ' '  - `테스트 계획`의 줄: ' '  - AC와 결정: '; do
+  'diff는 그 커밋과 지금 작업 트리의 차이' "\`$IV_DIFF_CMD <커밋>\`" "\`$IV_UNTRACKED_CMD\`" \
+  '커밋하지 않은 변경, 지운 파일, Git이 무시하지 않는 미추적 파일' \
+  '아래 넷에 들지 않는 변경이 하나라도 있으면 바뀐 것' '세지 않는 변경은 이 넷이 전부다' '교차 감사가 읽는 구현과 spec·plan' \
+  'spec·plan과 plan 일반 Task가 고친다고 적은 파일은 여기에 들지 않는다' 'plan Task N이 마무리로 적은 문서' \
+  'spec·plan에서 체크 표시만 바뀐 것' 'plan `테스트 계획`에서 `확인` 칸만 바뀐 것' '**구현 AI는 감사를 실행하지 않습니다.**'
+for p in '  - 이슈 작업 기록: ' '  - 마무리 문서: ' '  - 체크박스: ' '  - `확인` 칸과 `[ND]` 줄: '; do
   drop_row "$p" > "$sandbox/iv-no.md"
-  assert_structure check_impl_verify "$sandbox/iv-no.md" fail "구현 검증 단계: 조건 [${p#  - }] 행 삭제 격추"
+  assert_structure check_impl_verify "$sandbox/iv-no.md" fail "구현 검증 단계: 세지 않는 변경 [${p#  - }] 행 삭제 격추"
 done
 for p in '`.ai/90_issues/`' '`.ai/99_workspace/`' '`.ai/70_ledger/`'; do
-  P="$p" awk 'index($0, "  - 제외 경로 밖: ") == 1 { i = index($0, ENVIRON["P"]); if (i) $0 = substr($0, 1, i - 1) substr($0, i + length(ENVIRON["P"])) } { print }' "$SKILL" > "$sandbox/iv-path.md"
-  assert_structure check_impl_verify "$sandbox/iv-path.md" fail "구현 검증 단계: 제외 경로 [$p] 삭제 격추"
+  P="$p" awk 'index($0, "  - 이슈 작업 기록: ") == 1 { i = index($0, ENVIRON["P"]); if (i) $0 = substr($0, 1, i - 1) substr($0, i + length(ENVIRON["P"])) } { print }' "$SKILL" > "$sandbox/iv-path.md"
+  assert_structure check_impl_verify "$sandbox/iv-path.md" fail "구현 검증 단계: 이슈 작업 기록 경로 [$p] 삭제 격추"
 done
-add_after '  - `테스트 계획`의 줄: ' '  - 위험도: 높음 발견을 고쳤다.' > "$sandbox/iv-extra.md"
+# 옛 열거로 되돌린 사본: 세지 않는 변경 목록이 달라져 걸린다.
+add_after '  - `확인` 칸과 `[ND]` 줄: ' '  - `테스트 계획`의 줄 삭제: plan `테스트 계획`에서 줄이 지워진 것.' > "$sandbox/iv-del.md"
+assert_structure check_impl_verify "$sandbox/iv-del.md" fail "구현 검증 단계: 세지 않는 변경에 줄 삭제 추가 격추"
+add_after '  - `확인` 칸과 `[ND]` 줄: ' '  - 위험도: 낮음 발견만 고쳤다.' > "$sandbox/iv-extra.md"
 move_item '- **감사 실행**: ' '### 마무리' > "$sandbox/iv-moved.md"
 add_after '## 작업 진행 중' '- 계획의 마지막 Task는 교차모델 검증으로 고정한다.' > "$sandbox/iv-old.md"
 add_after '- **용도**: 세션 종료' '- 최종 감사는 Task N 교차모델 audit에서 받는다.' > "$sandbox/iv-old2.md"
 R="$DIRTY_RULE" awk 'index($0, "- **바뀌었는지의 판별**: ") == 1 { i = index($0, ENVIRON["R"]); if (i) $0 = substr($0, 1, i - 1) substr($0, i + length(ENVIRON["R"])) } { print }' "$SKILL" > "$sandbox/iv-dirty.md"
 assert_structure check_impl_verify "$sandbox/iv-dirty.md" fail "구현 검증 단계: 구현 검증 판별의 미커밋 규칙만 삭제 격추"
-assert_structure check_impl_verify "$sandbox/iv-extra.md" fail "구현 검증 단계: 조건에 위험도 추가 격추"
+assert_structure check_impl_verify "$sandbox/iv-extra.md" fail "구현 검증 단계: 세지 않는 변경에 위험도 추가 격추"
 assert_structure check_impl_verify "$sandbox/iv-moved.md" fail "구현 검증 단계: 감사 실행 항목의 완료 확인 이동 격추"
 assert_structure check_impl_verify "$sandbox/iv-old.md"   fail "구현 검증 단계: 작업 진행 중의 옛 교차모델 검증 문구 되돌리기 격추"
 assert_structure check_impl_verify "$sandbox/iv-old2.md"  fail "구현 검증 단계: 옵션 절의 옛 Task N 교차모델 문구 되돌리기 격추"
+
+# 판별의 diff 범위 실제 동작(issue #145 최종 감사 3차 F-10·F-11): 임시 저장소에서 커밋 뒤에
+# 수정·스테이징한 새 파일·삭제·이름 변경·미추적 파일·무시 파일을 만들고, SKILL.md가 적은 두 명령의 합이
+# 무시 파일만 빼고 모두 내는지 본다. 앞 명령만으로는 미추적 파일이 빠진다는 사실(F-10의 원인)도 고정한다.
+ivr="$sandbox/iv-repo"
+ivg() { git -C "$ivr" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null "$@"; }
+mkdir -p "$ivr"
+ivg init -q
+printf 'ignored.log\n' > "$ivr/.gitignore"
+for f in mod del ren; do printf '%s\n' "$f" > "$ivr/$f.txt"; done
+ivg add -A && ivg commit -q -m base
+iv_base="$(ivg rev-parse HEAD)"
+printf 'changed\n' >> "$ivr/mod.txt"
+printf 'staged\n' > "$ivr/staged.txt" && ivg add staged.txt
+rm "$ivr/del.txt"
+ivg mv ren.txt renamed.txt
+printf 'new\n' > "$ivr/untracked.txt"
+printf 'log\n' > "$ivr/ignored.log"
+iv_diff="$(cd "$ivr" && $IV_DIFF_CMD "$iv_base" | LC_ALL=C sort | paste -sd' ' -)"
+iv_all="$(cd "$ivr" && { $IV_DIFF_CMD "$iv_base"; $IV_UNTRACKED_CMD; } | LC_ALL=C sort -u | paste -sd' ' -)"
+iv_want='del.txt mod.txt ren.txt renamed.txt staged.txt untracked.txt'
+if [ "$iv_all" = "$iv_want" ]; then ok "구현 검증 판별: 두 명령의 합이 무시 파일만 빼고 바뀐 파일을 모두 낸다"
+else ng "구현 검증 판별: 두 명령의 합 (기대 [$iv_want], 실제 [$iv_all])"; fi
+case " $iv_diff " in
+  *' untracked.txt '*) ng "구현 검증 판별: 앞 명령만으로 미추적 파일이 나옴 (실제 [$iv_diff])" ;;
+  *) ok "구현 검증 판별: 앞 명령만으로는 미추적 파일이 빠진다" ;;
+esac
 
 assert_structure check_done_check "$SKILL" pass "완료 확인 단계: 실제 SKILL.md 통과"
 drop_cases check_done_check '완료 확인 단계' \
