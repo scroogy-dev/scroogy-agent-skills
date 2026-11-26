@@ -16,7 +16,7 @@ status: current
 issue-audit/SKILL.md `### --plan`
 ├── 0단계: 컨텍스트 수집          # 이슈 본문, .ai/30_contract·40_domain·50_adr·70_ledger, testing-principles 쌍(있으면, 7항. 실행하지 않고 층 표만 관점 2의 기준), 이전 리포트 issue-<번호>-plan-audit-report*.md(6항), summary는 계획 모델 행과 `이슈 본문 갱신` 줄만 (Task 결과·구현 diff 제외)
 ├── 1단계: 적합성 검증            # 대조 표 둘, 결정 사항 대조 표는 두지 않음 (PASS/FAIL/PARTIAL/N/A)
-│   ├── 요구사항 대조             # 행 = 이슈 본문 포함·제외 항목 ↔ spec 포함 R·제외 목록. 제외 항목을 승인 근거 없이 포함 R로 옮겼으면 미충족
+│   ├── 요구사항 대조             # 행 = 이슈 본문 포함·제외 항목 ↔ spec 포함 R·제외 목록, `검토 필요` 항목(판정 불가). 제외 항목을 승인 근거 없이 포함 R로 옮겼으면 미충족
 │   └── 완료의 정의(DoD) 대조     # 행 = spec AC 행, 행 끝 `(R<n>)`이 포함 목록에 있는지(--trace 출력 근거). `AC 없는 R`은 AC 칸 `-` 행으로 더해 FAIL
 ├── 2단계: 비판적 검증 5관점
 │   ├── 추적성 [D]                # scripts/check-plan.sh --trace <spec> <plan>, 출력 1행이 발견 1건

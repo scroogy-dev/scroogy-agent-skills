@@ -15,10 +15,11 @@ status: current
 ```
 issue-audit/SKILL.md (기본 모드: 최종 감사)
 ├── 0단계: 컨텍스트 수집
+│   ├── 구현 브랜치 확인         # 지정받은 브랜치가 git branch --show-current 와 다르면 감사를 시작하지 않고 그 작업 트리에서 다시 실행하도록 알림
 │   ├── .ai/90_issues/active|archive/issue-<번호>/ spec·plan·summary   # 파일이 없으면 이슈 본문의 AC를 구현에 직접 대조, AC도 없으면 포함 항목이 DoD 대조의 행
 │   ├── .ai/60_codebase/index.md, .ai/30_contract·40_domain·50_adr index   # 색인은 참고만, SSoT는 AI-CONTEXT.md 본문 2번째 줄 선언으로 직접 확인(선언 없으면 소스 코드, 안내도는 있는데 선언을 찾지 못하면 사용자에게 알림)
 │   ├── .ai/70_ledger/index.md + active/K-*.md (+ 관련 archive/ 승격·해소 항목)   # 기등재 대조로 반복 보고 차단, archive 는 재발 계보·승격 연결 이슈 확인용
-│   ├── 구현 브랜치 diff (+ 8항: git rev-parse HEAD 로 감사 대상 커밋, 미커밋 산출물 확인)
+│   ├── 구현 브랜치 diff (+ 8항: git rev-parse HEAD 로 감사 대상 커밋, 구현·spec·plan의 미커밋 산출물 확인)
 │   ├── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
 │   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), `테스트 계획` [D] 줄의 실행 셸·전제 조건 기준(local 우선)
 ├── 1단계: 적합성 검증 (Compliance Check)            # 대조 표 둘(DoD·결정 사항), 경계, 도메인·계약·ADR 정합

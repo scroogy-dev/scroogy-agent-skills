@@ -2565,6 +2565,7 @@ check_loop_table() {
       if (index($0, "파일 이름은 적지 않는다")) g6++
       if (/^- 다시 시작한 단계: / && index($0, "`계획 검증`이나 `구현`")) g7++
       if (/^- 결정: / && index($0, "`마무리`나 `다음 회차`")) g8++
+      if (index($0, "`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다")) g9++
     }
     /<!--/ { c = 1 }
     c { if (/-->/) c = 0; next }
@@ -2578,8 +2579,8 @@ check_loop_table() {
       if (loop != 1) print "루프 기록 헤더 " loop + 0 "개 (기대 1개)"
       else if (!(model_at && model_at < loop_at && loop_at < task_at)) print "루프 기록 섹션이 모델 기록과 Task별 수행 결과 사이가 아님"
       if (tl < 3) print "루프 기록 표에 머리·구분선·예시 행이 없음 (" tl + 0 "행)"
-      if (g1 != 1 || g2 != 1 || g3 != 1 || g4 != 1 || g5 != 1 || g6 != 1 || g7 != 1 || g8 != 1)
-        print "루프 기록 안내 " g1 + 0 g2 + 0 g3 + 0 g4 + 0 g5 + 0 g6 + 0 g7 + 0 g8 + 0 " (기대 11111111)"
+      if (g1 != 1 || g2 != 1 || g3 != 1 || g4 != 1 || g5 != 1 || g6 != 1 || g7 != 1 || g8 != 1 || g9 != 1)
+        print "루프 기록 안내 " g1 + 0 g2 + 0 g3 + 0 g4 + 0 g5 + 0 g6 + 0 g7 + 0 g8 + 0 g9 + 0 " (기대 111111111)"
     }' "$1"
 }
 
@@ -2613,7 +2614,8 @@ assert_structure check_loop_table "$sandbox/lt-no-row.md"        fail "루프 �
 assert_structure check_loop_table "$sandbox/lt-row-cells.md"     fail "루프 기록 표: 예시 행의 칸 소실 격추"
 for p in '회차마다 한 줄을 적고 회차 1부터 적는다' '그 회차에 받지 않은 검증의 커밋 칸은 `-`로 둔다' '값이 있는 가장 최근 행' \
          '감사 종류와 리포트 머리말의 감사 회차(`계획 2차`, `최종 1차`)' '1단계 상태·2단계 상태·종합 판정·테스트 계획 줄 수' \
-         '파일 이름은 적지 않는다' '`계획 검증`이나 `구현`' '`마무리`나 `다음 회차`'; do
+         '파일 이름은 적지 않는다' '`계획 검증`이나 `구현`' '`마무리`나 `다음 회차`' \
+         '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다'; do
   drop_literal "$SUMMARY_TPL" "$p" > "$sandbox/lt-drop.md"
   assert_structure check_loop_table "$sandbox/lt-drop.md" fail "루프 기록 표: 안내의 [${p}] 삭제 격추"
 done
@@ -3059,7 +3061,8 @@ check_plan_verify() {
   [ "$got" = 'AC·요구사항|`설계 결정`|`테스트 계획`|' ] || echo "다시 받는 조건의 변경 목록 [$got]"
   need_all "$(printf '%s\n' "$b" | item_block '     - `테스트 계획`: ')" '테스트 계획 조건' '`확인` 칸만 바뀐 것은 변경으로 보지 않는다'
   need_all "$(printf '%s\n' "$st" | item_block '   - **바뀌었는지의 판별**: ')" '판별 항목' \
-    'summary `루프 기록`' '`계획 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff'
+    'summary `루프 기록`' '`계획 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
+    '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다'
   need_all "$(printf '%s\n' "$st" | item_block '   - **수행**: ')" '수행 항목' '다시 받는 조건에 맞으면 계획 감사를 다시 받'
   need_all "$(printf '%s\n' "$st" | item_block '   - **건너뜀**: ')" '건너뜀 항목' '뒤 회차에서 다시 묻지 않는다'
   need_one "$st" '5단계' '   - **5단계 뒤의 변경**: '
@@ -3148,6 +3151,7 @@ assert_structure check_plan_verify "$SKILL" pass "계획 검증 조건: 실제 S
 drop_cases check_plan_verify '계획 검증 조건' \
   '이슈에 한 번 묻' '수행으로 정한 이슈' '지난 계획 검증 뒤에' '하나라도 바뀌면' '조건은 이 셋이 전부다' \
   '`확인` 칸만 바뀐 것은 변경으로 보지 않는다' '`계획 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
+  '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다' \
   '다시 받는 조건에 맞으면 계획 감사를 다시 받' '뒤 회차에서 다시 묻지 않는다' \
   '   - **5단계 뒤의 변경**: ' '6단계나 구현 시작 게이트에서 다시 받는 조건에 맞는 변경이 생기면' '일반 Task를 시작하기 전에 계획 감사를 다시 받는다' \
   '건너뛰기로 정한 이슈와 조건에 맞지 않는 변경은 그대로 진행한다' '5단계의 `5단계 뒤의 변경`을 확인한 뒤 Task 0으로 진행한다' \
@@ -3162,6 +3166,10 @@ move_item '   - **바뀌었는지의 판별**: ' '> 게이트 2건' > "$sandbox/
 assert_structure check_plan_verify "$sandbox/pv-extra.md" fail "계획 검증 조건: 변경 목록에 네 번째 조건 추가 격추"
 assert_structure check_plan_verify "$sandbox/pv-step4.md" fail "계획 검증 조건: 다시 받는 조건의 4단계 이동 격추"
 assert_structure check_plan_verify "$sandbox/pv-step6.md" fail "계획 검증 조건: 판별 항목의 6단계 이동 격추"
+# 미커밋 감사의 판별(issue #145 최종 감사 2차 F-7) — 한쪽 판별 항목에만 남은 사본은 다른 쪽 검사에 걸린다.
+DIRTY_RULE='`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다'
+R="$DIRTY_RULE" awk 'index($0, "   - **바뀌었는지의 판별**: ") == 1 { i = index($0, ENVIRON["R"]); if (i) $0 = substr($0, 1, i - 1) substr($0, i + length(ENVIRON["R"])) } { print }' "$SKILL" > "$sandbox/pv-dirty.md"
+assert_structure check_plan_verify "$sandbox/pv-dirty.md" fail "계획 검증 조건: 계획 검증 판별의 미커밋 규칙만 삭제 격추"
 
 assert_structure check_plan_skip "$SKILL" pass "계획 검증 제외: 실제 SKILL.md 통과"
 drop_cases check_plan_skip '계획 검증 제외' '   - **다시 받지 않는 변경**: ' '기존 AC 안에서' '발견을 고치는 Task를 더한 것만으로는 다시 받지 않는다'
@@ -3231,6 +3239,10 @@ check_loop_stages() {
   need_all "$(printf '%s\n' "$b" | item_block '- **검증 기록**: ')" '검증 기록' \
     '`계획 검증 커밋`이나 `구현 검증 커밋` 칸에 감사 대상 커밋을' '감사 종류와 리포트 머리말의 감사 회차' \
     '리포트 머리말의 `감사 대상 커밋` 줄에서 옮기고' '`(미커밋 포함)`을 붙인다'
+  need_one "$b" '진행 루프 첫머리' '- **감사 전 커밋**: '
+  need_all "$(printf '%s\n' "$b" | item_block '- **감사 전 커밋**: ')" '감사 전 커밋' \
+    '감사를 받기 전에 감사 대상(계획 감사는 spec·plan, 교차 감사는 구현과 spec·plan)에 미커밋 변경이 있으면 커밋할지 사용자에게 묻는다' \
+    '커밋한 대상으로 다시 받을 때까지 바뀐 것으로 본다는 사실을 함께 알린다'
   b="$(loop_part "$1" '계획 수립')"
   need_all "$b" '계획 수립' 'spec·plan이 없으면 쓰고, 지난 회차에서 바꿀 것이 나왔으면 고친다' '"새 이슈 시작 시" 1~4단계'
   need_all "$(printf '%s\n' "$b" | item_block '- **발견을 고치는 Task**: ')" '발견을 고치는 Task' \
@@ -3259,7 +3271,8 @@ check_impl_verify() {
     '고친 발견의 위험도에 따른 예외는 없다' '구현 AI는 감사를 실행하지 않는다' '스펙 위반·누락·소스코드와의 모순'
   c="$(printf '%s\n' "$b" | item_block '- **바뀌었는지의 판별**: ')"
   need_all "$(printf '%s\n' "$c" | head -1)" '판별 첫 행' '`구현 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
-    '하나라도 맞으면 바뀐 것' '조건은 이 넷이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도'
+    '하나라도 맞으면 바뀐 것' '조건은 이 넷이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도' \
+    '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다'
   got="$(printf '%s\n' "$c" | item_names)"
   [ "$got" = '제외 경로 밖|제외 경로 안의 산출물|`테스트 계획`의 줄|AC와 결정|' ] || echo "구현이 바뀐 조건 목록 [$got]"
   need_all "$(printf '%s\n' "$c" | item_block '  - 제외 경로 밖: ')" '제외 경로 밖' \
@@ -3371,6 +3384,8 @@ drop_cases check_loop_stages '루프 다섯 단계' \
   '완료 확인에서 사용자가 `다음 회차`로 정하면 계획 수립으로 돌아간다' '`마무리`로 정하면 루프를 나가 Task N' \
   'summary `루프 기록`에 한 행을 더하고' '`계획 검증 커밋`이나 `구현 검증 커밋` 칸에 감사 대상 커밋을' '감사 종류와 리포트 머리말의 감사 회차' \
   '리포트 머리말의 `감사 대상 커밋` 줄에서 옮기고' '`(미커밋 포함)`을 붙인다' \
+  '- **감사 전 커밋**: ' '계획 감사는 spec·plan, 교차 감사는 구현과 spec·plan' '미커밋 변경이 있으면 커밋할지 사용자에게 묻는다' \
+  '커밋한 대상으로 다시 받을 때까지 바뀐 것으로 본다는 사실을 함께 알린다' \
   'spec·plan이 없으면 쓰고, 지난 회차에서 바꿀 것이 나왔으면 고친다' '`--response`에서 반영으로 정한 발견을 plan에 Task로 더한다' \
   '조건에 맞지 않으면 구현으로 간다' '테스트 작성 → 실패 확인 → 테스트 커밋' '→ 구현 커밋 순서로 진행한다' '재현 테스트' \
   '동작을 바꾸지 않는 Task' '확인 두 단계' '확인은 기존 테스트 전체' '러너도 결정적 명령도 없는 repo만' '먼저 쓰지 않는 이유를 한 줄'
@@ -3388,12 +3403,15 @@ assert_structure check_loop_stages "$sandbox/lp-no-h2.md"    fail "루프 다섯
 assert_structure check_loop_stages "$sandbox/lp-moved.md"    fail "루프 다섯 단계: 절의 작업 진행 중 뒤 이동 격추"
 assert_structure check_loop_stages "$sandbox/lp-no-spike.md" fail "루프 다섯 단계: 테스트를 먼저 쓰지 않는 기준 한 줄 삭제 격추"
 assert_structure check_loop_stages "$sandbox/lp-extra.md"    fail "루프 다섯 단계: 테스트를 먼저 쓰지 않는 기준 추가 격추"
+move_item '- **감사 전 커밋**: ' '### 완료 확인' > "$sandbox/lp-commit-moved.md"
+assert_structure check_loop_stages "$sandbox/lp-commit-moved.md" fail "루프 다섯 단계: 감사 전 커밋 항목의 구현 검증 이동 격추"
 
 assert_structure check_impl_verify "$SKILL" pass "구현 검증 단계: 실제 SKILL.md 통과"
 drop_cases check_impl_verify '구현 검증 단계' \
   '지난 검증 뒤에 구현이 바뀌었으면' '교차 감사를 전체로 다시 받는다' '**다른 벤더 모델**' '고친 발견의 위험도에 따른 예외는 없다' \
   '구현 AI는 감사를 실행하지 않는다' '스펙 위반·누락·소스코드와의 모순' '`구현 검증 커밋` 칸에 값이 있는 가장 최근 행의 커밋 뒤 diff' \
   '하나라도 맞으면 바뀐 것' '조건은 이 넷이 전부다' '값이 있는 행이 없으면 받는다' '문서만 고친 회차도' \
+  '`(미커밋 포함)`이 있으면 diff로 가리지 않고 바뀐 것으로 본다' \
   'spec 완료의 정의의 AC나 `결정 사항`의 결정이 더해졌거나 문장이 바뀌었다' '체크박스만 바뀐 것은 세지 않는다' \
   'plan Task N이 마무리로 적은 문서' 'plan 일반 Task가 고친다고 적은 파일' '`[D]`·`[QD]` 줄이 더해졌거나' \
   '`확인` 칸만 바뀐 것과 `[ND]` 줄의 변경은 세지 않는다' '**구현 AI는 감사를 실행하지 않습니다.**'
@@ -3409,6 +3427,8 @@ add_after '  - `테스트 계획`의 줄: ' '  - 위험도: 높음 발견을 고
 move_item '- **감사 실행**: ' '### 마무리' > "$sandbox/iv-moved.md"
 add_after '## 작업 진행 중' '- 계획의 마지막 Task는 교차모델 검증으로 고정한다.' > "$sandbox/iv-old.md"
 add_after '- **용도**: 세션 종료' '- 최종 감사는 Task N 교차모델 audit에서 받는다.' > "$sandbox/iv-old2.md"
+R="$DIRTY_RULE" awk 'index($0, "- **바뀌었는지의 판별**: ") == 1 { i = index($0, ENVIRON["R"]); if (i) $0 = substr($0, 1, i - 1) substr($0, i + length(ENVIRON["R"])) } { print }' "$SKILL" > "$sandbox/iv-dirty.md"
+assert_structure check_impl_verify "$sandbox/iv-dirty.md" fail "구현 검증 단계: 구현 검증 판별의 미커밋 규칙만 삭제 격추"
 assert_structure check_impl_verify "$sandbox/iv-extra.md" fail "구현 검증 단계: 조건에 위험도 추가 격추"
 assert_structure check_impl_verify "$sandbox/iv-moved.md" fail "구현 검증 단계: 감사 실행 항목의 완료 확인 이동 격추"
 assert_structure check_impl_verify "$sandbox/iv-old.md"   fail "구현 검증 단계: 작업 진행 중의 옛 교차모델 검증 문구 되돌리기 격추"
@@ -3497,7 +3517,8 @@ check_workflow_flow() {
   got="$(wf_steps "$1")"
   [ "$got" = '1 계획 수립|2 계획 검증|3 구현|4 구현 검증|5 완료 확인|' ] || echo "진행 루프의 단계 목록 [$got]"
   b="$(loop_section "$1")"
-  need_all "$b" '진행 루프' '한 번 지나는 것이 한 회차다' 'summary `루프 기록`에 한 행을' 'issue-work SKILL.md `## 진행 루프`'
+  need_all "$b" '진행 루프' '한 번 지나는 것이 한 회차다' 'summary `루프 기록`에 한 행을' 'issue-work SKILL.md `## 진행 루프`' \
+    '미커밋 변경이 있으면 커밋할지 사용자에게 묻는다' '커밋한 대상으로 다시 받을 때까지 바뀐 것으로 본다'
   need_all "$(wf_step "$1" 1)" '1단계' '없으면 쓰고' '지난 회차의 결정을 반영' '반영으로 정한 발견은 plan에 Task로 더하고' \
     '같은 종류의 발견이 지난 두 회차에 이어서 나왔으면 plan `설계 결정`부터 고친다'
   need_all "$(wf_step "$1" 2)" '2단계' 'AC·요구사항, `설계 결정`, `테스트 계획` 가운데 하나가 바뀌었으면' '계획 감사를 다시 받는다' \
@@ -3583,6 +3604,7 @@ assert_structure check_workflow_flow "$WORKFLOW_TPL" pass "워크플로우 흐�
 wf_drop_cases check_workflow_flow '워크플로우 흐름' \
   '목표, 요구사항, 완료의 정의, 결정 사항, 변경 이력, 연관 문서' '설계 결정, 테스트 계획, 실행 Task 목록' '루프 기록, 종류별 발견, ' \
   '한 번 지나는 것이 한 회차다' 'summary `루프 기록`에 한 행을' '지난 회차의 결정을 반영' '반영으로 정한 발견은 plan에 Task로 더하고' \
+  '미커밋 변경이 있으면 커밋할지 사용자에게 묻는다' '커밋한 대상으로 다시 받을 때까지 바뀐 것으로 본다' \
   'plan `설계 결정`부터 고친다' 'AC·요구사항, `설계 결정`, `테스트 계획` 가운데' '계획 감사를 다시 받는다' '더한 것만으로는 다시 받지 않는다' \
   '테스트 작성 → 실패 확인 → 테스트 커밋' '동작을 바꾸지 않는 Task' '지난 검증 뒤에 구현이 바뀌었으면' '구현 모델과 다른 벤더 모델로' \
   '교차 감사를 전체로 다시 받는다' '구현 AI는 감사를 실행하지 않는다' '감사 상태와 `테스트 계획`의 확인한 줄 수' '루프를 나갈지는 사용자가 정하고' \
