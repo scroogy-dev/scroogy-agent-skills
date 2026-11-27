@@ -23,8 +23,8 @@ Agent Skills는 특정 벤더에 종속되지 않는 오픈 포맷으로, Claude
 | [git-review-context](./git-review-context/) | 리뷰 전 변경사항 사전 분석 |
 | [git-review-quiz](./git-review-quiz/) | PR 변경의 배경·목적·변경 설명을 먼저 보여 주고 이해도를 문항으로 점검 (대화형·PR 댓글 게시, 대상별 로컬 md·HTML 산출) |
 | [install-skills](./install-skills/) | repo의 skill을 5개 AI 도구 경로에 선택 설치 (self-install형, `--all`/`--clear`/`--self`) |
-| [issue-audit](./issue-audit/) | 이슈 스펙 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
-| [issue-work](./issue-work/) | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리 워크플로우 |
+| [issue-audit](./issue-audit/) | 이슈 스펙(완료의 정의·결정 사항) 대비 구현을 독립 감사인 관점에서 검증(최종 감사). `--plan`은 구현 전 spec·plan을 이슈 본문(완료의 정의 AC 포함)·`.ai` 문서에 대조하는 계획 감사 |
+| [issue-work](./issue-work/) | 이슈 등록(`--create`)과 이슈 단위 스펙/계획/요약 관리, 계획·검증·구현 루프 진행 워크플로우 |
 | [readme-sync](./readme-sync/) | 프로젝트 분석 후 README.md 생성/재작성 |
 
 ## Skill 간 관계
@@ -65,6 +65,13 @@ ai-workspace (디렉토리 스캐폴딩)
 ```
 /install-skills
 ```
+
+### issue-work 문서 구조가 바뀐 버전으로 올릴 때
+
+issue-work·issue-audit·git-pr은 #145부터 새 구조의 이슈 본문·spec·plan·summary만 읽습니다 (완료의 정의가 AC 행, plan에 테스트 계획, summary에 루프 기록).
+
+- 진행 중인 옛 구조 이슈가 있으면 그 이슈를 마친 뒤에 세 스킬을 함께 재설치합니다.
+- 새 버전을 설치한 뒤에 시작하는 이슈부터 새 구조를 씁니다.
 
 ## 라이선스
 

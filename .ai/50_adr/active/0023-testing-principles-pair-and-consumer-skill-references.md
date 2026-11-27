@@ -15,13 +15,13 @@ last_harvested: 2026-10-27
   - **`testing-principles.md`**: 버전 고정 파일이다. 1행 SYNCED 헤더와 2행 버전 주석(1.0.0)을 두고 update-1이 항상 덮어쓴다. `## 공통 원칙`에 9개 원칙(실행 환경, 대상 환경과 인증, 화면 캡처, 탐색과 판정 분리, 반복 금지, 전제 조건과 판정 불가, 시험 데이터, 환경 되돌리기, 실행 셸과 출력 형식)을 둔다.
   - **`testing-principles-local.md`**: 사용자 관리 파일이다. update-1은 없을 때만 복사하고, 공통 파일과 충돌하면 local이 우선한다. 템플릿은 `## 테스트 층`·`## 대상 환경`·`## 실행 셸`·`## 로컬 서버`·`## 기기 확인 (모바일 앱 repo만)` 5개 섹션과 두 표 헤더만 두고, 값은 비우며 예시는 HTML 주석으로 든다.
   - **dev 프로파일 전용**: 두 파일은 `templates/dev/`에 둔다. init은 dev 템플릿 일괄 복사에 포함되어 절차 변경이 없다.
-- 파일 쌍은 실행 층·수단·환경만 정한다. 무엇을 어느 문서·Task에서 검증할지는 ADR 0003(검증 레벨)과 ADR 0019(테스트 관점·Task별 배치)가 그대로 정한다.
+- 파일 쌍은 실행 층·수단·환경만 정한다. 무엇을 어느 문서·Task에서 검증할지는 ADR 0003(검증 레벨), ADR 0019(테스트 관점·Task별 배치), ADR 0031(테스트 계획)이 정한다 (#145).
 - 에이전트가 파일 쌍으로 안내받는 경로 두 곳을 잇는다.
   - **context-loading**: shared `context-loading.md`의 "존재하면 읽는다" 목록에 `## 테스트 작성·실행 시` 섹션을 두어 두 파일을 가리킨다. 이 섹션은 두 파일 다음에 `ide-tools.md`도 가리킨다(ADR 0030). 파일이 없는 doc repo에서는 건너뛴다.
   - **안내도 규칙 표**: dev AI-CONTEXT 템플릿 `## 프로젝트 규칙` 표에 `testing-principles.md` 행을 둔다. update-4 멱등 보강 검사(`check-context.sh`)는 본문 2번째 줄이 dev 표준 SSoT 선언일 때만 이 행의 누락을 보고하고, doc 선언·비표준 선언 repo에서는 검사하지 않는다. 같은 실행에서 SSoT 선언 행이나 건물 repo 선언 행의 조치로 dev 문구를 넣었으면 이 행도 함께 보강한다.
 - 소비 스킬 3종이 두 파일을 조건부로 직접 참조한다. 우선순위는 local > `testing-principles.md` > 스킬 내장 기본값(현재 템플릿·절차)이고, 파일이 없으면 현재 동작을 유지한다.
-  - **issue-work**: plan Task 테스트 `[D]`의 러너 호출·출력 판독·실행 셸은 local 층 표를 따르고, spec 완료의 정의 `[D]`의 인수 테스트 층은 층 표에서 고른다. 기기 확인 Task는 두지 않는다. plan 템플릿의 테스트 배치 문단도 local 층 표를 가리킨다.
-  - **issue-audit**: 0단계 7항에서 두 파일을 읽는다. 1단계 DoD `[D]` 재실행과 `--plan` 관점 2(가짜 `[D]` 사전 판별)는 local의 실행 셸로 실행하고, 층 표의 전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 둔다.
+  - **issue-work**: plan `테스트 계획`의 `층` 칸은 local 층 표에서 고르고, plan Task의 러너 호출·출력 판독·실행 셸도 그 표와 실행 셸을 따른다 (#145). 기기 확인 Task는 두지 않는다. plan 템플릿의 `테스트 계획` 안내도 local 층 표를 가리킨다.
+  - **issue-audit**: 0단계 7항에서 두 파일을 읽는다. 1단계 DoD 대조에서 실행하는 `테스트 계획`의 `[D]` 줄은 local의 실행 셸로 실행하고, 층 표의 전제 조건이 갖춰지지 않으면 판정 불가(N/A)로 둔다. `--plan`에서는 실행하지 않고 층 표를 관점 2(테스트 계획)의 기준으로만 쓴다 (#145).
   - **git-qa**: 4단계에서 PR이 속한 repo의 대상 브랜치 local 파일을 `gh api`로 읽는다. 그 항목의 동작을 검사하는 테스트를 찾았고 그 테스트가 층 표의 러너로 실행될 때만 항목 끝의 증빙 문구 대신 `— 자동 테스트로 덮음(<러너>)`을 붙인다. 테스트를 찾지 못하거나 파일을 읽지 못하면 표시하지 않는다.
 - 소비 스킬의 참조 문장은 각 스킬 러너의 조항 구조 검사로 고정한다. 앵커 문구가 제자리에 있는지와 문구를 지운 사본이 격추되는지를 보고, 조건·우선순위의 뜻은 교차모델 감사가 채점한다. git-qa는 러너가 없어 `git-qa/tests/run-tests.sh`를 새로 둔다.
 
@@ -41,6 +41,7 @@ last_harvested: 2026-10-27
 - 참조 문장을 러너로 고정한 이유(계획 감사 F-2 보정): ADR 0019는 구현 테스트를 그 기능을 만드는 Task에 둔다. 소비 스킬 3종은 SKILL.md 문장이 곧 동작이라 조항 구조 검사가 구현 테스트다. ADR 0008의 `writing-principles` 조건부 참조 문장은 ADR 0019 이전 변경이라 검사를 소급해 더하지 않았다.
 - 같은 이슈에서 원장 K-0015(SSoT 선언을 찾지 못하면 경고 없이 폴백)를 함께 해소했다. 선언 읽기 표준 문장의 결정이라 ADR 0020의 일부 변경으로 기록했다.
 - 2026-11-22 일부 변경(#144): `ide-tools.md`가 로컬 서버를 local 파일에 적힌 Run Configuration 이름으로 띄우게 되어, local 템플릿에 `## 로컬 서버` 섹션(`Run Configuration 이름`·`IDE 미연결 시 실행 명령`)을 `## 실행 셸` 다음에 더했다. 테스트·서버 실행에도 IDE 도구를 먼저 쓰게 되어 context-loading `## 테스트 작성·실행 시` 섹션이 `ide-tools.md`도 가리킨다. 파일 쌍의 역할과 소비 스킬 참조는 바뀌지 않는다.
+- 2026-11-25 일부 변경(#145): 검증 명령의 자리가 spec 완료의 정의에서 plan `테스트 계획`으로 옮겨져 issue-work의 층 선택 자리와 issue-audit의 실행 대상을 고쳤다. `--plan` 관점 2의 가짜 `[D]` 사전 판별이 없어져 계획 감사는 실행 셸을 쓰지 않는다. 파일 쌍, 우선순위, git-qa 규칙은 바뀌지 않는다 ([ADR 0031](./0031-issue-work-loop-and-one-sentence-requirements.md)).
 
 </details>
 
@@ -66,8 +67,8 @@ last_harvested: 2026-10-27
 <summary>출처 목록 펼치기</summary>
 
 - [Issue #122 ai-workspace: 테스트 원칙 파일 쌍(testing-principles·local) 도입과 안내도·context-loading 라우팅 연결](https://github.com/scroogy-dev/scroogy-agent-skills/issues/122)
-- 일부 변경: [Issue #144](https://github.com/scroogy-dev/scroogy-agent-skills/issues/144)
+- 일부 변경: [Issue #144](https://github.com/scroogy-dev/scroogy-agent-skills/issues/144), [Issue #145](https://github.com/scroogy-dev/scroogy-agent-skills/issues/145)
 - 규칙 본문: [`.ai/10_rules/testing-principles.md`](../../10_rules/testing-principles.md), [`.ai/10_rules/testing-principles-local.md`](../../10_rules/testing-principles-local.md)
-- 관련 결정: [ADR 0003 검증 레벨](./0003-verification-levels-and-determinization.md), [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0019 테스트 관점과 Task별 배치](./0019-test-perspectives-and-task-level-placement.md), [ADR 0020 doc SSoT와 선언 폴백 알림](./0020-doc-ssot-original-documents-and-publishing-deferred.md), [ADR 0030 실행 표와 도구별 결정 목록](./0030-ide-tools-execution-table-and-tool-decisions.md)
+- 관련 결정: [ADR 0003 검증 레벨](./0003-verification-levels-and-determinization.md), [ADR 0008 작성 원칙 SSoT 배포](./0008-writing-principles-ssot-distribution.md), [ADR 0019 테스트 관점과 Task별 배치](./0019-test-perspectives-and-task-level-placement.md), [ADR 0020 doc SSoT와 선언 폴백 알림](./0020-doc-ssot-original-documents-and-publishing-deferred.md), [ADR 0030 실행 표와 도구별 결정 목록](./0030-ide-tools-execution-table-and-tool-decisions.md), [ADR 0031 한 문장 요구사항과 진행 루프](./0031-issue-work-loop-and-one-sentence-requirements.md)
 
 </details>

@@ -23,6 +23,6 @@
 - **발생확률**: 특수 조건·엣지. 실행한 디렉토리와 다른 저장소의 PR을 줄 때만 나타난다.
 - **위험도 산출**: `classify-risk.sh --impact '기능 저하' --likelihood '특수 조건·엣지'` → 낮음(LOW).
 - **채택하지 않은 대안**: 이슈 #142에서 워크스페이스 안의 저장소 디렉토리를 찾아 옮겨 리뷰하는 안. 워크스페이스 구조(로비 안내도의 저장소 목록 등)를 읽는 규칙이 더 필요해 보류했다.
-- 같은 이슈의 다른 보류 항목은 [K-0034](./K-0034-review-result-pr-post-deferred.md)(PR 게시)·[K-0035](./K-0035-issue-audit-code-level-check-deferred.md)(issue-audit 2단계 보강)·[K-0036](./K-0036-review-doc-category-check-deferred.md)(doc 카테고리 보강)로 같은 날 등재했다.
+- 같은 이슈의 다른 보류 항목은 [K-0034](./K-0034-review-result-pr-post-deferred.md)(PR 게시)·[K-0035](../archive/K-0035-issue-audit-code-level-check-deferred.md)(issue-audit 2단계 보강)·[K-0036](./K-0036-review-doc-category-check-deferred.md)(doc 카테고리 보강)로 같은 날 등재했다.
 
 </details>

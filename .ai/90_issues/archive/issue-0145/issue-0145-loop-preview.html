@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#145 루프 예상안</title>
+<style>
+  :root {
+    --bg: #F6F7F9; --panel: #FFFFFF; --text: #14171C; --muted: #58606B; --faint: #848C97;
+    --line: #E1E4E9; --line-strong: #C9CED6;
+    --accent: #2F62D9; --accent-soft: rgba(47,98,217,0.09);
+    --warn: #B25A00; --warn-soft: rgba(214,131,25,0.14);
+    --ok: #1F7A4D; --ok-soft: rgba(31,122,77,0.12);
+    --code-bg: rgba(20,23,28,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171C; --panel: #1C2027; --text: #E9ECF0; --muted: #A9B0BA; --faint: #7F8792;
+      --line: #2B313A; --line-strong: #3B424D;
+      --accent: #7FA4F5; --accent-soft: rgba(127,164,245,0.12);
+      --warn: #F0B065; --warn-soft: rgba(240,176,101,0.14);
+      --ok: #6FCB9C; --ok-soft: rgba(111,203,156,0.14);
+      --code-bg: rgba(255,255,255,0.08);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 24px; line-height: 1.35; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 44px 0 6px; padding-top: 18px; border-top: 1px solid var(--line); }
+  h3 { font-size: 15px; margin: 22px 0 6px; }
+  p { margin: 6px 0; }
+  .lead { color: var(--muted); margin-bottom: 14px; }
+  .note { font-size: 13px; color: var(--muted); }
+  code { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  li + li { margin-top: 3px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin: 12px 0; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.plain { background: var(--code-bg); color: var(--muted); }
+  .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  th { font-size: 12px; color: var(--faint); font-weight: 600; white-space: nowrap; }
+  td.key { font-weight: 600; white-space: nowrap; }
+  td.did { box-shadow: inset 3px 0 0 var(--accent); }
+  td.skip { color: var(--faint); background: var(--code-bg); }
+  td.fail { background: var(--warn-soft); }
+  td.pass { background: var(--ok-soft); }
+  .rounds table { min-width: 860px; }
+  .rounds td { width: 17.5%; }
+  .rounds td.key { width: 12.5%; }
+  pre { background: var(--code-bg); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 8px 0; }
+
+  /* 흐름 그림 */
+  .diagram { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 12px 0; }
+  .diagram svg { display: block; width: 100%; min-width: 880px; height: auto; }
+  svg text { font-family: inherit; }
+  .s-frame { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .s-box { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1.2; }
+  .s-out { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1.2; }
+  .s-num { font-size: 12px; font-weight: 700; fill: var(--accent); }
+  .s-name { font-size: 16px; font-weight: 700; fill: var(--text); }
+  .s-desc { font-size: 12.5px; fill: var(--muted); }
+  .s-small { font-size: 11.5px; fill: var(--muted); }
+  .s-frame-label { font-size: 12.5px; font-weight: 700; fill: var(--accent); }
+  .s-badge { fill: var(--accent-soft); }
+  .s-badge-text { font-size: 10.5px; font-weight: 700; fill: var(--accent); }
+  .s-badge2 { fill: var(--ok-soft); }
+  .s-badge2-text { font-size: 10.5px; font-weight: 700; fill: var(--ok); }
+  .s-line { stroke: var(--faint); stroke-width: 1.6; fill: none; }
+  .s-skip { stroke: var(--faint); stroke-width: 1.4; stroke-dasharray: 5 4; fill: none; }
+  .s-back { stroke: var(--warn); stroke-width: 2; fill: none; }
+  .s-exit { stroke: var(--ok); stroke-width: 2; fill: none; }
+  .m-line { fill: var(--faint); }
+  .m-back { fill: var(--warn); }
+  .m-exit { fill: var(--ok); }
+  .s-back-text { font-size: 12.5px; font-weight: 600; fill: var(--warn); }
+  .s-exit-text { font-size: 12.5px; font-weight: 600; fill: var(--ok); }
+
+  /* 한 줄 흐름 */
+  .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
+  .chip { background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 10px; font-size: 13px; }
+  .chip.commit { border-style: dashed; color: var(--muted); }
+  .chip.heavy { border-color: var(--warn); background: var(--warn-soft); }
+  .sep { color: var(--faint); font-size: 13px; }
+
+  .gap { border-left: 3px solid var(--warn); }
+  .gap h3 { margin-top: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<h1>이슈 #145 루프 예상안</h1>
+<p class="lead">이슈 본문(2026-11-23)의 범위와 완료의 정의(AC, Acceptance Criteria)를 그림으로 옮겼다. 본문이 정하지 않은 곳은 <span class="tag warn">가정</span>으로 그렸고 7절에 모았다. spec을 쓰기 전에 보는 자료이며 승인된 내용이 아니다.</p>
+
+<h2>1. 한눈에 보기</h2>
+<p class="lead">다섯 단계를 차례로 지나는 것이 한 회차다. 완료 확인에서 사용자가 다음 회차로 정하면 계획 수립으로 돌아간다.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 1000 490" role="img" aria-label="이슈 등록 뒤 계획 수립, 계획 검증, 구현, 구현 검증, 완료 확인의 다섯 단계를 돌고, 완료 확인을 지나면 Task N 마무리와 PR 뒤 피드백으로 나가는 흐름">
+  <defs>
+    <marker id="a-line" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="m-line"/></marker>
+    <marker id="a-back" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="m-back"/></marker>
+    <marker id="a-exit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="m-exit"/></marker>
+  </defs>
+
+  <!-- 이슈 등록 -->
+  <rect class="s-out" x="40" y="10" width="164" height="46" rx="10"/>
+  <text class="s-name" x="54" y="30" style="font-size:14px">이슈 등록</text>
+  <text class="s-small" x="54" y="47">--create, AC가 있는 본문</text>
+  <path class="s-line" d="M122 56 V126" marker-end="url(#a-line)"/>
+
+  <!-- 루프 틀 -->
+  <rect class="s-frame" x="20" y="76" width="960" height="216" rx="16"/>
+  <text class="s-frame-label" x="960" y="100" text-anchor="end">루프 (한 번 지나면 한 회차)</text>
+
+  <!-- 건너뛰는 길 -->
+  <path class="s-skip" d="M215 170 V120 Q215 112 223 112 H393 Q401 112 401 120 V168" marker-end="url(#a-line)"/>
+  <text class="s-small" x="308" y="105" text-anchor="middle">바뀐 것이 없으면 건너뛴다</text>
+  <path class="s-skip" d="M587 170 V120 Q587 112 595 112 H765 Q773 112 773 120 V168" marker-end="url(#a-line)"/>
+  <text class="s-small" x="680" y="105" text-anchor="middle">바뀐 것이 없으면 건너뛴다</text>
+
+  <!-- 1 계획 수립 -->
+  <rect class="s-box" x="40" y="128" width="164" height="100" rx="10"/>
+  <text class="s-num" x="54" y="150">1</text>
+  <text class="s-name" x="54" y="176">계획 수립</text>
+  <text class="s-desc" x="54" y="198">spec·plan을 쓰거나</text>
+  <text class="s-desc" x="54" y="215">고친다</text>
+  <path class="s-line" d="M204 178 H224" marker-end="url(#a-line)"/>
+
+  <!-- 2 계획 검증 -->
+  <rect class="s-box" x="226" y="128" width="164" height="100" rx="10"/>
+  <text class="s-num" x="240" y="150">2</text>
+  <rect class="s-badge" x="312" y="137" width="68" height="18" rx="9"/>
+  <text class="s-badge-text" x="346" y="150" text-anchor="middle">사용자 실행</text>
+  <text class="s-name" x="240" y="176">계획 검증</text>
+  <text class="s-desc" x="240" y="198">계획 감사를 받는다</text>
+  <text class="s-small" x="240" y="215">issue-audit --plan</text>
+  <path class="s-line" d="M390 178 H410" marker-end="url(#a-line)"/>
+
+  <!-- 3 구현 -->
+  <rect class="s-box" x="412" y="128" width="164" height="100" rx="10"/>
+  <text class="s-num" x="426" y="150">3</text>
+  <text class="s-name" x="426" y="176">구현</text>
+  <text class="s-desc" x="426" y="198">Task마다 테스트를</text>
+  <text class="s-desc" x="426" y="215">먼저 쓰고 구현한다</text>
+  <path class="s-line" d="M576 178 H596" marker-end="url(#a-line)"/>
+
+  <!-- 4 구현 검증 -->
+  <rect class="s-box" x="598" y="128" width="164" height="100" rx="10"/>
+  <text class="s-num" x="612" y="150">4</text>
+  <rect class="s-badge" x="684" y="137" width="68" height="18" rx="9"/>
+  <text class="s-badge-text" x="718" y="150" text-anchor="middle">사용자 실행</text>
+  <text class="s-name" x="612" y="176">구현 검증</text>
+  <text class="s-desc" x="612" y="198">교차 감사를 전체로</text>
+  <text class="s-small" x="612" y="215">issue-audit</text>
+  <path class="s-line" d="M762 178 H782" marker-end="url(#a-line)"/>
+
+  <!-- 5 완료 확인 -->
+  <rect class="s-box" x="784" y="128" width="164" height="100" rx="10"/>
+  <text class="s-num" x="798" y="150">5</text>
+  <rect class="s-badge2" x="870" y="137" width="68" height="18" rx="9"/>
+  <text class="s-badge2-text" x="904" y="150" text-anchor="middle">사용자 결정</text>
+  <text class="s-name" x="798" y="176">완료 확인</text>
+  <text class="s-desc" x="798" y="198">감사 상태, 테스트 계획</text>
+  <text class="s-desc" x="798" y="215">권장 뒤 사용자가 정한다</text>
+
+  <!-- 돌아가는 길 -->
+  <path class="s-back" d="M836 228 V260 Q836 268 828 268 H130 Q122 268 122 260 V232" marker-end="url(#a-back)"/>
+  <text class="s-back-text" x="479" y="259" text-anchor="middle">다음 회차로 정하면 계획 수립으로 돌아간다</text>
+
+  <!-- 나가는 길 -->
+  <path class="s-exit" d="M900 228 V326" marker-end="url(#a-exit)"/>
+  <text class="s-exit-text" x="892" y="314" text-anchor="end">마무리로 정하면</text>
+
+  <rect class="s-out" x="744" y="328" width="204" height="64" rx="10"/>
+  <text class="s-name" x="758" y="354" style="font-size:15px">Task N (마무리)</text>
+  <text class="s-desc" x="758" y="376">전체 회귀, 색인, --clear, PR</text>
+  <path class="s-line" d="M846 392 V420" marker-end="url(#a-line)"/>
+  <rect class="s-out" x="744" y="422" width="204" height="56" rx="10"/>
+  <text class="s-name" x="758" y="446" style="font-size:15px">PR 뒤 피드백</text>
+  <text class="s-desc" x="758" y="466">git-pr-feedback으로 처리</text>
+
+  <!-- 범례 -->
+  <path class="s-line" d="M40 338 H82" marker-end="url(#a-line)"/>
+  <text class="s-desc" x="96" y="342">다음 단계로 넘어간다</text>
+  <path class="s-skip" d="M40 364 H82" marker-end="url(#a-line)"/>
+  <text class="s-desc" x="96" y="368">지난 검증 뒤에 바뀐 것이 없어 건너뛴다</text>
+  <path class="s-back" d="M40 390 H82" marker-end="url(#a-back)"/>
+  <text class="s-desc" x="96" y="394">다음 회차로 정해 계획 수립으로 돌아간다</text>
+  <path class="s-exit" d="M40 416 H82" marker-end="url(#a-exit)"/>
+  <text class="s-desc" x="96" y="420">마무리로 정해 루프를 나간다</text>
+  <rect class="s-badge" x="28" y="433" width="68" height="18" rx="9"/>
+  <text class="s-badge-text" x="62" y="446" text-anchor="middle">사용자 실행</text>
+  <text class="s-desc" x="104" y="446">사용자가 다른 벤더 모델로 직접 실행하는 감사</text>
+  <rect class="s-badge2" x="28" y="459" width="68" height="18" rx="9"/>
+  <text class="s-badge2-text" x="62" y="472" text-anchor="middle">사용자 결정</text>
+  <text class="s-desc" x="104" y="472">에이전트가 기준대로 권장을 내고 사용자가 지날지 정한다</text>
+</svg>
+</div>
+
+<h3>지금 흐름과 다른 곳</h3>
+<div class="strip">
+  <span class="tag plain">지금</span>
+  <span class="chip">계획 수립</span><span class="sep">→</span>
+  <span class="chip">계획 검증 (한 번, 선택)</span><span class="sep">→</span>
+  <span class="chip">구현</span><span class="sep">→</span>
+  <span class="chip heavy">Task N: 교차 감사와 보정 반복</span><span class="sep">→</span>
+  <span class="chip">끝</span>
+</div>
+<ul>
+  <li><strong>교차 감사가 Task N에서 4단계로 옮겨 간다.</strong> Task N은 완료 확인을 지난 뒤 한 번 하는 마무리만 맡는다.</li>
+  <li><strong>돌아가는 길이 생긴다.</strong> 감사 발견을 고치는 일은 다음 회차의 새 Task가 되고, 앞 Task 블록에 쌓이지 않는다.</li>
+  <li><strong>색인, 판 올리기, PR은 루프 밖에서 한 번만 한다.</strong> 보정에 맞춰 문서를 다시 고치는 커밋이 줄어든다.</li>
+</ul>
+
+<h2>2. 단계별로 하는 일</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>단계</th><th>하는 일</th><th>이 단계를 하는 조건</th><th>실행</th><th>AC</th></tr>
+  <tr>
+    <td class="key">1 계획 수립</td>
+    <td>spec·plan이 없으면 쓴다. 지난 회차에서 바꿀 것이 나왔으면 고친다. 발견을 고치는 Task는 plan 끝에 이어 붙인다. 같은 종류의 발견이 이어지면 <code>설계 결정</code>부터 고친다.</td>
+    <td>회차마다</td>
+    <td>구현 AI. 요구사항, 확장, 완화는 사용자 승인</td>
+    <td>AC8, AC13, AC14</td>
+  </tr>
+  <tr>
+    <td class="key">2 계획 검증</td>
+    <td>계획 감사를 받고 <code>--response</code>로 검토한다.</td>
+    <td>지난 검증 뒤에 AC·요구사항, <code>설계 결정</code>, <code>테스트 계획</code> 가운데 하나가 바뀌었을 때. 기존 AC 안에서 발견을 고치는 Task만 더했으면 건너뛴다.</td>
+    <td>사용자 (다른 벤더 모델)</td>
+    <td>AC9</td>
+  </tr>
+  <tr>
+    <td class="key">3 구현</td>
+    <td>Task마다 테스트 작성, 실패 확인, 구현, 통과 확인 순서로 진행한다 (4절).</td>
+    <td>닫지 않은 Task가 있을 때</td>
+    <td>구현 AI</td>
+    <td>AC6, AC7</td>
+  </tr>
+  <tr>
+    <td class="key">4 구현 검증</td>
+    <td>교차 감사를 전체 범위로 받고 <code>--response</code>로 검토한다. 발견마다 종류를 붙인다.</td>
+    <td>지난 검증 뒤에 구현이 바뀌었을 때</td>
+    <td>사용자 (다른 벤더 모델)</td>
+    <td>AC10, AC12</td>
+  </tr>
+  <tr>
+    <td class="key">5 완료 확인</td>
+    <td>마지막 교차 감사 리포트의 1단계 상태, 2단계 상태, 종합 판정과 plan <code>테스트 계획</code>의 확인한 줄 수를 보인다. 1단계 상태가 충족이고 2단계 상태가 통과나 주의이며 모든 줄을 확인했고 반영으로 정한 발견을 모두 닫았으면 <code>마무리</code>를, 그 밖은 <code>다음 회차</code>를 권장한다. summary 루프 기록에 한 줄을 적는다. 기준에 못 미친 채 나가면 남은 항목마다 완화·원장·새 이슈 가운데 결정을 받는다.</td>
+    <td>회차마다</td>
+    <td>구현 AI가 기준대로 권장을 내고 사용자가 지날지 정한다 (2026-11-23 대화)</td>
+    <td>AC11</td>
+  </tr>
+  <tr>
+    <td class="key">Task N</td>
+    <td>전체 회귀, 색인(코드맵), <code>--clear</code>, PR을 한다. PR 뒤의 리뷰 피드백은 git-pr-feedback으로 처리한다.</td>
+    <td>완료 확인을 지난 뒤 한 번</td>
+    <td>구현 AI. 댓글과 PR은 사용자 승인</td>
+    <td>AC12, AC16</td>
+  </tr>
+</table>
+</div>
+
+<h3>감사 리포트를 검토한 뒤 바뀌는 순서</h3>
+<p class="lead"><code>--response</code>는 발견마다 결정만 받고 소스를 고치지 않는다. 반영으로 정한 발견은 다음 회차의 계획 수립에서 문서가 먼저 바뀌고, 소스는 구현 단계의 새 Task에서 바뀐다.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>반영으로 정한 발견</th><th>spec</th><th>plan</th><th>계획 검증</th><th>소스</th></tr>
+  <tr>
+    <td class="key">기존 AC 안의 결함</td>
+    <td>그대로</td>
+    <td>Task를 더한다</td>
+    <td class="skip">건너뛴다</td>
+    <td>새 Task에서 재현 테스트를 쓰고 고친다</td>
+  </tr>
+  <tr>
+    <td class="key">설계를 바꿔야 하는 결함</td>
+    <td>제품·도메인 결정이 바뀌면 <code>결정 사항</code>과 <code>변경 이력</code>에 한 줄</td>
+    <td><code>설계 결정</code>을 고치고 Task를 더한다</td>
+    <td>다시 받는다</td>
+    <td>위와 같다</td>
+  </tr>
+  <tr>
+    <td class="key">테스트 층이나 대상이 바뀜</td>
+    <td>그대로</td>
+    <td><code>테스트 계획</code>의 줄을 고치고 Task를 더한다</td>
+    <td>다시 받는다</td>
+    <td>위와 같다</td>
+  </tr>
+  <tr>
+    <td class="key">확장 (AC에 없는 결과)</td>
+    <td>사용자 승인 뒤 R·AC와 <code>변경 이력</code>을 더하고 이슈 본문도 고친다</td>
+    <td><code>테스트 계획</code>에 줄을 더하고 Task를 더한다</td>
+    <td>다시 받는다</td>
+    <td>위와 같다</td>
+  </tr>
+  <tr>
+    <td class="key">완화 (AC를 약하게 하거나 뺌)</td>
+    <td>사용자 재승인 뒤 AC를 고치고 <code>변경 이력</code>에 한 줄</td>
+    <td>해당 줄을 고친다</td>
+    <td>다시 받는다</td>
+    <td>기대값을 고칠 때만 바뀐다</td>
+  </tr>
+  <tr>
+    <td class="key">원장 이관, 보류</td>
+    <td>그대로</td>
+    <td>그대로</td>
+    <td class="skip">대상이 아니다</td>
+    <td>고치지 않는다</td>
+  </tr>
+</table>
+</div>
+<ul>
+  <li><strong>spec은 바뀔 때만 바뀌고, plan은 늘 뒤에 더해지며, 소스는 구현 단계에서만 바뀐다.</strong></li>
+  <li><strong>계획 감사 리포트의 <code>--response</code>는 고칠 대상이 spec·plan이다.</strong> 그 보정은 계획 수립으로 돌아가는 짧은 길이고, 세 가지 가운데 하나가 바뀌었으면 계획 감사를 다시 받는다 (7절 A).</li>
+</ul>
+
+<h2>3. 회차가 넘어가는 모습</h2>
+<p class="lead">AC가 6개인 가상의 이슈가 세 회차를 도는 예시다. 칸의 색은 그 회차에서 그 단계가 어떻게 됐는지를 보인다.</p>
+<div class="table-wrap rounds">
+<table>
+  <tr><th>회차</th><th>1 계획 수립</th><th>2 계획 검증</th><th>3 구현</th><th>4 구현 검증</th><th>5 완료 확인</th></tr>
+  <tr>
+    <td class="key">회차 1</td>
+    <td class="did">spec·plan을 새로 쓴다. 요구사항을 승인받는다.</td>
+    <td class="did">계획 감사 1차. 발견 2건을 고친다.</td>
+    <td class="did">Task 1~4. 테스트를 먼저 쓴다.</td>
+    <td class="did">교차 감사 1차, 부적합. 발견 3건 (반영 2, 원장 1).</td>
+    <td class="fail">1단계 부분 충족 (AC3), 2단계 보완 필요, 종합 부적합. 권장도 결정도 다음 회차다.</td>
+  </tr>
+  <tr>
+    <td class="key">회차 2</td>
+    <td class="did">발견 2건을 고치는 Task 5·6을 더한다. AC는 그대로다.</td>
+    <td class="skip">건너뛴다. AC·요구사항, 설계 결정, 테스트 계획이 그대로다.</td>
+    <td class="did">Task 5·6. 재현 테스트부터 쓴다.</td>
+    <td class="did">구현이 바뀌어 교차 감사 2차, 조건부 적합. 발견 2건이 회차 1과 같은 종류다.</td>
+    <td class="fail">1단계 부분 충족 (AC5), 2단계 주의, 종합 조건부 적합. 권장도 결정도 다음 회차다.</td>
+  </tr>
+  <tr>
+    <td class="key">회차 3</td>
+    <td class="did">같은 종류가 이어져 <code>설계 결정</code>부터 고친다. Task 7을 더한다.</td>
+    <td class="did">설계 결정이 바뀌어 계획 감사 2차. 발견 0건.</td>
+    <td class="did">Task 7.</td>
+    <td class="did">구현이 바뀌어 교차 감사 3차, 적합.</td>
+    <td class="pass">1단계 충족, 2단계 통과, 종합 적합. 테스트 계획 6줄을 모두 확인했다. 권장도 결정도 마무리다.</td>
+  </tr>
+</table>
+</div>
+<p class="note">회차 3 뒤에 Task N(마무리)을 한 번 하고 PR을 만든다.</p>
+
+<div class="grid2">
+  <div class="card">
+    <strong>plan: Task를 이어 붙인다</strong>
+    <pre>## Tasks
+### Task 0 (고정): 구현 시작 게이트
+### Task 1 ~ Task 4
+### Task 5, Task 6      대응 발견 F-1, F-2
+### Task 7              대응 발견 F-4, F-5
+### Task N (고정): 마무리</pre>
+    <ul>
+      <li>회차 묶음 제목을 두지 않는다 (본문 제외 항목).</li>
+      <li>Task가 어느 회차에서 나왔는지는 summary 루프 기록이 말한다.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <strong>summary: 종류별 발견 기록</strong>
+    <div class="table-wrap" style="margin:8px 0">
+    <table>
+      <tr><th>종류</th><th>나온 회차</th><th>건수</th><th>설계 결정을 고친 회차</th></tr>
+      <tr><td>입력 경계</td><td>1, 2</td><td>3</td><td>3</td></tr>
+      <tr><td>그 밖</td><td>1</td><td>2</td><td></td></tr>
+    </table>
+    </div>
+    <ul>
+      <li>이 표만 보고 "같은 종류가 이어졌다"를 판정한다 (AC13).</li>
+      <li>칸 이름은 예시다 <span class="tag warn">가정</span>.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>summary: 루프 기록 표 (회차마다 한 줄)</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>회차</th><th>바뀐 것</th><th>다시 시작한 단계</th><th>검증 결과</th></tr>
+  <tr><td class="key">1</td><td>spec·plan 작성, Task 1~4</td><td>계획 수립</td><td>계획 감사 1차 발견 2건 · 교차 감사 1차 발견 3건 · 1단계 부분 충족 (AC3), 2단계 보완 필요, 종합 부적합 · 테스트 계획 4/6줄 · 다음 회차</td></tr>
+  <tr><td class="key">2</td><td>Task 5·6 추가</td><td>구현</td><td>계획 감사 건너뜀 · 교차 감사 2차 발견 2건 · 1단계 부분 충족 (AC5), 2단계 주의, 종합 조건부 적합 · 테스트 계획 5/6줄 · 다음 회차</td></tr>
+  <tr><td class="key">3</td><td>설계 결정, Task 7 추가</td><td>계획 검증</td><td>계획 감사 2차 발견 0건 · 교차 감사 3차 발견 0건 · 1단계 충족, 2단계 통과, 종합 적합 · 테스트 계획 6/6줄 · 마무리</td></tr>
+</table>
+</div>
+<ul>
+  <li><strong>완료 확인은 새 판정 값을 만들지 않는다.</strong> 마지막 교차 감사 리포트의 1단계 상태(충족, 부분 충족, 미충족, 판정 불가), 2단계 상태(통과, 주의, 보완 필요), 종합 판정(적합, 조건부 적합, 부적합)을 그대로 옮긴다. 에이전트의 권장과 사용자의 결정은 <code>마무리</code>나 <code>다음 회차</code>로 적는다.</li>
+  <li><strong>권장 규칙</strong>: 1단계 상태가 충족이고, 2단계 상태가 통과나 주의이며, 테스트 계획의 모든 줄을 확인했고, <code>--response</code>에서 반영으로 정한 발견을 모두 닫았으면 <code>마무리</code>, 그 밖은 <code>다음 회차</code>다. 판정 불가로 남은 AC는 권장과 함께 따로 나열한다.</li>
+  <li><strong>한 번만 돈 이슈는 이 표가 한 줄이다.</strong> 종류별 발견 기록과 Task의 <code>대응 발견</code> 칸은 쓸 내용이 있을 때만 둔다. 루프 때문에 빈 섹션이 생기지 않는다 (AC15).</li>
+  <li><strong><code>다시 시작한 단계</code>는 계획 수립 뒤에 처음으로 다시 한 단계로 적었다</strong> <span class="tag warn">가정</span>. 돌아가는 곳은 늘 계획 수립이라 그대로 적으면 모든 줄이 같은 값이 된다 (7절 B).</li>
+</ul>
+
+<h2>4. Task 하나의 순서</h2>
+<div class="strip">
+  <span class="chip">테스트 작성</span><span class="sep">→</span>
+  <span class="chip">실패 확인</span><span class="sep">→</span>
+  <span class="chip commit">테스트 커밋</span><span class="sep">→</span>
+  <span class="chip">구현</span><span class="sep">→</span>
+  <span class="chip">통과 확인</span><span class="sep">→</span>
+  <span class="chip commit">구현 커밋</span>
+</div>
+<ul>
+  <li><strong>기능을 바꾸는 Task가 대상이다.</strong> 테스트를 먼저 쓰지 않는 Task의 기준(문서, 화면 배치, 스파이크)은 본문의 검토 필요 항목이다.</li>
+  <li><strong>감사 발견을 고치는 Task는 재현 테스트부터 쓴다.</strong> 회차 2 이후의 Task가 이 모양이다.</li>
+  <li><strong>커밋한 테스트의 기대값을 바꾸는 변경은 완화다.</strong> 사용자 승인 없이 반영하지 않는다 (AC7).</li>
+  <li><strong>단위 테스트를 먼저 고른다.</strong> 단위보다 위 층을 쓰면 plan <code>테스트 계획</code>의 그 줄에 이유를 적는다 (AC5).</li>
+</ul>
+
+<h2>5. 템플릿에 넣을 아스키 그림 안</h2>
+<p class="lead">컨텍스트를 초기화한 AI가 읽는 파일에 그림을 두면 절차의 순서와 돌아가는 길을 문장보다 빨리 찾는다. 두 안을 그렸다.</p>
+
+<h3>안 A: 세로형 (권장)</h3>
+<pre>       이슈 등록 (--create)
+            |
+            v
+  +--&gt; 1. 계획 수립
+  |         |    spec·plan이 없으면 쓰고, 지난 회차에서 바꿀 것이 나왔으면 고친다
+  |         v
+  |    2. 계획 검증
+  |         |    AC·요구사항, 설계 결정, 테스트 계획이 바뀌었을 때만 계획 감사를 받는다
+  |         v
+  |    3. 구현
+  |         |    Task마다 테스트 작성 -&gt; 실패 확인 -&gt; 구현 -&gt; 통과 확인
+  |         v
+  |    4. 구현 검증
+  |         |    구현이 바뀌었을 때 교차 감사를 전체로 받는다
+  |         v
+  +--- 5. 완료 확인
+            |    감사 상태와 테스트 계획 확인 줄 수를 보이고 마무리나 다음 회차를 권장한다
+            |    사용자가 다음 회차로 정하면 1로 돌아간다
+            v
+       Task N (마무리)
+            |    전체 회귀, 색인, --clear, PR
+            v
+       PR 뒤 피드백은 git-pr-feedback으로 처리한다</pre>
+<ul>
+  <li><strong>선이 한글보다 왼쪽에만 있다.</strong> 한글 폭이 글꼴마다 달라도 선이 어긋나지 않는다.</li>
+  <li><strong>기호는 <code>+ - | v &gt;</code>만 쓴다.</strong> 선 그리기 문자(<code>┌ ─ │</code>)는 한글 글꼴에서 두 칸 폭으로 그려지는 일이 있어 뺐다.</li>
+</ul>
+
+<h3>안 B: 가로형</h3>
+<pre>계획 수립 -&gt; 계획 검증 -&gt; 구현 -&gt; 구현 검증 -&gt; 완료 확인 -&gt; Task N (마무리)
+    ^                                              |
+    +-------- 다음 회차로 정하면 돌아간다 ---------+</pre>
+<ul>
+  <li><strong>세 줄이라 짧다.</strong> 단계마다의 조건은 그림에 담지 못한다.</li>
+  <li><strong>한글 한 글자가 영문 두 칸 폭인 글꼴에서만 돌아가는 선이 맞는다.</strong> 이 화면에서 선이 어긋나 보이면 GitHub와 IDE 미리보기에서도 어긋난다.</li>
+</ul>
+
+<h3>넣을 자리</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>파일</th><th>안</th><th>이유</th></tr>
+  <tr><td class="key">issue-workflow-template.md</td><td>안 A를 맨 위 절차 앞에 둔다</td><td>repo마다 사본(<code>active/issue-workflow.md</code>)으로 배포되어 세션이 바뀐 AI가 가장 먼저 읽는다</td></tr>
+  <tr><td class="key">SKILL.md</td><td>그림을 두지 않는다</td><td>그림은 템플릿에 두기로 정했다 (2026-11-23 대화). 한 곳에만 있어 두 그림을 맞추는 검사가 필요 없다</td></tr>
+  <tr><td class="key">plan·summary 템플릿</td><td>그림을 두지 않는다</td><td>이슈마다 복사되는 파일이라 그림이 분량만 늘린다. 루프 기록 표가 진행을 말한다</td></tr>
+</table>
+</div>
+<p class="note">그림을 템플릿에 넣는 일은 이슈 본문에 따로 적혀 있지 않다. 포함 항목 "issue-workflow 템플릿, README, 도메인 명세가 새 흐름을 설명한다"를 구체화한 것으로 보고 spec 승인 때 따로 표시해 묻는다.</p>
+
+<h2>6. 지금 있는 게이트가 놓이는 자리 <span class="tag warn">가정</span></h2>
+<div class="table-wrap">
+<table>
+  <tr><th>지금의 게이트</th><th>루프에서 놓이는 자리</th><th>달라지는 것</th></tr>
+  <tr><td class="key">요구사항 승인 (3-1)</td><td>회차 1의 계획 수립 안</td><td>뒤 회차에서 요구사항이 바뀌면(확장, 완화) 다시 거친다</td></tr>
+  <tr><td class="key">계획 종료 게이트</td><td>계획 수립의 끝, spec·plan을 새로 쓰거나 고친 회차</td><td>발견을 적는 자리가 spec <code>전제</code>에서 <code>결정 사항</code>·plan <code>설계 결정</code>으로 바뀔 수 있다 (본문 검토 필요)</td></tr>
+  <tr><td class="key">이슈 본문 갱신 질의</td><td>확장으로 AC가 늘 때의 계획 수립 안</td><td>spec의 AC가 이슈 본문과 같은 문장이라 <code>(AC 없음: …)</code> 항목 때문에 묻는 일이 사라진다</td></tr>
+  <tr><td class="key">Task 0 (구현 시작 게이트)</td><td>회차 1의 구현 맨 앞</td><td>뒤 회차는 세션이 바뀌었을 때만 다시 한다</td></tr>
+  <tr><td class="key"><code>--response</code> 승인 게이트</td><td>계획 검증과 구현 검증 안</td><td>그대로다. 반영으로 정한 항목이 다음 회차 계획 수립의 입력이 된다</td></tr>
+</table>
+</div>
+
+<h2>7. 그림을 그리며 드러난 빈 곳</h2>
+<p class="lead">그림에 쓴 가정과 권장안이다. A·B는 본문의 검토 필요에 없던 항목이고, C~H는 본문의 검토 필요 가운데 그림의 모양을 바꾸는 항목이다.</p>
+
+<div class="card gap">
+  <h3>A. 계획 검증에서 발견이 나왔을 때의 길 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>빈 곳</strong>: 본문은 돌아가는 길을 완료 확인에서만 둔다. 계획 감사의 발견을 고치면 <code>설계 결정</code>이나 <code>테스트 계획</code>이 바뀌고, 규칙대로면 계획 감사를 다시 받는다.</li>
+    <li><strong>그림의 가정</strong>: 계획 검증 단계 안에서 고치고 구현으로 넘어간다.</li>
+    <li><strong>정한 내용</strong> (2026-11-23 대화): 예외를 두지 않고 본문 규칙대로 둔다. 고친 결과로 AC·요구사항, <code>설계 결정</code>, <code>테스트 계획</code>이 바뀌었으면 계획 감사를 다시 받고, 바뀌지 않았으면 받지 않는다. C와 같은 기준이다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>B. 루프 기록의 <code>다시 시작한 단계</code> 칸 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>빈 곳</strong>: 돌아가는 곳이 늘 계획 수립이라 칸의 값이 늘 같다.</li>
+    <li><strong>그림의 가정</strong>: 계획 수립 뒤에 처음으로 다시 한 단계를 적는다. 값은 <code>계획 검증</code>(세 가지 가운데 하나가 바뀜)이나 <code>구현</code>(Task만 더함)이다.</li>
+    <li><strong>정한 내용</strong> (2026-11-23 대화): 가정대로 둔다. 이 칸 하나로 그 회차에 계획 감사를 받았는지가 드러난다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>C. 구현 검증을 다시 받지 않아도 되는 변경 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>예외를 두지 않는다.</strong> 구현이 바뀌면 고친 발견의 위험도와 관계없이 교차 감사를 전체로 다시 받는다 (2026-11-23 대화). 지금의 issue-audit 운영과 같다.</li>
+    <li><strong>이유</strong>: 품질을 시간과 토큰보다 앞에 둔다. 작은 수정도 다른 곳을 깨뜨릴 수 있고, 다시 받지 않으면 그 수정은 검증 없이 남는다.</li>
+    <li><strong>회차를 줄이는 길</strong>: 고치지 않기로 한 발견은 <code>--response</code>에서 이관이나 보류로 정한다. 구현이 바뀌지 않으므로 다시 감사받지 않는다.</li>
+    <li><strong>거둔 권장</strong>: 낮음·정보 발견의 보정을 감사에서 빼자는 안은 거뒀다. 루프를 나갈지는 사용자가 정하므로 예외가 없어도 회차는 사용자가 끝낼 수 있다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>D. 완료 확인이 충족을 판정하는 근거 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>결정 주체</strong>: 루프를 나갈지는 사용자가 정한다. 에이전트는 아래 규칙으로 권장만 낸다 (2026-11-23 대화).</li>
+    <li><strong>보이는 값</strong>: 마지막 교차 감사 리포트의 1단계 상태, 2단계 상태, 종합 판정과 테스트 계획의 확인한 줄 수다. 새 판정 값을 만들지 않는다.</li>
+    <li><strong>권장 규칙</strong>: 아래 네 가지가 모두 맞으면 <code>마무리</code>, 그 밖은 <code>다음 회차</code>다.
+      <ul>
+        <li>1단계 상태가 충족이다.</li>
+        <li>2단계 상태가 통과나 주의다. 높음 발견이 있는 보완 필요만 막는다.</li>
+        <li>테스트 계획의 모든 줄을 확인했다.</li>
+        <li><code>--response</code>에서 반영으로 정한 발견을 모두 닫았다. 이관이나 보류로 정한 발견은 세지 않는다.</li>
+      </ul>
+    </li>
+    <li><strong>종합 판정으로 적지 않는 이유</strong>: 조건부 적합은 1단계 부분 충족에서도 나온다. 규칙을 "조건부 적합 이상"으로 적으면 AC가 부분 충족인 회차도 <code>마무리</code> 권장이 된다. 종합 판정은 보이기만 하고 규칙은 두 상태로 적는다.</li>
+    <li><strong>주의를 막지 않는 이유</strong>: 주의는 중간 발견이 하나만 있어도 나온다. 그 발견이 실제로 중요한지는 <code>--response</code>에서 사용자가 정한다.</li>
+    <li><strong>반영으로 정한 발견을 세는 이유</strong>: 2단계 주의를 막지 않으므로, 이 조건이 없으면 중간 발견을 고치기로 정해 놓고도 <code>마무리</code> 권장이 나온다 (2026-11-23 대화).</li>
+    <li><strong>권장과 다르게 나갈 때</strong>: 남은 AC와 발견마다 완화, 원장 등재, 새 이슈 가운데 결정을 받는다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>E. "지난 검증 뒤에 바뀌었다"를 가리는 방법 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>그림의 가정</strong>: 루프 기록의 <code>바뀐 것</code> 칸으로 가린다.</li>
+    <li><strong>정한 내용</strong> (2026-11-23 대화): 검증한 커밋을 루프 기록에 적고 그 커밋 뒤의 diff로 가린다. 구현 검증은 코드 경로의 diff, 계획 검증은 spec의 요구사항·완료의 정의와 plan의 두 섹션 diff를 본다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>F. 계획 감사 수행 여부를 묻는 시점 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>그림의 가정</strong>: 회차 1에서 한 번 묻는다. 수행으로 고른 이슈만 뒤 회차에서 조건에 따라 다시 받는다.</li>
+    <li><strong>정한 내용</strong> (2026-11-23 대화): 가정대로 둔다. 회차마다 물으면 질의가 루프보다 무거워진다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>G. "같은 종류가 이어진다"의 기준 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>그림의 가정</strong>: 같은 종류가 두 회차 연속으로 나오면 다음 회차의 계획 수립이 <code>설계 결정</code>부터 고친다. 종류는 <code>--response</code> 분류에서 붙인다.</li>
+    <li><strong>정한 내용</strong> (2026-11-23 대화): 가정대로 둔다. 종류를 issue-audit의 카테고리 체계에 넣으면 git-review와 git-review-quiz까지 함께 고쳐야 한다.</li>
+  </ul>
+</div>
+<div class="card gap">
+  <h3>H. 루프를 나간 뒤에 구현이 바뀔 때 <span class="tag ok">정함</span></h3>
+  <ul>
+    <li><strong>빈 곳</strong>: Task N의 전체 회귀가 실패하거나 PR 뒤 피드백으로 구현을 고치면 구현 검증을 다시 받는지가 정해지지 않았다.</li>
+    <li><strong>그림의 가정</strong>: 그림은 루프로 돌아가는 선을 두지 않았다.</li>
+    <li><strong>정한 내용</strong> (2026-11-23 대화): Task N에서 구현을 고치면 계획 수립으로 돌아간다. PR 뒤 피드백으로 구현을 고쳤을 때 교차 감사를 다시 받을지는 사용자가 고른다.</li>
+  </ul>
+</div>
+
+</main>
+</body>
+</html>

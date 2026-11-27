@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-10-31
-source_hash: 552fe6a
+last_synced: 2026-11-26
+source_hash: 8133b02
 status: current
 ---
 
@@ -8,22 +8,28 @@ status: current
 
 ## What
 
-이슈 spec 대비 구현을 독립 감사인 관점에서 검증한다. 1단계 적합성(요구사항·DoD·경계·계약·ADR 대조)과 2단계 비판적 검증(발견·위험도)을 수행하고 리포트를 `.ai/99_workspace/`에 쓴다. 사용자가 구현 모델과 다른 벤더 모델로 직접 실행한다.
+이슈 spec 대비 구현을 독립 감사인 관점에서 검증한다. 1단계 적합성(DoD·결정 사항 대조, 경계, 계약·ADR 정합)과 2단계 비판적 검증(발견·위험도)을 수행하고 리포트를 `.ai/99_workspace/`에 쓴다. issue-work 진행 루프의 구현 검증 단계에서 사용자가 구현 모델과 다른 벤더 모델로 직접 실행한다.
 
 ## How
 
 ```
 issue-audit/SKILL.md (기본 모드: 최종 감사)
 ├── 0단계: 컨텍스트 수집
-│   ├── .ai/90_issues/active|archive/issue-<번호>/ spec·plan·summary
+│   ├── 구현 브랜치 확인         # 지정받은 브랜치가 git branch --show-current 와 다르면 감사를 시작하지 않고 그 작업 트리에서 다시 실행하도록 알림
+│   ├── .ai/90_issues/active|archive/issue-<번호>/ spec·plan·summary   # 파일이 없으면 이슈 본문의 AC를 구현에 직접 대조, AC도 없으면 포함 항목이 DoD 대조의 행
 │   ├── .ai/60_codebase/index.md, .ai/30_contract·40_domain·50_adr index   # 색인은 참고만, SSoT는 AI-CONTEXT.md 본문 2번째 줄 선언으로 직접 확인(선언 없으면 소스 코드, 안내도는 있는데 선언을 찾지 못하면 사용자에게 알림)
 │   ├── .ai/70_ledger/index.md + active/K-*.md (+ 관련 archive/ 승격·해소 항목)   # 기등재 대조로 반복 보고 차단, archive 는 재발 계보·승격 연결 이슈 확인용
-│   ├── 구현 브랜치 diff
+│   ├── 구현 브랜치 diff (+ 8항: git rev-parse HEAD 로 감사 대상 커밋, 구현·spec·plan의 미커밋 산출물 확인)
 │   ├── 기존 리포트 .ai/99_workspace/issue-<번호>-audit-report*.md
-│   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), [D] 재실행의 실행 셸·전제 조건 기준(local 우선)
-├── 1단계: 적합성 검증 (Compliance Check)            # DoD [D] 명령은 구현 후 트리에서 실제 실행해 판정. local 파일이 있으면 그 실행 셸로 실행하고 전제 조건이 없으면 판정 불가(N/A)
+│   └── .ai/10_rules/testing-principles.md·testing-principles-local.md   # 있으면 읽음(7항), `테스트 계획` [D] 줄의 실행 셸·전제 조건 기준(local 우선)
+├── 1단계: 적합성 검증 (Compliance Check)            # 대조 표 둘(DoD·결정 사항), 경계, 도메인·계약·ADR 정합
+│   ├── 완료의 정의(DoD) 대조    # spec AC 행마다 plan `테스트 계획`의 줄로 판정. [D] 줄은 구현 후 트리에서 실행(실패가 있으면 FAIL, 실패 없이 전제 조건이 없거나 실행 못 한 줄이 있으면 N/A, local 파일이 있으면 그 셸), [QD] 줄은 채점, [ND] 줄은 판정 안 함(만 있으면 N/A). AC의 일부만 보면 PARTIAL, 줄이 없으면 N/A + 관점 5 발견. `완료의 정의 항목` 칸에 spec AC 문장을 그대로 옮김(git-pr이 문장 비교에 씀)
+│   ├── 결정 사항 대조           # spec D<n>마다 구현 대조, `결정 사항`이 없는 spec은 두지 않음. 2단계 발견은 요구사항·AC·결정에 결속될 때만 1단계 판정을 낮춤
 │   └── scripts/classify-risk.sh --compliance <판정>…    # 1단계 상태 (최고값)
-├── 2단계: 비판적 검증 (Critical Review)               # 5관점·7카테고리(선언이 원본 문서면 doc 카테고리 7종), 관점 5는 Task별 테스트 [D] 유무·변경 커버로 판정
+├── 2단계: 비판적 검증 (Critical Review)               # 5관점·7카테고리(선언이 원본 문서면 doc 카테고리 7종), 관점 5는 테스트 커밋이 구현 커밋보다 앞인지, summary `테스트` 기록, 테스트가 Task의 변경을 덮는지로 판정(실패는 다시 실행하지 않음, 먼저 쓰지 않는 Task 네 기준은 제외)
+│   ├── 변경 줄 읽기             # 변경 파일마다 추가·수정·삭제 줄 전부, 읽지 않는 사유 넷(잠금 파일·생성 파일·바이너리·읽기 실패), 읽은/읽지 않은 파일 수는 요약 `코드 레벨 검증` 줄에
+│   ├── 확인 관점                # 버그·보안·성능 판정 목록(git-review와 같음), doc 카테고리에는 쓰지 않음
+│   ├── 인용 위치 재확인·실패 시나리오   # 기등재 대조 전에 성립 확인(확인 못 하면 `(확인 필요)`), 버그·보안·성능 발견은 실패 시나리오 한 줄
 │   ├── scripts/classify-risk.sh --impact <축> --likelihood <축>   # 등급, 감사인이 직접 고르지 않음
 │   ├── scripts/classify-risk.sh --treatment <위험도>    # 등급별 기본 처리 (LOW 는 .ai/70_ledger/ 이관)
 │   └── scripts/next-finding-number.sh <리포트 글롭>     # F- 번호 이슈 단위 계승
@@ -43,10 +49,10 @@ sequenceDiagram
 
     SK->>SK: 0단계 컨텍스트 수집(spec·plan·summary, 색인, 원장, 구현 브랜치 diff, 기존 리포트, testing-principles 쌍)
     Note over SK: SSoT는 AI-CONTEXT.md 선언으로 직접 확인, 선언이 없으면 소스 코드
-    SK->>SK: 1단계 요구사항·DoD·경계·계약·ADR 대조, DoD [D] 명령은 구현 후 트리에서 실행
+    SK->>SK: 1단계 DoD·결정 사항 대조, 경계·계약·ADR 정합, 테스트 계획의 [D] 줄은 구현 후 트리에서 실행
     SK->>CR: --compliance 항목 판정 전부
     CR-->>SK: 1단계 상태(최고값)
-    SK->>SK: 2단계 5관점 탐색, 원장 기등재 대조
+    SK->>SK: 2단계 변경 줄 읽기, 5관점 탐색, 인용 위치 재확인, 원장 기등재 대조
     loop 발견마다
         SK->>CR: --impact 영향 축 --likelihood 발생확률 축
         CR-->>SK: 위험도 등급
@@ -63,10 +69,10 @@ sequenceDiagram
         SK->>SK: 직전 리포트를 회차 번호 파일명으로 회전
     end
     SK->>SK: 템플릿으로 리포트 작성 후 .ai/99_workspace 에 저장
-    Note over SK: 사용자에게 판정 한 줄로 시작하는 요약 보고, 보정은 issue-work --response 몫
+    Note over SK: 사용자에게 판정 한 줄로 시작하는 요약 보고, 결정은 issue-work --response 몫
 ```
 
-리포트의 보정은 이 스킬이 하지 않는다. issue-work `--response`가 피드백·항목별 승인·승인분 보정을 맡는다([--response 흐름](../issue-work/response-call-flow.md)).
+리포트의 보정은 이 스킬이 하지 않는다. issue-work `--response`가 피드백과 항목별 결정을 맡고([--response 흐름](../issue-work/response-call-flow.md)), 반영으로 정한 발견은 다음 회차의 Task가 고친다([진행 루프 흐름](../issue-work/loop-call-flow.md)).
 
 ## Why
 
@@ -75,5 +81,5 @@ sequenceDiagram
 - 사용자가 구현 모델과 다른 벤더 모델로 직접 수행하고 구현 AI가 자동 실행·종료하지 않는 원칙, 전체 재감사 유지, 종료 기준 유한 체크리스트는 [ADR 0004](../../50_adr/active/0004-cross-model-audit-and-response-gate.md).
 - 명세: [이슈 감사 요건](../../40_domain/specs/issue-audit.md)(0~3단계 요건, 번호 계승·계보, 리포트 구조·회차 보존).
 - 매트릭스·등급별 처리는 [ADR 0006](../../50_adr/active/0006-risk-matrix-and-treatment.md), 기등재 대조·상태 행렬은 [ADR 0007](../../50_adr/active/0007-tech-debt-ledger-location-and-structure.md), 역피라미드·상태·판정 산출은 [ADR 0014](../../50_adr/active/0014-inverted-pyramid-and-verdict-derivation.md). 카테고리 7종과 doc 카테고리 7종은 git-review 원본의 사본이다([ADR 0002](../../50_adr/active/0002-skill-independence-intentional-duplication.md)). doc 프로파일의 SSoT를 원본 문서로 둔 결정은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md).
-- 관점 5의 Task별 테스트 기준과 1단계 `[D]` 실행 지시는 [ADR 0019](../../50_adr/active/0019-test-perspectives-and-task-level-placement.md). 0단계 7항의 테스트 실행 원칙 파일 쌍 참조와 `[D]` 재실행의 실행 셸·판정 불가(N/A)는 [ADR 0023](../../50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md). 선언을 찾지 못했을 때의 알림은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md) 일부 변경(#122).
+- 1단계의 두 대조 표, `테스트 계획`의 줄로 판정하는 DoD 대조, `결정 사항`을 1단계 판정의 근거로 삼는 결정은 [ADR 0031](../../50_adr/active/0031-issue-work-loop-and-one-sentence-requirements.md). 관점 5의 Task별 테스트 기준은 [ADR 0019](../../50_adr/active/0019-test-perspectives-and-task-level-placement.md). 0단계 7항의 테스트 실행 원칙 파일 쌍 참조와 `[D]` 줄 실행의 실행 셸·판정 불가(N/A)는 [ADR 0023](../../50_adr/active/0023-testing-principles-pair-and-consumer-skill-references.md). 선언을 찾지 못했을 때의 알림은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md) 일부 변경(#122).
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md). 헬퍼 분리 판단은 [architecture.md 디자인 원칙](../../10_rules/architecture.md).

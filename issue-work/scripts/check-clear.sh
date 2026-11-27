@@ -56,14 +56,16 @@ if [ "$mode" = 'completion' ]; then
 
   # Task 체크박스 — 각 `### Task ` 블록에 완료 체크박스가 정확히 1개 있고 체크되어야 한다.
   # 미체크만 세면 체크박스가 아예 없는 블록이 "미체크 아님"으로 통과하므로 실재·유일성을 함께 센다.
+  # Task N(마무리)의 미체크는 세지 않는다. `--clear` 가 Task N 의 한 단계라 이 검사 뒤에 체크한다.
+  # Task N 도 체크박스의 실재·유일성은 함께 센다.
   tasks="$(awk '
     function flush() {
       if (title == "") return
       if (n == 0)     print "미완료: " title " (완료 체크박스가 없습니다)"
       else if (n > 1) print "미완료: " title " (완료 체크박스가 " n "개입니다 — 블록마다 1개)"
-      else if (unchecked) print "미완료: " title
+      else if (unchecked && !taskn) print "미완료: " title
     }
-    /^### Task / { flush(); title = $0; sub(/^### /, "", title); n = 0; unchecked = 0; next }
+    /^### Task / { flush(); title = $0; sub(/^### /, "", title); taskn = ($0 ~ /^### Task N \(고정\)/); n = 0; unchecked = 0; next }
     title != "" && /^- \[[ xX]\] 완료[[:space:]]*$/ {
       n++
       if ($0 ~ /^- \[ \] 완료/) unchecked = 1

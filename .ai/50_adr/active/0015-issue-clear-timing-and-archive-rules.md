@@ -9,7 +9,7 @@ last_harvested: 2026-09-09
 
 ## 결정
 
-- 정리 옵션명은 `--clear`다. 구현·리뷰 완료 후 PR 머지를 올리기 직전에 실행한다.
+- 정리 옵션명은 `--clear`다. 마무리(Task N)에서 PR을 만들기 직전에 실행한다. 중단·종료는 그렇게 정한 때에 실행한다 (#145).
 - archive 이관(`active/issue-<번호>/` → `archive/`)은 PR 머지 전 작업 브랜치에서 수행해 같은 PR에 포함한다.
 - 이슈 댓글 등록은 git 변경이 아니므로 머지 전·후 어느 시점이든 가능하다.
 - 이관한 파일 본문의 경로 참조를 이관 후 위치 기준으로 갱신한다. 함께 이동한 파일 간 참조는 `./` 상대 링크, `../` 링크는 깊이 재계산, 표준 병기 문구는 "(작성 시점 경로는 `<옛 경로>`, --clear로 이관)", archive 본문에 `99_workspace/` 참조 금지. 이관 후 stale 참조 0건을 결정적으로 확인한다(`check-clear.sh`).
@@ -26,6 +26,7 @@ last_harvested: 2026-09-09
 - 이관 뒤 `active/`·`99_workspace/` 경로 참조가 남아 dead link가 반복됐고, `.ai` 하위 1단에서 3단으로 이동하면 `../` 기준 깊이가 달라진다. 수기 보정은 절차에 없어 누락이 반복됐다 (#37).
 - 탐지 패턴은 include에서 exclude로 반전해 임의 파일명도 검출하고, 상주 파일 `active/issue-workflow.md`는 제외하며, `notes/` 예외는 철회했다(99_workspace는 언제든 비워질 수 있다는 가정).
 - 템플릿(SSoT) 개선이 기존 인스턴스에 자동 전파되도록 새 이슈 시작 시 동기화를 넣었다.
+- 2026-11-25 #145에서 일부 변경: 실행 시점을 PR 머지 직전에서 PR을 만들기 직전으로 고쳤다. Task N이 `--clear` 뒤에 PR을 만드는 순서라 시점을 맞췄다. 절차 순서 `--clear → PR`은 [ADR 0018](./0018-ledger-proactive-review-and-resolve-timing.md)에서 이미 정한 것이고, 이관을 머지 전 작업 브랜치에서 하는 결정은 그대로다 ([ADR 0031](./0031-issue-work-loop-and-one-sentence-requirements.md)).
 
 </details>
 
@@ -47,5 +48,6 @@ last_harvested: 2026-09-09
 - [Issue #15 issue-work 정리 옵션 추가](https://github.com/scroogy-dev/scroogy-agent-skills/issues/15)
 - [Issue #21 --clear 시점·순서 모호함 개선](https://github.com/scroogy-dev/scroogy-agent-skills/issues/21)
 - [Issue #37 --clear archive 이관 시 경로 참조 미갱신 개선](https://github.com/scroogy-dev/scroogy-agent-skills/issues/37)
+- 일부 변경: [Issue #145](https://github.com/scroogy-dev/scroogy-agent-skills/issues/145), [ADR 0031](./0031-issue-work-loop-and-one-sentence-requirements.md)
 
 </details>

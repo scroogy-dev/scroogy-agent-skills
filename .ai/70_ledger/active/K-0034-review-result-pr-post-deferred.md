@@ -23,6 +23,6 @@ git-review는 리뷰 결과를 `.ai/99_workspace/temp_review_result.md`에만 �
 - **발생확률**: 통상 사용. PR 모드 리뷰마다 게시 절차가 없다.
 - **위험도 산출**: `classify-risk.sh --impact '기능 저하' --likelihood '통상 사용'` → 중간(MEDIUM).
 - **채택하지 않은 대안**: 이슈 #142에서 PR 게시 절차를 함께 만드는 안. 외부 게시라 승인 게이트와 게시 형식을 정해야 하는데 형식을 정할 경험이 없어 보류했다.
-- 같은 이슈의 다른 보류 항목은 [K-0035](./K-0035-issue-audit-code-level-check-deferred.md)(issue-audit 2단계 보강)·[K-0036](./K-0036-review-doc-category-check-deferred.md)(doc 카테고리 보강)·[K-0037](./K-0037-review-other-repo-pr-in-workspace-deferred.md)(다른 저장소 PR 리뷰)로 같은 날 등재했다.
+- 같은 이슈의 다른 보류 항목은 [K-0035](../archive/K-0035-issue-audit-code-level-check-deferred.md)(issue-audit 2단계 보강)·[K-0036](./K-0036-review-doc-category-check-deferred.md)(doc 카테고리 보강)·[K-0037](./K-0037-review-other-repo-pr-in-workspace-deferred.md)(다른 저장소 PR 리뷰)로 같은 날 등재했다.
 
 </details>

@@ -195,7 +195,7 @@ if [ "$treatment_mode" = true ]; then
 fi
 
 if [ "$compliance_mode" = true ]; then
-  # 요구사항·DoD 대조는 항상 있어 항목 0개인 감사가 성립하지 않으므로 인자 0개를 거부한다.
+  # DoD 대조는 항상 있어 항목 0개인 감사가 성립하지 않으므로 인자 0개를 거부한다.
   if [ "${#judgments[@]}" -eq 0 ]; then
     echo "error: --compliance 는 1단계 판정이 1개 이상 필요합니다" >&2; exit 2
   fi

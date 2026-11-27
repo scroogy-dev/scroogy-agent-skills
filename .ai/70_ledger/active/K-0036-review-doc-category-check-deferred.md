@@ -23,6 +23,6 @@ git-review 테크 리뷰 3단계의 확인 관점 목록과 발견 처리의 실
 - **발생확률**: 통상 사용. 원본 문서 선언 repo의 리뷰마다 해당한다.
 - **위험도 산출**: `classify-risk.sh --impact '기능 저하' --likelihood '통상 사용'` → 중간(MEDIUM).
 - **채택하지 않은 대안**: 이슈 #142에서 doc 카테고리용 관점 목록을 함께 만드는 안. 코드 카테고리 결과를 본 뒤 정하기로 해 보류했다.
-- 같은 이슈의 다른 보류 항목은 [K-0034](./K-0034-review-result-pr-post-deferred.md)(PR 게시)·[K-0035](./K-0035-issue-audit-code-level-check-deferred.md)(issue-audit 2단계 보강)·[K-0037](./K-0037-review-other-repo-pr-in-workspace-deferred.md)(다른 저장소 PR 리뷰)로 같은 날 등재했다.
+- 같은 이슈의 다른 보류 항목은 [K-0034](./K-0034-review-result-pr-post-deferred.md)(PR 게시)·[K-0035](../archive/K-0035-issue-audit-code-level-check-deferred.md)(issue-audit 2단계 보강)·[K-0037](./K-0037-review-other-repo-pr-in-workspace-deferred.md)(다른 저장소 PR 리뷰)로 같은 날 등재했다.
 
 </details>
