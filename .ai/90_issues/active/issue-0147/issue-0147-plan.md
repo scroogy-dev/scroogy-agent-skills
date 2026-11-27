@@ -54,11 +54,11 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 
 | AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
 |----|------|----|--------|---------------------|------|
-| AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-quiz.sh` 회귀 케이스(정상 fixture와 위반 fixture) | - |  |
-| AC2 | [D] | 단위 | `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-context.sh` 회귀 케이스(날짜를 바꾼 dev·doc 템플릿 사본, `profile_state` 경로 입력, `dev_residue` 경로 입력. 입력은 Task 2) | - |  |
-| AC3 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - |  |
-| AC4 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - |  |
-| AC6 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - |  |
+| AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-quiz.sh` 회귀 케이스(정상 fixture와 위반 fixture) | - | 최종 1차 |
+| AC2 | [D] | 단위 | `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-context.sh` 회귀 케이스(날짜를 바꾼 dev·doc 템플릿 사본, `profile_state` 경로 입력, `dev_residue` 경로 입력. 입력은 Task 2) | - | 최종 1차 |
+| AC3 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
+| AC4 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
+| AC6 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
 
 > **로케일 전제**: 위 표의 줄은 실행하는 머신에 `en_US.UTF-8`이 있어야 판정할 수 있다. 회귀 케이스가 `건너뜀`을 출력했거나 `locale -a`에 `en_US.UTF-8`(`en_US.utf8`)이 없으면, 러너가 `failed: 0`으로 끝나도 그 줄은 통과로 보지 않고 판정 불가(N/A)로 둔다(`.ai/10_rules/testing-principles.md` 전제 조건과 판정 불가). 로케일이 없으면 AC3·AC4·AC6의 `LC_ALL=en_US.UTF-8`은 `C`로 떨어져 원래의 실패가 나지 않기 때문이다.
 
