@@ -24,6 +24,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. bash 의 case 대괄호 범위 `[!0-9a-fA-F]` 는 en_US.UTF-8 에서 `é` 를 `a`~`f` 범위에 넣어, SHA 형식이 아닌 --head-oid·--approved-sha 를 통과시킨다.
+export LC_ALL=C
+
 usage() { sed -n '3,26p' "$0" | sed 's/^# \{0,1\}//'; }
 
 normalize() {

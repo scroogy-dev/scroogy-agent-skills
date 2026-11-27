@@ -20,6 +20,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 != 는 en_US.UTF-8 에서 `active예정` 처럼 한글이 붙은 status 값을 `active` 와 같다고 보아 위반을 놓친다.
+export LC_ALL=C
+
 usage() { sed -n '3,21p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # standard-structure.md 의 표준 6개 H2 섹션. 순서까지 규격이다.
