@@ -10,7 +10,7 @@
 
 ## 내용
 
-이슈 #147의 로케일 회귀 케이스는 같은 입력을 `C.UTF-8`과 `en_US.UTF-8`로 실행해 합친 출력(`2>&1`)과 종료 코드가 같으면 통과로 본다. 기준 로케일 쪽 결과가 기대 판정(예: ai-workspace `profile_state` 경계 입력의 ``질의: 안내도에 `profile` 행이 없음``·종료 코드 1)과 맞는지는 보지 않아, 두 실행이 똑같이 틀리면 통과한다. 영향 범위는 git-review-quiz·ai-workspace 러너의 `로케일:` 케이스다.
+이슈 #147의 로케일 회귀 케이스는 같은 입력을 `C.UTF-8`과 `en_US.UTF-8`로 실행해 합친 출력(`2>&1`)과 종료 코드가 같으면 통과로 본다. 기준 로케일 쪽 결과가 기대 판정(예: ai-workspace `profile_state` 경계 입력의 ``질의: 안내도에 `profile` 행이 없음``·종료 코드 1)과 맞는지는 보지 않아, 두 실행이 똑같이 틀리면 통과한다. 영향 범위는 git-review-quiz·ai-workspace·ai-workspace-directory·git-pr·git-pr-feedback 러너의 `로케일:` 케이스다.
 
 ## 재검토 이력
 

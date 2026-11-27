@@ -10,7 +10,7 @@
 
 ## 내용
 
-이슈 #147의 로케일 회귀 케이스(`로케일:`으로 시작하는 git-review-quiz·ai-workspace 러너 케이스)는 `locale -a`에서 `en_US.UTF-8`만 찾고 `C.UTF-8`은 확인하지 않는다. `C.UTF-8`이 없는 GNU bash 환경에서는 `LC_ALL=C.UTF-8` 실행에만 `setlocale` 경고가 stderr에 섞여 `2>&1` 비교가 거짓 실패한다. macOS `/bin/bash` 3.2처럼 경고를 내지 않는 셸에서는 AC가 정한 `C.UTF-8`이 아닌 `C`로 실행한 결과로 판정이 나온다.
+이슈 #147의 로케일 회귀 케이스(`로케일:`으로 시작하는 git-review-quiz·ai-workspace·ai-workspace-directory·git-pr·git-pr-feedback 러너 케이스)는 `locale -a`에서 `en_US.UTF-8`만 찾고 `C.UTF-8`은 확인하지 않는다. `C.UTF-8`이 없는 GNU bash 환경에서는 `LC_ALL=C.UTF-8` 실행에만 `setlocale` 경고가 stderr에 섞여 `2>&1` 비교가 거짓 실패한다. macOS `/bin/bash` 3.2처럼 경고를 내지 않는 셸에서는 AC가 정한 `C.UTF-8`이 아닌 `C`로 실행한 결과로 판정이 나온다.
 
 ## 재검토 이력
 
