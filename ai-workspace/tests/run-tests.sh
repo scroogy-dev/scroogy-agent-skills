@@ -17,7 +17,7 @@
 
 set -o pipefail
 
-# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 보아, 러너와 러너가 부르는 check-ide-tool-list.sh 의 구조 검사가 틀린다.
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 보아, 러너 안의 결정 목록 대조(ide_decision_violations)와 소유 구간 검사가 틀린다.
 export LC_ALL=C
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
