@@ -17,6 +17,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 헤더를 같다고 보아, 러너의 조항 검사가 엉뚱한 구간을 읽는다.
+export LC_ALL=C
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHECK="$HERE/../scripts/check-quiz.sh"
 TEMPLATE="$HERE/../templates/quiz-template.md"
