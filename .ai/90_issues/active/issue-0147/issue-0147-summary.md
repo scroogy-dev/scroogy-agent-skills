@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 5(로케일 비교 판단 기준 정정과 세 헬퍼의 로케일 고정). 계획 감사 3차는 적합(PASS)이고 F-10은 보류로 정했다
+> ▶️ 다음 작업: Task 6(ai-workspace 러너 주석과 Task 2 기록의 실패 원인 정정)
 
 ## 모델 기록
 
@@ -138,14 +138,14 @@ AC 번호는 이슈 본문에 없어 spec이 직접 쓴 AC의 번호다. issue-a
 - **수행 모델**: claude-opus-5-5
 - **수행 effort**: high
 - **audit 발견**: 2건
-- **보정 반영**: 0건
+- **보정 반영**: 2건
 - **재시도**: 0회
 - **테스트**: -
 - **대응 발견**: -
 - **수행 내용 요약**: 다섯 헬퍼 모두 로케일에 따라 결과가 달라지는 비교가 없어 고치지 않았다. 테스트 커밋과 구현도 건너뛰었다. 헬퍼마다 확인 결과는 아래와 같다(줄 번호는 HEAD `dfd86cf` 기준).
-  - `git-pr/scripts/verify-submit.sh`: 비교 없음. awk는 138행의 필드 추출(`{print $1}`)뿐이고, 42행 `[ "$host" != "$rest" ]`는 셸의 바이트 비교다. `sort`·`[[ … < … ]]`는 없다.
-  - `git-pr-feedback/scripts/verify-push.sh`: 비교 없음. awk는 165행의 필드 추출뿐이고, 39·129·147행의 `[ … != … ]`는 셸의 바이트 비교다. `sort`·`[[ … < … ]]`는 없다.
-  - `ai-workspace-directory/scripts/check-lobby.sh`: 비교 없음. awk 비교는 149행 `out == ""`(빈 문자열)과 167행 `v != "active"` 등(ASCII 값)뿐이다. 한글 헤더는 135·184행 awk 정규식과 `grep -qE`·`grep -xF`로 찾고, 128행 H2 순서와 Repos 표 열은 셸 `[ … = … ]`로 견준다. 모두 바이트로 정확히 일치하는 것만 찾는다. `sort`·`[[ … < … ]]`는 없다.
+  - `git-pr/scripts/verify-submit.sh`: 비교 없음. awk는 138행의 필드 추출(`{print $1}`)뿐이고, 42행 `[ "$host" != "$rest" ]`는 셸의 바이트 비교다. `sort`·`[[ … < … ]]`는 없다. (Task 5에서 정정)
+  - `git-pr-feedback/scripts/verify-push.sh`: 비교 없음. awk는 165행의 필드 추출뿐이고, 39·129·147행의 `[ … != … ]`는 셸의 바이트 비교다. `sort`·`[[ … < … ]]`는 없다. (Task 5에서 정정)
+  - `ai-workspace-directory/scripts/check-lobby.sh`: 비교 없음. awk 비교는 149행 `out == ""`(빈 문자열)과 167행 `v != "active"` 등(ASCII 값)뿐이다. 한글 헤더는 135·184행 awk 정규식과 `grep -qE`·`grep -xF`로 찾고, 128행 H2 순서와 Repos 표 열은 셸 `[ … = … ]`로 견준다. 모두 바이트로 정확히 일치하는 것만 찾는다. `sort`·`[[ … < … ]]`는 없다. (Task 5에서 정정)
   - `issue-work/scripts/summarize-metrics.sh`: 비교 없음. awk 비교는 65·73행 `title == ""`(빈 문자열)과 66행 `c == 0`(숫자)뿐이다. 한글 필드 이름은 70행 `index()`, `### Task N`은 69행 정규식으로 찾는다. `sort`·`[[ … < … ]]`는 없다.
   - `issue-work/scripts/check-clear.sh`: 비교 없음. awk 비교는 63행 `title == ""`(빈 문자열)과 64행 `n == 0`(숫자)뿐이다. `완료`·`(고정)`은 68·69·71행 awk 정규식으로 찾고, `작성 시점 경로는`은 106행 `grep -v`로 거른다. `sort`·`[[ … < … ]]`는 없다.
 - **특이 사항**: 판단 근거를 실험으로 확인했다(macOS awk 20200816, 2026-11-27). 같은 길이의 다른 한글 문자열(`## 에이전트 운영 지칩`과 `지침`)을 `en_US.UTF-8`에서 견주면, awk `==`만 같다고 보았다. awk 정규식, `index()`, 셸 `[ = ]`, `grep -xF`는 두 로케일 모두 다르다고 보았다. 그래서 결과가 갈리는 비교는 awk의 문자열 `==`·`!=`·`<`·`>` 가운데 양쪽이 한글인 것으로 좁혔다. 위 다섯 헬퍼에는 그런 비교가 없다. 비교를 새로 찾지 않았으므로 AC5 `[D]` 줄과 계획 감사 재수행은 해당하지 않는다(`설계 결정`).
@@ -154,16 +154,21 @@ AC 번호는 이슈 본문에 없어 spec이 직접 쓴 AC의 번호다. issue-a
 
 ### Task 5: 로케일 비교 판단 기준 정정과 세 헬퍼의 로케일 고정
 
-- **결과**:
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: claude-opus-5-5
+- **수행 effort**: high
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **테스트**: -
+- **테스트**: `47434bd` · 실패 3건 (러너마다 1건: `bash ai-workspace-directory/tests/run-tests.sh`의 `로케일: status 칸을 active예정으로 바꾼 사본`, `bash git-pr/tests/run-tests.sh`의 `로케일: --expect 가 ébcdef0`, `bash git-pr-feedback/tests/run-tests.sh`의 `로케일: --head-oid 가 ébcdef0`)
 - **대응 발견**: F-1, F-2 (최종 1차)
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 세 러너 끝에 `assert_locale_same`과 `로케일:` 회귀 케이스를 2건씩 더했다(바뀐 입력 1건과 기존 입력 1건). 세 헬퍼의 `set -o pipefail` 다음에 갈리는 비교를 적은 주석과 `export LC_ALL=C`를 두었다. 세 러너 머리는 고치지 않았다. 세 러너 모두 기본 로케일과 `LC_ALL=en_US.UTF-8`에서 실패 0건이고 `로케일:` 케이스는 건너뛰지 않았다(ai-workspace-directory 32건, git-pr 182건, git-pr-feedback 48건 통과). 다섯 헬퍼의 확인 결과를 `설계 결정`의 기준으로 다시 적으면 아래와 같다(줄 번호는 구현 커밋 기준).
+  - `ai-workspace-directory/scripts/check-lobby.sh`: 비교 있음, 고쳤다. 170행 awk `v != "active"` 등은 status 값에 한글이 붙으면(`active예정`) `en_US.UTF-8`에서 같다고 보아 위반을 놓친다. 152행 `out == ""`는 빈 문자열 비교라 갈리지 않는다. 대괄호 범위는 awk 정규식과 `grep -E`에만 있다.
+  - `git-pr/scripts/verify-submit.sh`: 비교 있음, 고쳤다. 111행 `case`의 `*[!0-9a-fA-F]*`가 `en_US.UTF-8`에서 `é`를 범위에 넣어 SHA 형식이 아닌 `--expect`를 통과시킨다. awk 문자열 비교는 없고, 45행 `[ != ]`는 셸 비교라 갈리지 않는다.
+  - `git-pr-feedback/scripts/verify-push.sh`: 비교 있음, 고쳤다. 108행 `case`의 `*[!0-9a-fA-F]*`가 같은 이유로 SHA 형식이 아닌 `--head-oid`·`--approved-sha`를 통과시킨다. awk 문자열 비교는 없고, 42·132·150행 `[ != ]`는 셸 비교라 갈리지 않는다.
+  - `issue-work/scripts/summarize-metrics.sh`: 비교 없음. awk 문자열 비교는 65·73행 `title == ""`(빈 문자열)뿐이다. `case`는 31·94행의 옵션·종류 값 분기로 대괄호 범위가 없고, 범위는 72·76행 awk 정규식에만 있다.
+  - `issue-work/scripts/check-clear.sh`: 비교 없음. awk 문자열 비교는 63·69행 `title == ""`·`title != ""`(빈 문자열)뿐이다. `case`는 25행 옵션 분기로 대괄호 범위가 없고, 범위는 45·52행 `grep -E`와 104행 `grep -rnE`에만 있다.
+- **특이 사항**: 수정 전 실패 출력은 plan의 예상과 같았다. `check-lobby.sh`는 `C.UTF-8`에서 status 위반 2행·종료 코드 1, `en_US.UTF-8`에서 무출력·종료 코드 0이었다. `verify-submit.sh`는 `C.UTF-8`에서 SHA 형식 오류·종료 코드 2, `en_US.UTF-8`에서 head 불일치 위반·종료 코드 1이었다. `verify-push.sh`는 `C.UTF-8`에서 SHA 형식 오류·종료 코드 2, `en_US.UTF-8`에서 원격 URL 정규화·원격 ref·headRefOid 위반 4행·종료 코드 1이었다. `LC_ALL=C`에서 `${#s}`는 바이트 수가 되지만, 길이 검사는 형식 검사 뒤라 ASCII 16진수에만 쓰여 결과가 같다. 계획 감사 3차 F-10(awk 문자열 `<`·`>`는 한글 없는 값도 갈림)은 보류로 정했고, 다섯 헬퍼에 awk 문자열 `<`·`>` 비교는 없다.
 
 ---
 
