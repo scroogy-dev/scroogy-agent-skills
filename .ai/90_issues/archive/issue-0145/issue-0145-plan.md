@@ -309,7 +309,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
      - `루프 그림`은 그림의 줄이 ASCII 문자와 한글로만 이루어지는지 본다. 격추 케이스: 단계 순서를 바꾼 사본, 돌아가는 선을 지운 사본, 선 그리기 문자(U+2500~U+257F)를 넣은 사본, 화살표 `→`(U+2192)를 넣은 사본
   2. `issue-work/templates/issue-workflow-template.md`를 고친다.
      - 디렉토리 구조의 spec 설명을 새 섹션 이름으로 바꾼다.
-     - `## 진행 루프` 절을 `## 작업 진행 중` 앞에 두고 그림을 코드 블록으로 넣는다. 그림은 `.ai/99_workspace/issue-0145-loop-preview.html` 5절의 안 A다. 선은 `+ - | v >`만 쓰고 한글보다 왼쪽에만 둔다.
+     - `## 진행 루프` 절을 `## 작업 진행 중` 앞에 두고 그림을 코드 블록으로 넣는다. 그림은 `./issue-0145-loop-preview.html`(작성 시점 경로는 `.ai/99_workspace/issue-0145-loop-preview.html`, --clear로 이관) 5절의 안 A다. 선은 `+ - | v >`만 쓰고 한글보다 왼쪽에만 둔다.
      - 그림 아래에 단계마다 한 줄 설명과 완료 확인의 권장 기준 네 가지를 적는다.
      - `## 작업 진행 중`과 `## 이슈 완료 시`를 SKILL.md의 새 절차에 맞춘다. PR 뒤 피드백 안내와, 그 피드백으로 구현을 고쳤을 때 교차 감사를 다시 받을지 사용자가 고른다는 안내를 둔다.
   3. 이 Task가 고친 issue-workflow 템플릿을 읽는 옛 케이스를 모두 새 기준으로 고치거나 지운다(spec 전제 `옛 케이스를 맡는 Task`). 확인한 검사는 `변경 통제`·`본문 갱신 질의`의 issue-workflow 템플릿 쪽이다.
@@ -589,8 +589,8 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    P=.ai/90_issues/active/issue-0145/issue-0145-plan.md
-    S=.ai/90_issues/active/issue-0145/issue-0145-summary.md
+    P=.ai/90_issues/archive/issue-0145/issue-0145-plan.md
+    S=.ai/90_issues/archive/issue-0145/issue-0145-summary.md
     { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
       && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
       || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
@@ -604,7 +604,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0145/issue-0145-summary.md
+    S=.ai/90_issues/archive/issue-0145/issue-0145-summary.md
     awk '
       /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*:/ {
@@ -623,7 +623,7 @@ audit은 L2 [QD] 보완 검증 — L1 [D] 결정적 게이트의 대체가 아�
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0145/issue-0145-summary.md
+    S=.ai/90_issues/archive/issue-0145/issue-0145-summary.md
     awk '
       /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }
