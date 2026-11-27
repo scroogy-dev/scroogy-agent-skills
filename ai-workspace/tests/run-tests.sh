@@ -17,6 +17,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 보아, 러너와 러너가 부르는 check-ide-tool-list.sh 의 구조 검사가 틀린다.
+export LC_ALL=C
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 CHECK="$HERE/../scripts/check-context.sh"
