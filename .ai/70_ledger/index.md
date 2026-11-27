@@ -63,6 +63,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0043](active/K-0043-ide-debug-attach-process-deferred.md) | IntelliJ MCP의 `xdebug_attach_to_process`를 규칙 표에 두지 않았다 | 기술부채 | 정보(INFO) | 수용 | IDE 밖에서 띄운 프로세스를 디버깅해야 하는 사례가 생길 때, 또는 IntelliJ 업데이트로 결정 목록을 다시 비교할 때 |
 | [K-0044](active/K-0044-deployed-ide-tools-row-description-stale.md) | 이미 배포된 repo 안내도의 `ide-tools.md` 행 설명이 update로 갱신되지 않는다 | known issue | 낮음(LOW) | 수용 | 옛 행 설명 때문에 실행 작업(테스트·커버리지·로컬 서버·디버깅)에서 IDE 도구를 놓친 사례가 나올 때, 또는 update-4의 행 보존 규칙을 바꿀 때 |
 | [K-0045](active/K-0045-nd-only-issue-recommends-next-round.md) | 사람 확인(`[ND]`)만 있는 이슈는 전부 확인해도 완료 확인이 `다음 회차`를 권장한다 | known issue | 낮음(LOW) | 수용 | `[ND]` 줄만 있는 이슈를 새 구조로 진행해 권장이 사용자 판단과 어긋난 사례가 나올 때, 또는 완료 확인의 권장 기준을 바꿀 때 |
+| [K-0046](active/K-0046-check-plan-directory-input-not-rejected.md) | issue-audit 추적성 헬퍼가 파일 자리의 디렉토리를 입력 오류로 거르지 않는다 | known issue | 낮음(LOW) | 수용 | 디렉토리나 정규 파일이 아닌 경로를 넘겨 AC 대조·추적성 결과를 잘못 읽은 사례 관측 시, 또는 `check-plan.sh`의 인자·입력 검사 구간을 바꿀 때 |
 
 ## 수명 주기
 
