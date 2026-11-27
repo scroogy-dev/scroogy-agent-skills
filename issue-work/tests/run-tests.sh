@@ -15,6 +15,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 헤더를 같다고 보아, 템플릿·SKILL.md 구조 검사가 엉뚱한 구간을 읽는다.
+export LC_ALL=C
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE="$HERE/../templates/issue-plan-template.md"
 SKILL="$HERE/../SKILL.md"
