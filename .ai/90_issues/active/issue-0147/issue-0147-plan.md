@@ -26,13 +26,19 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 
 ## 설계 결정
 
-- **시스템 구성**: 바꾸는 파일은 헬퍼 `git-review-quiz/scripts/check-quiz.sh`·`ai-workspace/scripts/check-context.sh`와 러너 `git-review-quiz/tests/run-tests.sh`·`ai-workspace/tests/run-tests.sh`·`issue-work/tests/run-tests.sh`다. Task 4에서 비교가 있다고 확인한 헬퍼와 그 헬퍼의 러너가 더해질 수 있다.
+- **시스템 구성**: 바꾸는 파일은 헬퍼 `git-review-quiz/scripts/check-quiz.sh`·`ai-workspace/scripts/check-context.sh`와 러너 `git-review-quiz/tests/run-tests.sh`·`ai-workspace/tests/run-tests.sh`·`issue-work/tests/run-tests.sh`다. 2회차 Task 5가 헬퍼 `ai-workspace-directory/scripts/check-lobby.sh`·`git-pr/scripts/verify-submit.sh`·`git-pr-feedback/scripts/verify-push.sh`와 그 러너 3개(`ai-workspace-directory`·`git-pr`·`git-pr-feedback`의 `tests/run-tests.sh`)를 더한다. 세 러너는 지금도 두 로케일 모두 실패 0건이라(2026-11-28 실행) 머리를 고치지 않고 `로케일:` 회귀 케이스만 더한다.
 - **애플리케이션 구조 안의 자리**: 로케일 고정 줄은 `set -o pipefail` 바로 다음에 둔다. 선례인 `check-plan.sh` 55행처럼 고정하는 이유를 한 줄 주석으로 함께 적는다. 헬퍼 테스트는 ADR 0001에 따라 `<skill>/tests/run-tests.sh`에 둔다.
 - **영향 모듈, 순서의 근거, 관례**:
   - 로케일 회귀 케이스는 같은 입력을 `C.UTF-8`과 `en_US.UTF-8`(D2)로 한 번씩 실행한다. 두 실행의 표준 출력과 표준 오류를 합친 출력(`2>&1`)이 같고 종료 코드가 같으면 통과다. `issue-audit/tests/run-tests.sh`의 `assert_locale`은 로케일마다 고정 기대 출력과 대조하고, 표준 오류를 버리며(`2>/dev/null`), 종료 코드를 보지 않는다. 그래서 로케일을 돌며 헬퍼를 부르는 반복 구조만 참고하고 비교 방식은 따르지 않는다.
   - D3의 건너뜀은 같은 러너의 `ok "<설명> — 건너뜀 (<사유>)"` 표기를 따른다(`issue-audit/tests/run-tests.sh` 151행). 로케일이 있는지는 `locale -a`에서 대소문자를 가리지 않고 `en_US.UTF-8`이나 `en_US.utf8`을 찾아 판정한다(Linux glibc는 `en_US.utf8`로 표기한다). `C.UTF-8`은 확인하지 않는다. 없으면 `C`로 떨어지는데 `C`도 바이트 단위로 비교하므로 기준 로케일 역할이 같다.
-  - 헬퍼 5개(Task 4 대상)는 계획 감사 1차 F-2를 반영하며 미리 확인했다. 한글 값끼리 견주는 비교는 없다. 비교는 모두 빈 문자열(`title == ""`)이나 ASCII 값(`v != "active"`)과 견주는 awk 비교이거나 셸 `[ ]`의 바이트 비교이고, `sort`·`[[ … < … ]]`는 없다. awk에서 한글과 빈 문자열·ASCII 값의 비교는 `C.UTF-8`과 `en_US.UTF-8`의 결과가 같고, 길이가 같은 한글끼리의 비교만 갈린다. 그래서 AC5는 `테스트로 못 보는 항목`의 `[QD]` 줄이 판정하고 `[D]` 줄을 두지 않는다. Task 4에서 한글 값끼리의 비교를 새로 찾으면 그 헬퍼의 `로케일:` 회귀 케이스를 AC5 `[D]` 줄로 `테스트 계획`에 더한다. `테스트 계획`이 바뀌므로 계획 감사를 다시 받는다.
-  - `ai-workspace/tests/check-ide-tool-list.sh`(테스트용 헬퍼, 배포 제외)는 러너가 부르므로 러너 머리의 고정을 물려받는다. 따로 고치지 않는다.
+  - 로케일에 따라 결과가 갈리는 비교는 아래 둘이 전부다. 근거는 macOS awk 20200816·bash 3.2에서 한글·`é`·`²` 값을 두 로케일로 견준 실측이다(2026-11-27, 2026-11-28). `sort`·`[[ … < … ]]`의 정렬 순서도 로케일을 따르지만 다섯 헬퍼에는 없다.
+    - awk의 문자열 `==`·`!=`·`<`·`>`에서 한쪽 값에 한글이 들어 있는 비교. `en_US.UTF-8`은 `"가나" == "가"`와 `"active예정" == "active"`를 참으로 본다. 빈 문자열과의 비교(`"가" == ""`)는 두 로케일 모두 거짓이라 갈리지 않는다.
+    - 셸 `case`·글롭의 대괄호 범위(`[!0-9a-fA-F]` 등). `en_US.UTF-8`은 `é`를 `a`~`f` 범위에 넣는다.
+  - awk 정규식과 `index()`, awk·`grep -E`의 대괄호 범위, 셸 `[ = ]`, `grep -xF`는 두 로케일 결과가 같다.
+  - 1회차 Task 4는 첫째 비교를 한글끼리의 비교로만 좁게 보고 둘째 비교를 보지 않았다. 그래서 `check-lobby.sh` 167행(`v != "active"`), `verify-submit.sh` 108행, `verify-push.sh` 105행을 비교 없음으로 기록했다(최종 1차 F-1·F-2). Task 5가 세 헬퍼를 고친다. `summarize-metrics.sh`·`check-clear.sh`는 이 기준으로 다시 봐도 비교가 없다. awk 비교는 빈 문자열과 숫자뿐이고, 범위는 awk 정규식과 `grep -E`에만 있다.
+  - AC5는 세 헬퍼의 `로케일:` 회귀 케이스(`[D]` 줄 3개)와 확인 결과 기록(`[QD]` 줄)이 함께 판정한다.
+  - `verify-submit.sh`·`verify-push.sh`가 부르는 git 명령(`rev-parse`, `ls-remote`, `remote get-url`, `merge-base`)은 SHA·URL만 내고 표준 오류는 버린다. `LC_ALL=C`로 바뀌는 것은 git 메시지 언어뿐이라 판정에 영향이 없다.
+  - `ai-workspace/tests/check-ide-tool-list.sh`(테스트용 헬퍼, 배포 제외)는 고치지 않는다. awk 비교는 빈 문자열과 정규식뿐이고 `sort`·`comm`에는 이미 `LC_ALL=C`가 있어 로케일에 따라 갈리는 비교가 없다. 1회차 Task 2가 이 헬퍼로 적은 `en_US.UTF-8` 실패는 러너 안 `ide_decision_violations`의 `dec[c] != "쓰지 않음"` 같은 비교에서 났다(최종 1차 F-3). Task 6이 러너 주석과 summary Task 2 기록을 고친다.
   - Task 순서는 스킬 단위로 나눴다. Task 1~3은 서로 독립이고, Task 4는 확인 결과에 따라 고칠 파일이 정해져서 마지막에 둔다.
   - 이 머신의 기본 로케일은 `LANG=C.UTF-8`이다. 러너를 로케일 지정 없이 실행하면 원래 실패가 나지 않으므로, 실패 확인은 `LC_ALL=en_US.UTF-8`을 붙여 실행한다.
 
@@ -58,6 +64,9 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 | AC2 | [D] | 단위 | `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-context.sh` 회귀 케이스(날짜를 바꾼 dev·doc 템플릿 사본, `profile_state` 경로 입력, `dev_residue` 경로 입력. 입력은 Task 2) | - | 최종 1차 |
 | AC3 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
 | AC4 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
+| AC5 | [D] | 단위 | `ai-workspace-directory/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-lobby.sh` 회귀 케이스(정상 `lobby-good.md`, status 칸을 `active예정`으로 바꾼 사본. 입력은 Task 5) | - |  |
+| AC5 | [D] | 단위 | `git-pr/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-submit.sh` 회귀 케이스(`--expect`가 `ébcdef0`. 입력은 Task 5) | - |  |
+| AC5 | [D] | 단위 | `git-pr-feedback/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-push.sh` 회귀 케이스(`--head-oid`가 `ébcdef0`. 입력은 Task 5) | - |  |
 | AC6 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
 
 > **로케일 전제**: 위 표의 줄은 실행하는 머신에 `en_US.UTF-8`이 있어야 판정할 수 있다. 회귀 케이스가 `건너뜀`을 출력했거나 `locale -a`에 `en_US.UTF-8`(`en_US.utf8`)이 없으면, 러너가 `failed: 0`으로 끝나도 그 줄은 통과로 보지 않고 판정 불가(N/A)로 둔다(`.ai/10_rules/testing-principles.md` 전제 조건과 판정 불가). 로케일이 없으면 AC3·AC4·AC6의 `LC_ALL=en_US.UTF-8`은 `C`로 떨어져 원래의 실패가 나지 않기 때문이다.
@@ -66,7 +75,7 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 
 | AC | 레벨 | 누가 보나 | 이유 | 확인 |
 |----|------|-----------|------|------|
-| AC5 | [QD] | 교차 감사 | 헬퍼 5개의 확인 결과가 summary Task 4에 빠짐없이 남았는지와, "비교 없음"으로 본 근거가 소스와 맞는지는 코드를 읽고 판단해야 한다 |  |
+| AC5 | [QD] | 교차 감사 | 헬퍼 5개의 확인 결과가 summary Task 4·Task 5에 빠짐없이 남았는지와, "비교 없음"으로 본 근거가 소스와 맞는지는 코드를 읽고 판단해야 한다 |  |
 
 ---
 
@@ -179,6 +188,37 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 - **구현**:
   1. 비교가 있는 헬퍼의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다. 비교가 없는 헬퍼는 고치지 않는다.
   - **통과 확인**: 고친 헬퍼의 러너를 `bash <skill>/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash <skill>/tests/run-tests.sh`로 실행해 모두 0 실패인 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 5: 로케일 비교 판단 기준 정정과 세 헬퍼의 로케일 고정
+
+- [ ] 완료
+- **목표**: 1회차 Task 4가 비교 없음으로 기록한 `check-lobby.sh`·`verify-submit.sh`·`verify-push.sh`가 두 로케일에서 같은 결과를 내고, 다섯 헬퍼의 확인 결과가 `설계 결정`의 기준으로 다시 남는다(최종 1차 F-1·F-2).
+- **대상 요구사항**: R5
+- **테스트 먼저**:
+  - 세 러너에 `로케일:`으로 시작하는 회귀 케이스를 더한다. Task 1과 같은 형식으로, 같은 입력을 `LC_ALL=C.UTF-8`과 `LC_ALL=en_US.UTF-8`로 헬퍼에 넣어 출력과 종료 코드가 같은지 본다. `en_US.UTF-8`이 없으면 D3에 따라 건너뛴다.
+    - `ai-workspace-directory/tests/run-tests.sh`: 정상 `fixtures/lobby-good.md`와, 그 사본의 status 칸 `| active |`를 `| active예정 |`로 바꾼 입력. 사본은 입력이 실제로 바뀌었는지 먼저 확인한다. 수정 전에는 `C.UTF-8`이 status 위반 2행(종료 코드 1)을, `en_US.UTF-8`이 무출력(종료 코드 0)을 낸다.
+    - `git-pr/tests/run-tests.sh`: 기존 `assert_submit_ok '로컬 head 일치'`와 같은 준비에서 `--branch main --expect ébcdef0`. 수정 전에는 `C.UTF-8`이 SHA 형식 오류(종료 코드 2)를, `en_US.UTF-8`이 head 불일치 위반(종료 코드 1)을 낸다.
+    - `git-pr-feedback/tests/run-tests.sh`: 기존 `assert_usage_error 'SHA 형식 아님'`과 같은 인자에서 `--head-oid`만 `ébcdef0`으로 바꾼 입력. 수정 전에는 `C.UTF-8`이 SHA 형식 오류(종료 코드 2)를 내고, `en_US.UTF-8`은 형식 검사를 지나 뒤 단계의 위반을 낸다.
+  - **실패 확인**: 세 러너를 `bash <skill>/tests/run-tests.sh`로 실행해 위 회귀 케이스 가운데 사본·`ébcdef0` 입력이 실패하는 것을 보고 테스트 커밋을 만든다. 세 러너의 실패 수를 summary `테스트`에 적는다.
+- **구현**:
+  1. 세 헬퍼의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다. 주석에는 그 헬퍼에서 갈리는 비교를 적는다. 세 러너 머리는 고치지 않는다(`설계 결정`).
+  2. summary Task 5 `수행 내용 요약`에 다섯 헬퍼의 확인 결과를 `설계 결정`의 기준으로 헬퍼마다 한 줄씩 다시 적는다(D4). Task 4 블록의 세 헬퍼 줄 끝에는 `(Task 5에서 정정)`을 붙인다.
+  - **통과 확인**: 세 러너를 `bash <skill>/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash <skill>/tests/run-tests.sh`로 실행해 모두 0 실패이고 `로케일:` 케이스가 건너뜀 없이 통과한 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 6: ai-workspace 러너 주석과 Task 2 기록의 실패 원인 정정
+
+- [ ] 완료
+- **목표**: `en_US.UTF-8` 실패 원인을 `check-ide-tool-list.sh`로 적은 러너 주석과 summary Task 2 기록이 실제 원인인 러너 안 `ide_decision_violations`의 비교를 가리킨다(최종 1차 F-3).
+- **대상 요구사항**: R3
+- **테스트 먼저**: 먼저 쓰지 않는다. 러너 주석과 이슈 기록만 고치는 Task라 동작이 바뀌지 않는다.
+- **구현**:
+  1. `ai-workspace/tests/run-tests.sh` 20행 주석에서 `check-ide-tool-list.sh`를 빼고, 러너 안의 결정 목록 대조(`ide_decision_violations`)를 원인으로 적는다.
+  2. summary Task 2 `특이 사항`에서 `check-ide-tool-list.sh`를 원인으로 적은 두 곳을 고치고, 고친 사실을 Task 6 `수행 내용 요약`에 적는다.
+  - **통과 확인**: `bash ai-workspace/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`가 모두 0 실패인 것을 보고 커밋을 만든다.
 
 ---
 
