@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 1 (git-review-quiz 헬퍼와 러너의 로케일 고정). 로케일 회귀 케이스 작성 → 실패 확인 → 테스트 커밋부터
+> ▶️ 다음 작업: Task 2 (ai-workspace 헬퍼와 러너의 로케일 고정). 로케일 회귀 케이스 작성 → 실패 확인 → 테스트 커밋부터
 
 ## 모델 기록
 
@@ -79,16 +79,16 @@ AC 번호는 이슈 본문에 없어 spec이 직접 쓴 AC의 번호다. issue-a
 
 ### Task 1: git-review-quiz 헬퍼와 러너의 로케일 고정
 
-- **결과**:
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: claude-opus-5-5
+- **수행 effort**: high
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **테스트**: -
+- **테스트**: `e3c5097` · 실패 3건 (`bash git-review-quiz/tests/run-tests.sh`의 `로케일:` 케이스 3건). 같은 커밋에서 `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`는 실패 19건(기존 16건 + 회귀 케이스 3건)
 - **대응 발견**: -
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `git-review-quiz/tests/run-tests.sh`에 `assert_locale_same`과 `로케일:` 회귀 케이스 3건(`valid-interactive.md`, `--comment valid-comment.md`, `invalid-r7-duplicate-target.md`)을 더했다. `check-quiz.sh`와 러너의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 두었다(구현 커밋 `3b08215`). 기본 로케일과 `LC_ALL=en_US.UTF-8` 모두 126건 통과, 실패 0건이다.
+- **특이 사항**: 처음 쓴 로케일 판정 `locale -a | grep -qiE …`는 `set -o pipefail` 아래에서 `grep -q`가 첫 일치에서 끝나 `locale`이 SIGPIPE로 죽어 늘 건너뜀으로 빠졌다. `-q` 없이 끝까지 읽고 출력을 버리는 방식으로 고친 뒤 테스트 커밋을 만들었다. Task 2도 같은 방식을 쓴다. 러너 고정 없이 헬퍼만 고친 상태에서는 러너 자체의 조항 검사 3건(`h2_sec`·`h3_sec`의 awk `==`)이 `en_US.UTF-8`에서 실패해, 러너 고정이 따로 필요함을 확인했다.
 
 ---
 
