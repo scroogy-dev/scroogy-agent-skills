@@ -6,7 +6,7 @@
 - **위험도**: 중간(MEDIUM)
 - **수용 사유**: 이슈 #142가 만든 코드 레벨 검증(변경 줄을 빠짐없이 읽기, 확인 관점 목록, 실패 시나리오, 인용 위치 재확인)을 git-review에서 먼저 써 본 뒤 판단하기로 했다. issue-audit는 스펙 대조가 주된 역할이라 보강의 효과와 비용을 git-review 사용 결과로 먼저 본다.
 - **재검토 조건**: git-review의 코드 레벨 검증을 실제 PR 리뷰에 여러 번 써 본 뒤, issue-audit 최종 감사가 놓친 코드 결함이 git-review나 다른 리뷰에서 나온 사례 관측 시, 또는 issue-audit 2단계(비판적 검증) 절차를 실질 변경할 때
-- **상태**: 수용
+- **상태**: 해소(PR #148)
 
 ## 내용
 
@@ -23,6 +23,6 @@ issue-audit 최종 감사 2단계에는 git-review 테크 리뷰 2단계의 변�
 - **발생확률**: 통상 사용. 최종 감사마다 해당한다.
 - **위험도 산출**: `classify-risk.sh --impact '기능 저하' --likelihood '통상 사용'` → 중간(MEDIUM).
 - **채택하지 않은 대안**: 이슈 #142에서 issue-audit 2단계에도 같은 보강을 넣는 안. git-review에서 먼저 써 본 결과 없이 두 스킬을 함께 바꾸면 효과를 가르기 어려워 보류했다.
-- 같은 이슈의 다른 보류 항목은 [K-0034](./K-0034-review-result-pr-post-deferred.md)(PR 게시)·[K-0036](./K-0036-review-doc-category-check-deferred.md)(doc 카테고리 보강)·[K-0037](./K-0037-review-other-repo-pr-in-workspace-deferred.md)(다른 저장소 PR 리뷰)로 같은 날 등재했다.
+- 같은 이슈의 다른 보류 항목은 [K-0034](../active/K-0034-review-result-pr-post-deferred.md)(PR 게시)·[K-0036](../active/K-0036-review-doc-category-check-deferred.md)(doc 카테고리 보강)·[K-0037](../active/K-0037-review-other-repo-pr-in-workspace-deferred.md)(다른 저장소 PR 리뷰)로 같은 날 등재했다.
 
 </details>
