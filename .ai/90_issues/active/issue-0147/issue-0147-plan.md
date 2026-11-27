@@ -136,7 +136,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 2: ai-workspace 헬퍼와 러너의 로케일 고정
 
-- [ ] 완료
+- [x] 완료
 - **목표**: `check-context.sh`와 ai-workspace 러너가 `en_US.UTF-8`에서도 `C.UTF-8`과 같은 결과를 낸다.
 - **대상 요구사항**: R2, R3
 - **테스트 먼저**:
