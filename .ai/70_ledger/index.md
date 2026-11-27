@@ -64,6 +64,9 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0044](active/K-0044-deployed-ide-tools-row-description-stale.md) | 이미 배포된 repo 안내도의 `ide-tools.md` 행 설명이 update로 갱신되지 않는다 | known issue | 낮음(LOW) | 수용 | 옛 행 설명 때문에 실행 작업(테스트·커버리지·로컬 서버·디버깅)에서 IDE 도구를 놓친 사례가 나올 때, 또는 update-4의 행 보존 규칙을 바꿀 때 |
 | [K-0045](active/K-0045-nd-only-issue-recommends-next-round.md) | 사람 확인(`[ND]`)만 있는 이슈는 전부 확인해도 완료 확인이 `다음 회차`를 권장한다 | known issue | 낮음(LOW) | 수용 | `[ND]` 줄만 있는 이슈를 새 구조로 진행해 권장이 사용자 판단과 어긋난 사례가 나올 때, 또는 완료 확인의 권장 기준을 바꿀 때 |
 | [K-0046](active/K-0046-check-plan-directory-input-not-rejected.md) | issue-audit 추적성 헬퍼가 파일 자리의 디렉토리를 입력 오류로 거르지 않는다 | known issue | 낮음(LOW) | 수용 | 디렉토리나 정규 파일이 아닌 경로를 넘겨 AC 대조·추적성 결과를 잘못 읽은 사례 관측 시, 또는 `check-plan.sh`의 인자·입력 검사 구간을 바꿀 때 |
+| [K-0047](active/K-0047-locale-regression-c-utf8-not-checked.md) | 로케일 회귀 케이스가 `C.UTF-8`이 있는지 확인하지 않는다 | known issue | 낮음(LOW) | 수용 | `C.UTF-8`(`C.utf8`)이 없는 환경에서 로케일 회귀 케이스를 실행해 setlocale 경고로 거짓 실패하거나 AC 판정을 잘못 읽은 사례 관측 시, 또는 로케일 회귀 케이스의 건너뜀 조건을 바꿀 때 |
+| [K-0048](active/K-0048-locale-regression-equality-only.md) | 로케일 회귀 케이스가 두 실행의 결과가 같은지만 보고 기대 판정은 보지 않는다 | known issue | 낮음(LOW) | 수용 | 로케일 회귀 케이스가 두 로케일의 같은 오판을 통과시켜 결함을 놓친 사례 관측 시, 또는 로케일 회귀 케이스의 비교 방식을 바꿀 때 |
+| [K-0049](active/K-0049-next-finding-number-matches-utf8.md) | issue-audit 발견 번호 헬퍼가 `UTF-8` 같은 단어 안의 `F-<숫자>`를 발견 번호로 읽는다 | known issue | 낮음(LOW) | 수용 | 건너뛴 번호 때문에 발견 추적이나 이전 발견 대조를 잘못 읽은 사례 관측 시, 또는 `next-finding-number.sh`의 번호 추출 구간을 바꿀 때 |
 
 ## 수명 주기
 
