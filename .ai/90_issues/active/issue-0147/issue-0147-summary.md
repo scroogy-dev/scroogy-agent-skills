@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 0 (구현 시작 게이트). 계획 감사 2차 반영분은 Task 3·Task N 문구뿐이라 다시 받는 조건에 맞지 않는다
+> ▶️ 다음 작업: Task 1 (git-review-quiz 헬퍼와 러너의 로케일 고정). 로케일 회귀 케이스 작성 → 실패 확인 → 테스트 커밋부터
 
 ## 모델 기록
 
@@ -32,7 +32,7 @@ effort와 모델 ID는 게이트 조건에 쓰지 않는다. 아래 벤더 교�
 |------|------|--------|
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
 | 계획 audit 모델 | Google, Gemini 4 Neon (gemini-4-neon-high) | high |
-| 구현 모델 |  |  |
+| 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
 | 최종 audit 모델 |  |  |
 
 - **계획 감사**: 수행 · 발견 8건 · 보정 6건
@@ -66,14 +66,14 @@ AC 번호는 이슈 본문에 없어 spec이 직접 쓴 AC의 번호다. issue-a
 
 ### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
 
-- **결과**:
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: claude-opus-5-5
+- **수행 effort**: high
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: 전제 누락 없음
+- **특이 사항**: 착수 전에 plan의 전제를 실행으로 확인했다(2026-11-27, HEAD `0523642`). 이 머신에 `C.UTF-8`·`en_US.UTF-8`이 모두 있다. 세 러너의 `LC_ALL=en_US.UTF-8` 실패 수는 git-review-quiz 16건·ai-workspace 9건·issue-work 11건으로 이슈 본문과 같다. Task 1 fixture(`valid-interactive.md`, `invalid-r7-duplicate-target.md`)와 Task 2 경계 입력(`profile_state`, `dev_residue`)은 수정 전에 plan이 적은 대로 두 로케일의 출력·종료 코드가 갈린다. 다섯 파일 모두 `set -o pipefail`이 머리에 있어 고정 줄의 자리가 정해진다.
 
 ---
 
