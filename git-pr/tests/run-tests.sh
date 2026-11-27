@@ -670,8 +670,9 @@ assert_rule check_dod_basis '대조 표'   '대조 근거: 상태 열에 5종 �
 # 상태는 번호 목록 행의 값과 조건을 함께 본다. 행이 빠지거나 순서가 바뀌면 같은 AC 의 상태가 달라진다.
 
 AUDIT_TPL="$HERE/../../issue-audit/templates/issue-audit-report-template.md"
+AUDIT_SKILL="$HERE/../../issue-audit/SKILL.md"
 
-# check_ac_number <SKILL.md> <템플릿> <감사 리포트 템플릿> → 위반 항목을 한 줄씩 출력 (0건이면 통과)
+# check_ac_number <SKILL.md> <템플릿> <감사 리포트 템플릿> [<issue-audit SKILL.md>] → 위반 항목을 한 줄씩 출력 (0건이면 통과)
 check_ac_number() {
   local blk p got
   blk=$(dod_blk "$1")
@@ -708,6 +709,20 @@ check_ac_number() {
   # 체크박스 이유
   printf '%s\n' "$blk" | grep -F '체크박스만으로 충족으로 세지 않' | grep -qF '근거는 감사 리포트 하나로' \
     || echo '체크박스 이유: 없음'
+  # 리포트 위치: 작업공간을 먼저 찾고 없으면 archive 를 찾는다. 회차 번호가 붙은 파일은 쓰지 않는다 (issue #145 최종 감사 6차 F-19).
+  got=$(printf '%s\n' "$blk" | grep -E '^  - 대조 근거는 ')
+  for p in '`.ai/99_workspace/`에서 먼저 찾고' '없으면 `.ai/90_issues/archive/issue-<번호>/`에서 찾습니다' \
+           '두 곳에 다 있으면 `.ai/99_workspace/`의 것이 최신입니다' '`issue-<번호>-audit-report-<회차>.md`' '지난 회차라 근거로 쓰지 않고' \
+           '두 곳에 기본 이름 파일이 없으면 리포트가 없는 것으로 봅니다'; do
+    printf '%s\n' "$got" | grep -qF -- "$p" || echo "리포트 위치: [$p] 없음"
+  done
+  ! printf '%s\n' "$got" | grep -qF -- '뒤에는 `.ai/90_issues/archive/issue-<번호>/`에 있습니다' || echo '리포트 위치: --clear 전후로만 가르는 옛 문장 남음'
+  # 위 순서의 전제: issue-audit 이 새 리포트를 작업공간 기본 이름에 쓰고, archive 의 지난 리포트는 회차 번호 이름으로 돌린다.
+  for p in '리포트를 `.ai/99_workspace/issue-<번호>-audit-report.md`에 저장한다' '`issue-<번호>-audit-report-<직전 회차>.md`로 이름을 바꿔 보존한다' \
+           'archive 이슈를 재감사할 때는 `.ai/90_issues/archive/issue-<번호>/`에 이관된 최신 리포트(`issue-<번호>-audit-report.md`)도' \
+           '새 리포트 작성 전에 같은 규칙으로 회전한다'; do
+    grep -qF -- "$p" "${4:-$AUDIT_SKILL}" || echo "리포트 위치 전제: issue-audit SKILL.md 에 [$p] 없음"
+  done
   # 근거 열
   got=$(printf '%s\n' "$blk" | grep -E '^  - 근거 열')
   # 이관 AC의 넘긴 곳과 표지 뒤에 남긴 확인 날짜 (issue #145 최종 감사 5차 F-16).
@@ -738,8 +753,8 @@ item_of() {
     s { match($0, /^ */); if ($0 != "" && RLENGTH > d) print; else s = 0 }'
 }
 
-# acn <기대> <설명> <SKILL.md> [<템플릿>] [<리포트 템플릿>]
-acn() { assert_rule check_ac_number "$1" "AC 번호 대조: $2" "$3" "${4:-$PR_TPL}" "${5:-$AUDIT_TPL}"; }
+# acn <기대> <설명> <SKILL.md> [<템플릿>] [<리포트 템플릿>] [<issue-audit SKILL.md>]
+acn() { assert_rule check_ac_number "$1" "AC 번호 대조: $2" "$3" "${4:-$PR_TPL}" "${5:-$AUDIT_TPL}" "${6:-$AUDIT_SKILL}"; }
 
 # acn_drop <판정> <이름> <지울 문자열> — SKILL.md 에서 문자열을 지운 사본을 넣는다. 원본과 같은 사본은 실패다.
 acn_drop() {
@@ -815,6 +830,23 @@ sed -E '/^### 완료의 정의\(DoD\) 대조$/,/^###* 결정/ s/^\| AC \|/| # |/
 sed -E 's/^### 완료의 정의\(DoD\) 대조$/### AC 대조/' "$AUDIT_TPL" > "$P/acn-report-head.md"
 acn '리포트 표' '리포트 첫 열 이름 바꾸기 격추'   "$SKILL" "$PR_TPL" "$P/acn-report-col.md"
 acn '리포트 표' '리포트 섹션 제목 바꾸기 격추'    "$SKILL" "$PR_TPL" "$P/acn-report-head.md"
+
+# 리포트 위치 (issue #145 최종 감사 6차 F-19).
+acn_drop '리포트 위치' '작업공간을 먼저 찾는 문구'     '`.ai/99_workspace/`에서 먼저 찾고'
+acn_drop '리포트 위치' 'archive를 다음에 찾는 문구'    '없으면 `.ai/90_issues/archive/issue-<번호>/`에서 찾습니다'
+acn_drop '리포트 위치' '두 곳에 다 있을 때의 문구'     '두 곳에 다 있으면 `.ai/99_workspace/`의 것이 최신입니다'
+acn_drop '리포트 위치' '회차 번호 파일 이름'           '`issue-<번호>-audit-report-<회차>.md`'
+acn_drop '리포트 위치' '지난 회차를 쓰지 않는 문구'    '지난 회차라 근거로 쓰지 않고'
+acn_drop '리포트 위치' '두 곳에 없을 때의 문구'        '두 곳에 기본 이름 파일이 없으면 리포트가 없는 것으로 봅니다'
+OLD_LOC='리포트는 issue-work `--clear` 전에는 `.ai/99_workspace/`, 뒤에는 `.ai/90_issues/archive/issue-<번호>/`에 있습니다.'
+L="$OLD_LOC" awk '/^  - 대조 근거는 / { $0 = $0 " " ENVIRON["L"] } { print }' "$SKILL" > "$P/acn-old-loc.md"
+acn '리포트 위치' '--clear 전후로만 가르는 옛 문장 되살리기 격추' "$P/acn-old-loc.md"
+for w in '리포트를 `.ai/99_workspace/issue-<번호>-audit-report.md`에 저장한다' '`issue-<번호>-audit-report-<직전 회차>.md`로 이름을 바꿔 보존한다' \
+         '새 리포트 작성 전에 같은 규칙으로 회전한다'; do
+  drop_literal "$AUDIT_SKILL" "$w" > "$P/acn-audit-skill.md"
+  if cmp -s "$AUDIT_SKILL" "$P/acn-audit-skill.md"; then ng "AC 번호 대조: issue-audit의 [$w] 삭제 격추 (지울 문구가 원본에 없음)"; continue; fi
+  acn '리포트 위치 전제' "issue-audit의 [$w] 삭제 격추" "$SKILL" "$PR_TPL" "$AUDIT_TPL" "$P/acn-audit-skill.md"
+done
 
 echo "-----"
 echo "passed: $pass, failed: $fail"
