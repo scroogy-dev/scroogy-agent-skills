@@ -652,6 +652,39 @@ assert_clause 'PR 무영향' clause_pr - "$SKILL"
 assert_clause 'PR 무영향' clause_pr 'PR 무영향 문장 삭제'        "$(clause_mutant noeffect -e 's/기본 동작은 PR에 아무것도 쓰지 않습니다\.//')"
 assert_clause 'PR 무영향' clause_pr 'git-pr 비의존 문장 삭제'    "$(clause_mutant indep -e 's/git-pr 스킬에 의존하지 않습니다\.//')"
 
+# --- 로케일 회귀 ----------------------------------------------------------------
+#
+# macOS awk 의 == 는 en_US.UTF-8 에서 길이가 같은 서로 다른 한글 문자열을 같다고 본다.
+# 같은 입력을 C.UTF-8 과 en_US.UTF-8 로 한 번씩 헬퍼에 넣어, 표준 출력과 표준 오류를 합친 출력과
+# 종료 코드가 같은지 본다. 이 케이스만 헬퍼를 부를 때 로케일을 명시한다.
+# en_US.UTF-8 이 없는 머신에서는 비교할 쌍이 없으므로 건너뛴 사실만 남기고 실패로 세지 않는다.
+
+# grep -q 는 첫 일치에서 끝나 locale 이 SIGPIPE 로 죽고, pipefail 아래에서는 파이프라인이 실패가 된다.
+# 그래서 -q 를 쓰지 않고 끝까지 읽은 뒤 출력을 버린다.
+has_en_us=0
+locale -a 2>/dev/null | grep -iE '^en_US\.utf-?8$' > /dev/null && has_en_us=1
+
+# assert_locale_same <설명> <헬퍼 인자...>
+assert_locale_same() {
+  local desc="$1"; shift
+  local out_c out_en rc_c rc_en
+  if [ "$has_en_us" -ne 1 ]; then
+    ok "$desc — 건너뜀 (en_US.UTF-8 없음)"
+    return
+  fi
+  out_c="$(LC_ALL=C.UTF-8 "$CHECK" "$@" 2>&1)"; rc_c=$?
+  out_en="$(LC_ALL=en_US.UTF-8 "$CHECK" "$@" 2>&1)"; rc_en=$?
+  if [ "$rc_c" -eq "$rc_en" ] && [ "$out_c" = "$out_en" ]; then
+    ok "$desc"
+  else
+    ng "$desc (C.UTF-8: rc=$rc_c, 출력: $(flat "$out_c") / en_US.UTF-8: rc=$rc_en, 출력: $(flat "$out_en"))"
+  fi
+}
+
+assert_locale_same '로케일: 정상 fixture valid-interactive.md' "$FIX/valid-interactive.md"
+assert_locale_same '로케일: 댓글 모드 정상 fixture valid-comment.md' --comment "$FIX/valid-comment.md"
+assert_locale_same '로케일: 위반 fixture invalid-r7-duplicate-target.md' "$FIX/invalid-r7-duplicate-target.md"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
