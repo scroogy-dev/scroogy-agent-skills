@@ -211,7 +211,7 @@ spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션�
 
 ### Task 6: ai-workspace 러너 주석과 Task 2 기록의 실패 원인 정정
 
-- [ ] 완료
+- [x] 완료
 - **목표**: `en_US.UTF-8` 실패 원인을 `check-ide-tool-list.sh`로 적은 러너 주석과 summary Task 2 기록이 실제 원인인 러너 안 `ide_decision_violations`의 비교를 가리킨다(최종 1차 F-3).
 - **대상 요구사항**: R3
 - **테스트 먼저**: 먼저 쓰지 않는다. 러너 주석과 이슈 기록만 고치는 Task라 동작이 바뀌지 않는다.

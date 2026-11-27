@@ -4,7 +4,7 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: Task 6(ai-workspace 러너 주석과 Task 2 기록의 실패 원인 정정)
+> ▶️ 다음 작업: 2회차 구현 검증. 사용자가 구현 모델(Anthropic)과 다른 벤더 모델로 `issue-audit`를 직접 실행하고, 리포트를 받으면 `--response`로 검토한다
 
 ## 모델 기록
 
@@ -108,12 +108,12 @@ AC 번호는 이슈 본문에 없어 spec이 직접 쓴 AC의 번호다. issue-a
 - **수행 모델**: claude-opus-5-5
 - **수행 effort**: high
 - **audit 발견**: 1건
-- **보정 반영**: 0건
+- **보정 반영**: 1건
 - **재시도**: 0회
 - **테스트**: `e98114d` · 실패 2건 (`bash ai-workspace/tests/run-tests.sh`의 `로케일:` 경계 입력 케이스 `profile_state`·`dev_residue`). 같은 커밋에서 `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`는 실패 11건(기존 9건 + 회귀 케이스 2건)
 - **대응 발견**: -
 - **수행 내용 요약**: `ai-workspace/tests/run-tests.sh`에 `assert_locale_same`과 `로케일:` 회귀 케이스 4건(정상 dev 사본, 정상 doc 사본, `--profile` `profile_state` 경계 입력, `dev_residue` 경계 입력)을 더했다. 경계 입력은 템플릿 사본에서 만들고, `PRIO_DEV`는 헬퍼 소스에서 읽으며, 입력이 실제로 바뀌었는지 먼저 확인한다. `check-context.sh`와 러너의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 두었다(구현 커밋 `6f58cb2`). 327행의 `LC_ALL=C awk`는 그대로 두었다. 기본 로케일과 `LC_ALL=en_US.UTF-8` 모두 234건 통과, 실패 0건이다.
-- **특이 사항**: 실패 확인에서 두 경계 입력의 출력은 plan에 적은 기대값과 같았다(`C.UTF-8`은 ``질의: 안내도에 `profile` 행이 없음``·종료 코드 1과 무출력·종료 코드 0, `en_US.UTF-8`은 `dev`·종료 코드 0과 충돌 우선순위 누락·종료 코드 1). 러너 고정 없이 헬퍼만 고친 상태에서는 `en_US.UTF-8`에서 9건이 실패했다(`check-ide-tool-list.sh` 결정 목록 대조 5건, 소유 구간 검사 4건). 러너 고정이 따로 필요하고, `check-ide-tool-list.sh`는 러너의 고정을 물려받아 통과한다(`설계 결정`).
+- **특이 사항**: 실패 확인에서 두 경계 입력의 출력은 plan에 적은 기대값과 같았다(`C.UTF-8`은 ``질의: 안내도에 `profile` 행이 없음``·종료 코드 1과 무출력·종료 코드 0, `en_US.UTF-8`은 `dev`·종료 코드 0과 충돌 우선순위 누락·종료 코드 1). 러너 고정 없이 헬퍼만 고친 상태에서는 `en_US.UTF-8`에서 9건이 실패했다(러너 안 `ide_decision_violations`의 결정 목록 대조 5건, 소유 구간 검사 4건). 러너 고정이 따로 필요하다. `check-ide-tool-list.sh`에는 로케일에 따라 갈리는 비교가 없어 고치지 않았다(`설계 결정`, Task 6에서 정정).
 
 ---
 
@@ -174,16 +174,16 @@ AC 번호는 이슈 본문에 없어 spec이 직접 쓴 AC의 번호다. issue-a
 
 ### Task 6: ai-workspace 러너 주석과 Task 2 기록의 실패 원인 정정
 
-- **결과**:
-- **수행 모델**: -
-- **수행 effort**: -
+- **결과**: 완료
+- **수행 모델**: claude-opus-5-5
+- **수행 effort**: high
 - **audit 발견**: 0건
 - **보정 반영**: 0건
 - **재시도**: 0회
-- **테스트**: -
+- **테스트**: - (먼저 쓰지 않음. 러너 주석과 이슈 기록만 고치는 Task)
 - **대응 발견**: F-3 (최종 1차)
-- **수행 내용 요약**:
-- **특이 사항**:
+- **수행 내용 요약**: `ai-workspace/tests/run-tests.sh` 20행 주석에서 `check-ide-tool-list.sh`를 빼고, 원인을 러너 안의 결정 목록 대조(`ide_decision_violations`)와 소유 구간 검사로 적었다. summary Task 2 `특이 사항`에서 `check-ide-tool-list.sh`를 원인으로 적은 두 곳을 고쳤다. `bash ai-workspace/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh` 모두 234건 통과, 실패 0건이다.
+- **특이 사항**: 고치기 전에 원인을 실행으로 확인했다(2026-11-28). 러너의 `export LC_ALL=C` 줄만 뺀 임시 사본을 `LC_ALL=en_US.UTF-8`로 돌리면 9건이 실패했다. 그 가운데 결정 목록 대조 5건은 모두 `ide-tools 결정 목록 일치` 케이스였고, 출력은 `ide_decision_violations`의 `dec[k] == "표에 둠"` 비교가 내는 `표에 둠인데 절 밖에 이름 없음` 위반이었다. 임시 사본은 실행 뒤 지웠다.
 
 ---
 
