@@ -97,9 +97,9 @@ Agent Skills 오픈 포맷을 따르며, Claude Code, Codex 등 다양한 AI 도
 ├── git-review-context/         # 리뷰 전 사전 분석 스킬
 │   └── templates/              # 리뷰 컨텍스트 템플릿
 ├── git-review-quiz/            # 리뷰 퀴즈 생성·진행 스킬
-│   ├── scripts/                # 형식 검사·HTML 렌더 헬퍼 (check-quiz.sh, render-quiz-html.sh)
+│   ├── scripts/                # 형식 검사·HTML 렌더 헬퍼, 브랜치 변경 수집 헬퍼 사본 (check-quiz.sh, render-quiz-html.sh, collect-branch-changes.sh)
 │   ├── templates/              # 퀴즈 산출 md 템플릿·HTML 템플릿(CSS·JS 포함)
-│   └── tests/                  # 헬퍼 테스트(형식 검사·렌더·SKILL.md 조항 구조) + fixture (배포 제외)
+│   └── tests/                  # 헬퍼 테스트(형식 검사·렌더·브랜치 수집·git-review 원본 사본 대조·SKILL.md 조항 구조) + fixture (배포 제외)
 ├── install-skills/             # skill 선택 설치 스킬 (self-install형)
 │   ├── references/             # Antigravity 레거시 판정 상세
 │   ├── scripts/                # 결정적 설치 검증 헬퍼 (verify-install.sh)

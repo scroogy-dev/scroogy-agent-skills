@@ -1,6 +1,6 @@
 ---
 last_synced: 2026-11-28
-source_hash: 2054c7b
+source_hash: c39e5e7
 status: current
 ---
 
@@ -19,8 +19,11 @@ git-review-quiz/SKILL.md
 │   ├── git rev-parse --abbrev-ref '@{upstream}' · git remote get-url <원격>   # 최초 조회 전 저장소 확정(upstream 원격, 없으면 origin), 원격 없음·후보 복수면 질의
 │   ├── gh pr view <PR 번호 | 현재 브랜치> --repo --json …,headRefOid,baseRefName,baseRefOid   # 인자 없으면 현재 브랜치 자동 감지, URL 대조 후 불변값 보관
 │   └── 브랜치 모드           # 감지 실패 시. permalink 없음, --comment 지정이면 알리고 중단
-├── 2단계: diff 수집          # gh pr diff --repo / 브랜치 모드는 git merge-base + git diff
-│   └── 설명 절 출처 수집     # PR 모드: gh pr view --json body,commits · gh issue view --repo (연결 이슈) / 브랜치 모드: git log merge-base..HEAD
+├── 2단계: diff 수집          # PR 모드: gh pr diff --repo / 브랜치 모드: mb="$(git merge-base "$base" HEAD)"를 한 번 구해 보관
+│   ├── scripts/collect-branch-changes.sh --base "$mb"   # 브랜치 모드. git-review 원본과 바이트 단위로 같은 사본. 지금 전부 스테이징해 커밋하면 들어갈 변경
+│   │                                                    # (미추적 새 파일 포함, 무시 규칙·.ai/99_workspace/ 아래 미추적 파일 제외). 변경 파일 목록 · 빈 줄 · patch, exit 1·2는 빈 표준 출력
+│   │                                                    # merge-base 실패나 exit 0 아님이면 퀴즈 파일을 만들지 않고 실패한 명령과 사유를 알림, exit 0 빈 출력은 변경 파일 0개
+│   └── 설명 절 출처 수집     # PR 모드: gh pr view --json body,commits · gh issue view --repo (연결 이슈) / 브랜치 모드: git log "${mb}..HEAD"
 ├── 3단계: 근거 문서 확보     # .ai/30_contract·40_domain index → 관련 파일만, 근거 0건이면 "테크 문항만 출제" 알리고 진행 (추정 문서는 쓰지 않음)
 ├── 4단계: 옵션 확정          # --mcq·--open·--business·--tech, 형식 미지정 시 1회 질의, 문항 수 기본 5(3~10), 근거 0건에 --business만이면 중단
 ├── 5단계: 문항 생성·파일 작성   # 설명 절 작성 규칙 + 문항 생성 규칙, templates/quiz-template.md → .ai/99_workspace/temp_review_quiz_pr-<번호>.md
@@ -44,6 +47,7 @@ sequenceDiagram
     participant GH as gh
     participant CQ as scripts/check-quiz.sh
     participant RH as scripts/render-quiz-html.sh
+    participant CB as scripts/collect-branch-changes.sh
 
     SK->>G: rev-parse --abbrev-ref upstream, remote get-url
     G-->>SK: 원격 URL
@@ -60,9 +64,14 @@ sequenceDiagram
         opt --comment 지정
             Note over SK: 알리고 중단
         end
-        SK->>G: merge-base base HEAD, diff
-        G-->>SK: 작업 트리 변경을 포함한 diff
-        SK->>G: log merge-base..HEAD
+        SK->>G: merge-base base HEAD
+        G-->>SK: merge-base 커밋 해시 mb
+        SK->>CB: --base mb
+        CB-->>SK: 변경 파일 목록, 빈 줄, patch (exit 1·2는 빈 표준 출력)
+        opt merge-base 실패 또는 exit 1·2
+            Note over SK: 퀴즈 파일을 만들지 않고 실패한 명령과 사유를 알리고 중단
+        end
+        SK->>G: log mb..HEAD
         G-->>SK: 커밋 메시지
     end
     Note over SK: 근거 문서 확보 (0건이면 테크 문항만 출제 알림), 옵션 확정
@@ -99,9 +108,10 @@ sequenceDiagram
 ## Why
 
 - 근거는 `git-review-quiz/SKILL.md` `## 설명 절 작성 규칙`(배경·목적·출처와 추정 표시·변경 설명·호출 흐름), `## 시퀀스 다이어그램 작성 규칙`(code-map 원본의 사본), `### 정답 분산과 묶음 배분`, `### 문항 본문에 코드 블록을 두지 않습니다`(행 접두어 파싱, 설명 절은 예외), `### 근거 규칙`(변경 자체를 묻고 실제 동작으로 확인), `### 힌트 규칙`, `#### 승인 게이트 (생략 불가)`에 있다.
+- 브랜치 모드 수집 헬퍼는 git-review `scripts/collect-branch-changes.sh`와 바이트 단위로 같은 사본이다. 한쪽을 고치면 다른 쪽도 고치고, 퀴즈 러너가 원본과 `cmp`로 대조한다. 수집 대상의 근거는 git-review `SKILL.md` `## 대상 수집`이다.
 - PR 식별·게시 규칙은 git-pr-feedback 원본의 사본이다(`## 관련 skill`, 의도적 중복은 [ADR 0002](../../50_adr/active/0002-skill-independence-intentional-duplication.md)). 계약: [GitHub 연동 수단](../../30_contract/github-integration.md). 정책: [외부 공개 행위 승인 게이트](../../40_domain/policies/local/external-action-approval-gate.md).
 - 명세: [리뷰 퀴즈 요건](../../40_domain/specs/git-review-quiz.md)(옵션, 대상별 산출 md·HTML, 설명 절, R1~R8, `--comment` 검사). 별도 스킬·문항 구성 순서·근거 규칙·일반 댓글 하나 게시는 [ADR 0017](../../50_adr/active/0017-git-review-quiz-study-mode.md).
 - 설명 절·형식 검사 R7 설명 절과 R8·대상별 산출 이름·브라우저 렌더 HTML(CDN 고정 버전, DOMPurify 정화, 실패 시 원문)·설명 요약 먼저는 [ADR 0027](../../50_adr/active/0027-git-review-quiz-explanation-sections-and-html-output.md). 시퀀스 규칙 사본과 code-map 러너 대조는 [ADR 0025](../../50_adr/active/0025-sequence-diagram-extended-to-git-pr-and-review-context.md).
 - SSoT 선언이 `원본 문서`이면 테크 소재를 doc 카테고리 세트에서 고르는 결정은 [ADR 0020](../../50_adr/active/0020-doc-ssot-original-documents-and-publishing-deferred.md), doc 세트의 이름·순서와 git-review 원본의 사본 동기화는 [ADR 0014](../../50_adr/active/0014-inverted-pyramid-and-verdict-derivation.md).
-- 원장 [K-0007](../../70_ledger/active/K-0007-quiz-permalink-target-unverified.md): permalink 검사가 경로·줄 범위를 대조하지 않는다. [K-0008](../../70_ledger/archive/K-0008-quiz-format-vocab-fixture-absent.md): 미지원 형식 어휘 반례 fixture가 없었다. #132 R13에서 반례를 더해 PR #133으로 해소했다. [K-0024](../../70_ledger/active/K-0024-quiz-branch-name-sanitize-collision.md): 치환 뒤 이름이 같아지는 두 브랜치의 산출 파일을 구분하지 못한다. [K-0025](../../70_ledger/active/K-0025-quiz-branch-mode-untracked-files-excluded.md): 브랜치 모드 diff(`git diff <merge-base>`)는 미추적 새 파일을 빼는데, 2단계는 작업 트리 변경을 포함한다고 적는다.
+- 원장 [K-0007](../../70_ledger/active/K-0007-quiz-permalink-target-unverified.md): permalink 검사가 경로·줄 범위를 대조하지 않는다. [K-0008](../../70_ledger/archive/K-0008-quiz-format-vocab-fixture-absent.md): 미지원 형식 어휘 반례 fixture가 없었다. #132 R13에서 반례를 더해 PR #133으로 해소했다. [K-0024](../../70_ledger/active/K-0024-quiz-branch-name-sanitize-collision.md): 치환 뒤 이름이 같아지는 두 브랜치의 산출 파일을 구분하지 못한다. [K-0025](../../70_ledger/active/K-0025-quiz-branch-mode-untracked-files-excluded.md): 브랜치 모드 diff(`git diff <merge-base>`)가 미추적 새 파일을 뺐다. #150에서 수집 헬퍼 사본으로 바꿔 원인을 없앴고, `해소(PR #N)` 기재는 PR 번호가 생긴 뒤 한다. [K-0031](../../70_ledger/active/K-0031-review-branch-mode-index-exception-paths.md): 수집 헬퍼가 Git이 스테이징하는 내용을 대상으로 삼아 생기는 경계(두 스킬 공통). [K-0051](../../70_ledger/active/K-0051-branch-collect-workspace-exclude-case-sensitive.md): 작업공간 제외가 디렉토리 이름의 대소문자를 구분한다.
 - 헬퍼·테스트 배치는 [ADR 0001](../../50_adr/active/0001-skill-deterministic-helper-test-convention.md).
