@@ -14,7 +14,9 @@ git-pr 4단계는 push 전에 `verify-submit.sh --normalize "$(git remote get-ur
 
 ## 재검토 이력
 
-없음
+| 일자 | 계기 | 판단 | 결과 |
+|------|------|------|------|
+| 2026-11-28 | 이슈 #147 PR 문서 동기화 점검(`verify-submit.sh` 머리에 `export LC_ALL=C` 추가) | 계속 수용 | SHA 형식 검사의 `case` 범위가 로케일과 무관해졌을 뿐 원격 대조 모드와 push 절차는 그대로다. fetch URL만 정규화해 push URL을 대조하지 않는 원인이 남아 있고, push URL이 다른 원격에서 실행한 사례도 관측되지 않았다 |
 
 <details>
 <summary>근거·배경 펼치기</summary>
