@@ -688,6 +688,102 @@ assert_locale_same '로케일: 정상 fixture valid-interactive.md' "$FIX/valid-
 assert_locale_same '로케일: 댓글 모드 정상 fixture valid-comment.md' --comment "$FIX/valid-comment.md"
 assert_locale_same '로케일: 위반 fixture invalid-r7-duplicate-target.md' "$FIX/invalid-r7-duplicate-target.md"
 
+# --- 브랜치 수집 헬퍼 사본 (issue #150) -----------------------------------------
+# scripts/collect-branch-changes.sh 는 git-review/scripts/ 의 같은 헬퍼를 바이트 단위로 옮긴 사본이다(ADR 0002).
+# 헬퍼 동작 전반은 원본을 git-review 러너의 `브랜치 수집` 케이스가 검증하고, 여기서는 원본 대조와
+# 퀴즈 브랜치 모드가 기대는 두 경계(미추적 새 파일 포함, 작업공간·무시 파일 제외)만 본다.
+# 사본이 없어도 러너 전체를 멈추지 않고 아래 케이스만 실패로 센다. 원본이 없는 설치본에서는 원본 대조만 건너뛴다.
+COLLECT="$HERE/../scripts/collect-branch-changes.sh"
+PEER_COLLECT="$HERE/../../git-review/scripts/collect-branch-changes.sh"
+
+if [ ! -e "$PEER_COLLECT" ]; then
+  ok '사본 대조: git-review collect-branch-changes.sh 와 바이트 동일 — 건너뜀 (git-review 원본 없음)'
+elif [ -x "$COLLECT" ] && cmp -s "$COLLECT" "$PEER_COLLECT"; then
+  ok '사본 대조: git-review collect-branch-changes.sh 와 바이트 동일'
+else
+  ng '사본 대조: git-review collect-branch-changes.sh 와 바이트 동일 (사본 없음, 실행 권한 없음 또는 내용 다름)'
+fi
+
+# 사용자 설정(전역·시스템)에 기대지 않게 끄고, 상위 디렉토리의 저장소를 찾지 않게 막는다.
+# 이 러너에서 git 을 부르는 케이스는 이 절뿐이라 내보내도 앞의 케이스에 영향이 없다.
+export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CEILING_DIRECTORIES="${tmpdir}:$(cd "$tmpdir" && pwd -P)"
+TAB="$(printf '\t')"
+
+# newrepo <디렉토리> — 케이스용 임시 저장소를 만든다
+newrepo() {
+  git init -q -b main "$1" \
+    && git -C "$1" config user.email 't@example.com' && git -C "$1" config user.name 't' \
+    && git -C "$1" config commit.gpgsign false && git -C "$1" config core.excludesFile /dev/null
+}
+# g <저장소> <git 인자…> — 출력 없이 git 을 실행한다
+g() { local r="$1"; shift; git -C "$r" "$@" >/dev/null 2>&1; }
+# collect <디렉토리> <헬퍼 인자…> — 그 디렉토리에서 사본을 실행해 표준 출력을 out, 종료 코드를 rc 에 남긴다
+collect() { local dir="$1"; shift; out="$(cd "$dir" && "$COLLECT" "$@" 2> "$tmpdir/collect.err")"; rc=$?; }
+# list_of — out 의 변경 파일 목록(첫 빈 줄 앞)을 정렬해 낸다
+list_of() { printf '%s\n' "$out" | awk 'NF==0{exit} {print}' | LC_ALL=C sort; }
+# file_patch <파일> — out 의 patch(첫 빈 줄 뒤)에서 그 파일의 구간
+file_patch() { printf '%s\n' "$out" | awk 'p{print} NF==0{p=1}' | awk -v h="diff --git a/$1 b/$1" '/^diff --git /{x=($0==h)} x'; }
+# want_rows <행…> — 기대 목록. 인자마다 한 행으로 내고 정렬한다
+want_rows() { printf '%s\n' "$@" | LC_ALL=C sort; }
+# show <글> — 실패 메시지용으로 줄바꿈·탭을 보이게 바꾼다
+show() { printf '%s' "$1" | tr '\n\t' '| '; }
+
+# 미추적 새 파일: 브랜치 커밋 1개 위에 커밋하지 않은 새 파일을 둔다. 목록 전체와 patch 의 추가 줄을 본다.
+desc='브랜치 수집: 미추적 새 파일'
+if [ ! -x "$COLLECT" ]; then
+  ng "$desc (사본 없음 또는 실행 권한 없음: $COLLECT)"
+else
+  r="$tmpdir/bc-untracked"
+  if newrepo "$r" && printf 'base\n' > "$r/base.txt" && g "$r" add -A && g "$r" commit -m base \
+    && g "$r" checkout -b work && printf 'committed\n' > "$r/committed.txt" && g "$r" add committed.txt \
+    && g "$r" commit -m work && printf 'brand new line\n' > "$r/new.txt" \
+    && mb="$(git -C "$r" merge-base main HEAD)"; then
+    collect "$r" --base "$mb"
+    got="$(list_of)"
+    want="$(want_rows "A${TAB}committed.txt" "A${TAB}new.txt")"
+    if [ "$rc" -ne 0 ]; then
+      ng "$desc (rc=$rc, 오류: $(show "$(cat "$tmpdir/collect.err")"))"
+    elif [ "$got" != "$want" ]; then
+      ng "$desc (목록 [$(show "$got")], 기대 [$(show "$want")])"
+    elif ! file_patch new.txt | grep -qxF '+brand new line'; then
+      ng "$desc (patch 에 new.txt 의 추가 줄 없음)"
+    else
+      ok "$desc"
+    fi
+  else
+    ng "$desc (임시 저장소를 준비하지 못함)"
+  fi
+fi
+
+# 작업공간·무시 파일 제외: 제외 대상 두 파일과 제외 대상이 아닌 미추적 새 파일 1건을 둔다.
+# 기대 목록을 비어 있지 않게 두어, 헬퍼가 아무것도 내지 않는 경우를 통과로 보지 않는다.
+desc='브랜치 수집: 작업공간·무시 파일 제외'
+if [ ! -x "$COLLECT" ]; then
+  ng "$desc (사본 없음 또는 실행 권한 없음: $COLLECT)"
+else
+  r="$tmpdir/bc-excluded"
+  if newrepo "$r" && printf '*.log\n' > "$r/.gitignore" && printf 'base\n' > "$r/base.txt" \
+    && g "$r" add -A && g "$r" commit -m base && g "$r" checkout -b work \
+    && mkdir -p "$r/.ai/99_workspace" && printf 'quiz\n' > "$r/.ai/99_workspace/temp_review_quiz_branch-x.md" \
+    && printf 'ignored\n' > "$r/ignored.log" && printf 'keep\n' > "$r/keep-new.txt" \
+    && git -C "$r" check-ignore -q ignored.log \
+    && mb="$(git -C "$r" merge-base main HEAD)"; then
+    collect "$r" --base "$mb"
+    got="$(list_of)"
+    want="$(want_rows "A${TAB}keep-new.txt")"
+    if [ "$rc" -ne 0 ]; then
+      ng "$desc (rc=$rc, 오류: $(show "$(cat "$tmpdir/collect.err")"))"
+    elif [ -z "$got" ] || [ "$got" != "$want" ]; then
+      ng "$desc (목록 [$(show "$got")], 기대 [$(show "$want")])"
+    else
+      ok "$desc"
+    fi
+  else
+    ng "$desc (임시 저장소를 준비하지 못함)"
+  fi
+fi
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
