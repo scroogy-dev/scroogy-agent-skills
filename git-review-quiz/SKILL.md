@@ -17,7 +17,7 @@ PR(pull request) 리뷰나 셀프 리뷰에 들어가기 전에 변경을 얼마
 
 ## 관련 skill
 
-- git-review (독립): 서로 호출하지 않습니다. 테크 문항의 소재 축인 7 카테고리 체계의 원본이 git-review에 있으므로, 한쪽을 고치면 양쪽을 동기화합니다.
+- git-review (독립): 서로 호출하지 않습니다. 테크 문항의 소재 축인 7 카테고리 체계의 원본이 git-review에 있으므로, 한쪽을 고치면 양쪽을 동기화합니다. 2단계 브랜치 모드의 수집 헬퍼 `scripts/collect-branch-changes.sh`는 git-review의 같은 헬퍼와 바이트 단위로 같은 사본이며, 수집 규칙의 원본은 git-review `## 대상 수집`입니다. 한쪽을 고치면 다른 쪽도 고칩니다.
 - git-review-context (참고): `.ai/99_workspace/temp_review_context.md`가 있으면 변경 요약으로 참고하고, 그 `## 호출 흐름`을 설명 절 호출 흐름에 가져다 씁니다. 자동 호출하지 않습니다.
 - git-pr (독립): 서로 호출하지 않습니다. PR 본문이 git-pr 형식으로 쓰였다고 가정하지 않습니다.
 - git-pr-feedback (참고): 대상 PR 식별과 댓글 게시 규칙의 원본입니다. 이 스킬은 핵심만 옮겨 담은 사본이므로, 한쪽을 고치면 양쪽을 동기화합니다.
@@ -64,7 +64,12 @@ gh pr view '<현재 브랜치>' --repo '<호스트>/<소유자>/<저장소>' \
 
 ### 2단계: diff 수집
 
-- PR 모드는 `gh pr diff`로, 브랜치 모드는 merge-base 기준 `git diff`로 변경을 수집합니다. 브랜치 모드의 `git diff`는 커밋하지 않은 작업 트리 변경까지 포함합니다.
+- PR 모드는 `gh pr diff`로 변경을 수집합니다.
+- **브랜치 모드**: base는 `origin/HEAD`가 가리키는 브랜치(없으면 `main`)입니다. 수집 전에 merge-base 커밋의 해시를 `git merge-base`로 한 번 구해 `mb`로 보관하고, 변경은 수집 헬퍼 `scripts/collect-branch-changes.sh`에 그 해시를 `--base "$mb"`로 넘겨 모읍니다. 설명 절 출처의 커밋 메시지도 같은 해시 이후의 `git log`로 모읍니다.
+  - **대상**: 지금 작업 트리를 전부 스테이징해 커밋하면 들어갈 변경입니다. 커밋한 변경, 작업 트리에 남아 있는 미커밋 변경, 미추적 새 파일이 들어갑니다.
+  - **빠지는 경로**: 무시 규칙에 걸린 미추적 파일과 `.ai/99_workspace/` 아래 미추적 파일은 대상이 아닙니다. 작업공간 제외는 디렉토리 이름의 대소문자를 구분하므로, 대소문자를 구분하지 않는 볼륨에서 디스크의 디렉토리 이름이 `.ai/99_workspace`와 대소문자만 다르면 그 아래 미추적 파일은 Git이 보고하는 실제 표기로 대상에 들어갑니다. 그 밖에 Git이 스테이징 내용을 정하는 경로(변경을 보지 않도록 표시한 경로, 하위 모듈, 내용 변환 필터 등)는 Git의 결과를 따릅니다.
+  - **변경 파일 목록**: 헬퍼가 낸 목록(`<변경 종류><탭><경로>` 1행씩)을 그대로 쓰고, 그 뒤 빈 줄 다음의 patch를 퀴즈 입력으로 씁니다. `git diff`·`git status`의 결과로 목록을 따로 만들거나 고치지 않습니다.
+- **수집 실패**: merge-base를 구하지 못했거나 헬퍼의 종료 코드가 0이 아니면 수집 실패입니다. 빈 변경으로 진행하지 않습니다. 퀴즈 파일(md·HTML)을 만들지 않고 실패한 명령과 사유를 알립니다. 헬퍼의 사유는 표준 오류의 1행입니다. 종료 코드 0에 출력이 없으면 수집 실패가 아니라 변경 파일 0개입니다.
 - 변경 파일 목록과 파일별 변경 규모를 함께 파악합니다. 4단계의 문항 수 조정에 씁니다.
 - 설명 절의 출처를 함께 모읍니다. PR 모드는 PR 본문·연결 이슈 본문·커밋 메시지를, 브랜치 모드는 merge-base 이후 커밋 메시지를 모읍니다. 연결 이슈는 PR 본문의 이슈 참조로 찾고, `gh issue view`에도 `--repo`를 명시합니다. 참조가 다른 저장소를 가리키면 그 저장소를 `--repo`에 씁니다.
 
@@ -74,14 +79,17 @@ gh pr diff '<PR 번호>' --repo '<호스트>/<소유자>/<저장소>'
 
 # 브랜치 모드. base는 origin/HEAD가 가리키는 브랜치, 없으면 main
 base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo 'main')"
-git diff "$(git merge-base "$base" HEAD)"
+# merge-base 커밋의 해시. 이 단계에서 한 번 구해 보관합니다
+mb="$(git merge-base "$base" HEAD)"
+# <skill 디렉토리>는 이 SKILL.md가 있는 디렉토리. 실행 시 실제 경로로 바꿔 쓴다.
+'<skill 디렉토리>/scripts/collect-branch-changes.sh' --base "$mb"
 
 # 설명 절 출처. PR 모드는 PR 본문·커밋 메시지와 연결 이슈 본문
 gh pr view '<PR 번호>' --repo '<호스트>/<소유자>/<저장소>' --json body,commits
 gh issue view '<이슈 번호>' --repo '<호스트>/<소유자>/<저장소>' --json title,body
 
 # 설명 절 출처. 브랜치 모드는 merge-base 이후 커밋 메시지
-git log --format='%h %s%n%n%b' "$(git merge-base "$base" HEAD)..HEAD"
+git log --format='%h %s%n%n%b' "${mb}..HEAD"
 ```
 
 ### 3단계: 근거 문서 확보
