@@ -30,12 +30,12 @@
 
 ## 완료의 정의 (Definition of Done)
 
-- [ ] AC1: `check-quiz.sh`가 같은 입력에 대해 `C.UTF-8`과 `en_US.UTF-8`에서 같은 출력과 종료 코드를 낸다. (R1)
-- [ ] AC2: `check-context.sh`가 같은 입력에 대해 `C.UTF-8`과 `en_US.UTF-8`에서 같은 출력과 종료 코드를 낸다. (R2)
-- [ ] AC3: git-review-quiz 러너가 `LC_ALL=en_US.UTF-8`에서 실패 0건으로 끝난다. (R3)
-- [ ] AC4: ai-workspace 러너가 `LC_ALL=en_US.UTF-8`에서 실패 0건으로 끝난다. (R3)
-- [ ] AC5: `verify-submit.sh`, `verify-push.sh`, `check-lobby.sh`, `summarize-metrics.sh`, `check-clear.sh`마다 로케일에 따라 결과가 달라지는 비교가 있는지 확인한 결과가 남고, 있는 헬퍼는 두 로케일에서 같은 결과를 낸다. (R5)
-- [ ] AC6: issue-work 러너가 `LC_ALL=en_US.UTF-8`에서 실패 0건으로 끝난다. (R4)
+- [x] AC1: `check-quiz.sh`가 같은 입력에 대해 `C.UTF-8`과 `en_US.UTF-8`에서 같은 출력과 종료 코드를 낸다. (R1)
+- [x] AC2: `check-context.sh`가 같은 입력에 대해 `C.UTF-8`과 `en_US.UTF-8`에서 같은 출력과 종료 코드를 낸다. (R2)
+- [x] AC3: git-review-quiz 러너가 `LC_ALL=en_US.UTF-8`에서 실패 0건으로 끝난다. (R3)
+- [x] AC4: ai-workspace 러너가 `LC_ALL=en_US.UTF-8`에서 실패 0건으로 끝난다. (R3)
+- [x] AC5: `verify-submit.sh`, `verify-push.sh`, `check-lobby.sh`, `summarize-metrics.sh`, `check-clear.sh`마다 로케일에 따라 결과가 달라지는 비교가 있는지 확인한 결과가 남고, 있는 헬퍼는 두 로케일에서 같은 결과를 낸다. (R5)
+- [x] AC6: issue-work 러너가 `LC_ALL=en_US.UTF-8`에서 실패 0건으로 끝난다. (R4)
 
 ---
 
