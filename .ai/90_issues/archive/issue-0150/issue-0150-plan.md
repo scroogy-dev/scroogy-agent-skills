@@ -208,7 +208,7 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | awk -F'|' '
 
 ### Task N (고정): 마무리
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 구현을 따라 적는 문서와 이슈 기록을 정리하고 PR을 만든다.
 - **작업 내용**:
   1. **전체 회귀**: repo 전체 테스트와 `테스트 계획`의 `[D]` 줄을 모두 실행해 통과를 확인한다. `확인` 칸에 `이관`을 적은 줄은 실행하지 않는다.
@@ -225,8 +225,8 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | awk -F'|' '
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    P=.ai/90_issues/active/issue-0150/issue-0150-plan.md
-    S=.ai/90_issues/active/issue-0150/issue-0150-summary.md
+    P=.ai/90_issues/archive/issue-0150/issue-0150-plan.md
+    S=.ai/90_issues/archive/issue-0150/issue-0150-summary.md
     { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
       && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
       || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
@@ -240,7 +240,7 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | awk -F'|' '
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0150/issue-0150-summary.md
+    S=.ai/90_issues/archive/issue-0150/issue-0150-summary.md
     awk '
       /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*:/ {
@@ -259,7 +259,7 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | awk -F'|' '
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0150/issue-0150-summary.md
+    S=.ai/90_issues/archive/issue-0150/issue-0150-summary.md
     awk '
       /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }
