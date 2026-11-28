@@ -68,6 +68,8 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0048](active/K-0048-locale-regression-equality-only.md) | 로케일 회귀 케이스가 두 실행의 결과가 같은지만 보고 기대 판정은 보지 않는다 | known issue | 낮음(LOW) | 수용 | 로케일 회귀 케이스가 두 로케일의 같은 오판을 통과시켜 결함을 놓친 사례 관측 시, 또는 로케일 회귀 케이스의 비교 방식을 바꿀 때 |
 | [K-0049](active/K-0049-next-finding-number-matches-utf8.md) | issue-audit 발견 번호 헬퍼가 `UTF-8` 같은 단어 안의 `F-<숫자>`를 발견 번호로 읽는다 | known issue | 낮음(LOW) | 수용 | 건너뛴 번호 때문에 발견 추적이나 이전 발견 대조를 잘못 읽은 사례 관측 시, 또는 `next-finding-number.sh`의 번호 추출 구간을 바꿀 때 |
 | [K-0050](active/K-0050-issue-audit-runner-stops-under-lc-all-c.md) | issue-audit 러너가 `LC_ALL=C`에서 첫 검사에서 멈춘다 | known issue | 낮음(LOW) | 수용 | issue-audit 러너를 `LC_ALL=C` 셸에서 돌려야 하는 상황이 생길 때, 이 현상 때문에 회귀 결과를 잘못 읽은 사례 관측 시, 또는 issue-audit 러너에 로케일 고정을 더할 때 |
+| [K-0051](active/K-0051-branch-collect-workspace-exclude-case-sensitive.md) | 브랜치 모드 수집 헬퍼의 작업공간 제외가 대소문자를 구분해 대소문자가 다른 작업공간 디렉토리의 미추적 파일을 모은다 | known issue | 낮음(LOW) | 수용 | 작업공간 디렉토리 이름의 대소문자가 달라 이전 퀴즈·리뷰 산출물이 수집된 사례 관측 시, ai-workspace 등 스킬이 작업공간 디렉토리를 만드는 이름을 바꿀 때, 또는 `collect-branch-changes.sh`의 `git add -A` 경로 조건(`:(top,exclude).ai/99_workspace`)을 바꿀 때 |
+| [K-0052](active/K-0052-ledger-link-check-code-span-false-positive.md) | 원장 링크 검사 헬퍼가 코드 스팬·코드 블록 안의 링크 문자열도 끊긴 링크로 보고한다 | known issue | 낮음(LOW) | 수용 | 코드 스팬·코드 블록 안의 링크 문자열 오탐 때문에 맞는 경로를 고치거나 끊긴 링크를 놓친 사례가 다시 관측될 때, 또는 `check-ledger-links.sh`의 링크 추출 구간을 바꿀 때 |
 
 ## 수명 주기
 
