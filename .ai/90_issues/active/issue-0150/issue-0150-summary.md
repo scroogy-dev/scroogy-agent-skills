@@ -4,18 +4,18 @@
 
 ## 다음 작업
 
-> ▶️ 다음 작업: 2회차 계획 검증. plan `설계 결정`·`테스트 계획`이 바뀌어 계획 감사를 다시 받는다(Task 4 구현 전에 받은 최종 2차는 계획 감사가 아니며, 발견 F-3·F-4는 Task 4로 닫기로 정했다). 감사 전에 spec·plan·summary 변경을 커밋할지 정하고, 사용자가 계획 모델과 다른 벤더 모델로 `issue-audit --plan`을 실행해 리포트를 `--response`로 검토
+> ▶️ 다음 작업: 2회차 구현. Task 4(테스트 먼저: 변형 판정 함수와 변형 다섯 건 → 실패 확인 → 테스트 커밋 → 구현 → 통과 확인 → 구현 커밋). 계획 감사 3차 반영은 Task 4 본문만 바꿔 계획 감사를 다시 받지 않는다
 
 ## 모델 기록
 
 | 구분 | 모델 | effort |
 |------|------|--------|
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
-| 계획 audit 모델 | Google, Gemini 4 Neon (gemini-4-neon-high) | High |
+| 계획 audit 모델 | Google, Gemini 4 Neon (gemini-4-neon-high) / OpenAI, GPT-6.2 (gpt-6.2-sol) | High / high |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
 | 최종 audit 모델 | Google, Gemini 4 Neon (gemini-4-neon-high) / OpenAI, GPT-6.2 (gpt-6.2-sol) | High / high |
 
-- **계획 감사**: 수행 · 발견 5건 · 보정 4건
+- **계획 감사**: 수행 · 발견 9건 · 보정 6건
 
 - **이슈 본문 갱신**: 대상 아님
 
@@ -26,7 +26,7 @@
 | 회차 | 바뀐 것 | 다시 시작한 단계 | 계획 검증 커밋 | 구현 검증 커밋 | 검증 결과 | 결정 |
 |------|---------|------------------|----------------|----------------|-----------|------|
 | 1 | spec·plan·summary 작성, 계획 감사 1차 F-2~F-5를 plan에 반영, F-1은 K-0032 계속 수용(spec D8, 원장 재검토 이력 기록) | - | 3119c53 | 069533a | 계획 감사 1차: 충족(PASS), 통과(PASS), 적합(PASS) / 계획 감사 2차: 충족(PASS), 통과(PASS), 적합(PASS), 발견 0건 / 최종 1차(Gemini 4 Neon): 충족(PASS), 통과(PASS), 적합(PASS) / 최종 1차(GPT-6.2, 모델 비교용 독립 감사): 미충족(FAIL), 주의(WARN), 부적합(FAIL) / 테스트 계획 5/8줄 | 다음 회차 |
-| 2 | D1(완화, 작업공간 대소문자 경계 K-0051), plan `설계 결정` 2회차·`테스트 계획` AC4·AC5 `[D]` 줄, Task 4 추가 (최종 1차 GPT F-1·F-2) | 계획 검증 |  | da09314 | 최종 2차(GPT-6.2, Task 4 구현 전 대상): 부분 충족(PARTIAL), 통과(PASS), 조건부 적합(CONDITIONAL), AC4·AC5 부분 충족(F-3·F-4)은 Task 4로 닫음 |  |
+| 2 | D1(완화, 작업공간 대소문자 경계 K-0051), plan `설계 결정` 2회차·`테스트 계획` AC4·AC5 `[D]` 줄, Task 4 추가 (최종 1차 GPT F-1·F-2) | 계획 검증 | 77bb863 | da09314 | 계획 감사 3차(GPT-6.2): 충족(PASS), 주의(WARN), 조건부 적합(CONDITIONAL), F-7·F-8은 Task 4에 반영, F-6은 K-0051 계속 수용, F-9는 K-0053 이관 / 최종 2차(GPT-6.2, Task 4 구현 전 대상): 부분 충족(PARTIAL), 통과(PASS), 조건부 적합(CONDITIONAL), AC4·AC5 부분 충족(F-3·F-4)은 Task 4로 닫음 |  |
 
 ---
 
