@@ -655,6 +655,54 @@ assert_clause 'PR 무영향' clause_pr - "$SKILL"
 assert_clause 'PR 무영향' clause_pr 'PR 무영향 문장 삭제'        "$(clause_mutant noeffect -e 's/기본 동작은 PR에 아무것도 쓰지 않습니다\.//')"
 assert_clause 'PR 무영향' clause_pr 'git-pr 비의존 문장 삭제'    "$(clause_mutant indep -e 's/git-pr 스킬에 의존하지 않습니다\.//')"
 
+# 2단계 브랜치 모드 수집과 수집 실패 (issue #150). 브랜치 모드는 헬퍼 사본으로 모으고, 안내는 헬퍼가 넣고 빼는 경로와 같아야 한다.
+# 옛 `git diff` 명령과 "작업 트리 변경까지 포함" 문장은 미추적 새 파일을 빠뜨리는 옛 동작이라 SKILL.md 어디에도 남지 않아야 한다.
+collect_sec() { h3_sec "$(h2_sec "$1" '## 실행 절차')" '### 2단계: diff 수집'; }
+
+clause_branch_collect() {
+  local c p
+  c="$(collect_sec "$1")"
+  [ -n "$c" ] || { echo '2단계 소절'; return; }
+  for p in 'mb="$(git merge-base "$base" HEAD)"' "'<skill 디렉토리>/scripts/collect-branch-changes.sh' --base \"\$mb\"" \
+           '"${mb}..HEAD"' '미추적 새 파일' '무시 규칙에 걸린 미추적 파일' '`.ai/99_workspace/` 아래 미추적 파일'; do
+    has_txt "$c" "$p" || echo "브랜치 수집: $p"
+  done
+  ! grep -qF 'git diff "$(git merge-base' "$1" || echo '옛 git diff 명령 잔존'
+  ! grep -qF '작업 트리 변경까지 포함' "$1" || echo '옛 수집 범위 문장 잔존'
+}
+
+clause_collect_fail() {
+  local rows p
+  rows="$(collect_sec "$1" | grep -E '^- \*\*수집 실패\*\*:')"
+  [ "$(printf '%s' "$rows" | grep -c .)" -eq 1 ] || { echo '수집 실패 행 1개'; return; }
+  for p in '헬퍼의 종료 코드가 0이 아니면 수집 실패입니다' '퀴즈 파일(md·HTML)을 만들지 않고' \
+           '실패한 명령과 사유를 알립니다' '종료 코드 0에 출력이 없으면'; do
+    has_txt "$rows" "$p" || echo "수집 실패: $p"
+  done
+}
+
+# 옛 명령 복원 변형: merge-base 행 뒤에 옛 `git diff` 명령 행을 되살린다.
+awk '{ print } index($0, "mb=\"$(git merge-base") == 1 { print "git diff \"$(git merge-base \"$base\" HEAD)\"" }' \
+  "$SKILL" > "$tmpdir/clause-old-diff.md"
+
+assert_clause '브랜치 수집' clause_branch_collect - "$SKILL"
+assert_clause '브랜치 수집' clause_branch_collect '헬퍼 호출 삭제' \
+  "$(clause_mutant no-helper -e "/collect-branch-changes.sh' --base/d")"
+assert_clause '브랜치 수집' clause_branch_collect '미추적 새 파일 문구 삭제' "$(clause_mutant no-untracked -e 's/미추적 새 파일//g')"
+assert_clause '브랜치 수집' clause_branch_collect '작업공간 경로 삭제' \
+  "$(clause_mutant no-workspace -e 's#`\.ai/99_workspace/` 아래 미추적 파일##g')"
+assert_clause '브랜치 수집' clause_branch_collect '옛 git diff 명령 복원' "$tmpdir/clause-old-diff.md"
+assert_clause '브랜치 수집' clause_branch_collect '옛 수집 범위 문장 복원' \
+  "$(clause_mutant old-scope -e 's/^- PR 모드는 `gh pr diff`로/& 작업 트리 변경까지 포함/')"
+
+assert_clause '수집 실패' clause_collect_fail - "$SKILL"
+assert_clause '수집 실패' clause_collect_fail '실패 판정 문구 삭제' \
+  "$(clause_mutant fail-judge -e 's/헬퍼의 종료 코드가 0이 아니면 수집 실패입니다//')"
+assert_clause '수집 실패' clause_collect_fail '퀴즈 파일 미작성 문구 삭제' \
+  "$(clause_mutant fail-nofile -e 's/퀴즈 파일(md·HTML)을 만들지 않고//')"
+assert_clause '수집 실패' clause_collect_fail '실패한 명령과 사유 문구 삭제' \
+  "$(clause_mutant fail-reason -e 's/실패한 명령과 사유를 알립니다//')"
+
 # --- 로케일 회귀 ----------------------------------------------------------------
 #
 # macOS awk 의 == 는 en_US.UTF-8 에서 길이가 같은 서로 다른 한글 문자열을 같다고 본다.
