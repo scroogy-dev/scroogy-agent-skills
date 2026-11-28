@@ -13,7 +13,7 @@
 | 계획 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
 | 계획 audit 모델 | Google, Gemini 4 Neon (gemini-4-neon-high) | High |
 | 구현 모델 | Anthropic, Claude Opus 5.5 (claude-opus-5-5) | high |
-| 최종 audit 모델 |  |  |
+| 최종 audit 모델 | Google, Gemini 4 Neon (gemini-4-neon-high) / OpenAI, GPT-6.2 (gpt-6.2-sol) | High / high |
 
 - **계획 감사**: 수행 · 발견 5건 · 보정 4건
 
