@@ -32,6 +32,11 @@
   - K-0031은 제목·내용·재검토 조건에 git-review-quiz를 더하고 `재검토 이력`에 #150 행을 더한다. 제목이 바뀌므로 `.ai/70_ledger/index.md`의 K-0031 행도 같이 고친다. 파일 이름은 바꾸지 않는다. 바꾸면 들어오는 링크를 모두 고쳐야 한다.
   - Task 순서: Task 1이 헬퍼 사본을 먼저 만들어야 Task 2의 SKILL.md가 가리킬 파일이 생긴다. Task 3(원장)은 Task 1·2와 독립이지만 사본이 생긴 뒤에야 범위 확대 문장이 사실이 된다.
   - 이 머신은 macOS의 bash 3.2다. 러너는 이미 `export LC_ALL=C`로 시작한다. 새 함수 안에서 명령 치환 `$( … )` 안에 `case`를 쓰면 `패턴)` 대신 `(패턴)` 형태로 쓴다.
+- **2회차 (최종 감사 1차 GPT F-1·F-2)**:
+  - 바꾸는 파일은 `git-review-quiz/SKILL.md` 2단계 `**빠지는 경로**`, `git-review-quiz/tests/run-tests.sh`의 `clause_branch_collect`·`clause_collect_fail`과 변형 케이스, `.ai/40_domain/specs/git-review-quiz.md` 입력 줄이다. 헬퍼 두 사본은 바꾸지 않는다(D6, K-0051 수용).
+  - 대소문자 경계(D1)는 SKILL.md에 원장 번호 없이 문장으로만 적는다. SKILL.md는 다른 repo에 설치되는 파일이라 이 repo의 원장 번호를 적지 않는 관례다(퀴즈·리뷰 SKILL.md에 `K-` 참조 0건). 원장 번호는 도메인 명세 입력 줄에 `K-0051`로 적는다.
+  - git-review SKILL.md와 `.ai/40_domain/specs/git-review-output.md`에는 같은 경계를 더하지 않는다. 이 이슈의 AC5는 퀴즈 안내만 판정하고, 두 스킬 공통 동작은 K-0051이 기록한다.
+  - 조항 검사는 문구를 행 단위로 찾는 기존 `has_txt` 방식을 따른다. 수집 실패 행은 빈 출력 판정을 뒷부분까지 한 문장으로 찾아야 판정을 뒤집은 변형을 잡는다. 앞부분 `종료 코드 0에 출력이 없으면`만 찾으면 뒤를 `수집 실패입니다`로 바꿔도 통과한다.
 
 ---
 
@@ -54,8 +59,8 @@
 | AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `브랜치 수집: 미추적 새 파일` (커밋 1개 위에 미추적 새 파일을 둔 임시 저장소에서 퀴즈 사본 `--base <merge-base>`의 정렬한 목록이 기대 목록 전체와 같고, patch에 새 파일의 내용 행이 추가 줄로 있다) | - | 최종 1차 |
 | AC2 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `브랜치 수집: 작업공간·무시 파일 제외` (`.ai/99_workspace/temp_review_quiz_branch-x.md`와 `.gitignore`에 걸린 미추적 파일, 제외 대상이 아닌 미추적 새 파일 1건을 둔 임시 저장소에서 종료 코드가 0이고, 정렬한 목록이 그 1건이 든 비어 있지 않은 기대 목록 전체와 같다) | - |  |
 | AC3 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `사본 대조: git-review collect-branch-changes.sh 와 바이트 동일` (`cmp -s`, 퀴즈 사본 실행 권한 포함) | - | 최종 1차 |
-| AC4 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `조항 수집 실패:` 현재 본문 통과와 변형 격추 (2단계에 실패 판정·퀴즈 파일 미작성·실패한 명령과 사유 안내 문구) | - | 최종 1차 |
-| AC5 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `조항 브랜치 수집:` 현재 본문 통과와 변형 격추 (2단계에 헬퍼 호출 `--base "$mb"`·미추적 새 파일·`.ai/99_workspace/`·무시 규칙 문구, 옛 `git diff "$(git merge-base` 명령과 "작업 트리 변경까지 포함" 문장 0건) | - |  |
+| AC4 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `조항 수집 실패:` 현재 본문 통과와 변형 격추 (2단계에 merge-base 실패 조건·헬퍼 실패 판정·퀴즈 파일 미작성·실패한 명령과 사유 안내 문구, 종료 코드 0 빈 출력을 변경 파일 0개로 보는 문장 전체) | - |  |
+| AC5 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `조항 브랜치 수집:` 현재 본문 통과와 변형 격추 (2단계에 헬퍼 호출 `--base "$mb"`·미추적 새 파일·`.ai/99_workspace/`·무시 규칙 문구, 작업공간 디렉토리 대소문자 경계 문장, 헬퍼 목록·patch를 그대로 쓰고 `git diff`·`git status`로 목록을 만들지 않는 조항, 옛 `git diff "$(git merge-base` 명령과 "작업 트리 변경까지 포함" 문장 0건) | - |  |
 | AC6 | [D] | 단위 | 아래 접기의 검증 명령, 출력 0건이면 통과 | - | 최종 1차 |
 
 > **사본 대조 전제**: AC3 줄은 repo 안에서 실행해야 판정할 수 있다. 러너가 `사본 대조: … — 건너뜀`을 출력하면 `failed: 0`으로 끝나도 AC3은 판정 불가(N/A)로 둔다.
@@ -178,6 +183,23 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | awk -F'|' '
   1. K-0031의 제목·`## 내용`·`재검토 조건`에 git-review-quiz 브랜치 모드를 더하고, `재검토 이력`에 2026-11-28 #150 행(계속 수용, 범위 확대)을 더한다. `## 내용`에서 두 스킬 공통으로 넓히는 것은 `collect-branch-changes.sh`가 Git이 스테이징하는 내용을 대상으로 삼는 경계(첫 두 문장)뿐이다. 주변 코드를 작업 트리에서 찾아 읽는 내용, 발견의 성립을 수집한 내용으로 확인한다는 문장, spec R1의 네 성질은 git-review 한정이라고 적는다. 퀴즈에는 주변 파일 읽기 기준이 없다(spec 제외 목록).
   2. `.ai/70_ledger/index.md`의 K-0031 행 제목·재검토 조건을 같은 문장으로 고친다.
   - **통과 확인**: `테스트 계획`의 AC6 검증 명령이 출력 0건이고 `bash git-review-quiz/tests/run-tests.sh`가 `failed: 0`으로 끝나는 것을 보고 커밋한다.
+
+---
+
+### Task 4: 2단계 안내에 작업공간 대소문자 경계를 적고 조항 검사의 빈틈을 메운다
+
+- [ ] 완료
+- **목표**: 퀴즈 2단계의 빠지는 경로 안내가 D1의 대소문자 경계와 같아지고, 2단계 조항 검사가 수집 실패 판정과 목록·patch 사용 조항의 회귀를 잡는다(최종 감사 1차 GPT F-1·F-2).
+- **대상 요구사항**: R2, R3
+- **테스트 먼저**:
+  - `git-review-quiz/tests/run-tests.sh` `clause_branch_collect`에 대소문자 경계 문구 `디렉토리 이름의 대소문자` 검사를 더하고, 그 문구를 지운 `조항 브랜치 수집: 대소문자 경계 문장 삭제` 변형을 더한다 (AC5)
+  - 같은 러너에 F-2 재현 변형 세 건을 더한다. `조항 수집 실패: merge-base 실패 조건 삭제`, `조항 수집 실패: 빈 출력 판정 뒤집기`(`수집 실패가 아니라 변경 파일 0개입니다`를 `수집 실패입니다`로), `조항 브랜치 수집: 목록·patch 사용 조항 삭제`(`**변경 파일 목록**:` 행 삭제) (AC4, AC5)
+  - **실패 확인**: `bash git-review-quiz/tests/run-tests.sh`에서 `조항 브랜치 수집: 현재 본문 통과`(대소문자 경계 문장이 아직 없음)와 F-2 재현 변형 세 건(`변형이 그대로 통과`)이 `NOT OK`인 것을 보고 테스트 커밋을 만든다.
+- **구현**:
+  1. `git-review-quiz/SKILL.md` 2단계 `**빠지는 경로**`에 D1의 대소문자 경계를 `디렉토리 이름의 대소문자`가 든 한 문장으로 더한다. 원장 번호는 적지 않는다(설계 결정 2회차).
+  2. `.ai/40_domain/specs/git-review-quiz.md` 입력 줄의 브랜치 모드 대상에 같은 경계와 `K-0051`을 더한다.
+  3. 러너의 `clause_collect_fail`에 `merge-base를 구하지 못했거나`를 더하고, 빈 출력 판정 검사를 `종료 코드 0에 출력이 없으면 수집 실패가 아니라 변경 파일 0개입니다` 한 문장으로 바꾼다. `clause_branch_collect`에 `헬퍼가 낸 목록`과 `` `git diff`·`git status`의 결과로 목록을 따로 만들거나 고치지 않습니다 `` 검사를 더한다.
+  - **통과 확인**: `bash git-review-quiz/tests/run-tests.sh`와 `bash git-review/tests/run-tests.sh`가 모두 `failed: 0`으로 끝나는 것을 보고 구현 커밋을 만든다.
 
 ---
 

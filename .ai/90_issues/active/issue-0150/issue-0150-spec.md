@@ -37,7 +37,7 @@ git-review-quiz 브랜치 모드가 커밋 전 미추적 새 파일까지 퀴즈
 
 ## 결정 사항 (Decisions)
 
-- D1 브랜치 모드 대상: git-review 브랜치 모드와 같다. 지금 작업 트리를 전부 스테이징해 커밋하면 들어갈 변경이며, 커밋한 변경, 미커밋 변경, 미추적 새 파일이 들어간다. 무시 규칙에 걸린 미추적 파일과 `.ai/99_workspace/` 아래 미추적 파일은 빠진다. 그 밖에 Git이 스테이징 내용을 정하는 경로는 Git의 결과를 따른다(K-0031).
+- D1 브랜치 모드 대상: git-review 브랜치 모드와 같다. 지금 작업 트리를 전부 스테이징해 커밋하면 들어갈 변경이며, 커밋한 변경, 미커밋 변경, 미추적 새 파일이 들어간다. 무시 규칙에 걸린 미추적 파일과 `.ai/99_workspace/` 아래 미추적 파일은 빠진다. 작업공간 제외는 디렉토리 이름의 대소문자를 구분한다. 대소문자를 구분하지 않는 볼륨에서 디스크의 디렉토리 이름이 `.ai/99_workspace`와 대소문자만 다르면 그 아래 미추적 파일은 Git이 보고하는 실제 표기로 들어간다(K-0051). 그 밖에 Git이 스테이징 내용을 정하는 경로는 Git의 결과를 따른다(K-0031).
 - D2 헬퍼 사본: `git-review-quiz/scripts/collect-branch-changes.sh`에 두고 `git-review/scripts/collect-branch-changes.sh`와 바이트 단위로 같게 유지한다. 한쪽을 고치면 다른 쪽도 고친다(ADR 0002·0021 선례).
 - D3 쓰는 모드: 퀴즈는 헬퍼의 `--base`만 쓴다. `--marked`는 바이트 동일을 지키려고 사본에 남는다.
 - D4 merge-base 해시: 2단계에서 한 번 구해 보관하고, 헬퍼 `--base`와 설명 절 출처의 커밋 메시지 수집에 같이 쓴다.
@@ -66,6 +66,7 @@ git-review-quiz 브랜치 모드가 커밋 전 미추적 새 파일까지 퀴즈
 | 시점 | 바뀐 것 | 분류 | 계기 |
 |------|---------|------|------|
 | 2026-11-28 | D8 추가 | 구체화 (원장 처리 결정, AC 결과 불변) | 계획 감사 1차 F-1 |
+| 2026-11-28 | D1에 작업공간 제외의 대소문자 경계 추가 | 완화 (AC2의 작업공간 제외를 디렉토리 이름이 `.ai/99_workspace`와 같은 표기일 때로 한정, `--response`에서 사용자 승인) | 최종 감사 1차 GPT F-1 (이관 K-0051) |
 
 ---
 
@@ -75,6 +76,7 @@ git-review-quiz 브랜치 모드가 커밋 전 미추적 새 파일까지 퀴즈
 |------|------|
 | `.ai/70_ledger/active/K-0025-quiz-branch-mode-untracked-files-excluded.md` | 이 이슈가 해소하는 원장 항목 (R1) |
 | `.ai/70_ledger/active/K-0031-review-branch-mode-index-exception-paths.md` | 범위를 넓힐 원장 항목, 헬퍼가 따르는 Git 스테이징 경계 (R4) |
+| `.ai/70_ledger/active/K-0051-branch-collect-workspace-exclude-case-sensitive.md` | 작업공간 제외의 대소문자 경계 (D1, 최종 감사 1차 GPT F-1 이관) |
 | `.ai/50_adr/active/0002-skill-independence-intentional-duplication.md` | 스킬 단독 설치를 위한 의도적 복제 원칙 (헬퍼 사본) |
 | `.ai/50_adr/active/0021-ledger-archive-move-link-update.md` | 바이트 단위로 같은 헬퍼 사본과 `cmp` 동기화 선례 |
 | `.ai/50_adr/active/0027-git-review-quiz-explanation-sections-and-html-output.md` | git-review-quiz 산출 이름·설명 절 결정 (브랜치 모드 산출물이 `.ai/99_workspace/`에 생김) |
