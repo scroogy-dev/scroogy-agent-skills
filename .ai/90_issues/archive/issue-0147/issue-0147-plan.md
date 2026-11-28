@@ -1,0 +1,301 @@
+# Issue #147 실행계획 git-review-quiz·ai-workspace·issue-work: en_US.UTF-8 로케일에서 헬퍼와 러너의 한글 문자열 비교가 틀리는 것을 고친다
+
+> 스펙: [issue-0147-spec.md](./issue-0147-spec.md)
+
+---
+
+## 계획 종료 게이트 (고정)
+
+<!--
+이 블록은 모든 이슈 계획에 고정한다. 삭제하지 말 것.
+plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task가 아니라 "plan 작성 절차"라 Tasks 앞에 둔다.
+문서를 쓴 주체와 읽는 주체가 다를 수 있다는 것만 전제한다 — 다른 모델이든, 세션 교체 후의 같은 모델이든 같다.
+-->
+
+> **점검 질문**: 이 spec/plan만 보고, 작성에 참여하지 않은 쪽이 구현에 필요한 내용을 스스로 알 수 있는가?
+
+- [x] 점검 완료
+- **점검 대상** (작성 중 머릿속에만 있었던 것):
+  - 코드베이스 관례 — 이 repo에서만 통하는 패턴·명명·배치 규칙
+  - 버전·환경 제약 — 특정 버전·플랫폼·도구에 묶인 조건
+  - 검토 후 버린 대안과 그 이유
+  - 사용자와의 합의로만 정해진 값
+- **발견 시 조치**: 제품·도메인 내용은 spec `## 결정 사항`에, 설계 내용은 plan `## 설계 결정`에 적는다. 발견이 없으면 체크만 한다.
+
+---
+
+## 설계 결정
+
+- **시스템 구성**: 바꾸는 파일은 헬퍼 `git-review-quiz/scripts/check-quiz.sh`·`ai-workspace/scripts/check-context.sh`와 러너 `git-review-quiz/tests/run-tests.sh`·`ai-workspace/tests/run-tests.sh`·`issue-work/tests/run-tests.sh`다. 2회차 Task 5가 헬퍼 `ai-workspace-directory/scripts/check-lobby.sh`·`git-pr/scripts/verify-submit.sh`·`git-pr-feedback/scripts/verify-push.sh`와 그 러너 3개(`ai-workspace-directory`·`git-pr`·`git-pr-feedback`의 `tests/run-tests.sh`)를 더한다. 세 러너는 지금도 두 로케일 모두 실패 0건이라(2026-11-28 실행) 머리를 고치지 않고 `로케일:` 회귀 케이스만 더한다.
+- **애플리케이션 구조 안의 자리**: 로케일 고정 줄은 `set -o pipefail` 바로 다음에 둔다. 선례인 `check-plan.sh` 55행처럼 고정하는 이유를 한 줄 주석으로 함께 적는다. 헬퍼 테스트는 ADR 0001에 따라 `<skill>/tests/run-tests.sh`에 둔다.
+- **영향 모듈, 순서의 근거, 관례**:
+  - 로케일 회귀 케이스는 같은 입력을 `C.UTF-8`과 `en_US.UTF-8`(D2)로 한 번씩 실행한다. 두 실행의 표준 출력과 표준 오류를 합친 출력(`2>&1`)이 같고 종료 코드가 같으면 통과다. `issue-audit/tests/run-tests.sh`의 `assert_locale`은 로케일마다 고정 기대 출력과 대조하고, 표준 오류를 버리며(`2>/dev/null`), 종료 코드를 보지 않는다. 그래서 로케일을 돌며 헬퍼를 부르는 반복 구조만 참고하고 비교 방식은 따르지 않는다.
+  - D3의 건너뜀은 같은 러너의 `ok "<설명> — 건너뜀 (<사유>)"` 표기를 따른다(`issue-audit/tests/run-tests.sh` 151행). 로케일이 있는지는 `locale -a`에서 대소문자를 가리지 않고 `en_US.UTF-8`이나 `en_US.utf8`을 찾아 판정한다(Linux glibc는 `en_US.utf8`로 표기한다). `C.UTF-8`은 확인하지 않는다. 없으면 `C`로 떨어지는데 `C`도 바이트 단위로 비교하므로 기준 로케일 역할이 같다.
+  - 로케일에 따라 결과가 갈리는 비교는 아래 둘이 전부다. 근거는 macOS awk 20200816·bash 3.2에서 한글·`é`·`²` 값을 두 로케일로 견준 실측이다(2026-11-27, 2026-11-28). `sort`·`[[ … < … ]]`의 정렬 순서도 로케일을 따르지만 다섯 헬퍼에는 없다.
+    - awk의 문자열 `==`·`!=`·`<`·`>`에서 한쪽 값에 한글이 들어 있는 비교. `en_US.UTF-8`은 `"가나" == "가"`와 `"active예정" == "active"`를 참으로 본다. 빈 문자열과의 비교(`"가" == ""`)는 두 로케일 모두 거짓이라 갈리지 않는다.
+    - 셸 `case`·글롭의 대괄호 범위(`[!0-9a-fA-F]` 등). `en_US.UTF-8`은 `é`를 `a`~`f` 범위에 넣는다.
+  - awk 정규식과 `index()`, awk·`grep -E`의 대괄호 범위, 셸 `[ = ]`, `grep -xF`는 두 로케일 결과가 같다.
+  - 1회차 Task 4는 첫째 비교를 한글끼리의 비교로만 좁게 보고 둘째 비교를 보지 않았다. 그래서 `check-lobby.sh` 167행(`v != "active"`), `verify-submit.sh` 108행, `verify-push.sh` 105행을 비교 없음으로 기록했다(최종 1차 F-1·F-2). Task 5가 세 헬퍼를 고친다. `summarize-metrics.sh`·`check-clear.sh`는 이 기준으로 다시 봐도 비교가 없다. awk 비교는 빈 문자열과 숫자뿐이고, 범위는 awk 정규식과 `grep -E`에만 있다.
+  - AC5는 세 헬퍼의 `로케일:` 회귀 케이스(`[D]` 줄 3개)와 확인 결과 기록(`[QD]` 줄)이 함께 판정한다.
+  - `verify-submit.sh`·`verify-push.sh`가 부르는 git 명령(`rev-parse`, `ls-remote`, `remote get-url`, `merge-base`)은 SHA·URL만 내고 표준 오류는 버린다. `LC_ALL=C`로 바뀌는 것은 git 메시지 언어뿐이라 판정에 영향이 없다.
+  - `ai-workspace/tests/check-ide-tool-list.sh`(테스트용 헬퍼, 배포 제외)는 고치지 않는다. awk 비교는 빈 문자열과 정규식뿐이고 `sort`·`comm`에는 이미 `LC_ALL=C`가 있어 로케일에 따라 갈리는 비교가 없다. 1회차 Task 2가 이 헬퍼로 적은 `en_US.UTF-8` 실패는 러너 안 `ide_decision_violations`의 `dec[c] != "쓰지 않음"` 같은 비교에서 났다(최종 1차 F-3). Task 6이 러너 주석과 summary Task 2 기록을 고친다.
+  - Task 순서는 스킬 단위로 나눴다. Task 1~3은 서로 독립이고, Task 4는 확인 결과에 따라 고칠 파일이 정해져서 마지막에 둔다.
+  - 이 머신의 기본 로케일은 `LANG=C.UTF-8`이다. 러너를 로케일 지정 없이 실행하면 원래 실패가 나지 않으므로, 실패 확인은 `LC_ALL=en_US.UTF-8`을 붙여 실행한다.
+
+---
+
+## 테스트 계획
+
+> **검증 레벨**: 낮을수록 좋다(자동 검증에 가까움). 기본은 L1이다.
+>
+> - `[D]`  L1 결정적: 명령이 합/불을 판정하며 사람 판단이 없다
+> - `[QD]` L2 준결정적: 다른 AI나 기준 체크리스트가 채점한다
+> - `[ND]` L3 비결정적: 사람이 직접 읽고 판단한다
+>
+> **문서를 대상으로 검증할 때는 문구가 아니라 행 구조를 셉니다**. 같은 문구가 주석·안내문에도 등장하므로
+> `grep -c '<문구>'`는 실제 구조가 없어도 통과합니다. 헤더는 `^## `, Task는 `^### Task `,
+> 필드는 `^- \*\*…\*\*:`로 앵커를 고정하고, 명령은 작업 디렉토리에 의존하지 않게 repo 루트 기준 경로로 적습니다.
+> **검증 명령 보정은 반례 격추가 아니라 불변식 전수 명세로 합니다**. 지적된 변형 하나만 막으면 이웃 변형이
+> 다음 감사에서 재발하므로, 기대 구조를 열거하고 "그 외 0건"까지 판정에 넣습니다.
+
+| AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
+|----|------|----|--------|---------------------|------|
+| AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-quiz.sh` 회귀 케이스(정상 fixture와 위반 fixture) | - | 최종 2차 |
+| AC2 | [D] | 단위 | `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-context.sh` 회귀 케이스(날짜를 바꾼 dev·doc 템플릿 사본, `profile_state` 경로 입력, `dev_residue` 경로 입력. 입력은 Task 2) | - | 최종 2차 |
+| AC3 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 2차 |
+| AC4 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 2차 |
+| AC5 | [D] | 단위 | `ai-workspace-directory/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-lobby.sh` 회귀 케이스(정상 `lobby-good.md`, status 칸을 `active예정`으로 바꾼 사본. 입력은 Task 5) | - | 최종 2차 |
+| AC5 | [D] | 단위 | `git-pr/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-submit.sh` 회귀 케이스(`--expect`가 `ébcdef0`. 입력은 Task 5) | - | 최종 2차 |
+| AC5 | [D] | 단위 | `git-pr-feedback/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-push.sh` 회귀 케이스(`--head-oid`가 `ébcdef0`. 입력은 Task 5) | - | 최종 2차 |
+| AC6 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 2차 |
+
+> **로케일 전제**: 위 표의 줄은 실행하는 머신에 `en_US.UTF-8`이 있어야 판정할 수 있다. 회귀 케이스가 `건너뜀`을 출력했거나 `locale -a`에 `en_US.UTF-8`(`en_US.utf8`)이 없으면, 러너가 `failed: 0`으로 끝나도 그 줄은 통과로 보지 않고 판정 불가(N/A)로 둔다(`.ai/10_rules/testing-principles.md` 전제 조건과 판정 불가). 로케일이 없으면 AC3·AC4·AC6의 `LC_ALL=en_US.UTF-8`은 `C`로 떨어져 원래의 실패가 나지 않기 때문이다.
+
+### 테스트로 못 보는 항목
+
+| AC | 레벨 | 누가 보나 | 이유 | 확인 |
+|----|------|-----------|------|------|
+| AC5 | [QD] | 교차 감사 | 헬퍼 5개의 확인 결과가 summary Task 4·Task 5에 빠짐없이 남았는지와, "비교 없음"으로 본 근거가 소스와 맞는지는 코드를 읽고 판단해야 한다 | 최종 2차 |
+
+---
+
+## Tasks
+
+> AI가 순서대로 실행할 작업 단위를 정의합니다.
+> **작성 원칙**: 구현자에게 이 문서 외 컨텍스트가 없다고 가정하고 씁니다. 각 작업은 독립적으로 검증 가능해야 합니다.
+> Task는 진행만 판정하고 spec에 없는 결과를 더하지 않는다는 원칙을 따릅니다. 결과 판정은 spec 완료의 정의와 `## 테스트 계획`이 맡습니다.
+> 첫 고정 Task(Task 0 구현 시작 게이트)와 마지막 고정 Task(Task N 마무리)는 삭제하지 말고 그대로 둡니다.
+> 뒤 회차에 더한 Task는 Task N 앞에 다음 번호로 이어 붙이고, 회차별 묶음 제목을 두지 않습니다.
+>
+> **대상 요구사항 필드**: 일반 Task에는 `- **대상 요구사항**: R<n>` 필드를 `목표` 다음 행에 두어
+> 이 Task가 spec의 어느 요구사항을 구현하는지 밝힙니다. 여러 개면 `R<n>, R<m>`로 나열합니다.
+> 고정 Task(Task 0·Task N)는 특정 요구사항에 속하지 않으므로 이 필드를 두지 않습니다.
+>
+> **테스트 먼저**: 기능을 바꾸는 Task는 테스트 작성 → 실패 확인 → 구현 → 통과 확인 순서로 진행합니다.
+> 실패 확인 뒤의 테스트 커밋과 구현 커밋을 나눕니다. 실패 확인은 커밋 순서와 summary Task 블록의 `테스트` 필드로 남깁니다.
+> 감사 발견을 고치는 Task는 재현 테스트를 먼저 씁니다.
+>
+> **테스트를 먼저 쓰지 않는 Task**: 동작을 바꾸지 않는 Task가 대상이며 `테스트 먼저` 필드에 먼저 쓰지 않는 이유를 한 줄 적습니다.
+>
+> - 문서만 고치는 Task
+> - 자동 테스트가 보지 못하는 화면 배치
+> - 버릴 코드를 쓰는 스파이크
+> - 기존 테스트가 그대로 통과해야 하는 리팩터링
+>
+> 이런 Task는 구현 → 통과 확인 두 단계로 진행합니다.
+> 이때 통과 확인은 기존 테스트 전체 통과입니다. 러너도 결정적 명령도 없는 repo만 통과 확인을 건너뜁니다.
+>
+> **테스트 배치**: 테스트는 그 기능을 만드는 Task 안에 둡니다.
+> 별도 테스트 Task는 fixture 일괄 갱신처럼 테스트 자체가 작업 대상일 때만 둡니다.
+> 전체 회귀는 Task N이 맡습니다.
+
+### Task 0 (고정): 구현 시작 게이트 (전제·모호점 확인)
+
+<!--
+이 블록은 모든 이슈 계획의 첫 Task로 고정한다. 삭제하지 말 것.
+계획 종료 게이트가 "쓰는 쪽"의 자기점검이라면, 이 게이트는 "읽는 쪽"이 착수 전에 거는 확인이다.
+spec을 쓴 주체와 구현하는 주체가 같아도 수행한다 — 세션이 바뀌면 전제는 똑같이 유실된다.
+-->
+
+- [x] 완료
+- **목표**: 구현에 필요하지만 문서만으로는 알 수 없는 전제·모호점을 코드 작성 전에 걷어낸다.
+- **작업 내용**:
+  1. spec/plan을 읽고, 구현에 필요하지만 문서만으로는 알 수 없는 전제·모호점을 나열한다.
+  2. 항목이 있으면 **코드를 쓰기 전에 사용자에게 질의**하고, 답변을 spec `## 결정 사항`이나 plan `## 설계 결정`에 적은 뒤 구현을 시작한다. 계획 감사를 받기로 한 이슈에서 AC·요구사항, `설계 결정`, `테스트 계획`이 바뀌었으면 구현 전에 계획 감사를 다시 받는다.
+  3. 항목이 없으면 summary Task 0의 `수행 내용 요약`에 `전제 누락 없음` 한 줄을 기록하고 진행한다.
+- **완료 기준**:
+  - [ND] 나열한 항목이 전부 spec `## 결정 사항`이나 plan `## 설계 결정`에 반영되어 미해소 0건이거나, summary Task 0에 `전제 누락 없음`이 기록된다  (검증: 사람 리뷰)  ← 강등 사유: 전제·모호점을 빠짐없이 나열했는지는 의미 판단이라 명령으로 환원 불가
+
+---
+
+### Task 1: git-review-quiz 헬퍼와 러너의 로케일 고정
+
+- [x] 완료
+- **목표**: `check-quiz.sh`와 git-review-quiz 러너가 `en_US.UTF-8`에서도 `C.UTF-8`과 같은 결과를 낸다.
+- **대상 요구사항**: R1, R3
+- **테스트 먼저**:
+  - `git-review-quiz/tests/run-tests.sh`: `로케일:`으로 시작하는 회귀 케이스. 정상 fixture(`valid-interactive.md`, `valid-comment.md`)와 위반 fixture(`invalid-r7-duplicate-target.md`) 각각을 `LC_ALL=C.UTF-8`과 `LC_ALL=en_US.UTF-8`로 `check-quiz.sh`에 넣어 출력과 종료 코드가 같은지 본다. 댓글 모드 fixture는 기존 케이스와 같은 인자를 쓴다. `en_US.UTF-8`이 없으면 D3에 따라 건너뛴다.
+  - **실패 확인**: `bash git-review-quiz/tests/run-tests.sh`에서 위 회귀 케이스가 실패하는 것을 보고 테스트 커밋을 만든다. 이어서 `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 실패 수(이슈 본문 기준 16건)를 summary `테스트`에 함께 적는다.
+- **구현**:
+  1. `git-review-quiz/scripts/check-quiz.sh`의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다.
+  2. `git-review-quiz/tests/run-tests.sh`의 `set -o pipefail` 다음에 같은 형식으로 `export LC_ALL=C`를 둔다.
+  - **통과 확인**: `bash git-review-quiz/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`가 모두 0 실패인 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 2: ai-workspace 헬퍼와 러너의 로케일 고정
+
+- [x] 완료
+- **목표**: `check-context.sh`와 ai-workspace 러너가 `en_US.UTF-8`에서도 `C.UTF-8`과 같은 결과를 낸다.
+- **대상 요구사항**: R2, R3
+- **테스트 먼저**:
+  - `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 회귀 케이스. 입력은 아래 넷이고, 모두 템플릿의 `YYYY-MM-DD`를 날짜로 바꾼 사본에서 만든다. 원본 템플릿은 자리표시자 때문에 두 로케일 모두 누락으로 끝나 비교 경로에 닿지 않는다. 각 입력을 `LC_ALL=C.UTF-8`과 `LC_ALL=en_US.UTF-8`로 `check-context.sh`에 넣어 출력과 종료 코드가 같은지 본다. `en_US.UTF-8`이 없으면 D3에 따라 건너뛴다.
+    - 정상 dev 사본: `ai-workspace/templates/dev/.ai/AI-CONTEXT.md`의 사본을 기본 모드로 넣는다.
+    - 정상 doc 사본: `ai-workspace/templates/doc/.ai/AI-CONTEXT.md`의 사본을 기본 모드로 넣는다.
+    - `profile_state` 경로(`h == "## 프로젝트 도메인"` 비교): dev 사본의 `## 프로젝트 도메인`을 같은 길이의 `## 프로젝트 도매인`으로 바꿔 `--profile` 모드로 넣는다. 기본 모드는 `## 프로젝트 도메인` 섹션을 찾는 `grep`이 두 로케일 모두에서 먼저 걸려 이 비교에 닿지 않는다. 수정 전에는 `C.UTF-8`이 ``질의: 안내도에 `profile` 행이 없음``(종료 코드 1)을, `en_US.UTF-8`이 `dev`(종료 코드 0)를 낸다.
+    - `dev_residue` 경로(`h == head` 비교): doc 사본의 `## 에이전트 운영 지침` 바로 앞에 같은 길이의 `## 에이전트 운영 지칩` 섹션을 두고, 그 안에 dev 표준 우선순위 문구(`check-context.sh`의 `PRIO_DEV` 값)를 넣어 기본 모드로 넣는다. 수정 전에는 `C.UTF-8`이 무출력(종료 코드 0)을, `en_US.UTF-8`이 충돌 우선순위 누락(종료 코드 1)을 낸다.
+  - **실패 확인**: `bash ai-workspace/tests/run-tests.sh`에서 `profile_state`·`dev_residue` 경로 케이스 2건이 실패하는 것을 보고 테스트 커밋을 만든다. `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 실패 수(이슈 본문 기준 9건)도 summary `테스트`에 함께 적는다.
+- **구현**:
+  1. `ai-workspace/scripts/check-context.sh`의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다. 327행의 `LC_ALL=C awk`는 머리의 고정과 같은 값이므로 그대로 둔다.
+  2. `ai-workspace/tests/run-tests.sh`의 `set -o pipefail` 다음에 같은 형식으로 `export LC_ALL=C`를 둔다.
+  - **통과 확인**: `bash ai-workspace/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`가 모두 0 실패인 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 3: issue-work 러너의 로케일 고정
+
+- [x] 완료
+- **목표**: issue-work 러너가 `en_US.UTF-8`에서도 실패 없이 끝난다.
+- **대상 요구사항**: R4
+- **테스트 먼저**:
+  - 새 테스트는 쓰지 않는다. `en_US.UTF-8`에서 실패하는 기존 템플릿 구조 검사(이슈 본문 기준 11건)가 이 Task의 테스트다. issue-work 헬퍼의 로케일 회귀 케이스는 Task 4가 맡는다.
+  - **실패 확인**: `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 실패 수를 summary `테스트`에 적는다. 새로 커밋할 테스트가 없으므로 실패를 확인한 HEAD를 함께 적는다. 이 HEAD는 실패하는 기존 검사가 이미 커밋된 커밋이라 테스트 먼저 규칙의 테스트 커밋 자리에 해당하며, summary `테스트`에 테스트 커밋으로 적는다.
+- **구현**:
+  1. `issue-work/tests/run-tests.sh`의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다.
+  - **통과 확인**: `bash issue-work/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`가 모두 0 실패인 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 4: 나머지 배포 헬퍼 5개의 비교 확인과 수정
+
+- [x] 완료
+- **목표**: 나머지 헬퍼 5개마다 로케일에 따라 결과가 달라지는 비교가 있는지 확인해 기록하고, 있는 헬퍼는 두 로케일에서 같은 결과를 내게 고친다.
+- **대상 요구사항**: R5
+- **테스트 먼저**:
+  - 확인 대상은 `git-pr/scripts/verify-submit.sh`, `git-pr-feedback/scripts/verify-push.sh`, `ai-workspace-directory/scripts/check-lobby.sh`, `issue-work/scripts/summarize-metrics.sh`, `issue-work/scripts/check-clear.sh`다. 헬퍼마다 `awk`의 문자열 `==`·`!=`·`<`·`>` 비교, `sort`, `[[ … < … ]]` 가운데 한글이 들어갈 수 있는 값을 견주는 자리를 찾는다. 계획 단계의 확인 결과(`설계 결정`, 한글 값끼리의 비교 없음)를 소스로 다시 확인한다. 결과는 D4에 따라 summary Task 4 `수행 내용 요약`에 헬퍼마다 한 줄씩 적는다.
+  - 비교가 있는 헬퍼마다 그 헬퍼의 러너(`<skill>/tests/run-tests.sh`)에 `로케일:`으로 시작하는 회귀 케이스를 더한다. Task 1과 같은 형식이고, 입력은 그 비교가 두 로케일에서 갈리는 값을 담는다. 이때 `테스트 계획`에 AC5 `[D]` 줄을 더하고 계획 감사를 다시 받는다(`설계 결정`).
+  - **실패 확인**: 비교가 있는 헬퍼가 있으면 그 러너에서 회귀 케이스가 실패하는 것을 보고 테스트 커밋을 만든다. 5개 모두 비교가 없으면 테스트 커밋과 구현을 건너뛰고 summary `테스트`에 `-`를 적는다.
+- **구현**:
+  1. 비교가 있는 헬퍼의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다. 비교가 없는 헬퍼는 고치지 않는다.
+  - **통과 확인**: 고친 헬퍼의 러너를 `bash <skill>/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash <skill>/tests/run-tests.sh`로 실행해 모두 0 실패인 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 5: 로케일 비교 판단 기준 정정과 세 헬퍼의 로케일 고정
+
+- [x] 완료
+- **목표**: 1회차 Task 4가 비교 없음으로 기록한 `check-lobby.sh`·`verify-submit.sh`·`verify-push.sh`가 두 로케일에서 같은 결과를 내고, 다섯 헬퍼의 확인 결과가 `설계 결정`의 기준으로 다시 남는다(최종 1차 F-1·F-2).
+- **대상 요구사항**: R5
+- **테스트 먼저**:
+  - 세 러너에 `로케일:`으로 시작하는 회귀 케이스를 더한다. Task 1과 같은 형식으로, 같은 입력을 `LC_ALL=C.UTF-8`과 `LC_ALL=en_US.UTF-8`로 헬퍼에 넣어 출력과 종료 코드가 같은지 본다. `en_US.UTF-8`이 없으면 D3에 따라 건너뛴다.
+    - `ai-workspace-directory/tests/run-tests.sh`: 정상 `fixtures/lobby-good.md`와, 그 사본의 status 칸 `| active |`를 `| active예정 |`로 바꾼 입력. 사본은 입력이 실제로 바뀌었는지 먼저 확인한다. 수정 전에는 `C.UTF-8`이 status 위반 2행(종료 코드 1)을, `en_US.UTF-8`이 무출력(종료 코드 0)을 낸다.
+    - `git-pr/tests/run-tests.sh`: 기존 `assert_submit_ok '로컬 head 일치'`와 같은 준비에서 `--branch main --expect ébcdef0`. 수정 전에는 `C.UTF-8`이 SHA 형식 오류(종료 코드 2)를, `en_US.UTF-8`이 head 불일치 위반(종료 코드 1)을 낸다.
+    - `git-pr-feedback/tests/run-tests.sh`: 기존 `assert_usage_error 'SHA 형식 아님'`과 같은 인자에서 `--head-oid`만 `ébcdef0`으로 바꾼 입력. 수정 전에는 `C.UTF-8`이 SHA 형식 오류(종료 코드 2)를 내고, `en_US.UTF-8`은 형식 검사를 지나 뒤 단계의 위반을 낸다.
+  - **실패 확인**: 세 러너를 `bash <skill>/tests/run-tests.sh`로 실행해 위 회귀 케이스 가운데 사본·`ébcdef0` 입력이 실패하는 것을 보고 테스트 커밋을 만든다. 세 러너의 실패 수를 summary `테스트`에 적는다.
+- **구현**:
+  1. 세 헬퍼의 `set -o pipefail` 다음에 이유 주석과 `export LC_ALL=C`를 둔다. 주석에는 그 헬퍼에서 갈리는 비교를 적는다. 세 러너 머리는 고치지 않는다(`설계 결정`).
+  2. summary Task 5 `수행 내용 요약`에 다섯 헬퍼의 확인 결과를 `설계 결정`의 기준으로 헬퍼마다 한 줄씩 다시 적는다(D4). Task 4 블록의 세 헬퍼 줄 끝에는 `(Task 5에서 정정)`을 붙인다.
+  - **통과 확인**: 세 러너를 `bash <skill>/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash <skill>/tests/run-tests.sh`로 실행해 모두 0 실패이고 `로케일:` 케이스가 건너뜀 없이 통과한 것을 보고 구현 커밋을 만든다.
+
+---
+
+### Task 6: ai-workspace 러너 주석과 Task 2 기록의 실패 원인 정정
+
+- [x] 완료
+- **목표**: `en_US.UTF-8` 실패 원인을 `check-ide-tool-list.sh`로 적은 러너 주석과 summary Task 2 기록이 실제 원인인 러너 안 `ide_decision_violations`의 비교를 가리킨다(최종 1차 F-3).
+- **대상 요구사항**: R3
+- **테스트 먼저**: 먼저 쓰지 않는다. 러너 주석과 이슈 기록만 고치는 Task라 동작이 바뀌지 않는다.
+- **구현**:
+  1. `ai-workspace/tests/run-tests.sh` 20행 주석에서 `check-ide-tool-list.sh`를 빼고, 러너 안의 결정 목록 대조(`ide_decision_violations`)를 원인으로 적는다.
+  2. summary Task 2 `특이 사항`에서 `check-ide-tool-list.sh`를 원인으로 적은 두 곳을 고치고, 고친 사실을 Task 6 `수행 내용 요약`에 적는다.
+  - **통과 확인**: `bash ai-workspace/tests/run-tests.sh`와 `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`가 모두 0 실패인 것을 보고 커밋을 만든다.
+
+---
+
+### Task N (고정): 마무리
+
+<!--
+이 블록은 모든 이슈 계획의 마지막 Task로 고정한다. 삭제하지 말 것.
+완료 확인에서 사용자가 `마무리`로 정한 뒤에만 들어간다. 교차 감사는 이 Task 앞의 구현 검증 단계에서 받는다.
+들어가기 직전에 구현 검증의 판별을 다시 해서, 마지막 교차 감사 뒤에 바뀐 것이 있으면 들어가지 않고 계획 수립으로 돌아간다.
+이 Task에서 구현을 고치면 계획 수립으로 돌아간다.
+색인과 repo 고유 마무리에는 고칠 문서의 경로를 적는다. 구현 검증을 다시 받을지 정할 때 여기에 적은 문서의 변경은 세지 않는다.
+AC가 직접 가리키는 산출물은 여기로 미루지 않고 일반 Task에 둔다.
+`--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다. PR을 만든 뒤에는 이슈 문서를 고치지 않는다.
+-->
+
+- [x] 완료
+- **목표**: 구현을 따라 적는 문서와 이슈 기록을 정리하고 PR을 만든다.
+- **작업 내용**:
+  1. **전체 회귀**: repo 전체 테스트와 `테스트 계획`의 `[D]` 줄을 모두 실행해 통과를 확인한다. `확인` 칸에 `이관`을 적은 줄은 실행하지 않는다. repo 전체 테스트는 `LC_ALL`을 비운 셸(기본 `LANG`)에서 실행한다. `LC_ALL=C`를 물려받으면 spec 제외에서 보류한 issue-audit 러너의 실패가 섞이기 때문이다. AC3·AC4·AC6 줄은 적힌 대로 `LC_ALL=en_US.UTF-8`을 붙여 실행한다.
+  2. **색인**: 구현을 따라 적는 색인(코드맵 등)을 갱신한다. `.ai/60_codebase/` 아래 바뀐 헬퍼를 다루는 문서(해당 행이 있을 때만)
+  3. **충족 AC 체크**: 마지막 교차 감사 리포트가 충족으로 판정한 AC를 spec 완료의 정의에서 체크한다.
+  4. **repo 고유 마무리**: `.ai/AI-CONTEXT.md` 디렉토리 구조의 `scripts/`·`tests/` 설명이 바뀐 헬퍼와 맞는지 확인한다(바꿀 것이 있을 때만).
+  5. **--clear**: issue-work `--clear`로 이슈 기록을 정리한다. 이슈 댓글 등록은 사용자 승인을 받는다.
+  6. **PR**: git-pr로 만든다. 제출은 사용자 승인을 받고, PR 뒤의 리뷰 피드백은 git-pr-feedback으로 처리한다.
+- **완료 기준**:
+  - [D] repo 전체 테스트와 `테스트 계획`의 `[D]` 줄(`확인` 칸에 `이관`을 적은 줄 제외)이 전부 통과  (검증: 해당 러너·명령 재실행)
+  <!-- 아래 5개 항목은 순서가 아니라 의존 관계다: 선행 조건(Task 집합 일치 → 결과 확정 → 수행 모델 채움)이 서지 않으면 교차 벤더 비교가 공집합이 되어 통과처럼 보인다. -->
+  - [D] summary의 Task 헤더 집합이 plan과 일치한다. 블록 전체 누락·Task N 누락·빈 summary·두 경로 오기를 차단하며, 아래 두 게이트의 선행 조건이라 블록 자체가 없으면 그 두 게이트는 검사 대상이 사라져 그대로 통과한다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
+
+    ```bash
+    P=.ai/90_issues/archive/issue-0147/issue-0147-plan.md
+    S=.ai/90_issues/archive/issue-0147/issue-0147-summary.md
+    { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
+      && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
+      || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
+    ```
+
+    - 설계 주의: 프로세스 치환 안의 `grep` 실패는 `diff` 종료 상태로 전파되지 않아 두 경로가 모두 잘못되면 빈 입력끼리 비교해 통과한다. 선행 `grep -q`로 두 파일의 Task 헤더 실재를 먼저 확인하고 실패를 stdout 위반 행으로 환원한다.
+    - 의존 근거: 아래 두 게이트는 `^### Task ` 블록 안의 행만 훑는 awk라 블록 유무 자체를 판정할 수 없다. 그 판정은 이 게이트에만 있다.
+    </details>
+  - [D] 마무리 전에 Task 0 및 모든 일반 실행 Task의 summary `결과`가 완료·부분 완료·스킵 중 하나로 확정된다. Task N 제외 블록마다 유효 `결과` 행 정확히 1개, 무효·중복 0건이며, 아래 `수행 모델` 게이트의 선행 조건이라 비워 두면 그 게이트의 검사 대상이 공집합이 되어 통과처럼 보인다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
+
+    ```bash
+    S=.ai/90_issues/archive/issue-0147/issue-0147-summary.md
+    awk '
+      /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
+      o && /^- \*\*결과\*\*:/ {
+        if ($0 ~ /^- \*\*결과\*\*: (완료|부분 완료|스킵)[[:space:]]*$/) v++
+        else if (!n) b++
+      }
+      END { if (o && !n && v != 1) b++; print b+0 }
+    ' "$S"
+    ```
+
+    - 설계 주의: 총개수 비교는 한 블록의 미확정을 다른 블록의 중복 행으로 상쇄해도 통과하므로 블록 단위로 센다.
+    - 의존 근거: 아래 게이트의 "`수행 모델` 값 필수" 조건은 `결과`가 완료·부분 완료인 블록에서만 발동하도록 걸려 있다.
+    </details>
+  - [D] 완료·부분 완료 Task의 `수행 모델`이 비어 있지 않고 `-`도 아닌 행 정확히 1개(`-`는 미착수·스킵 전용)이며, 아래 교차 벤더 조건의 선행 조건이라 전부 `-`로 남기면 그 조건이 공집합이 되어 우회가 된다
+    <details>
+    <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
+
+    ```bash
+    S=.ai/90_issues/archive/issue-0147/issue-0147-summary.md
+    awk '
+      /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
+      o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }
+      o && /^- \*\*수행 모델\*\*:/ { t++; if ($0 ~ /^- \*\*수행 모델\*\*: [^-[:space:]]/) m++ }
+      END { if (o && !n && d && (t != 1 || m != 1)) b++; print b+0 }
+    ' "$S"
+    ```
+
+    - 설계 주의: 리터럴 `-`만 거부하면 빈 값·행 누락·중복이 통과하므로 "없음"의 세 형태와 중복을 전부 실패로 센다.
+    - 의존 근거: 아래 교차 벤더 조건은 비어 있지 않은 `수행 모델` 값에서만 벤더를 뽑아 대조한다.
+    </details>
+  - [QD] summary `모델 기록` 표의 `구현 모델`·`최종 audit 모델` 두 행이 "벤더, 모델명 (모델 ID)" 형식으로 채워지고 서로 다른 벤더  (검증: 두 행의 벤더를 대조해 채점)  ← 강등 사유: 벤더 토큰 추출이 자유 문자열 의미 대조라 명령으로 환원하면 표기 변형에 취약하다
+  - [QD] 구현에 여러 벤더가 관여했으면 최종 audit 모델의 벤더가 Task 0 및 일반 실행 Task의 비어 있지 않은 모든 `수행 모델` 값에 나열된 벤더 전부와도 상이  (검증: `수행 모델` 행을 전수 추출해 audit 벤더와 대조 채점)  ← 강등 사유: 위와 같음. 표의 대표값 비교만으로는 audit 벤더의 구현 참여를 놓치고, 한 Task를 여러 모델이 수행했으면 그 값에 나열된 벤더를 모두 비교 대상에 넣는다

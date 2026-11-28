@@ -1,6 +1,6 @@
 ---
-last_synced: 2026-11-07
-source_hash: cdcdb84
+last_synced: 2026-11-28
+source_hash: 2054c7b
 status: current
 ---
 

@@ -848,6 +848,41 @@ for w in '리포트를 `.ai/99_workspace/issue-<번호>-audit-report.md`에 저�
   acn '리포트 위치 전제' "issue-audit의 [$w] 삭제 격추" "$SKILL" "$PR_TPL" "$AUDIT_TPL" "$P/acn-audit-skill.md"
 done
 
+# --- 로케일 회귀 ----------------------------------------------------------------
+#
+# bash 의 case 대괄호 범위 `[!0-9a-fA-F]` 는 en_US.UTF-8 에서 `é` 를 `a`~`f` 범위에 넣어 SHA 형식 검사를 통과시킨다.
+# 같은 입력을 C.UTF-8 과 en_US.UTF-8 로 한 번씩 헬퍼에 넣어, 표준 출력과 표준 오류를 합친 출력과
+# 종료 코드가 같은지 본다. 이 케이스만 헬퍼를 부를 때 로케일을 명시한다.
+# en_US.UTF-8 이 없는 머신에서는 비교할 쌍이 없으므로 건너뛴 사실만 남기고 실패로 세지 않는다.
+
+# grep -q 는 첫 일치에서 끝나 locale 이 SIGPIPE 로 죽고, pipefail 아래에서는 파이프라인이 실패가 된다.
+# 그래서 -q 를 쓰지 않고 끝까지 읽은 뒤 출력을 버린다.
+has_en_us=0
+locale -a 2>/dev/null | grep -iE '^en_US\.utf-?8$' > /dev/null && has_en_us=1
+
+flat() { printf '%s' "$1" | tr '\n' ' '; }
+
+# assert_locale_same <설명> <헬퍼 인자...>
+assert_locale_same() {
+  local desc="$1"; shift
+  local out_c out_en rc_c rc_en
+  if [ "$has_en_us" -ne 1 ]; then
+    ok "$desc — 건너뜀 (en_US.UTF-8 없음)"
+    return
+  fi
+  out_c="$(LC_ALL=C.UTF-8 "$SUBMIT" "$@" 2>&1)"; rc_c=$?
+  out_en="$(LC_ALL=en_US.UTF-8 "$SUBMIT" "$@" 2>&1)"; rc_en=$?
+  if [ "$rc_c" -eq "$rc_en" ] && [ "$out_c" = "$out_en" ]; then
+    ok "$desc"
+  else
+    ng "$desc (C.UTF-8: rc=$rc_c, 출력: $(flat "$out_c") / en_US.UTF-8: rc=$rc_en, 출력: $(flat "$out_en"))"
+  fi
+}
+
+# 작업 디렉토리는 위 "제출 가드" 절의 임시 저장소($TMP/work)다.
+assert_locale_same '로케일: --expect 가 ébcdef0' --branch main --expect 'ébcdef0'
+assert_locale_same '로케일: 로컬 head 일치' --branch main --expect "$main_sha"
+
 echo "-----"
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

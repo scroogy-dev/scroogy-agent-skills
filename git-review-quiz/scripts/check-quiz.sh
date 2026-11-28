@@ -39,6 +39,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 헤더를 같다고 보아, 헤더 개수를 잘못 센다.
+export LC_ALL=C
+
 usage() { sed -n '3,38p' "$0" | sed 's/^# \{0,1\}//'; }
 
 target=''

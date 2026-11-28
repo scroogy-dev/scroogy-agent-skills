@@ -17,6 +17,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 문자열을 같다고 보아, 러너 안의 결정 목록 대조(ide_decision_violations)와 소유 구간 검사가 틀린다.
+export LC_ALL=C
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL="$HERE/../SKILL.md"
 CHECK="$HERE/../scripts/check-context.sh"
@@ -2220,6 +2223,61 @@ prof_kill '일반 검사 잔존 문구 경계 들여쓰기 제거' prof_section_
 prof_kill '쓰기 펜스·주석 제외 제거' prof_scope '범위 쓰기 결과' sync sub_str '!ended && !fence_ch && !in_comment && ' '!ended && '
 prof_kill '쓰기 행 정리 제거' prof_write '행 정리 결과' sync sub_str 'if (rows > 1) { keep = 0; changed = 1 }' 'if (rows > 1) { changed = 1 }'
 prof_kill '쓰기 값 비교 제거' prof_write '표기 차이 출력' sync sub_str 'else if (cell($0, 3) != value) { out = row; changed = 1 }' 'else { out = row; changed = 1 }'
+
+# --- 로케일 회귀 ----------------------------------------------------------------
+#
+# macOS awk 의 == 는 en_US.UTF-8 에서 길이가 같은 서로 다른 한글 문자열을 같다고 본다.
+# 같은 입력을 C.UTF-8 과 en_US.UTF-8 로 한 번씩 헬퍼에 넣어, 표준 출력과 표준 오류를 합친 출력과
+# 종료 코드가 같은지 본다. 이 케이스만 헬퍼를 부를 때 로케일을 명시한다.
+# en_US.UTF-8 이 없는 머신에서는 비교할 쌍이 없으므로 건너뛴 사실만 남기고 실패로 세지 않는다.
+#
+# 입력은 날짜를 바꾼 템플릿 사본에서 만든다. 원본 템플릿은 날짜 자리표시자 때문에 두 로케일 모두
+# 첫 줄 검사에서 끝나 한글 비교에 닿지 않는다. 경계 입력 둘은 한글 헤더를 같은 길이의 다른 글자로
+# 바꿔, 바이트 비교와 en_US.UTF-8 비교의 결과가 갈리는 자리를 직접 지난다.
+#   - profile_state 경로(`h == "## 프로젝트 도메인"`): 기본 모드는 섹션을 찾는 grep 이 먼저 걸려
+#     이 비교에 닿지 않으므로 `--profile` 모드로 넣는다.
+#   - dev_residue 경로(`h == head`): doc 사본의 `## 에이전트 운영 지침` 앞에 같은 길이의 다른 헤더를 두고
+#     dev 표준 우선순위 문구를 넣는다.
+
+# grep -q 는 첫 일치에서 끝나 locale 이 SIGPIPE 로 죽고, pipefail 아래에서는 파이프라인이 실패가 된다.
+# 그래서 -q 를 쓰지 않고 끝까지 읽은 뒤 출력을 버린다.
+has_en_us=0
+locale -a 2>/dev/null | grep -iE '^en_US\.utf-?8$' > /dev/null && has_en_us=1
+
+# assert_locale_same <설명> <헬퍼 인자...>
+assert_locale_same() {
+  local desc="$1"; shift
+  local out_c out_en rc_c rc_en
+  if [ "$has_en_us" -ne 1 ]; then
+    ok "$desc — 건너뜀 (en_US.UTF-8 없음)"
+    return
+  fi
+  out_c="$(LC_ALL=C.UTF-8 "$CHECK" "$@" 2>&1)"; rc_c=$?
+  out_en="$(LC_ALL=en_US.UTF-8 "$CHECK" "$@" 2>&1)"; rc_en=$?
+  if [ "$rc_c" -eq "$rc_en" ] && [ "$out_c" = "$out_en" ]; then
+    ok "$desc"
+  else
+    ng "$desc (C.UTF-8: rc=$rc_c, 출력: $(printf '%s' "$out_c" | tr '\n' ' ') / en_US.UTF-8: rc=$rc_en, 출력: $(printf '%s' "$out_en" | tr '\n' ' '))"
+  fi
+}
+
+LOC="$TMP/locale"; mkdir -p "$LOC"
+prepare "$TPL_DIR/dev/.ai/AI-CONTEXT.md" "$LOC/dev.md"
+prepare "$TPL_DIR/doc/.ai/AI-CONTEXT.md" "$LOC/doc.md"
+sed 's/^## 프로젝트 도메인$/## 프로젝트 도매인/' "$LOC/dev.md" > "$LOC/profile-state.md"
+prio_dev="$(sed -n "s/^PRIO_DEV='\(.*\)'\$/\1/p" "$CHECK")"
+awk -v p="$prio_dev" '$0 == "## 에이전트 운영 지침" { print "## 에이전트 운영 지칩"; print ""; print p; print "" } { print }' \
+  "$LOC/doc.md" > "$LOC/dev-residue.md"
+
+# 경계 입력이 실제로 바뀌었는지 먼저 본다. 바뀌지 않으면 비교 경로에 닿지 않아 케이스가 헛돈다.
+if cmp -s "$LOC/dev.md" "$LOC/profile-state.md" || [ -z "$prio_dev" ] || cmp -s "$LOC/doc.md" "$LOC/dev-residue.md"; then
+  ng '로케일: 경계 입력 준비 — 템플릿 헤더나 PRIO_DEV 를 찾지 못해 입력이 바뀌지 않음'
+fi
+
+assert_locale_same '로케일: 정상 dev 사본' "$LOC/dev.md"
+assert_locale_same '로케일: 정상 doc 사본' "$LOC/doc.md"
+assert_locale_same '로케일: profile_state 경로 (--profile, 프로젝트 도매인)' --profile "$LOC/profile-state.md"
+assert_locale_same '로케일: dev_residue 경로 (에이전트 운영 지칩)' "$LOC/dev-residue.md"
 
 echo "-----"
 echo "passed: $pass, failed: $fail"

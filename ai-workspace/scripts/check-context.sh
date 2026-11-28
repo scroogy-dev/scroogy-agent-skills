@@ -29,6 +29,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. macOS awk 의 == 는 en_US.UTF-8 에서 서로 다른 한글 헤더를 같다고 보아, 섹션과 profile 행을 잘못 찾는다.
+export LC_ALL=C
+
 usage() { sed -n '3,28p' "$0" | sed 's/^# \{0,1\}//'; }
 
 SSOT_LINE_DEV='> SSoT: 소스 코드. 이 파일은 안내도일 뿐 진실의 원천이 아니다.'

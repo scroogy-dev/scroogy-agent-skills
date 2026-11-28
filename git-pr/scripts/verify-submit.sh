@@ -26,6 +26,9 @@
 
 set -o pipefail
 
+# 문자열을 바이트로 견준다. bash 의 case 대괄호 범위 `[!0-9a-fA-F]` 는 en_US.UTF-8 에서 `é` 를 `a`~`f` 범위에 넣어, SHA 형식이 아닌 --expect 를 통과시킨다.
+export LC_ALL=C
+
 usage() { sed -n '3,26p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # normalize <URL> — `호스트/소유자/저장소` 를 출력한다. 파싱 실패는 종료 코드 1.
