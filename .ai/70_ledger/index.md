@@ -72,6 +72,7 @@ AI는 작업 시 이 파일을 먼저 읽고, 관련된 항목만 선택적으�
 | [K-0052](active/K-0052-ledger-link-check-code-span-false-positive.md) | 원장 링크 검사 헬퍼가 코드 스팬·코드 블록 안의 링크 문자열도 끊긴 링크로 보고한다 | known issue | 낮음(LOW) | 수용 | 코드 스팬·코드 블록 안의 링크 문자열 오탐 때문에 맞는 경로를 고치거나 끊긴 링크를 놓친 사례가 다시 관측될 때, 또는 `check-ledger-links.sh`의 링크 추출 구간을 바꿀 때 |
 | [K-0053](active/K-0053-issue-0150-ac6-history-number-boundary.md) | 이슈 #150 AC6 검증 명령이 재검토 이력의 이슈 번호 뒤 경계를 보지 않아 `#1500`도 `#150`으로 인정한다 | known issue | 낮음(LOW) | 수용 | 이슈 #150 plan `테스트 계획`의 AC6 검증 명령을 다른 이유로 고칠 때, 또는 같은 `#<번호>` 패턴을 다른 이슈의 검증 명령에 옮겨 쓸 때 |
 | [K-0054](active/K-0054-runner-branch-fixture-inherits-git-env.md) | 퀴즈·리뷰 러너의 브랜치 수집 fixture가 물려받은 Git 환경 변수로 호출한 쪽 저장소의 인덱스에 쓴다 | known issue | 중간(MEDIUM) | 수용 | 두 러너 가운데 하나를 Git 훅·CI 등 Git 환경 변수가 설정되는 곳에서 부르게 될 때, 러너 실행 뒤 인덱스나 스테이징 상태가 바뀐 사례 관측 시, 또는 두 러너의 Git 준비 절(`GIT_CONFIG_NOSYSTEM`·`GIT_CEILING_DIRECTORIES`를 내보내는 곳)을 고칠 때 |
+| [K-0055](active/K-0055-issue-work-change-detection-shared-ledger-file.md) | issue-work의 바뀌었는지 판별이 일반 Task가 고친 원장 파일이면 다른 행의 변경까지 구현 변경으로 센다 | known issue | 낮음(LOW) | 수용 | 같은 원인으로 감사를 다시 받거나 예외 판단을 다시 하게 된 사례가 또 관측될 때, 또는 issue-work `### 구현 검증`의 `바뀌었는지의 판별` 조항을 고칠 때 |
 
 ## 수명 주기
 
