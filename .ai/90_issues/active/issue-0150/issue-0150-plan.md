@@ -52,7 +52,7 @@
 | AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
 |----|------|----|--------|---------------------|------|
 | AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `브랜치 수집: 미추적 새 파일` (커밋 1개 위에 미추적 새 파일을 둔 임시 저장소에서 퀴즈 사본 `--base <merge-base>`의 정렬한 목록이 기대 목록 전체와 같고, patch에 새 파일의 내용 행이 추가 줄로 있다) | - |  |
-| AC2 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `브랜치 수집: 작업공간·무시 파일 제외` (`.ai/99_workspace/temp_review_quiz_branch-x.md`와 `.gitignore`에 걸린 미추적 파일을 둔 임시 저장소에서 정렬한 목록이 기대 목록 전체와 같다) | - |  |
+| AC2 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `브랜치 수집: 작업공간·무시 파일 제외` (`.ai/99_workspace/temp_review_quiz_branch-x.md`와 `.gitignore`에 걸린 미추적 파일, 제외 대상이 아닌 미추적 새 파일 1건을 둔 임시 저장소에서 종료 코드가 0이고, 정렬한 목록이 그 1건이 든 비어 있지 않은 기대 목록 전체와 같다) | - |  |
 | AC3 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `사본 대조: git-review collect-branch-changes.sh 와 바이트 동일` (`cmp -s`, 퀴즈 사본 실행 권한 포함) | - |  |
 | AC4 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `조항 수집 실패:` 현재 본문 통과와 변형 격추 (2단계에 실패 판정·퀴즈 파일 미작성·실패한 명령과 사유 안내 문구) | - |  |
 | AC5 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `조항 브랜치 수집:` 현재 본문 통과와 변형 격추 (2단계에 헬퍼 호출 `--base "$mb"`·미추적 새 파일·`.ai/99_workspace/`·무시 규칙 문구, 옛 `git diff "$(git merge-base` 명령과 "작업 트리 변경까지 포함" 문장 0건) | - |  |
@@ -70,10 +70,13 @@ head -n 1 "$F" | grep -F 'git-review-quiz' > /dev/null || echo '제목'
 grep -E '^- \*\*재검토 조건\*\*:.*git-review-quiz' "$F" > /dev/null || echo '재검토 조건'
 awk '/^## 내용$/ { f = 1; next } /^## / { f = 0 } f' "$F" | grep -F 'git-review-quiz' > /dev/null || echo '내용'
 awk '/^## 재검토 이력$/ { f = 1; next } /^## |^<details>/ { f = 0 } f' "$F" | grep -E '^\| .*#150' > /dev/null || echo '재검토 이력'
-grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | grep -F 'git-review-quiz' > /dev/null || echo 'index 행'
+grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | awk -F'|' '
+  { if (index($3, "git-review-quiz") == 0) print "index 제목"; if (index($7, "git-review-quiz") == 0) print "index 재검토 조건" }
+  END { if (NR != 1) print "index 행 수" }'
 ```
 
 - 설계 주의: `grep -q`는 pipefail 아래에서 앞 명령을 SIGPIPE로 끊을 수 있어 `> /dev/null`로 끝까지 읽는다.
+- 설계 주의: index 행은 제목 열(`$3`)과 재검토 조건 열(`$7`)을 따로 본다. 행 전체에서 찾으면 한 열만 고쳐도 통과한다. K-0031 행의 칸 안에는 `|`가 없다.
 
 </details>
 
@@ -141,7 +144,7 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | grep -F 'git-review-quiz' > /d
   - 러너 머리의 헬퍼 존재 검사는 기존 `CHECK`처럼 러너 전체를 멈추지 않는다. 사본이 없으면 위 세 케이스만 실패로 센다.
   - **실패 확인**: repo 루트에서 `bash git-review-quiz/tests/run-tests.sh`를 실행해 위 세 케이스가 `NOT OK`인 것을 보고 테스트 커밋을 만든다.
 - **구현**:
-  1. `git-review/scripts/collect-branch-changes.sh` 머리 주석 5행(규칙 SSoT 안내)을 설계 결정의 사본 안내 형식으로 고친다. 코드는 바꾸지 않는다.
+  1. `git-review/scripts/collect-branch-changes.sh` 머리 주석에서 git-review만 가리키는 세 행을 두 스킬에 맞는 문구로 고친다. 3행 요약("git-review 브랜치 모드의 변경과 표시한 경로")은 두 스킬 공통으로, 5행 규칙 SSoT 안내는 설계 결정의 사본 안내 형식으로, 11행("대상 수집 2단계는 merge-base 커밋의 해시를 미리 구해 넘긴다")은 두 스킬의 해당 단계를 함께 가리키게 고친다. 코드는 바꾸지 않는다.
   2. 고친 원본을 `cp -p`로 `git-review-quiz/scripts/collect-branch-changes.sh`에 복제한다.
   - **통과 확인**: `bash git-review-quiz/tests/run-tests.sh`와 `bash git-review/tests/run-tests.sh`가 모두 `failed: 0`으로 끝나는 것을 보고 구현 커밋을 만든다.
 
@@ -172,7 +175,7 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | grep -F 'git-review-quiz' > /d
 - **대상 요구사항**: R4
 - **테스트 먼저**: 쓰지 않음(원장 문서만 고치는 Task)
 - **구현**:
-  1. K-0031의 제목·`## 내용`·`재검토 조건`에 git-review-quiz 브랜치 모드를 더하고, `재검토 이력`에 2026-11-28 #150 행(계속 수용, 범위 확대)을 더한다.
+  1. K-0031의 제목·`## 내용`·`재검토 조건`에 git-review-quiz 브랜치 모드를 더하고, `재검토 이력`에 2026-11-28 #150 행(계속 수용, 범위 확대)을 더한다. `## 내용`에서 두 스킬 공통으로 넓히는 것은 `collect-branch-changes.sh`가 Git이 스테이징하는 내용을 대상으로 삼는 경계(첫 두 문장)뿐이다. 주변 코드를 작업 트리에서 찾아 읽는 내용, 발견의 성립을 수집한 내용으로 확인한다는 문장, spec R1의 네 성질은 git-review 한정이라고 적는다. 퀴즈에는 주변 파일 읽기 기준이 없다(spec 제외 목록).
   2. `.ai/70_ledger/index.md`의 K-0031 행 제목·재검토 조건을 같은 문장으로 고친다.
   - **통과 확인**: `테스트 계획`의 AC6 검증 명령이 출력 0건이고 `bash git-review-quiz/tests/run-tests.sh`가 `failed: 0`으로 끝나는 것을 보고 커밋한다.
 
@@ -186,7 +189,7 @@ grep -E '^\| \[K-0031\]' .ai/70_ledger/index.md | grep -F 'git-review-quiz' > /d
   1. **전체 회귀**: repo 전체 테스트와 `테스트 계획`의 `[D]` 줄을 모두 실행해 통과를 확인한다. `확인` 칸에 `이관`을 적은 줄은 실행하지 않는다.
   2. **색인**: 구현을 따라 적는 색인(코드맵 등)을 갱신한다. `.ai/60_codebase/git-review-quiz/quiz-call-flow.md`(2단계 트리·시퀀스의 브랜치 모드 수집), `.ai/60_codebase/index.md`(git-review-quiz 행)
   3. **충족 AC 체크**: 마지막 교차 감사 리포트가 충족으로 판정한 AC를 spec 완료의 정의에서 체크한다.
-  4. **repo 고유 마무리**: `.ai/AI-CONTEXT.md` 디렉토리 구조의 `git-review-quiz/scripts/`·`tests/` 설명, `.ai/50_adr/active/0027-git-review-quiz-explanation-sections-and-html-output.md`에 브랜치 모드 수집 사본 결정 한 줄과 `.ai/50_adr/index.md` 0027 행
+  4. **repo 고유 마무리**: `.ai/AI-CONTEXT.md` 디렉토리 구조의 `git-review-quiz/scripts/`·`tests/` 설명
   5. **--clear**: issue-work `--clear`로 이슈 기록을 정리한다. 이슈 댓글 등록은 사용자 승인을 받는다.
   6. **PR**: git-pr로 만든다. 제출은 사용자 승인을 받고, PR 뒤의 리뷰 피드백은 git-pr-feedback으로 처리한다.
 - **완료 기준**:
