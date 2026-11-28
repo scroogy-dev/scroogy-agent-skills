@@ -234,7 +234,7 @@ AC가 직접 가리키는 산출물은 여기로 미루지 않고 일반 Task에
 `--clear`가 archive 이관 직전에 이 체크박스를 체크하고 PR은 그 뒤에 만든다. PR을 만든 뒤에는 이슈 문서를 고치지 않는다.
 -->
 
-- [ ] 완료
+- [x] 완료
 - **목표**: 구현을 따라 적는 문서와 이슈 기록을 정리하고 PR을 만든다.
 - **작업 내용**:
   1. **전체 회귀**: repo 전체 테스트와 `테스트 계획`의 `[D]` 줄을 모두 실행해 통과를 확인한다. `확인` 칸에 `이관`을 적은 줄은 실행하지 않는다. repo 전체 테스트는 `LC_ALL`을 비운 셸(기본 `LANG`)에서 실행한다. `LC_ALL=C`를 물려받으면 spec 제외에서 보류한 issue-audit 러너의 실패가 섞이기 때문이다. AC3·AC4·AC6 줄은 적힌 대로 `LC_ALL=en_US.UTF-8`을 붙여 실행한다.
@@ -251,8 +251,8 @@ AC가 직접 가리키는 산출물은 여기로 미루지 않고 일반 Task에
     <summary>검증 명령 — repo 루트에서 실행, 출력 0건이면 통과</summary>
 
     ```bash
-    P=.ai/90_issues/active/issue-0147/issue-0147-plan.md
-    S=.ai/90_issues/active/issue-0147/issue-0147-summary.md
+    P=.ai/90_issues/archive/issue-0147/issue-0147-plan.md
+    S=.ai/90_issues/archive/issue-0147/issue-0147-summary.md
     { grep -qE '^### Task ' "$P" && grep -qE '^### Task ' "$S" \
       && diff <(grep -E '^### Task ' "$P") <(grep -E '^### Task ' "$S") \
       || echo '위반: 입력 접근 실패 또는 Task 집합 불일치'; }
@@ -266,7 +266,7 @@ AC가 직접 가리키는 산출물은 여기로 미루지 않고 일반 Task에
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0147/issue-0147-summary.md
+    S=.ai/90_issues/archive/issue-0147/issue-0147-summary.md
     awk '
       /^### Task / { if (o && !n && v != 1) b++; o = 1; v = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*:/ {
@@ -285,7 +285,7 @@ AC가 직접 가리키는 산출물은 여기로 미루지 않고 일반 Task에
     <summary>검증 명령 — repo 루트에서 실행, 출력 0이면 통과</summary>
 
     ```bash
-    S=.ai/90_issues/active/issue-0147/issue-0147-summary.md
+    S=.ai/90_issues/archive/issue-0147/issue-0147-summary.md
     awk '
       /^### Task / { if (o && !n && d && (t != 1 || m != 1)) b++; o = 1; d = 0; t = 0; m = 0; n = ($0 ~ /^### Task N/) }
       o && /^- \*\*결과\*\*: (완료|부분 완료)[[:space:]]*$/ { d = 1 }
