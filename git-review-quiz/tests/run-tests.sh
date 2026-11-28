@@ -664,7 +664,8 @@ clause_branch_collect() {
   c="$(collect_sec "$1")"
   [ -n "$c" ] || { echo '2단계 소절'; return; }
   for p in 'mb="$(git merge-base "$base" HEAD)"' "'<skill 디렉토리>/scripts/collect-branch-changes.sh' --base \"\$mb\"" \
-           '"${mb}..HEAD"' '미추적 새 파일' '무시 규칙에 걸린 미추적 파일' '`.ai/99_workspace/` 아래 미추적 파일'; do
+           '"${mb}..HEAD"' '미추적 새 파일' '무시 규칙에 걸린 미추적 파일' '`.ai/99_workspace/` 아래 미추적 파일' \
+           '디렉토리 이름의 대소문자'; do
     has_txt "$c" "$p" || echo "브랜치 수집: $p"
   done
   ! grep -qF 'git diff "$(git merge-base' "$1" || echo '옛 git diff 명령 잔존'
@@ -681,6 +682,18 @@ clause_collect_fail() {
   done
 }
 
+# assert_clause_hit <그룹> <함수> <변형 이름> <기대 위반 행> <파일>
+# 출력에 기대 위반 행이 그대로 있을 때만 격추로 본다. 다른 위반 하나로 격추된 것처럼 보이는 일을 막는다.
+assert_clause_hit() {
+  local g="$1" fn="$2" v="$3" want="$4" out
+  out="$("$fn" "$5")"
+  if printf '%s\n' "$out" | grep -xF -- "$want" > /dev/null; then
+    ok "조항 $g: $v 격추"
+  else
+    ng "조항 $g: $v 격추 (기대 위반 행 없음 [$(flat "$out")])"
+  fi
+}
+
 # 옛 명령 복원 변형: merge-base 행 뒤에 옛 `git diff` 명령 행을 되살린다.
 awk '{ print } index($0, "mb=\"$(git merge-base") == 1 { print "git diff \"$(git merge-base \"$base\" HEAD)\"" }' \
   "$SKILL" > "$tmpdir/clause-old-diff.md"
@@ -694,6 +707,13 @@ assert_clause '브랜치 수집' clause_branch_collect '작업공간 경로 삭�
 assert_clause '브랜치 수집' clause_branch_collect '옛 git diff 명령 복원' "$tmpdir/clause-old-diff.md"
 assert_clause '브랜치 수집' clause_branch_collect '옛 수집 범위 문장 복원' \
   "$(clause_mutant old-scope -e 's/^- PR 모드는 `gh pr diff`로/& 작업 트리 변경까지 포함/')"
+assert_clause_hit '브랜치 수집' clause_branch_collect '대소문자 경계 문장 삭제' '브랜치 수집: 디렉토리 이름의 대소문자' \
+  "$(clause_mutant no-case -e 's/디렉토리 이름의 대소문자//g')"
+assert_clause_hit '브랜치 수집' clause_branch_collect '목록·patch 사용 조항 삭제' '브랜치 수집: 헬퍼가 낸 목록' \
+  "$(clause_mutant no-list -e '/^  - \*\*변경 파일 목록\*\*:/d')"
+assert_clause_hit '브랜치 수집' clause_branch_collect 'patch 입력 문구 삭제' \
+  '브랜치 수집: 그 뒤 빈 줄 다음의 patch를 퀴즈 입력으로 씁니다' \
+  "$(clause_mutant no-patch -e 's/그 뒤 빈 줄 다음의 patch를 퀴즈 입력으로 씁니다//')"
 
 assert_clause '수집 실패' clause_collect_fail - "$SKILL"
 assert_clause '수집 실패' clause_collect_fail '실패 판정 문구 삭제' \
@@ -702,6 +722,10 @@ assert_clause '수집 실패' clause_collect_fail '퀴즈 파일 미작성 문�
   "$(clause_mutant fail-nofile -e 's/퀴즈 파일(md·HTML)을 만들지 않고//')"
 assert_clause '수집 실패' clause_collect_fail '실패한 명령과 사유 문구 삭제' \
   "$(clause_mutant fail-reason -e 's/실패한 명령과 사유를 알립니다//')"
+assert_clause '수집 실패' clause_collect_fail 'merge-base 실패 조건 삭제' \
+  "$(clause_mutant fail-mb -e 's/merge-base를 구하지 못했거나 //')"
+assert_clause '수집 실패' clause_collect_fail '빈 출력 판정 뒤집기' \
+  "$(clause_mutant fail-empty -e 's/수집 실패가 아니라 변경 파일 0개입니다/수집 실패입니다/')"
 
 # --- 로케일 회귀 ----------------------------------------------------------------
 #
