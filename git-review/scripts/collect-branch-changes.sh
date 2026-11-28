@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 #
-# collect-branch-changes.sh — git-review 브랜치 모드의 변경과 표시한 경로를 결정적으로 모은다.
+# collect-branch-changes.sh — 브랜치 모드의 변경(git-review·git-review-quiz)과 표시한 경로(git-review)를 결정적으로 모은다.
 #
-# SKILL.md "## 대상 수집"의 2단계(브랜치 모드)·3단계가 규칙의 SSoT 이며 이 스크립트는 그것을 옮긴 사본이다.
+# git-review SKILL.md "## 대상 수집"의 2단계(브랜치 모드)·3단계가 규칙의 SSoT 이며 이 스크립트는 그것을 옮긴 사본이다.
+#
+# 같은 파일이 git-review·git-review-quiz 의 scripts/ 에 있다.
+# 스킬 독립성 원칙(단독 실행·단독 설치)상 헬퍼를 공유하지 않는다.
+# 두 파일은 바이트 단위로 같고 한쪽을 고치면 다른 쪽도 고친다.
 #
 # --base 는 merge-base 와 "지금 작업 트리를 전부 스테이징해 커밋하면 들어갈 내용"의 차이를 낸다.
 #   실제 인덱스의 사본에서 추적 파일을 작업 트리의 내용·모드로 갱신하고(`git add -u`) `.ai/99_workspace/` 밖의
 #   미추적 파일을 더한(`git add -A`) 스냅샷을 임시 인덱스·임시 객체 디렉토리에 만들어 merge-base 트리와 견준다.
 #   무엇이 스테이징되는지는 Git 이 정한다(무시 규칙, 변경을 보지 않도록 표시한 경로, 하위 모듈, 내용 변환 필터 등).
-#   대상 수집 2단계는 merge-base 커밋의 해시를 미리 구해 넘긴다. 그 해시가 HEAD 의 조상이면 결과는 그 해시 기준이다.
+#   git-review 대상 수집 2단계와 git-review-quiz 2단계는 merge-base 커밋의 해시를 미리 구해 넘긴다.
+#   그 해시가 HEAD 의 조상이면 결과는 그 해시 기준이다.
 #   목록과 patch 는 사용자 diff 설정을 읽지 않는 `git diff-index --cached` 로 한 스냅샷에서 함께 낸다.
 #
 # --marked 는 변경을 보지 않도록 표시한 경로(assume-unchanged, skip-worktree)를 낸다. 실제 인덱스를 읽기만 한다.
