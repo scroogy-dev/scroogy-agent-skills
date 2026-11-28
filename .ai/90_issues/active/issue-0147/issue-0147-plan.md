@@ -60,14 +60,14 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 
 | AC | 레벨 | 층 | 테스트 | 단위로 못 보는 이유 | 확인 |
 |----|------|----|--------|---------------------|------|
-| AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-quiz.sh` 회귀 케이스(정상 fixture와 위반 fixture) | - | 최종 1차 |
-| AC2 | [D] | 단위 | `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-context.sh` 회귀 케이스(날짜를 바꾼 dev·doc 템플릿 사본, `profile_state` 경로 입력, `dev_residue` 경로 입력. 입력은 Task 2) | - | 최종 1차 |
-| AC3 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
-| AC4 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
-| AC5 | [D] | 단위 | `ai-workspace-directory/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-lobby.sh` 회귀 케이스(정상 `lobby-good.md`, status 칸을 `active예정`으로 바꾼 사본. 입력은 Task 5) | - |  |
-| AC5 | [D] | 단위 | `git-pr/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-submit.sh` 회귀 케이스(`--expect`가 `ébcdef0`. 입력은 Task 5) | - |  |
-| AC5 | [D] | 단위 | `git-pr-feedback/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-push.sh` 회귀 케이스(`--head-oid`가 `ébcdef0`. 입력은 Task 5) | - |  |
-| AC6 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 1차 |
+| AC1 | [D] | 단위 | `git-review-quiz/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-quiz.sh` 회귀 케이스(정상 fixture와 위반 fixture) | - | 최종 2차 |
+| AC2 | [D] | 단위 | `ai-workspace/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-context.sh` 회귀 케이스(날짜를 바꾼 dev·doc 템플릿 사본, `profile_state` 경로 입력, `dev_residue` 경로 입력. 입력은 Task 2) | - | 최종 2차 |
+| AC3 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash git-review-quiz/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 2차 |
+| AC4 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash ai-workspace/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 2차 |
+| AC5 | [D] | 단위 | `ai-workspace-directory/tests/run-tests.sh`: `로케일:`으로 시작하는 `check-lobby.sh` 회귀 케이스(정상 `lobby-good.md`, status 칸을 `active예정`으로 바꾼 사본. 입력은 Task 5) | - | 최종 2차 |
+| AC5 | [D] | 단위 | `git-pr/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-submit.sh` 회귀 케이스(`--expect`가 `ébcdef0`. 입력은 Task 5) | - | 최종 2차 |
+| AC5 | [D] | 단위 | `git-pr-feedback/tests/run-tests.sh`: `로케일:`으로 시작하는 `verify-push.sh` 회귀 케이스(`--head-oid`가 `ébcdef0`. 입력은 Task 5) | - | 최종 2차 |
+| AC6 | [D] | 단위 | `LC_ALL=en_US.UTF-8 bash issue-work/tests/run-tests.sh`의 마지막 줄이 `failed: 0`이고 종료 코드 0 | - | 최종 2차 |
 
 > **로케일 전제**: 위 표의 줄은 실행하는 머신에 `en_US.UTF-8`이 있어야 판정할 수 있다. 회귀 케이스가 `건너뜀`을 출력했거나 `locale -a`에 `en_US.UTF-8`(`en_US.utf8`)이 없으면, 러너가 `failed: 0`으로 끝나도 그 줄은 통과로 보지 않고 판정 불가(N/A)로 둔다(`.ai/10_rules/testing-principles.md` 전제 조건과 판정 불가). 로케일이 없으면 AC3·AC4·AC6의 `LC_ALL=en_US.UTF-8`은 `C`로 떨어져 원래의 실패가 나지 않기 때문이다.
 
@@ -75,7 +75,7 @@ plan 작성을 끝내기 직전에 수행하는 자기점검이며, 실행 Task�
 
 | AC | 레벨 | 누가 보나 | 이유 | 확인 |
 |----|------|-----------|------|------|
-| AC5 | [QD] | 교차 감사 | 헬퍼 5개의 확인 결과가 summary Task 4·Task 5에 빠짐없이 남았는지와, "비교 없음"으로 본 근거가 소스와 맞는지는 코드를 읽고 판단해야 한다 |  |
+| AC5 | [QD] | 교차 감사 | 헬퍼 5개의 확인 결과가 summary Task 4·Task 5에 빠짐없이 남았는지와, "비교 없음"으로 본 근거가 소스와 맞는지는 코드를 읽고 판단해야 한다 | 최종 2차 |
 
 ---
 
