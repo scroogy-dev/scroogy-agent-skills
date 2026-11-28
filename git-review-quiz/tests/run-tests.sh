@@ -665,7 +665,8 @@ clause_branch_collect() {
   [ -n "$c" ] || { echo '2단계 소절'; return; }
   for p in 'mb="$(git merge-base "$base" HEAD)"' "'<skill 디렉토리>/scripts/collect-branch-changes.sh' --base \"\$mb\"" \
            '"${mb}..HEAD"' '미추적 새 파일' '무시 규칙에 걸린 미추적 파일' '`.ai/99_workspace/` 아래 미추적 파일' \
-           '디렉토리 이름의 대소문자'; do
+           '디렉토리 이름의 대소문자' '헬퍼가 낸 목록' '그 뒤 빈 줄 다음의 patch를 퀴즈 입력으로 씁니다' \
+           '`git diff`·`git status`의 결과로 목록을 따로 만들거나 고치지 않습니다'; do
     has_txt "$c" "$p" || echo "브랜치 수집: $p"
   done
   ! grep -qF 'git diff "$(git merge-base' "$1" || echo '옛 git diff 명령 잔존'
@@ -676,8 +677,8 @@ clause_collect_fail() {
   local rows p
   rows="$(collect_sec "$1" | grep -E '^- \*\*수집 실패\*\*:')"
   [ "$(printf '%s' "$rows" | grep -c .)" -eq 1 ] || { echo '수집 실패 행 1개'; return; }
-  for p in '헬퍼의 종료 코드가 0이 아니면 수집 실패입니다' '퀴즈 파일(md·HTML)을 만들지 않고' \
-           '실패한 명령과 사유를 알립니다' '종료 코드 0에 출력이 없으면'; do
+  for p in 'merge-base를 구하지 못했거나' '헬퍼의 종료 코드가 0이 아니면 수집 실패입니다' '퀴즈 파일(md·HTML)을 만들지 않고' \
+           '실패한 명령과 사유를 알립니다' '종료 코드 0에 출력이 없으면 수집 실패가 아니라 변경 파일 0개입니다'; do
     has_txt "$rows" "$p" || echo "수집 실패: $p"
   done
 }
